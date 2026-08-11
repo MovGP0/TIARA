@@ -144,13 +144,23 @@ generated JSON export by hand. The database path is tracked by Git LFS through
 - The TIARA patch supplies the reconstructed PE section map that the rebuilt
   image no longer contains. `undelphi` then parses embedded Delphi `TPF0` form
   streams and uses Delphi RTTI and VMT method tables to resolve published event
-  handlers. The extractor rejects malformed form candidates and excludes
-  embedded image data and other binary property values.
+  handlers. Resolve child-control events against the owning form class because
+  Delphi stores these handlers on the form, not on `TButton` or another child
+  class. The extractor rejects malformed form candidates. It records image
+  indexes, image-list references, and embedded glyph or picture byte counts,
+  but it does not store embedded image bytes in the evidence JSON.
 - The UI extractor writes
   `DecompiledSources/Tina16/resources/dfm/ui-evidence.json`. This evidence file
   contains form and component trees, component classes, selected layout and UI
-  properties, captions, hints, event property names, handler names, and
-  resolved code addresses where available.
+  properties, captions, hints, text, list items, actions, image metadata, event
+  property names, handler names, and resolved code addresses where available.
+- Run `pwsh.exe -NoProfile -NoLogo -File analysis/Export-TinaGlyphs.ps1`
+  to extract embedded `Glyph.Data`, `Picture.Data`, and `Image.Data` resources.
+  The script writes raster files to `glyph/`, converts Delphi BMP resources to
+  PNG, preserves native icon or vector formats, and writes `glyph/manifest.json`.
+  The manifest maps each file to its form, component, property, dimensions,
+  source offset, byte counts, and SHA-256 hash. Use SVG only when the source is
+  vector data. Do not trace a raster bitmap into an invented vector path.
 - Run `python analysis/Build-TinaFunctionGraph.py` from the repository root.
 - The script reads the recovered Ghidra source and resource files in
   `DecompiledSources/`.
@@ -180,8 +190,38 @@ generated JSON export by hand. The database path is tracked by Git LFS through
   connects to an `unresolved-event-handler` concept node. Do not invent a
   function address for these handlers.
 - Resolved event-handler function nodes list their form, component, event,
-  handler, caption, and hint bindings. Tags identify click, mouse, and form
-  lifecycle handlers where applicable.
+  handler, caption, hint, text, items, action, image, button-kind, and modal
+  bindings. Tags identify click, mouse, and form lifecycle handlers where
+  applicable.
+- OnClick call-tree descriptions use one independent analysis pass for each
+  resolved handler. Start at the handler, follow application-relevant outgoing
+  calls, and inspect the recovered source at every proposed node. Add a role
+  only when call-site data flow and UI, resource, string, API, or repeated-caller
+  evidence establish a specific responsibility. Do not describe a function from
+  its symbol, proximity, or a generic call-graph position. Store accepted roles
+  in `ONCLICK_CALL_TREE_FUNCTIONS` in `Build-TinaFunctionGraph.py`.
+- For resource-first analysis, query `ui_event_resource_evidence`,
+  `ui_event_glyphs`, and `ui_event_nearby_labels` together. Inspect the
+  extracted image when it exists. A glyph can confirm direction, save, open,
+  stop, add, remove, or similar intent, but it cannot prove the target object
+  or implementation by itself. Confirm that meaning in the handler body,
+  call-tree data flow, a shared state consumer, or parallel controls.
+- A handler can communicate through a field instead of a direct call. Follow
+  proven readers of that field when they explain the control effect. Record the
+  field by offset when its Delphi name is unknown. If the handler is one `RET`
+  instruction, document it as a no-op only after the recovered bytes and call
+  graph agree.
+- Prioritize event analysis by evidence quality, not by a fixed control-class
+  list. Direct evidence includes captions, hints, text, list items, actions,
+  image metadata, built-in button kinds, modal results, selection state, and
+  default or cancel state. `ui_event_nearby_labels` supplies up to five labels
+  under the same parent in coordinate-distance order. Treat these labels as
+  candidates. Proximity alone does not prove that a label describes a control.
+- A button click is an `OnClick` trigger whose source node has the `ui-button`
+  tag. This covers `TButton`, `TBitBtn`, `TSpeedButton`, and `TToolButton` and
+  remains a useful convenience subset. Do not exclude check boxes, radio
+  buttons, labels, lists, editors, or custom controls when their resources give
+  stronger evidence.
 - Layer membership is exclusive. Do not place one node in multiple layers.
 - The `UI` layer contains application functions with direct UI evidence. This
   includes resolved DFM event handlers, application dialog construction, and
@@ -217,6 +257,56 @@ generated JSON export by hand. The database path is tracked by Git LFS through
   object destruction, and thread-local exception cleanup. They are runtime
   infrastructure hubs, not application features.
 
+## UI Control Click Articles
+
+- Run
+  `pwsh.exe -NoProfile -NoLogo -File analysis/Bootstrap-TinaControlDocs.ps1`
+  to create stable article paths under `docs/ui-controls/`. The bootstrap reads
+  every `OnClick` row from DuckDB and creates one article per control, one form
+  index, the root index, and `manifest.json`.
+- The bootstrap only supplies recovered resource fields, graph identities,
+  direct calls, source links, glyph links, nearby label candidates, and an
+  initial Mermaid click-flow diagram. It does not claim that it knows the
+  control's behavior. New articles have the status `Pending individual source
+  review`.
+- The bootstrap does not overwrite an existing article. This protects manual
+  agent analysis. Use `-Force` only when all reviewed article changes are known
+  to be disposable.
+- Run
+  `pwsh.exe -NoProfile -NoLogo -File analysis/Create-TinaControlDocumentationBeads.ps1`
+  after bootstrapping. The script creates one child of `TIARA-diz.6.7` for each
+  manifest row. It is resumable and identifies existing children by a stable
+  external reference. `docs/ui-controls/beads.json` maps article paths to Bead
+  IDs and status values.
+- Assign one control article to one analysis agent. The agent must claim the
+  matching Bead, use the Understand Explain graph neighborhood, read the
+  recovered handler and relevant callees, and inspect UI resource and glyph
+  evidence. Controls that share a Delphi handler still need separate articles
+  because the handler can branch on `Sender`, control state, or form fields.
+- When an agent establishes a function's responsibility, it must also create
+  `analysis/function-annotations/<bead-id>.json`. The fragment can describe the
+  handler and application-relevant callees. Use the format in
+  `analysis/function-annotations/README.md`. Do not add a generic description
+  merely because a function is in the call tree.
+- The graph generator loads annotation fragments in file-name order, combines
+  tags, and rejects conflicting field values. The orchestrator rebuilds the
+  DuckDB graph after each completed agent wave. Agents must not update the
+  DuckDB file directly because concurrent writers and later rebuilds can lose
+  those changes.
+- Replace the pending text only when the source and call path support a
+  specific explanation. Describe inputs, decisions, state changes, outputs,
+  error behavior, and no-op behavior where applicable. Keep unknown behavior
+  explicit. Do not turn a caption, hint, glyph, or nearby label into an
+  unsupported implementation claim.
+- Each reviewed article must contain a Mermaid `flowchart` that matches the
+  proven click path. Use fixed semantic node IDs and quoted labels. Keep the
+  diagram small enough to show the control, handler, important decisions, and
+  application-relevant callees.
+- Close the control Bead only after the pending status is removed, the article
+  is evidence-backed, local links exist, and Mermaid fences are balanced. If
+  the handler address or responsibility cannot be recovered, record the exact
+  gap in the Bead and leave it open.
+
 After generation, validate the graph against `graph.schema` and the Understand
 Anything core validator. The function-only reference contained 89,226 nodes and
 229,190 call edges. Form, control, handler, containment, and event nodes and
@@ -245,10 +335,22 @@ well. Array order is stored explicitly to make the JSON export deterministic.
   layer.
 - `tour_steps` stores ordered guided-tour JSON objects. It is empty until a
   tour is defined.
+- `glyph_resources` stores the extracted-image manifest. It includes the file,
+  format, form, component, property, dimensions, byte counts, offset, and hash.
 - `graph_statistics` reports node, edge, layer, and tour-step counts.
 - `node_layers` joins node IDs to layer IDs and names.
 - `function_calls` contains the `calls` edge subset.
 - `ui_events` contains the `triggers` edge subset with event and handler names.
+- `ui_event_resource_evidence` joins every event edge to its control and handler
+  nodes. It exposes text, list, action, image, modal, state, handler-address,
+  resolution, and evidence-classification columns.
+- `ui_event_nearby_labels` ranks up to five non-empty label candidates that
+  share the event source's form and parent. `coordinate_distance` is the
+  Manhattan distance between DFM `Left` and `Top` values.
+- `ui_event_glyphs` joins UI event sources to extracted glyph resources and
+  their resolved handler addresses.
+- `button_clicks` is the `OnClick` and `ui-button` subset of
+  `ui_event_resource_evidence`.
 - `knowledge_graph_document` reconstructs the complete dashboard-compatible
   JSON document. `Export-TinaGraphJson.ps1` reads this view.
 
@@ -258,4 +360,8 @@ Use read-only queries for investigation. For example:
 duckdb .understand-anything/knowledge-graph.duckdb -readonly -c "SELECT * FROM graph_statistics;"
 duckdb .understand-anything/knowledge-graph.duckdb -readonly -c "SELECT layer_name, count(*) FROM node_layers GROUP BY layer_name;"
 duckdb .understand-anything/knowledge-graph.duckdb -readonly -c "SELECT source, target FROM function_calls WHERE source = 'function:010a5240';"
+duckdb .understand-anything/knowledge-graph.duckdb -readonly -c "SELECT control_class, count(*), count(*) FILTER (WHERE hint <> '') FROM button_clicks GROUP BY control_class;"
+duckdb .understand-anything/knowledge-graph.duckdb -readonly -c "SELECT control_class, count(*), count(*) FILTER (WHERE has_direct_resource_evidence) FROM ui_event_resource_evidence GROUP BY control_class;"
+duckdb .understand-anything/knowledge-graph.duckdb -readonly -c "SELECT * FROM ui_event_nearby_labels WHERE control_node_id = 'resource:dfm:example.control' ORDER BY candidate_rank;"
+duckdb .understand-anything/knowledge-graph.duckdb -readonly -c "SELECT handler_address, component_path, file_name FROM ui_event_glyphs WHERE lower(event_name) = 'onclick';"
 ```

@@ -1,0 +1,34 @@
+{
+  "bead": "TIARA-diz.6.7.29",
+  "control": "AddCurveDlg.UpperPl.Panel2.FilterGB.CurrentsCB",
+  "functions": [
+    {
+      "address": "013cb340",
+      "recoveredRole": "Refresh the available-curve list after the Currents filter changes",
+      "likelyDelphiName": "TAddCurveDlg.CurrentsCBClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-current-curve-filter-toggle",
+      "behavior": "Passes the AddCurve form and a false override value to the shared list-rebuild function. The rebuilt available-curves list then reflects CurrentsCB.Checked together with the other category and text filters; the selected-curves list is unchanged.",
+      "evidence": "The DFM binds CurrentsCB.OnClick to address 013cb340. The recovered handler contains only FUN_013cab80(param_1, 0). FUN_013cab80 reads the checkbox at form offset +0x7a8 while it filters the complete signal collection and repopulates AvailableCurvesLB.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "curve-filter"
+      ]
+    },
+    {
+      "address": "013cab80",
+      "recoveredRole": "Rebuilds the Add Curve dialog filtered available-curve list",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-list-population",
+      "behavior": "Clears AvailableCurvesLB, scans the internal candidate catalog, excludes objects already present in CurveToInsertLB, applies the current category and text filters, and adds accepted item text and object references to the visible list.",
+      "evidence": "FUN_013cab80 clears the Items collection at form offset 0x778, iterates the candidate collection at 0x878, tests attached objects against CurveToInsertLB at 0x7e0 and filter controls, and adds accepted text and objects to AvailableCurvesLB. DeleteBtnClick calls it after catalog rebuild and application refresh calls.",
+      "tags": [
+        "application-ui",
+        "curve-management",
+        "ui-list-population"
+      ]
+    }
+  ]
+}

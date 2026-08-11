@@ -1,0 +1,43 @@
+﻿# frmDesignTool controls
+
+Identified OnClick controls: 39.
+
+- [Hide Parameters](cbhideparams-b2ffa83bc0.md) — `frmDesignTool.AdvancedPanel.gbInterpreter.pnPanelInterpreter.pnToolPanel.cbHideParams`
+- [New](sbfilenew-8ce17353a9.md) — `frmDesignTool.AdvancedPanel.gbInterpreter.pnPanelInterpreter.pnToolPanel.sbFileNew`
+- [Run](sbrun-cbb40025b3.md) — `frmDesignTool.AdvancedPanel.gbInterpreter.pnPanelInterpreter.pnToolPanel.sbRun`
+- [F](sbsetfont-27e98a2757.md) — `frmDesignTool.AdvancedPanel.gbInterpreter.pnPanelInterpreter.pnToolPanel.sbSetFont`
+- [Syntax Check](sbsyntaxcheck-a5deeafb4e.md) — `frmDesignTool.AdvancedPanel.gbInterpreter.pnPanelInterpreter.pnToolPanel.sbSyntaxCheck`
+- [Set Background](setbackground-1c957efaa4.md) — `frmDesignTool.AdvancedPanel.gbInterpreter.pnPanelInterpreter.pnToolPanel.SetBackground`
+- [bCancel](bcancel-e2e11aa255.md) — `frmDesignTool.ButtonPanel.bCancel`
+- [Save && Close](bsave-96877c90ab.md) — `frmDesignTool.ButtonPanel.bSave`
+- [Add to schematic](btnplace-4dbb837566.md) — `frmDesignTool.ButtonPanel.btnPlace`
+- [Copy](micopy-c63b53d229.md) — `frmDesignTool.mnMainMenu.mnEdit.miCopy`
+- [Cut](micut-aff78cac51.md) — `frmDesignTool.mnMainMenu.mnEdit.miCut`
+- [Delete](midelete-95b964bd5c.md) — `frmDesignTool.mnMainMenu.mnEdit.miDelete`
+- [Find...](mifind-53e39613ee.md) — `frmDesignTool.mnMainMenu.mnEdit.miFind`
+- [Paste](mipaste-84c1a2fea5.md) — `frmDesignTool.mnMainMenu.mnEdit.miPaste`
+- [Replace...](mireplace-91b6fcfa81.md) — `frmDesignTool.mnMainMenu.mnEdit.miReplace`
+- [Search Again](misearchagain-a1ca7efb8f.md) — `frmDesignTool.mnMainMenu.mnEdit.miSearchAgain`
+- [Select All](miselectall-100143c458.md) — `frmDesignTool.mnMainMenu.mnEdit.miSelectAll`
+- [Undo](miundo-9d140e0b30.md) — `frmDesignTool.mnMainMenu.mnEdit.miUndo`
+- [Open...](miopen-8dc23a3120.md) — `frmDesignTool.mnMainMenu.mnFile.miOpen`
+- [Save As...](misaveas-86ae324111.md) — `frmDesignTool.mnMainMenu.mnFile.miSaveAs`
+- [New](new1-7044122857.md) — `frmDesignTool.mnMainMenu.mnFile.New1`
+- [Run F9](runf91-afcf75c895.md) — `frmDesignTool.mnMainMenu.mnRun.RunF91`
+- [Numerical Format && Precisions](minumericalformat-6dfcd4fcf7.md) — `frmDesignTool.mnMainMenu.mnSettings.miNumericalFormat`
+- [Options](mioptions-dd00746a5d.md) — `frmDesignTool.mnMainMenu.mnSettings.miOptions`
+- [View symbol table](viewsymboltable1-5435493ff9.md) — `frmDesignTool.mnMainMenu.mnSettings.Viewsymboltable1`
+- [Opaque...](opaquemnu-3f61095c0d.md) — `frmDesignTool.pmBackground.Background1.OpaqueMnu`
+- [Transparent](transparentmnu-e81ecb7275.md) — `frmDesignTool.pmBackground.Background1.TransparentMnu`
+- [Dotted](dottedmnu-8445a626ba.md) — `frmDesignTool.pmBackground.Border1.DottedMnu`
+- [None](nonemnu-f6d0eb1985.md) — `frmDesignTool.pmBackground.Border1.NoneMnu`
+- [Solid](solidmnu-685cc50332.md) — `frmDesignTool.pmBackground.Border1.SolidMnu`
+- [Clear](mnclearterminal-e1226488fb.md) — `frmDesignTool.pmTerminal.mnClearTerminal`
+- [Copy](mncopyterminal-d0bc7db81d.md) — `frmDesignTool.pmTerminal.mnCopyTerminal`
+- [Save](mnsaveterminal-76ef587c83.md) — `frmDesignTool.pmTerminal.mnSaveTerminal`
+- [Select All](mnselectallterminal-2441b73917.md) — `frmDesignTool.pmTerminal.mnSelectAllTerminal`
+- [Less...](bmore-a808f21acd.md) — `frmDesignTool.SimplePanel.bMore`
+- [Restore](brestore-403e3750b6.md) — `frmDesignTool.SimplePanel.bRestore`
+- [Add Row](sbaddrow-b136c4376b.md) — `frmDesignTool.SimplePanel.sbAddRow`
+- [Delete Row](sbdeleterow-97750f2203.md) — `frmDesignTool.SimplePanel.sbDeleteRow`
+- [Run](sbmainrun-336e1202b5.md) — `frmDesignTool.SimplePanel.sbMainRun`

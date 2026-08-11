@@ -1,0 +1,119 @@
+﻿# DFWindow controls
+
+Identified OnClick controls: 115.
+
+- [Shift b to a](synchbtn-c451ad40a0.md) — `DFWindow.CursorPanel.Notebook1.Normal.NormalPC.SelectedCurves.nBGB.SynchBtn`
+- [Format](formatrg-1fa48088fc.md) — `DFWindow.CursorPanel.Notebook1.Nyquist.FormatRG`
+- [Format](smformatrg-000034143b.md) — `DFWindow.CursorPanel.Notebook1.Smith.SmFormatRG`
+- [&Edit](dfeditmnu-acd28845e8.md) — `DFWindow.DFMainMenu.DFEditMnu`
+- [&Post-processor...](addmorecurvesmnu-32eb66c525.md) — `DFWindow.DFMainMenu.DFEditMnu.AddmorecurvesMnu`
+- [Add new X axis](addxaxismnu-b99ba21aca.md) — `DFWindow.DFMainMenu.DFEditMnu.AddXaxisMnu`
+- [Add new Y axis](addyaxismnu-2835b65fa7.md) — `DFWindow.DFMainMenu.DFEditMnu.AddYAxisMnu`
+- [&Copy](dfcopymnu-c333bf53b7.md) — `DFWindow.DFMainMenu.DFEditMnu.DFCopyMnu`
+- [Cu&t](dfcutmnu-d20de14788.md) — `DFWindow.DFMainMenu.DFEditMnu.DFCutMnu`
+- [&Paste](dfpastemnu-fc6c74c7ff.md) — `DFWindow.DFMainMenu.DFEditMnu.DFPasteMnu`
+- [&Select all curves](dfselectallcurvesmnu-d3a4dc942a.md) — `DFWindow.DFMainMenu.DFEditMnu.DFSelectAllCurvesMnu`
+- [&Clear all](dfclearallmnu-04b6877afa.md) — `DFWindow.DFMainMenu.DFFileMnu.DFClearAllMnu`
+- [As &Text...](dfastextmnu-e06238746a.md) — `DFWindow.DFMainMenu.DFFileMnu.DFExportMnu.DFAsTextMnu`
+- [Auto test result...](dfautotestresult-2ee9da8fb6.md) — `DFWindow.DFMainMenu.DFFileMnu.DFExportMnu.DFAutoTestResult`
+- [Picture...](dfpicturemnu-ba5b482b20.md) — `DFWindow.DFMainMenu.DFFileMnu.DFExportMnu.DFPictureMnu`
+- [WAV...](dfwavmnu-502e5d6f1a.md) — `DFWindow.DFMainMenu.DFFileMnu.DFExportMnu.DFWAVMnu`
+- [Import...](dfimportmnu-d81202ef00.md) — `DFWindow.DFMainMenu.DFFileMnu.DFImportMnu`
+- [&Open...](dfopenmnu-fc379da579.md) — `DFWindow.DFMainMenu.DFFileMnu.DFOpenMnu`
+- [&Print...](dfprintmnu-44edd8f753.md) — `DFWindow.DFMainMenu.DFFileMnu.DFPrintMnu`
+- [Print pre&view](dfprintpreviewmnu-0ae484db52.md) — `DFWindow.DFMainMenu.DFFileMnu.DFPrintpreviewMnu`
+- [P&rint Setup...](dfprintsetupmnu-e90fab9613.md) — `DFWindow.DFMainMenu.DFFileMnu.DFPrintSetupMnu`
+- [Save &As...](dfsaveasmnu-39133e351b.md) — `DFWindow.DFMainMenu.DFFileMnu.DFSaveAsMnu`
+- [&Save](dfsavemnu-26ab55f139.md) — `DFWindow.DFMainMenu.DFFileMnu.DFSaveMnu`
+- [Forget diagram settings](forgetdiagramsettingsmnu-3a3eb61a6c.md) — `DFWindow.DFMainMenu.DFFileMnu.ForgetdiagramsettingsMnu`
+- [&Diagram Window](dfdiagramviewermnu-f73de731f7.md) — `DFWindow.DFMainMenu.DFHelpMnu.DFDiagramViewerMnu`
+- [Averages ...](dfaveragesmnu-0713f76f21.md) — `DFWindow.DFMainMenu.DFProcessingMnu.DFAveragesMnu`
+- [0dB Cross-over Frequency ...](dfcrossoverfrequencymnu-25f4b985dc.md) — `DFWindow.DFMainMenu.DFProcessingMnu.DFCrossoverFrequencyMnu`
+- [Filter...](dffiltermnu-e0cde5c9fa.md) — `DFWindow.DFMainMenu.DFProcessingMnu.DFFilterMnu`
+- [Fourier Series...](dffourierseriesmnu-f121bbca0c.md) — `DFWindow.DFMainMenu.DFProcessingMnu.DFFourierSeriesMnu`
+- [Fourier Spectrum...](dffourierspectrummnu-75d6e59b50.md) — `DFWindow.DFMainMenu.DFProcessingMnu.DFFourierSpectrumMnu`
+- [Gain Margin ...](dfgainmarginmnu-68bff0c128.md) — `DFWindow.DFMainMenu.DFProcessingMnu.DFGainMarginMnu`
+- [Phase Margin ...](dfphasemarginmnu-a532b97a2d.md) — `DFWindow.DFMainMenu.DFProcessingMnu.DFPhaseMarginMnu`
+- [Statistics...](dfstatisticsmnu-82734b56f6.md) — `DFWindow.DFMainMenu.DFProcessingMnu.DFStatisticsMnu`
+- [Measurement result](measresultmnu-9e10069917.md) — `DFWindow.DFMainMenu.DFProcessingMnu.MeasResultMnu`
+- [Ripple ...](ripplemnu-4a63ee1f89.md) — `DFWindow.DFMainMenu.DFProcessingMnu.RippleMnu`
+- [&View](dfviewmnu-efccbe9f99.md) — `DFWindow.DFMainMenu.DFViewMnu`
+- [Collect curves](collectcurvesmnu-2684405b08.md) — `DFWindow.DFMainMenu.DFViewMnu.CollectCurvesMnu`
+- [Curve drawing acceleration ](curveaccelmnu-4040e8636a.md) — `DFWindow.DFMainMenu.DFViewMnu.CurveAccelMnu`
+- [1 (hair)](dfw0mnu-6c198a8de2.md) — `DFWindow.DFMainMenu.DFViewMnu.Defaultcurvewidth1.DFW0Mnu`
+- [2 (single)](dfw1mnu-beada04d55.md) — `DFWindow.DFMainMenu.DFViewMnu.Defaultcurvewidth1.DFW1Mnu`
+- [3 (double)](dfw2mnu-31f1730b30.md) — `DFWindow.DFMainMenu.DFViewMnu.Defaultcurvewidth1.DFW2Mnu`
+- [4 (triple)](dfw3mnu-b7662d42b0.md) — `DFWindow.DFMainMenu.DFViewMnu.Defaultcurvewidth1.DFW3Mnu`
+- [5 (4 point)](dfw4mnu-d2a92e4408.md) — `DFWindow.DFMainMenu.DFViewMnu.Defaultcurvewidth1.DFW4Mnu`
+- [6 (5 point)](dfw5mnu-6350779375.md) — `DFWindow.DFMainMenu.DFViewMnu.Defaultcurvewidth1.DFW5Mnu`
+- [7 (6 point)](dfw6mnu-3bb43f87e8.md) — `DFWindow.DFMainMenu.DFViewMnu.Defaultcurvewidth1.DFW6Mnu`
+- [Delete page](deletepagemnu-089044ff1c.md) — `DFWindow.DFMainMenu.DFViewMnu.DeletepageMnu`
+- [Normal zoom](dfnormalzoommnu-bd2c97619c.md) — `DFWindow.DFMainMenu.DFViewMnu.DFNormalzoomMnu`
+- [Set grid color...](dfsetgridcolormnu-d0c3cfdfd7.md) — `DFWindow.DFMainMenu.DFViewMnu.DFSetgridcolorMnu`
+- [Zoom](dfzoommnu-2c8daca442.md) — `DFWindow.DFMainMenu.DFViewMnu.DFZoomMnu`
+- [Display axes](displayaxesmnu-bec111267d.md) — `DFWindow.DFMainMenu.DFViewMnu.DisplayAxesMnu`
+- [Freq. and slope](freqandslopemnu-b21535d98f.md) — `DFWindow.DFMainMenu.DFViewMnu.FreqandslopeMnu`
+- [Keep results](keepresultsmnu-0165921419.md) — `DFWindow.DFMainMenu.DFViewMnu.KeepResultsMnu`
+- [Set page name ...](pagenamemnu-5e5625052f.md) — `DFWindow.DFMainMenu.DFViewMnu.PageNameMnu`
+- [Draw curves in screen resolution](screenresolutionmnu-24bea0e3e2.md) — `DFWindow.DFMainMenu.DFViewMnu.ScreenResolutionMnu`
+- [Separate curves](separatecurvesmnu-d0343ef0c9.md) — `DFWindow.DFMainMenu.DFViewMnu.SeparateCurvesMnu`
+- [Separate outputs](separateoutputsmnu-0b76c44d04.md) — `DFWindow.DFMainMenu.DFViewMnu.SeparateOutputsMnu`
+- [Show/Hide curves ...](showhidecurvesmnu-2c12fb1db1.md) — `DFWindow.DFMainMenu.DFViewMnu.ShowHidecurvesMnu`
+- [Amplitude](amplitudemnu-f826c64b04.md) — `DFWindow.DFMainMenu.DFViewMnu.Vectorlabelstyle1.AmplitudeMnu`
+- [Amplitude, Phase](amplitudephasemnu-ec25f27a9b.md) — `DFWindow.DFMainMenu.DFViewMnu.Vectorlabelstyle1.AmplitudePhaseMnu`
+- [Real+j*Imag](realimagmnu-2030dccfd7.md) — `DFWindow.DFMainMenu.DFViewMnu.Vectorlabelstyle1.RealImagMnu`
+- [Add new X Axis](addnewxaxismnu-63789e2e8b.md) — `DFWindow.DFPopupMnu.AddnewXAxisMnu`
+- [Add new Y Axis](addnewyaxismnu-1da0f824bf.md) — `DFWindow.DFPopupMnu.AddnewYAxisMnu`
+- [Circle](circlemnu-6d9942c71f.md) — `DFWindow.DFPopupMnu.CircleMnu`
+- [Delete](deleteaxismnu-03286191f1.md) — `DFWindow.DFPopupMnu.DeleteAxisMnu`
+- [Delete](deletecursormnu-c6ff8616fa.md) — `DFWindow.DFPopupMnu.DeleteCursorMnu`
+- [Delete](deletecurvemnu-9e519e169f.md) — `DFWindow.DFPopupMnu.DeletecurveMnu`
+- [Delete](deletefiguremnu-95fcfddc58.md) — `DFWindow.DFPopupMnu.DeleteFigureMnu`
+- [Delete page](deletepage1-1e5d84cbcd.md) — `DFWindow.DFPopupMnu.Deletepage1`
+- [Annotate curve point ...](dfannotatecurvepointmnu-120279783b.md) — `DFWindow.DFPopupMnu.DFAnnotatecurvepointMnu`
+- [Modified components...](dftablemnu-72defe9171.md) — `DFWindow.DFPopupMnu.DFTableMnu`
+- [Fourier Spectrum...](fourierspemnu-a7c6cb238c.md) — `DFWindow.DFPopupMnu.FourierSpeMnu`
+- [Fourier Series...](fourierthdmnu-3266041e77.md) — `DFWindow.DFPopupMnu.FourierTHDMnu`
+- [Gain  margin ...](gainmarginpumnu-dceefba24e.md) — `DFWindow.DFPopupMnu.GainmarginPuMnu`
+- [Line](linemnu-7b09ded16a.md) — `DFWindow.DFPopupMnu.LineMnu`
+- [0dB Cross-over Frequency ...](n0dbcrossoverfrequencypumnu-95141395a6.md) — `DFWindow.DFPopupMnu.N0dBCrossoverFrequencyPuMnu`
+- [Phase margin ...](phasemarginpumnu-9de8fa7727.md) — `DFWindow.DFPopupMnu.PhasemarginPuMnu`
+- [Properties...](propertiesmnu-2c03ef3c71.md) — `DFWindow.DFPopupMnu.PropertiesMnu`
+- [Default ranges](setdefaultsmnu-d7a98a6d49.md) — `DFWindow.DFPopupMnu.SetdefaultsMnu`
+- [Set page name...](setpagename1-d6f09d565a.md) — `DFWindow.DFPopupMnu.Setpagename1`
+- [Global maximum](dfglobalmaximummnu-2cd0f09089.md) — `DFWindow.DFPopupMnu.SetpositionMnu.DFGlobalmaximumMnu`
+- [Global minimum](dfglobalminimummnu-aec02e27e4.md) — `DFWindow.DFPopupMnu.SetpositionMnu.DFGlobalminimumMnu`
+- [Local maximum](dflocalmaximummnu-ac84be0e72.md) — `DFWindow.DFPopupMnu.SetpositionMnu.DFLocalmaximumMnu`
+- [Local minimum](dflocalminimummnu-981288c5cc.md) — `DFWindow.DFPopupMnu.SetpositionMnu.DFLocalminimumMnu`
+- [Statistics...](statisticsmnu-889d307e99.md) — `DFWindow.DFPopupMnu.StatisticsMnu`
+- [Text...](textmnu-3b0ec5acb6.md) — `DFWindow.DFPopupMnu.TextMnu`
+- [Open](dfopenbtn-a2b9f60c9c.md) — `DFWindow.DFToolPanel.DFOpenBtn`
+- [Save](dfsavebtn-50055d6a09.md) — `DFWindow.DFToolPanel.DFSaveBtn`
+- [Post-processor](addcurvesbtn-df6a662615.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.AddCurvesBtn`
+- [Probe](addcurvesexbtn-f8e723c182.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.AddCurvesExBtn`
+- [Pointer](arrowbtn-6c84360ec0.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.ArrowBtn`
+- [Auto label](autolabelbtn-70006622d3.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.AutoLabelBtn`
+- [Cursor: a](cursorabtn-f4bb312f27.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.CursorABtn`
+- [Cursor: b](cursorbbtn-991d26d99a.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.CursorBBtn`
+- [Legend](dfautolabelsbtn-d16f42266c.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.DFAutoLabelsBtn`
+- [Circle](dfcirclebtn-a08ff0f35a.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.DFCircleBtn`
+- [Copy](dfcopybtn-f950f643b7.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.DFCopyBtn`
+- [Grid](dfgridbtn-d1b5da0324.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.DFGridBtn`
+- [Line](dflinebtn-8485b19442.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.DFLineBtn`
+- [Paste](dfpastebtn-f548637dac.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.DFPasteBtn`
+- [Select](dfselectbtn-06c7234448.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.DFSelectBtn`
+- [Text](dftextbtn-36e5930f87.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.DFTextBtn`
+- [Zoom](dfzoombtn-2d1a30c9a4.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.DFZoomBtn`
+- [Zoom out](dfzoomoutbtn-51f3c26822.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.DFZoomOutBtn`
+- [Scroll down](downscrollbtn-a4c47423e3.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.DownScrollBtn`
+- [Shift down](downscrollcsbtn-b1643dc90a.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.DownScrollCSBtn`
+- [Scroll left](leftscrollbtn-335b6c18ff.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.LeftScrollBtn`
+- [Normal zoom](normalzoombtn-80bd5a2614.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.NormalZoomBtn`
+- [Play sound](playsoundbtn-645f5485bb.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.PlaySoundBtn`
+- [Scroll right](rightscrollbtn-e1e157bfc3.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.RightScrollBtn`
+- [Show/Hide curves](showhidecurvesbtn-ed14fbca75.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.ShowHideCurvesBtn`
+- [Scroll up](upscrollbtn-a74b11f534.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.UpScrollBtn`
+- [Shift up](upscrollcsbtn-51c02eb031.md) — `DFWindow.DFToolPanel.ToolNoteBook.Diagram.UpScrollCSBtn`
+- [Cancel](dfcancelbtn-16dd40e73c.md) — `DFWindow.DFToolPanel.ToolNoteBook.Print.DFCancelBtn`
+- [Margin](dfmarginsbtn-f8891639d3.md) — `DFWindow.DFToolPanel.ToolNoteBook.Print.DFMarginsBtn`
+- [Print](dfprintbtn-7b46ce1ef5.md) — `DFWindow.DFToolPanel.ToolNoteBook.Print.DFPrintBtn`

@@ -1,0 +1,357 @@
+﻿# SchematicEditor controls
+
+Identified OnClick controls: 353.
+
+- [Component Rack|Select the component you want to place](partgrid-15242ec93a.md) — `SchematicEditor.ComponentPanel.PartGrid`
+- [ScrollLeft](scrollleft-5a811fd983.md) — `SchematicEditor.ComponentPanel.ScrollLeft`
+- [ScrollRight](scrollright-710c8ba130.md) — `SchematicEditor.ComponentPanel.ScrollRight`
+- [&Next](btnextadvice-741c7acfca.md) — `SchematicEditor.EditorPanel.ExamPanel.ExamMainPages.tsAdvisor.GroupBox3.btNextAdvice`
+- [&Previous](btprevadvice-b0ff245847.md) — `SchematicEditor.EditorPanel.ExamPanel.ExamMainPages.tsAdvisor.GroupBox3.btPrevAdvice`
+- [Interpreter](interpreterbtn-71faf33d86.md) — `SchematicEditor.EditorPanel.ExamPanel.ExamMainPages.tsCurTask.GroupBox2.InterpreterBtn`
+- [Select Faulty|Select the components that you consider are faulty](sberfaulty-fcf0e5f3fb.md) — `SchematicEditor.EditorPanel.ExamPanel.ExamMainPages.tsCurTask.GroupBox2.SolPages.tsFault.sbERFaulty`
+- [Replace|Replace the components you consider are faulty](sberreplace-6689ae880d.md) — `SchematicEditor.EditorPanel.ExamPanel.ExamMainPages.tsCurTask.GroupBox2.SolPages.tsFault.sbERReplace`
+- [Submit](submitbtn-386bf7c8f9.md) — `SchematicEditor.EditorPanel.ExamPanel.ExamMainPages.tsCurTask.GroupBox2.SubmitBtn`
+- [Map to hardware...](mapfaultbtn-04f2cafdde.md) — `SchematicEditor.EditorPanel.FaultManager.GroupBox4.FaultPanel.MapFaultBtn`
+- [Delete Version|Deletes the current version of the circuit](sbdelversion-b8e9a87f14.md) — `SchematicEditor.EditorPanel.FaultManager.GroupBox4.FaultPanel.sbDelVersion`
+- [Insert Fault|Select the component you want to insert fault into](sbinsertfault-f11b78abbe.md) — `SchematicEditor.EditorPanel.FaultManager.GroupBox4.FaultPanel.sbInsertFault`
+- [Revert to Original|Click on the faulty component you want to be reverted to the original](sbrevert-36320d64d7.md) — `SchematicEditor.EditorPanel.FaultManager.GroupBox4.FaultPanel.sbRevert`
+- [Revert All|Reverts all faults](sbrevertall-685f0889f9.md) — `SchematicEditor.EditorPanel.FaultManager.GroupBox4.FaultPanel.sbRevertAll`
+- [Add|Add a new advice to the end](sbemadvadd-c0b4767a52.md) — `SchematicEditor.EditorPanel.FaultManager.nbExMan.tsExManAdvisor.GroupBox6.sbEMAdvAdd`
+- [Delete|Delete current advice](sbemadvdelete-6cb75fd428.md) — `SchematicEditor.EditorPanel.FaultManager.nbExMan.tsExManAdvisor.GroupBox6.sbEMAdvDelete`
+- [Edit|Edit this advice](sbemadvedit-59aa7336c7.md) — `SchematicEditor.EditorPanel.FaultManager.nbExMan.tsExManAdvisor.GroupBox6.sbEMAdvEdit`
+- [Insert|Insert a new advice before the current advice](sbemadvinsert-d0d26dc609.md) — `SchematicEditor.EditorPanel.FaultManager.nbExMan.tsExManAdvisor.GroupBox6.sbEMAdvInsert`
+- [Next|Move to next advice](sbemadvnext-f2d96ea639.md) — `SchematicEditor.EditorPanel.FaultManager.nbExMan.tsExManAdvisor.GroupBox6.sbEMAdvNext`
+- [Previous|Move to previous advice](sbemadvprev-6d15d3ef41.md) — `SchematicEditor.EditorPanel.FaultManager.nbExMan.tsExManAdvisor.GroupBox6.sbEMAdvPrev`
+- [Add...](seladdbtn-bb6f2ff618.md) — `SchematicEditor.EditorPanel.FaultManager.nbExMan.tsExManSelection.GroupBox5.SelAddBtn`
+- [Delete](seldelbtn-427853ad3c.md) — `SchematicEditor.EditorPanel.FaultManager.nbExMan.tsExManSelection.GroupBox5.SelDelBtn`
+- [Edit...](selmodifybtn-c3fd1d11a6.md) — `SchematicEditor.EditorPanel.FaultManager.nbExMan.tsExManSelection.GroupBox5.SelModifyBtn`
+- [SchEditBox](scheditbox-a6131a2ff7.md) — `SchematicEditor.EditorPanel.SchEditBox`
+- [&Copy](copy-1170363105.md) — `SchematicEditor.MainMenu.Edit.Copy`
+- [Cu&t](cut-0db877045a.md) — `SchematicEditor.MainMenu.Edit.Cut`
+- [Bring &Forward](mnbringforward-4780adeaf1.md) — `SchematicEditor.MainMenu.Edit.mnArrange.mnBringForward`
+- [&Bring To Front](mnbringtofront-29e0666743.md) — `SchematicEditor.MainMenu.Edit.mnArrange.mnBringToFront`
+- [Send B&ackward](mnsendbackward-74a8970a57.md) — `SchematicEditor.MainMenu.Edit.mnArrange.mnSendBackward`
+- [Send To Back](mnsendtoback-ed3ded89d7.md) — `SchematicEditor.MainMenu.Edit.mnArrange.mnSendToBack`
+- [Change &Bitmap](mnchangebitmap-1a219a4a11.md) — `SchematicEditor.MainMenu.Edit.mnChangeBitmap`
+- [&Delete](mndelete-6bb90e5255.md) — `SchematicEditor.MainMenu.Edit.mnDelete`
+- [Pr&operties...](mneditattributes-73a0b817bb.md) — `SchematicEditor.MainMenu.Edit.mnEditAttributes`
+- [Symbol...](mneditsymbol-45f28882cc.md) — `SchematicEditor.MainMenu.Edit.mnEditSymbol`
+- [&Hide/Reconnect](mnhidereconnect-486aa9a882.md) — `SchematicEditor.MainMenu.Edit.mnHideReconnect`
+- [&Mirror](mnmirror-44a901bf43.md) — `SchematicEditor.MainMenu.Edit.mnMirror`
+- [&Redo](mnredo-97b5ac8091.md) — `SchematicEditor.MainMenu.Edit.mnRedo`
+- [Rotate &Left](mnrotateleft-5b2edce70c.md) — `SchematicEditor.MainMenu.Edit.mnRotateLeft`
+- [Rotate Righ&t](mnrotateright-9c05442145.md) — `SchematicEditor.MainMenu.Edit.mnRotateRight`
+- [Select A&ll](mnselectall-2511ff97cf.md) — `SchematicEditor.MainMenu.Edit.mnSelectAll`
+- [&Undo](mnundo-bd040d21a9.md) — `SchematicEditor.MainMenu.Edit.mnUndo`
+- [&Paste](paste-b25047f1a9.md) — `SchematicEditor.MainMenu.Edit.Paste`
+- [Clear lock](mnclearlock-b8bd5be556.md) — `SchematicEditor.MainMenu.Edit.Sharing1.mnClearLock`
+- [Lock...](mnlock-1ba80b3bac.md) — `SchematicEditor.MainMenu.Edit.Sharing1.mnLock`
+- [Reconcile...](mnreconciliate-045ac781bf.md) — `SchematicEditor.MainMenu.Edit.Sharing1.mnReconciliate`
+- [Unlock...](mnunlock-7c62b8619f.md) — `SchematicEditor.MainMenu.Edit.Sharing1.mnUnlock`
+- [&About](about-b2df2defa3.md) — `SchematicEditor.MainMenu.Help.About`
+- [Check for Updates...](checkforupdates-5b4facd9e7.md) — `SchematicEditor.MainMenu.Help.CheckforUpdates`
+- [&Contents](contents-661e86084c.md) — `SchematicEditor.MainMenu.Help.Contents`
+- [C&omponent Help](helponcomponents-751c188485.md) — `SchematicEditor.MainMenu.Help.HelpOnComponents`
+- [&Schematic Editor](helponschematiceditor1-dcca43c6c7.md) — `SchematicEditor.MainMenu.Help.HelponSchematicEditor1`
+- [www.designsoftware.com](wwwdesignsoftwarecom-1d3c81e91b.md) — `SchematicEditor.MainMenu.Help.mnDesignSoftontheWeb.wwwdesignsoftwarecom`
+- [www.edisonlab.com](wwwedisonlabcom-a5217d8602.md) — `SchematicEditor.MainMenu.Help.mnDesignSoftontheWeb.wwwedisonlabcom`
+- [www.tinacloud.com](wwwtinacloudcom-29bfdcf688.md) — `SchematicEditor.MainMenu.Help.mnDesignSoftontheWeb.wwwtinacloudcom`
+- [www.tina.com](wwwtinacom-a5193ebfc7.md) — `SchematicEditor.MainMenu.Help.mnDesignSoftontheWeb.wwwtinacom`
+- [&Getting Started](mngettingstarted-e68788da50.md) — `SchematicEditor.MainMenu.Help.mnGettingStarted`
+- [www.ilink.co.jp](wwwilinkcojp-fec304867d.md) — `SchematicEditor.MainMenu.Help.mnInterlinkontheWeb.wwwilinkcojp`
+- [www.ilink.co.jp/tina](wwwilinkcojptina-b84a3fbdd6.md) — `SchematicEditor.MainMenu.Help.mnInterlinkontheWeb.wwwilinkcojptina`
+- [&Auto Repeat](mnautorepeat-17b2313615.md) — `SchematicEditor.MainMenu.Insert.mnAutoRepeat`
+- [Auto Wi&re](mnautorewire-f3e6c11399.md) — `SchematicEditor.MainMenu.Insert.mnAutoReWire`
+- [B&lock...](mnblock-848d47367d.md) — `SchematicEditor.MainMenu.Insert.mnBlock`
+- [&Bus](mnbus-9ed0d129e6.md) — `SchematicEditor.MainMenu.Insert.mnBus`
+- [Last &Component](mncomponent-ba51b7ea0f.md) — `SchematicEditor.MainMenu.Insert.mnComponent`
+- [&Graphics...](mngraphics-4d147bf935.md) — `SchematicEditor.MainMenu.Insert.mnGraphics`
+- [&Input](mninput-f975854c78.md) — `SchematicEditor.MainMenu.Insert.mnInput`
+- [&Macro...](mnmacro-c169e15825.md) — `SchematicEditor.MainMenu.Insert.mnMacro`
+- [&Output](mnoutput-0ecddb8d0f.md) — `SchematicEditor.MainMenu.Insert.mnOutput`
+- [&Arc](mnarc-005b86bee1.md) — `SchematicEditor.MainMenu.Insert.mnShape.mnArc`
+- [&Circular](mnarrowcircular-8026a6aac6.md) — `SchematicEditor.MainMenu.Insert.mnShape.mnArrow.mnArrowCircular`
+- [&Linear](mnarrowlinear-71225a976b.md) — `SchematicEditor.MainMenu.Insert.mnShape.mnArrow.mnArrowLinear`
+- [&Rounded corner](mnarrowroundedcorner-1231d256bc.md) — `SchematicEditor.MainMenu.Insert.mnShape.mnArrow.mnArrowRoundedCorner`
+- [&Ellipse](mnellipse-d1a8f4eccc.md) — `SchematicEditor.MainMenu.Insert.mnShape.mnEllipse`
+- [&Line](mnline-8a8f6b242e.md) — `SchematicEditor.MainMenu.Insert.mnShape.mnLine`
+- [&Polygon](mnpolygon-027b16c7f5.md) — `SchematicEditor.MainMenu.Insert.mnShape.mnPolygon`
+- [&Rectangle](mnrectangle-560525e785.md) — `SchematicEditor.MainMenu.Insert.mnShape.mnRectangle`
+- [&Text](mntext-67346479b5.md) — `SchematicEditor.MainMenu.Insert.mnText`
+- [Title Bloc&k...](mntitleblock-643ca1a9e0.md) — `SchematicEditor.MainMenu.Insert.mnTitleBlock`
+- [&Wire](mnwire-505b0e2529.md) — `SchematicEditor.MainMenu.Insert.mnWire`
+- [&Analysis](mnanalysis-31cdc7c672.md) — `SchematicEditor.MainMenu.mnAnalysis`
+- [AC Multisine Analysis...](acmultisine-38f372449a.md) — `SchematicEditor.MainMenu.mnAnalysis.ACAnalysis.ACMultiSine`
+- [&Time Function...](actimefunctionmnu-fb0e582b6e.md) — `SchematicEditor.MainMenu.mnAnalysis.ACAnalysis.ACTimeFunctionMnu`
+- [&AC Transfer Characteristic...](actransfercharateristic-04d2b460d1.md) — `SchematicEditor.MainMenu.mnAnalysis.ACAnalysis.ACTransferCharateristic`
+- [&Phasor Diagram](acvectordiagram-905199f50d.md) — `SchematicEditor.MainMenu.mnAnalysis.ACAnalysis.ACVectorDiagram`
+- [&Calculate nodal voltages](calculatenodalvoltages-54ace05a5f.md) — `SchematicEditor.MainMenu.mnAnalysis.ACAnalysis.CalculateNodalVoltages`
+- [Table of AC results](mntableofacresults-2dd243cbab.md) — `SchematicEditor.MainMenu.mnAnalysis.ACAnalysis.mnTableofACresults`
+- [&Network Analysis...](networkanalysismnu-0d8d2f64f2.md) — `SchematicEditor.MainMenu.mnAnalysis.ACAnalysis.NetworkAnalysisMnu`
+- [&Options...](analoptions-42e21fd291.md) — `SchematicEditor.MainMenu.mnAnalysis.AnalOptions`
+- [&Calculate nodal voltages](calculateoperatingpoint-e1c20d9540.md) — `SchematicEditor.MainMenu.mnAnalysis.DCAnalysis.CalculateOperatingPoint`
+- [&DC Transfer Characteristic...](dctransfercharacteristic-96ebbe6412.md) — `SchematicEditor.MainMenu.mnAnalysis.DCAnalysis.DCTransferCharacteristic`
+- [Table of DC results](mntableofdcresults-fbc395d261.md) — `SchematicEditor.MainMenu.mnAnalysis.DCAnalysis.mnTableofDCresults`
+- [&Temperature Analysis...](temperatureanalysis1-f55dccbcc8.md) — `SchematicEditor.MainMenu.mnAnalysis.DCAnalysis.TemperatureAnalysis1`
+- [&Digital Timing Analysis...](digitaltransient-a4171fa580.md) — `SchematicEditor.MainMenu.mnAnalysis.DigitalTransient`
+- [Enable HDL Debugger](enablehdldebugger-fe1cf2aa62.md) — `SchematicEditor.MainMenu.mnAnalysis.EnableHDLDebugger`
+- [&Enable MCU Code debugger](enablemcucodedebugger-6394109407.md) — `SchematicEditor.MainMenu.mnAnalysis.EnableMCUCodedebugger`
+- [&Faults enabled](errorinsertion1-6670ae18d5.md) — `SchematicEditor.MainMenu.mnAnalysis.ErrorInsertion1`
+- [Fourier &Series...](fourierseries-4e45846760.md) — `SchematicEditor.MainMenu.mnAnalysis.FourierAnalysis.FourierSeries`
+- [Fourier S&pectrum...](fourierspectrum-c41bc2e293.md) — `SchematicEditor.MainMenu.mnAnalysis.FourierAnalysis.FourierSpectrum`
+- [Batch Simulation...](mnbatchsimulation-50ef2d9a4f.md) — `SchematicEditor.MainMenu.mnAnalysis.mnBatchSimulation`
+- [Autotest](mnacdcautotest-710e51f5d6.md) — `SchematicEditor.MainMenu.mnAnalysis.mnDetailedDC.mnACDCAutotest`
+- [All](mndetaileddcall-718695094e.md) — `SchematicEditor.MainMenu.mnAnalysis.mnDetailedDC.mnDetailedDCAll`
+- [Single](mndetaileddcsingle-9521b54a5b.md) — `SchematicEditor.MainMenu.mnAnalysis.mnDetailedDC.mnDetailedDCSingle`
+- [Digital Step-&by-Step](mndigitalstepbystep-9d1ef1d2c8.md) — `SchematicEditor.MainMenu.mnAnalysis.mnDigitalStepbyStep`
+- [&ERC...](mnerc-f9b8bde07b.md) — `SchematicEditor.MainMenu.mnAnalysis.mnERC`
+- [Fast Analytic Solution](mnfastanalyticsimulation-d0e26d2a99.md) — `SchematicEditor.MainMenu.mnAnalysis.mnFastAnalyticSimulation`
+- [Harmonic Balance Analysis...](mnhbanalysis-00e6f3a13e.md) — `SchematicEditor.MainMenu.mnAnalysis.mnHBAnalysis`
+- [Set parameter limits...](mnsetcompvaluelimits-54e839cd24.md) — `SchematicEditor.MainMenu.mnAnalysis.mnSetCompValueLimits`
+- [Define global parameters...](mnsetglobalparameters-7327b88b2e.md) — `SchematicEditor.MainMenu.mnAnalysis.mnSetGlobalParameters`
+- [Add spice commands...](mnspicecommands-a5e3b0f078.md) — `SchematicEditor.MainMenu.mnAnalysis.mnSpiceCommands`
+- [&Mode...](mode-09f6a783f0.md) — `SchematicEditor.MainMenu.mnAnalysis.Mode`
+- [&Noise Analysis...](noise-c3e9f8c67c.md) — `SchematicEditor.MainMenu.mnAnalysis.Noise`
+- [&AC Optimization...](acoptimizationsingle-bf67dca888.md) — `SchematicEditor.MainMenu.mnAnalysis.Optimization.ACOptimizationSingle`
+- [AC Optimization (&Transfer)...](acoptimizationtransfer-a064a546e8.md) — `SchematicEditor.MainMenu.mnAnalysis.Optimization.ACOptimizationTransfer`
+- [&DC Optimization...](dcoptimization-eacdde95c7.md) — `SchematicEditor.MainMenu.mnAnalysis.Optimization.DCOptimization`
+- [D&C Optimization (Transfer)...](dcoptimizationtransfer-e93b6b0981.md) — `SchematicEditor.MainMenu.mnAnalysis.Optimization.DCOptimizationTransfer`
+- [Temperature...](temperatureoptimization-5cee3c97b3.md) — `SchematicEditor.MainMenu.mnAnalysis.Optimization.TemperatureOptimization`
+- [Select &Control Object](optimizationtarget1-152c5a7580.md) — `SchematicEditor.MainMenu.mnAnalysis.OptimizationTarget1`
+- [Select &Optimization Target](optimizationtarget2-112eeeeb2c.md) — `SchematicEditor.MainMenu.mnAnalysis.OptimizationTarget2`
+- [Power Dissipation Analysis Enabled](powerdissipationcalculation-389167b1d3.md) — `SchematicEditor.MainMenu.mnAnalysis.PowerDissipationCalculation`
+- [Run last simulation](runlastsimulation-fdeb18fdbd.md) — `SchematicEditor.MainMenu.mnAnalysis.RunLastSimulation`
+- [&Set Analysis Parameters...](setparameters-1f64abe54c.md) — `SchematicEditor.MainMenu.mnAnalysis.SetParameters`
+- [&Steady State Solver...](steadystatesolver-0df8550e46.md) — `SchematicEditor.MainMenu.mnAnalysis.SteadyStateSolver`
+- [S&tress Analysis Enabled](stressreportenabled-909f9d318a.md) — `SchematicEditor.MainMenu.mnAnalysis.StressReportEnabled`
+- [Poles and Zeros](polesandzerosmnu-c079805998.md) — `SchematicEditor.MainMenu.mnAnalysis.Symbolic1.PolesAndZerosMnu`
+- [AC Result](sacresmnu-5c4440fa9b.md) — `SchematicEditor.MainMenu.mnAnalysis.Symbolic1.SACResMnu`
+- [Semi-symbolic AC transfer](semisymbolicactrf1-9bf42ca737.md) — `SchematicEditor.MainMenu.mnAnalysis.Symbolic1.SemisymbolicACtrf1`
+- [Semi-symbolic DC Result](semisymbolicdcresult1-126a167170.md) — `SchematicEditor.MainMenu.mnAnalysis.Symbolic1.SemisymbolicDCResult1`
+- [Semi-symbolic AC Result](ssacresmnu-4cd572dc73.md) — `SchematicEditor.MainMenu.mnAnalysis.Symbolic1.SSACResMnu`
+- [AC transfer](symbolicactrf1-d2295914ac.md) — `SchematicEditor.MainMenu.mnAnalysis.Symbolic1.SymbolicACtrf1`
+- [DC Result](symbolicdcresult1-11d8708de6.md) — `SchematicEditor.MainMenu.mnAnalysis.Symbolic1.SymbolicDCResult1`
+- [Semi-symbolic Transient](symbolictransient1-fb2532499f.md) — `SchematicEditor.MainMenu.mnAnalysis.Symbolic1.SymbolicTransient1`
+- [&Transient...](transient-4bee190c1c.md) — `SchematicEditor.MainMenu.mnAnalysis.Transient`
+- [Open SMPS Converter...](convertersmnu-2a7f408b83.md) — `SchematicEditor.MainMenu.mnFile.ConvertersMnu`
+- [&Export](export-ee2ca28a6d.md) — `SchematicEditor.MainMenu.mnFile.Export`
+- [Altium schematic...](exportaltiumschematic-a7137d156d.md) — `SchematicEditor.MainMenu.mnFile.Export.ExportAltiumSchematic`
+- [Netlist...](exportnetlist-0b225bb683.md) — `SchematicEditor.MainMenu.mnFile.Export.ExportNetlist`
+- [&Picture (*.EMF;*.BMP;*.JPG;*.GIF;*PNG)...](exportwmf-5719581c2f.md) — `SchematicEditor.MainMenu.mnFile.Export.ExportWMF`
+- [XML...](exportxml-1c00ec48d8.md) — `SchematicEditor.MainMenu.mnFile.Export.ExportXML`
+- [PCB...](pcbauto1-3d9fc9487b.md) — `SchematicEditor.MainMenu.mnFile.Export.PCBAuto1`
+- [Logic Converter (*.TLC)...](importdigit-324f9a78cb.md) — `SchematicEditor.MainMenu.mnFile.Import.ImportDigit`
+- [EDIF (*.EDF)...](importedif-8077540b56.md) — `SchematicEditor.MainMenu.mnFile.Import.ImportEDIF`
+- [IBIS File (*.IBS)...](importibis-4110a8a88f.md) — `SchematicEditor.MainMenu.mnFile.Import.ImportIbis`
+- [&Palmtop Circuit (*.SCH)...](importpalmtopcircuit-02fd86685b.md) — `SchematicEditor.MainMenu.mnFile.Import.ImportPalmtopCircuit`
+- [PSpice &Netlist (*.CIR)...](importpspice-b57e3c8004.md) — `SchematicEditor.MainMenu.mnFile.Import.ImportPSpice`
+- [&TINA 2.xx (*.ICE)...](importtina-3c4c80b043.md) — `SchematicEditor.MainMenu.mnFile.Import.ImportTINA`
+- [Import TINA Libraries and Designs...](importuserlibs-c355d14e3b.md) — `SchematicEditor.MainMenu.mnFile.Import.ImportUserLibs`
+- [XML...](importxml-baff3f2fc9.md) — `SchematicEditor.MainMenu.mnFile.Import.ImportXML`
+- [LTSpice File (*.asc)...](mnltspiceimport-312638853d.md) — `SchematicEditor.MainMenu.mnFile.Import.mnLTSpiceImport`
+- [Bill of Materials...](listofmaterials1-d695ac72de.md) — `SchematicEditor.MainMenu.mnFile.ListofMaterials1`
+- [&Close](mnclose-3c7d7c03bd.md) — `SchematicEditor.MainMenu.mnFile.mnClose`
+- [C&lose All](mncloseall-480c61689d.md) — `SchematicEditor.MainMenu.mnFile.mnCloseAll`
+- [Leave Macro](mnclosemacro-a5338746f2.md) — `SchematicEditor.MainMenu.mnFile.mnCloseMacro`
+- [Download...](mndownloadfromcloud-8dac3aee67.md) — `SchematicEditor.MainMenu.mnFile.mnCloud.mnDownloadFromCloud`
+- [Login ...](mnlogintocloud-69591d2f03.md) — `SchematicEditor.MainMenu.mnFile.mnCloud.mnLoginToCloud`
+- [Logout](mnlogoutfromcloud-2fbe59ff52.md) — `SchematicEditor.MainMenu.mnFile.mnCloud.mnLogoutFromCloud`
+- [Upload](mnuploadtocloud-060ebea113.md) — `SchematicEditor.MainMenu.mnFile.mnCloud.mnUploadToCloud`
+- [E&xit](mnexit-dbe1a3a98a.md) — `SchematicEditor.MainMenu.mnFile.mnExit`
+- [&New](mnnew-78103f2b67.md) — `SchematicEditor.MainMenu.mnFile.mnNew`
+- [Open from the Web...](mnopenfilefromweb-36c84f66ee.md) — `SchematicEditor.MainMenu.mnFile.mnOpenFileFromWeb`
+- [Enter Macro](mnopenmacro-d3025e69b2.md) — `SchematicEditor.MainMenu.mnFile.mnOpenMacro`
+- [Print Pre&view](mnprintpreview-480751b19b.md) — `SchematicEditor.MainMenu.mnFile.mnPrintPreview`
+- [Sa&ve All](mnsaveall-8131369221.md) — `SchematicEditor.MainMenu.mnFile.mnSaveAll`
+- [&Open...](open-d39dc444ca.md) — `SchematicEditor.MainMenu.mnFile.Open`
+- [Open Examples...](openexamples-9bb4bd3c0a.md) — `SchematicEditor.MainMenu.mnFile.OpenExamples`
+- [ALTIUM](altiumpcbproject1-3989de4640.md) — `SchematicEditor.MainMenu.mnFile.pcbdirectory1.AltiumPCBProject1`
+- [EDS](edspcb1-00a34fbb36.md) — `SchematicEditor.MainMenu.mnFile.pcbdirectory1.EDSPCB1`
+- [ORCAD](orcadpcb1-aba4ed6a39.md) — `SchematicEditor.MainMenu.mnFile.pcbdirectory1.ORCADPCB1`
+- [PCAD](pcadpcb1-3a7e211a8a.md) — `SchematicEditor.MainMenu.mnFile.pcbdirectory1.PCADPCB1`
+- [PROTEL](protelpcb1-ad430d78d1.md) — `SchematicEditor.MainMenu.mnFile.pcbdirectory1.PROTELPCB1`
+- [REDAC](redacpcb1-4170a33203.md) — `SchematicEditor.MainMenu.mnFile.pcbdirectory1.REDACPCB1`
+- [TANGO](tangopcb1-1aea5ce568.md) — `SchematicEditor.MainMenu.mnFile.pcbdirectory1.TANGOPCB1`
+- [TINA](tinapcb1-8f9fb38c5f.md) — `SchematicEditor.MainMenu.mnFile.pcbdirectory1.TINAPCB1`
+- [&Print...](print-13466c318c.md) — `SchematicEditor.MainMenu.mnFile.Print`
+- [Page Set&up...](printsetup-35a1fd4f32.md) — `SchematicEditor.MainMenu.mnFile.PrintSetup`
+- [&Save](save-40f79b9d33.md) — `SchematicEditor.MainMenu.mnFile.Save`
+- [Save &As...](saveas-de344fadbd.md) — `SchematicEditor.MainMenu.mnFile.SaveAs`
+- [AC](mnintac-28b86273c4.md) — `SchematicEditor.MainMenu.mnInteractive.mnIntAC`
+- [DC](mnintdc-75889a5064.md) — `SchematicEditor.MainMenu.mnInteractive.mnIntDC`
+- [Digital](mnintdigital-5ef3c9d615.md) — `SchematicEditor.MainMenu.mnInteractive.mnIntDigital`
+- [Options...](mnintoptions-31fec19a83.md) — `SchematicEditor.MainMenu.mnInteractive.mnIntOptions`
+- [Transient](mninttransient-e025e4c904.md) — `SchematicEditor.MainMenu.mnInteractive.mnIntTransient`
+- [Transient Single Shot](mninttransientsingleshot-100144194c.md) — `SchematicEditor.MainMenu.mnInteractive.mnIntTransientSingleShot`
+- [Start](mnstartinteractive-36c91195ac.md) — `SchematicEditor.MainMenu.mnInteractive.mnStartInteractive`
+- [Stop](mnstopinteractive-f6c9ea7521.md) — `SchematicEditor.MainMenu.mnInteractive.mnStopInteractive`
+- [Request TI sample parts](mnrequesttisampleparts-def2a648d5.md) — `SchematicEditor.MainMenu.mnTIUtilities.mnRequestTISampleParts`
+- [TI Analog eLab Design Center](mntianalogelabdesigntools-854d29b427.md) — `SchematicEditor.MainMenu.mnTIUtilities.mnTIAnalogeLabDesignTools`
+- [Tina-TI FAQ](mntinatifaq-5610136325.md) — `SchematicEditor.MainMenu.mnTIUtilities.mnTinaTIFAQ`
+- [DC &Power Supply](dcpowersupply-cf77f78ac0.md) — `SchematicEditor.MainMenu.mnTM.DCPowerSupply`
+- [&Digital Signal Generator](digitalsignalgenerator-1ea9da01c3.md) — `SchematicEditor.MainMenu.mnTM.DigitalSignalGenerator`
+- [Real-time](mndsgreal-a949962c15.md) — `SchematicEditor.MainMenu.mnTM.DigitalSignalGenerator1.mnDSGReal`
+- [Simulated](mndsgvirtual-e0c7d41e51.md) — `SchematicEditor.MainMenu.mnTM.DigitalSignalGenerator1.mnDSGVirtual`
+- [Xilinx ISE...](mnexporttoise-5b2fc6d8e5.md) — `SchematicEditor.MainMenu.mnTM.DownloadtoFPGACard1.mnExportToISE`
+- [Intel Quartus...](mnexporttoquartus-c1a30d2c3c.md) — `SchematicEditor.MainMenu.mnTM.DownloadtoFPGACard1.mnExportToQuartus`
+- [Xilinx Vivado...](mnexporttovivado-db844bdd78.md) — `SchematicEditor.MainMenu.mnTM.DownloadtoFPGACard1.mnExportToVivado`
+- [Download to LabExplorer...](downloadtolabexplorer1-3ab16ae374.md) — `SchematicEditor.MainMenu.mnTM.DownloadtoLabExplorer1`
+- [&Function Generator](functiongenerator-9a96e45e77.md) — `SchematicEditor.MainMenu.mnTM.FunctionGenerator`
+- [Real-time](mnfgreal-47ce620556.md) — `SchematicEditor.MainMenu.mnTM.FunctionGenerator1.mnFGReal`
+- [Simulated](mnfgvirtual-e0bfb2580d.md) — `SchematicEditor.MainMenu.mnTM.FunctionGenerator1.mnFGVirtual`
+- [&Logic Analyzer](logicanalyzer-5a8cd6a10f.md) — `SchematicEditor.MainMenu.mnTM.LogicAnalyzer`
+- [Real-time](mnlareal-1a45e8b68b.md) — `SchematicEditor.MainMenu.mnTM.LogicAnalyzer1.mnLAReal`
+- [Simulated](mnlavirtual-94a6764544.md) — `SchematicEditor.MainMenu.mnTM.LogicAnalyzer1.mnLAVirtual`
+- [&Options...](measoptions-ec8638c0f4.md) — `SchematicEditor.MainMenu.mnTM.MeasOptions`
+- [&Close Testcard](mnclosetestcard-88eb26ab01.md) — `SchematicEditor.MainMenu.mnTM.mnCloseTestcard`
+- [Download to FPGA Card...](mnconfigfpga-294bf99977.md) — `SchematicEditor.MainMenu.mnTM.mnConfigFPGA`
+- [Open &Testcard](mnopentestcard-25b0312f12.md) — `SchematicEditor.MainMenu.mnTM.mnOpenTestcard`
+- [&Network Analyzer](networkanalyzer-9647307d9e.md) — `SchematicEditor.MainMenu.mnTM.NetworkAnalyzer`
+- [Real-time](real1-1e6658f6fa.md) — `SchematicEditor.MainMenu.mnTM.NetworkAnalyzer1.Real1`
+- [Simulated](virtual1-49d4fe8b4c.md) — `SchematicEditor.MainMenu.mnTM.NetworkAnalyzer1.Virtual1`
+- [&Oscilloscope](oscilloscope-23ce74a54b.md) — `SchematicEditor.MainMenu.mnTM.Oscilloscope`
+- [Real-time](mnscpreal-690476dd80.md) — `SchematicEditor.MainMenu.mnTM.Oscilloscope1.mnSCPReal`
+- [Simulated](mnscpvirtual-bc50eb2664.md) — `SchematicEditor.MainMenu.mnTM.Oscilloscope1.mnSCPVirtual`
+- [Pa&rameter Analyzer](parameteranalyzer-97ed30abee.md) — `SchematicEditor.MainMenu.mnTM.ParameterAnalyzer`
+- [&Signal Analyzer](signalanalyzer-40046b9813.md) — `SchematicEditor.MainMenu.mnTM.SignalAnalyzer`
+- [Real-time](mnsareal-8e73882604.md) — `SchematicEditor.MainMenu.mnTM.SignalAnalyzer1.mnSAReal`
+- [Simulated](mnsavirtual-fce9c49401.md) — `SchematicEditor.MainMenu.mnTM.SignalAnalyzer1.mnSAVirtual`
+- [S&pectrum Analyzer](spectrumanalyzer-11a1e69228.md) — `SchematicEditor.MainMenu.mnTM.SpectrumAnalyzer`
+- [Real-time](mnspareal-12325756ca.md) — `SchematicEditor.MainMenu.mnTM.SpectrumAnalyzer1.mnSPAReal`
+- [Simulated](mnspavirtual-afa21bf203.md) — `SchematicEditor.MainMenu.mnTM.SpectrumAnalyzer1.mnSPAVirtual`
+- [&Multimeter](voltmeter-7880e9e737.md) — `SchematicEditor.MainMenu.mnTM.Voltmeter`
+- [Real-time](mndmmreal-eee7b053e6.md) — `SchematicEditor.MainMenu.mnTM.Voltmeter1.mnDMMReal`
+- [Simulated](mndmmvirtual-bc36655829.md) — `SchematicEditor.MainMenu.mnTM.Voltmeter1.mnDMMVirtual`
+- [&XY Recorder](xyrecorder-8bd7cf98cd.md) — `SchematicEditor.MainMenu.mnTM.XYRecorder`
+- [Real-time](mnxyrecreal-71f33d7ef4.md) — `SchematicEditor.MainMenu.mnTM.XYRecorder1.mnXYRecReal`
+- [Simulated](mnxyrecvirtual-5f57132e12.md) — `SchematicEditor.MainMenu.mnTM.XYRecorder1.mnXYRecVirtual`
+- [Filter Design...](filterdesign1-a3fc2f1ba1.md) — `SchematicEditor.MainMenu.mnTools.FilterDesign1`
+- [&Find Component...](findcomponent-dd160e51b4.md) — `SchematicEditor.MainMenu.mnTools.FindComponent`
+- [&Lock Schematic Editor](fixschematiceditor-1f0b36baa4.md) — `SchematicEditor.MainMenu.mnTools.FixSchematicEditor`
+- [Logic Design...](logicconverter1-43982c68bd.md) — `SchematicEditor.MainMenu.mnTools.LogicConverter1`
+- [AI Assistant](mnaiassistant-f57b708f59.md) — `SchematicEditor.MainMenu.mnTools.mnAIAssistant`
+- [&Diagram Window](mnanalysisresults-38934f7cb4.md) — `SchematicEditor.MainMenu.mnTools.mnAnalysisResults`
+- [Component Explorer...](mncomponentexplorer-35fcbe6054.md) — `SchematicEditor.MainMenu.mnTools.mnComponentExplorer`
+- [&Component Bar Editor...](mncomponentrackeditor-ee4ad86d32.md) — `SchematicEditor.MainMenu.mnTools.mnComponentRackEditor`
+- [Design Tool](mndesigntool-3593fe083f.md) — `SchematicEditor.MainMenu.mnTools.mnDesignTool`
+- [D&ock Netlist Editor](mndocknetlisteditor-677d547aac.md) — `SchematicEditor.MainMenu.mnTools.mnDockNetlistEditor`
+- [Edit Macro &Properties...](mneditmacroproperties-7a74313c88.md) — `SchematicEditor.MainMenu.mnTools.mnEditMacroProperties`
+- [E&xport Macro...](mnexportmacro-7961e811c3.md) — `SchematicEditor.MainMenu.mnTools.mnExportMacro`
+- [Filter Design New...](mnfilterdesignnew-9a4f5d8706.md) — `SchematicEditor.MainMenu.mnTools.mnFilterDesignNew`
+- [Flowchart Editor](mnflowcharteditor-e5028b07fc.md) — `SchematicEditor.MainMenu.mnTools.mnFlowchartEditor`
+- [&Interpreter](mninterpreter-cad28ec42f.md) — `SchematicEditor.MainMenu.mnTools.mnInterpreter`
+- [New &Macro Wizard...](mnmacromanager-7ddc7fe375.md) — `SchematicEditor.MainMenu.mnTools.mnMacroManager`
+- [Footprint Name Editor...](mncompreport-e165b2a0d1.md) — `SchematicEditor.MainMenu.mnTools.mnPCBTools.mnCompReport`
+- [Backannotate...](mnimportban-bab9d71339.md) — `SchematicEditor.MainMenu.mnTools.mnPCBTools.mnImportBan`
+- [PCB Component Wizard...](mnpcbonlycompwizard-dc99b65216.md) — `SchematicEditor.MainMenu.mnTools.mnPCBTools.mnPCBOnlyCompWizard`
+- [PCB Design...](mnpcbwizard-03fa320248.md) — `SchematicEditor.MainMenu.mnTools.mnPCBTools.mnPCBWizard`
+- [Renumber Components](mnrenumbercomps-232384dd2c.md) — `SchematicEditor.MainMenu.mnTools.mnPCBTools.mnRenumberComps`
+- [Pro&tect Circuit...](mnprotect-1efd2e5178.md) — `SchematicEditor.MainMenu.mnTools.mnProtect`
+- [Python Shell](mnpythonshell-8051aafc70.md) — `SchematicEditor.MainMenu.mnTools.mnPythonShell`
+- [Re-&build Library](mnrebuildlibrary-15a63a9976.md) — `SchematicEditor.MainMenu.mnTools.mnReBuildLibrary`
+- [Re-c&ompile Library](mnrecompilelibrary-0f28a8c556.md) — `SchematicEditor.MainMenu.mnTools.mnReCompileLibrary`
+- [&Re-read symbol database](mnrereadsymboldatabase-a558ced42b.md) — `SchematicEditor.MainMenu.mnTools.mnReReadSymbolDatabase`
+- [&Netlist Editor](mnspiceeditor-ba9351aa4a.md) — `SchematicEditor.MainMenu.mnTools.mnSPiceEditor`
+- [&Equation Editor](mnsymbolicresults-dbb293b008.md) — `SchematicEditor.MainMenu.mnTools.mnSymbolicResults`
+- [Serial monitor](mnuartterminalwindow-99f0dc0852.md) — `SchematicEditor.MainMenu.mnTools.mnUARTTerminalWindow`
+- [&Unprotect Circuit...](mnunprotect-4c0791856c.md) — `SchematicEditor.MainMenu.mnTools.mnUnProtect`
+- [2D View](mn2dview-c42723bc4f.md) — `SchematicEditor.MainMenu.View.mn2DView`
+- [3D View](mn3dview-eafbb8eb6a.md) — `SchematicEditor.MainMenu.View.mn3DView`
+- [Tolerance](mnappendtolerancetolabel-f1ef4b890e.md) — `SchematicEditor.MainMenu.View.mnAppendToleranceToLabel`
+- [&Units](mnappendunittolabel-373c58f1ed.md) — `SchematicEditor.MainMenu.View.mnAppendUnitToLabel`
+- [&Values](mnappendvaluetolabel-8589c531e8.md) — `SchematicEditor.MainMenu.View.mnAppendValueToLabel`
+- [Continue](mnbreadboardviewcontinue-1f4e552fb6.md) — `SchematicEditor.MainMenu.View.mnBreadBoardView.mnBreadBoardViewContinue`
+- [New](mnbreadboardviewnew-d208bee9e7.md) — `SchematicEditor.MainMenu.View.mnBreadBoardView.mnBreadBoardViewNew`
+- [&Component Bar](mncomponentbar-8c86bf207e.md) — `SchematicEditor.MainMenu.View.mnComponentBar`
+- [&Options...](mneditoroptions-61a880bc1a.md) — `SchematicEditor.MainMenu.View.mnEditorOptions`
+- [&Exam Manager](mnfaultmanager-464a2f5993.md) — `SchematicEditor.MainMenu.View.mnFaultManager`
+- [&Grid](mngrid-03fe7062f2.md) — `SchematicEditor.MainMenu.View.mnGrid`
+- [English](mnnative-1031ee87b2.md) — `SchematicEditor.MainMenu.View.mnLanguage.mnNative`
+- [Other](mnother1-17502e9a96.md) — `SchematicEditor.MainMenu.View.mnLanguage.mnOther1`
+- [No&de Numbers](mnnodenumbers-d97c64dc9f.md) — `SchematicEditor.MainMenu.View.mnNodeNumbers`
+- [Normal View](mnnormalview-ada000edb3.md) — `SchematicEditor.MainMenu.View.mnNormalView`
+- [Package Numbers](mnpackagenumbers-e445c94009.md) — `SchematicEditor.MainMenu.View.mnPackageNumbers`
+- [Page Layout View](mnpagelayoutview-b2a2a8989a.md) — `SchematicEditor.MainMenu.View.mnPageLayoutView`
+- [Pin &Markers](mnpinmarkers-235c75c286.md) — `SchematicEditor.MainMenu.View.mnPinMarkers`
+- [&Redraw](mnredraw-68eb6f9122.md) — `SchematicEditor.MainMenu.View.mnRedraw`
+- [Show Digital Node States](mnshowdigitalnodestates-4abbd8e40b.md) — `SchematicEditor.MainMenu.View.mnShowDigitalNodeStates`
+- [&Labels](mnshowlabels-7ae5fefcb2.md) — `SchematicEditor.MainMenu.View.mnShowLabels`
+- [Wire IDs](mnshowwireids-dba8da5138.md) — `SchematicEditor.MainMenu.View.mnShowWireIDs`
+- [&Tool Bar](mntoolbar-4f8fcc0ccf.md) — `SchematicEditor.MainMenu.View.mnToolBar`
+- [Transient &Statistics](mntransientstatistics-36dc11e456.md) — `SchematicEditor.MainMenu.View.mnTransientStatistics`
+- [&Window](mnzoomwindow-13adfd5aca.md) — `SchematicEditor.MainMenu.View.Zoom.mnZoomWindow`
+- [Page Wi&dth](pagewidth-73a7462544.md) — `SchematicEditor.MainMenu.View.Zoom.PageWidth`
+- [Whole &Page](wholepage-8594585902.md) — `SchematicEditor.MainMenu.View.Zoom.WholePage`
+- [A&ll](zoomall-4c06e01d80.md) — `SchematicEditor.MainMenu.View.Zoom.ZoomAll`
+- [&In](zoomin-1ef691265b.md) — `SchematicEditor.MainMenu.View.Zoom.ZoomIn`
+- [&Normal](zoomnormal-e14284ded0.md) — `SchematicEditor.MainMenu.View.Zoom.ZoomNormal`
+- [&Out](zoomout-ae498d9746.md) — `SchematicEditor.MainMenu.View.Zoom.ZoomOut`
+- [AC](pmintac-9560b8815c.md) — `SchematicEditor.PopupInteract.pmIntAC`
+- [DC](pmintdc-15645a00f1.md) — `SchematicEditor.PopupInteract.pmIntDC`
+- [Digital](pmintdigital-d4c2cc55dc.md) — `SchematicEditor.PopupInteract.pmIntDigital`
+- [Options...](pmintoptions-f997d34f64.md) — `SchematicEditor.PopupInteract.pmIntOptions`
+- [Transient](pminttransient-e4c376724f.md) — `SchematicEditor.PopupInteract.pmIntTransient`
+- [Transient Single Shot](pminttransientsingleshot-5f106361e1.md) — `SchematicEditor.PopupInteract.pmIntTransientSingleShot`
+- [Power loss](pmpwrloss-e9d0a9d2ec.md) — `SchematicEditor.PopupPower.pmPwrLoss`
+- [None](pmpwrnone-ee5acbdc0d.md) — `SchematicEditor.PopupPower.pmPwrNone`
+- [Power sink](pmpwrsink-1430160d97.md) — `SchematicEditor.PopupPower.pmPwrSink`
+- [Power source](pmpwrsource-ad5f5a8c29.md) — `SchematicEditor.PopupPower.pmPwrSource`
+- [Activate components](pmactivatecomps-c635e88e19.md) — `SchematicEditor.SchPopup.pmActivateComps`
+- [Assign SystemC DLL...](pmassignsystemcdll-aeacc6c5a2.md) — `SchematicEditor.SchPopup.pmAssignSystemCDLL`
+- [&Auto Repeat](pmautorepeat-ea1f6d5719.md) — `SchematicEditor.SchPopup.pmAutoRepeat`
+- [Auto Wi&re](pmautorewire-e670215f15.md) — `SchematicEditor.SchPopup.pmAutoReWire`
+- [Cancel &Mode](pmcancel-242daec6c0.md) — `SchematicEditor.SchPopup.pmCancel`
+- [Leave Macro](pmclosemacro-ac6da6c0a9.md) — `SchematicEditor.SchPopup.pmCloseMacro`
+- [Deactivate components](pmdeactivatecomps-157e89b860.md) — `SchematicEditor.SchPopup.pmDeactivateComps`
+- [&Delete](pmdelete-803f429c00.md) — `SchematicEditor.SchPopup.pmDelete`
+- [Diagram](pmdiagram-76c0b44784.md) — `SchematicEditor.SchPopup.pmDiagram`
+- [Edit Symbol...](pmeditsymbol-544efadbc0.md) — `SchematicEditor.SchPopup.pmEditSymbol`
+- [Formula](pmformula-94308392e4.md) — `SchematicEditor.SchPopup.pmFormula`
+- [Open MCU code editor...](pmgotomcuide-db91fb7a83.md) — `SchematicEditor.SchPopup.pmGotoMCUIDE`
+- [Last &Component](pmlastcomponent-bb548b0076.md) — `SchematicEditor.SchPopup.pmLastComponent`
+- [&Mirror](pmmirror-7c012eeb5a.md) — `SchematicEditor.SchPopup.pmMirror`
+- [Enter Macro](pmopenmacro-c64def0b9e.md) — `SchematicEditor.SchPopup.pmOpenMacro`
+- [Pr&operties...](pmproperties-61bdbd24c6.md) — `SchematicEditor.SchPopup.pmProperties`
+- [Rotate &Left](pmrotateleft-0267f83535.md) — `SchematicEditor.SchPopup.pmRotateLeft`
+- [Rotate Righ&t](pmrotateright-40778a8ce9.md) — `SchematicEditor.SchPopup.pmRotateRight`
+- [&Wire](pmwire-ceb22d384b.md) — `SchematicEditor.SchPopup.pmWire`
+- [&Diagram](pmedisondiagram-b975540da7.md) — `SchematicEditor.SchPopupEdison.pmEdisonDiagram`
+- [&Formula](pmedisonformula-778099074d.md) — `SchematicEditor.SchPopupEdison.pmEdisonFormula`
+- [Rotate left|Rotate the selected component left (counterclockwise)](speedbutton7-5d7e4144f1.md) — `SchematicEditor.SpeedButton7`
+- [Rotate left|Rotate the selected component left (counterclockwise)](speedbutton8-e0023a92b7.md) — `SchematicEditor.SpeedButton8`
+- [Lock Schematic|Locks/unlocks the schematic editor at the bottom](sbeditorlocked-5f7c736059.md) — `SchematicEditor.StatusPanel.ButtonPanel.EditorLockPanel.sbEditorLocked`
+- [Exit](sbquitapplication-e994f0b9d0.md) — `SchematicEditor.StatusPanel.ButtonPanel.ExitPanel.sbQuitApplication`
+- [Component Bar](componentbar-c78d3a6aea.md) — `SchematicEditor.ToolsPopup.ComponentBar`
+- [Tool Bar](toolbar-8af34637ab.md) — `SchematicEditor.ToolsPopup.ToolBar`
+- [Component list](compdropdown-44e2c9a6a0.md) — `SchematicEditor.TopToolBar.CompDropDownP.CompDropDown`
+- [Find Component](toolsearchcomp-98fe33fe18.md) — `SchematicEditor.TopToolBar.CompDropDownP.ToolSearchComp`
+- [AI Assistant](sbaiassistant-e990e9f499.md) — `SchematicEditor.TopToolBar.EditorTools.sbAIAssistant`
+- [Electronic Books](sbebooks-64bd69e5a2.md) — `SchematicEditor.TopToolBar.EditorTools.sbEBooks`
+- [2D/3D View](sbenable3dview-c4e07c7506.md) — `SchematicEditor.TopToolBar.EditorTools.sbEnable3DView`
+- [Set power source/sink/loss](sbpower-1d1b7babdb.md) — `SchematicEditor.TopToolBar.EditorTools.sbPower`
+- [Run last simulation](sbrunlastsimulation-581899363d.md) — `SchematicEditor.TopToolBar.EditorTools.sbRunLastSimulation`
+- [PCB Design](sbstartpcbdesigner-a632ef7a8c.md) — `SchematicEditor.TopToolBar.EditorTools.sbStartPCBDesigner`
+- [Last component|Inserts the last inserted component](toolcomp-fb19165f02.md) — `SchematicEditor.TopToolBar.EditorTools.ToolComp`
+- [Delete|Delete the selected component](tooldelete-69a881d706.md) — `SchematicEditor.TopToolBar.EditorTools.ToolDelete`
+- [Editing tool](tooledit-8223e8d2d9.md) — `SchematicEditor.TopToolBar.EditorTools.ToolEdit`
+- [Faults enabled|Faults will show up in the circuit when this button is down](toolerror-58fc065cad.md) — `SchematicEditor.TopToolBar.EditorTools.ToolError`
+- [Grid On/Off|Turns the grid on or off in the schematic editor](toolgrid-a03a11f1f9.md) — `SchematicEditor.TopToolBar.EditorTools.ToolGrid`
+- [Hide/Reconnect](toolhiderecon-80f5379db4.md) — `SchematicEditor.TopToolBar.EditorTools.ToolHideRecon`
+- [Interactive mode On/Off](toolinteractive-082ca0bc53.md) — `SchematicEditor.TopToolBar.EditorTools.ToolInteractive`
+- [Select interactive mode](toolinteractmodeselect-e8097599d2.md) — `SchematicEditor.TopToolBar.EditorTools.ToolInteractModeSelect`
+- [Interactive probe](toolintprobe-e77c96850a.md) — `SchematicEditor.TopToolBar.EditorTools.ToolIntProbe`
+- [Mirror|Mirror the selected component along the Y axis](toolmirror-a54fbcd5e3.md) — `SchematicEditor.TopToolBar.EditorTools.ToolMirror`
+- [Select optimization target|Select the target of optimization mode](toolopttarget-82bac4131c.md) — `SchematicEditor.TopToolBar.EditorTools.ToolOptTarget`
+- [Rotate left|Rotate the selected component left (counterclockwise)](toolrleft-94cfb6b908.md) — `SchematicEditor.TopToolBar.EditorTools.ToolRLeft`
+- [Rotate right|Rotate the selected component right (clockwise)](toolrright-fba333f358.md) — `SchematicEditor.TopToolBar.EditorTools.ToolRRight`
+- [Select control object|Select the object of parameter stepping or optimization](toolselectobj-e6d8d81d63.md) — `SchematicEditor.TopToolBar.EditorTools.ToolSelectObj`
+- [Text|Click where you want to place the text](tooltext-bcff9f4e4f.md) — `SchematicEditor.TopToolBar.EditorTools.ToolText`
+- [Wire|Click and drag to place wire](toolwire-19cba12ef8.md) — `SchematicEditor.TopToolBar.EditorTools.ToolWire`
+- [Zoom|Click: Zoom In;   Ctrl-Click: Zoom Out;   Drag: Zoom Window](toolzoom-ac42f9cc96.md) — `SchematicEditor.TopToolBar.EditorTools.ToolZoom`
+- [Zoom|Select or type the appropiate zoom factor](zoomfactor-87349e9226.md) — `SchematicEditor.TopToolBar.EditorTools.ZoomFactor`
+- [Copy](dfcopybtn-64fe71dfa3.md) — `SchematicEditor.TopToolBar.GeneralTools.DFCopyBtn`
+- [Open](dfopenbtn-0bd7c28e4d.md) — `SchematicEditor.TopToolBar.GeneralTools.DFOpenBtn`
+- [Open files from the web](dfopenfromwebbtn-afb045198a.md) — `SchematicEditor.TopToolBar.GeneralTools.DFOpenFromWebBtn`
+- [Paste](dfpastebtn-0581c26081.md) — `SchematicEditor.TopToolBar.GeneralTools.DFPasteBtn`
+- [Save](dfsavebtn-d819596ed7.md) — `SchematicEditor.TopToolBar.GeneralTools.DFSaveBtn`
+- [Close (Ctrl+F4)](toolclose-c7a6e31677.md) — `SchematicEditor.TopToolBar.GeneralTools.ToolClose`

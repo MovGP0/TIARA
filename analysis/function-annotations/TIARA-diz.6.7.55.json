@@ -1,0 +1,63 @@
+﻿{
+  "bead": "TIARA-diz.6.7.55",
+  "control": "AnalModeRangeDlg.OKBtn",
+  "functions": [
+    {
+      "address": "013ede80",
+      "recoveredRole": "Validates and commits the selected analysis-mode range or target, refreshes shared analysis state, and accepts the dialog",
+      "likelyDelphiName": "TAnalModeRangeDlg.OKBtnClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-dialog-validate-commit",
+      "behavior": "Validates the active Parameter Stepping or Optimization page. On success, it applies the page-specific add or update, recalculates the parameter-stepping case-count aggregate when page 0 is active, records the page index, and copies the first available records from the three analysis-mode collections into shared configuration slots. When validation sets form error byte +0x740, it skips all model and shared-state writes so FormCloseQuery can reject the modal close and allow a retry.",
+      "evidence": "The DFM binds AnalModeRangeDlg.OKBtn.OnClick to 013ede80 and gives the TBitBtn Kind=bkOK. The handler calls FUN_013ecee0, branches on form byte +0x740, calls FUN_013ed640 only when clear, recalculates the +0x470 record-count aggregate with multiplication or FUN_00b90650 minimum selection on page 0, writes DAT_0210848c from Notebook, and copies guarded first records from owner offsets +0x470, +0x468, and +0x478. FUN_013ee160 sets CanClose from the same error byte and clears it for the next attempt.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "dialog-validation",
+        "analysis-configuration"
+      ]
+    },
+    {
+      "address": "013ecee0",
+      "recoveredRole": "Reads and validates the active AnalModeRangeDlg page before commit",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-dialog-validation",
+      "behavior": "For Parameter Stepping, it delegates to the embedded frame validator and copies the frame error state to the form. For Optimization, it snapshots the target selector, parses Start value and End value, reports an error when End value is not greater than Start value, and uses form byte +0x740 as the validation result.",
+      "evidence": "FUN_013ecee0 reads the Notebook index through FUN_006d8150. Index 0 calls FUN_014386d0 on the stepping frame at +0x738 and copies its +0xe38 error byte. Index 1 reads the two TFloatEdit controls at +0x728 and +0x730, compares end <= start, and routes the localized message through FUN_013ece80, which sets +0x740 after displaying the first error.",
+      "tags": [
+        "application-ui",
+        "dialog-validation",
+        "range-validation"
+      ]
+    },
+    {
+      "address": "013ed640",
+      "recoveredRole": "Applies the AnalModeRangeDlg add, edit, or remove state to the selected analysis-mode collection",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-dialog-model-commit",
+      "behavior": "Selects the parameter-stepping, optimization-object range, or optimization-target collection from the active page and target variant. It appends a new record for state 0, overwrites the matching record for state 1, or deletes it for state 2. Target records take ownership of three prepared lists and remove list entries that do not apply to the selected target type.",
+      "evidence": "FUN_013ed640 tests Notebook index and form variant +0x1084, then dispatches on state bytes +0x1098, +0x1099, and +0x109a. Its state-0 branches allocate and append records to owner offsets +0x470, +0x468, or +0x478; state-1 branches overwrite matched records; state-2 branches destroy and remove them. The optimization-object record stores start, end, and midpoint. The target record receives selector data and list pointers +0x10c0, +0x10c8, and +0x10d0 before selector-specific pruning.",
+      "tags": [
+        "application-ui",
+        "analysis-configuration",
+        "model-commit"
+      ]
+    },
+    {
+      "address": "013ee160",
+      "recoveredRole": "Allows or rejects AnalModeRangeDlg closure from the current validation state",
+      "likelyDelphiName": "TAnalModeRangeDlg.FormCloseQuery",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-form-close-validation",
+      "behavior": "Sets CanClose to true only when form error byte +0x740 is clear. It then clears the form and stepping-frame error bytes for a later attempt and records whether the current page-specific definition was new, existing, or removed.",
+      "evidence": "The DFM binds AnalModeRangeDlg.OnCloseQuery to 013ee160. The handler writes *(bool*)CanClose from the inverse of +0x740, clears +0x740 and stepping-frame byte +0xe38, reads the active Notebook page, and copies the applicable state byte +0x1098, +0x1099, or +0x109a to DAT_02108489.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "form-close-query",
+        "dialog-validation"
+      ]
+    }
+  ]
+}

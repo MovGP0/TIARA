@@ -1,0 +1,33 @@
+﻿{
+  "bead": "TIARA-diz.6.7.58",
+  "control": "AnalParametersDlg.PopupMenu.PMILoad",
+  "functions": [
+    {
+      "address": "011534e0",
+      "recoveredRole": "Load analysis parameters from a selected PRM or TXT file and refresh the Analysis Parameters dialog",
+      "likelyDelphiName": "TAnalParametersDlg.PMILoadClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-load-analysis-parameters",
+      "behavior": "Executes the Load Parameters dialog and returns without state changes when it is canceled. After acceptance, stores the selected path, passes the zero-based filter index to the parameter loader, clears AttributeGrid after a normal loader return, and rebuilds the dialog editors and comment memo from its FConfig and FComment working state.",
+      "evidence": "The DFM binds PMILoad.OnClick to 011534e0. FUN_01153810 configures the dialog with PRM then TXT filters. FUN_011534e0 checks Execute, reads and assigns FileName, passes FilterIndex minus one with the form fields at offsets 0x740 and 0x8d8 to FUN_014aeb50, then calls FUN_00b0b020 and FUN_01152760. The recovered call-site bytes set the loader's fifth argument to zero.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "parameter-load"
+      ]
+    },
+    {
+      "address": "014aeb50",
+      "recoveredRole": "Load a native analysis-parameter record or import recognized text parameter values",
+      "apiCategory": "Analysis parameter persistence",
+      "behavior": "For format zero, deserializes a native record and, when called with a zero context argument, replaces the supplied 400-byte configuration and comment outputs. For text format, reads lines, maps recognized positions to the 45 parameter definitions, parses values by parameter type, and updates only those fields in the shared main-parameter record. It does not reset unspecified text-import fields or load a text comment.",
+      "evidence": "FUN_014aeb50 selects the native branch when its format argument is zero. That branch copies 0x32 qwords from the temporary deserialized object to the supplied configuration and assigns its comment before recording a nonzero reader status. The text branch uses FUN_014aeb20 to map line positions, parses integer, localized-choice, or floating-point tokens, and stores recognized values at PTR_DAT_02004010 plus the parameter slot offset; unrecognized positions do not write a value.",
+      "tags": [
+        "application-logic",
+        "parameter-load",
+        "file-import"
+      ]
+    }
+  ]
+}

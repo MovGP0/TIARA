@@ -1,0 +1,90 @@
+﻿# ShapeEdit controls
+
+Identified OnClick controls: 86.
+
+- [&Copy](copy-9e5367f4fe.md) — `ShapeEdit.MainMenu.Edit.Copy`
+- [Cu&t](cut-6c3f698e61.md) — `ShapeEdit.MainMenu.Edit.Cut`
+- [&Auto-calculate sensing rectangle](mnautocalculatesensingrectangle-0e6ae3788e.md) — `ShapeEdit.MainMenu.Edit.mnAutoCalculateSensingRectangle`
+- [B&ring Forward](mnbringforward-5c7569c7d1.md) — `ShapeEdit.MainMenu.Edit.mnBringForward`
+- [Bring to &Front](mnbringtofront-4055371037.md) — `ShapeEdit.MainMenu.Edit.mnBringtoFront`
+- [Add cursor sensing rectangle...](mncursorrect-f8791bf954.md) — `ShapeEdit.MainMenu.Edit.mnCursorRect`
+- [&Delete](mndelete-6b6fecf3f1.md) — `ShapeEdit.MainMenu.Edit.mnDelete`
+- [Pr&operties...](mneditattributes-2cc59bb24e.md) — `ShapeEdit.MainMenu.Edit.mnEditAttributes`
+- [Pin &Order...](mnpinorder-6b7e2ff1f9.md) — `ShapeEdit.MainMenu.Edit.mnPinOrder`
+- [Pin Properties...](mnpinproperties-5e377d3796.md) — `ShapeEdit.MainMenu.Edit.mnPinProperties`
+- [&Redo](mnredo-bab54b02c2.md) — `ShapeEdit.MainMenu.Edit.mnRedo`
+- [Rotate &Left](mnrotateleft-94ea372d1f.md) — `ShapeEdit.MainMenu.Edit.mnRotateLeft`
+- [Rotate Righ&t](mnrotateright-828fd894d5.md) — `ShapeEdit.MainMenu.Edit.mnRotateRight`
+- [Select A&ll](mnselectall-b8d6cf56bc.md) — `ShapeEdit.MainMenu.Edit.mnSelectAll`
+- [S&end Backward](mnsendbackward-2480d1d48d.md) — `ShapeEdit.MainMenu.Edit.mnSendBackward`
+- [Send to &Back](mnsendtoback-a81ee971db.md) — `ShapeEdit.MainMenu.Edit.mnSendtoBack`
+- [Synchronize &Shapes...](mnsynchronizeshapes-220d271e4d.md) — `ShapeEdit.MainMenu.Edit.mnSynchronizeShapes`
+- [&Paste](paste-9a0d871188.md) — `ShapeEdit.MainMenu.Edit.Paste`
+- [&Undo](undo-1cc0de1ed2.md) — `ShapeEdit.MainMenu.Edit.Undo`
+- [&About](about-fd7f0842ec.md) — `ShapeEdit.MainMenu.Help.About`
+- [&Contents](contents-9e01f01a94.md) — `ShapeEdit.MainMenu.Help.Contents`
+- [&Arc](mnuarc-89c7e4f00f.md) — `ShapeEdit.MainMenu.mnDraw.mnuArc`
+- [&Bitmap...](mnubitmap-8bfb94a04c.md) — `ShapeEdit.MainMenu.mnDraw.mnuBitmap`
+- [&Ellipse](mnuellipse-72f1100122.md) — `ShapeEdit.MainMenu.mnDraw.mnuEllipse`
+- [&IC Wizard...](mnuicwizard-0f13d35075.md) — `ShapeEdit.MainMenu.mnDraw.mnuICWizard`
+- [&Line](mnuline-c31ad5d7c0.md) — `ShapeEdit.MainMenu.mnDraw.mnuLine`
+- [&Polygon](mnupolygon-197654c3ba.md) — `ShapeEdit.MainMenu.mnDraw.mnuPolygon`
+- [&Rectangle](mnurectangle-09d4d18578.md) — `ShapeEdit.MainMenu.mnDraw.mnuRectangle`
+- [&Text...](mnutext-463e40248e.md) — `ShapeEdit.MainMenu.mnDraw.mnuText`
+- [&Convert...](convert-722d1c260d.md) — `ShapeEdit.MainMenu.mnFile.Convert`
+- [E&xit](mnexit-8b1e4c130c.md) — `ShapeEdit.MainMenu.mnFile.mnExit`
+- [&Import...](mnimport-5116753137.md) — `ShapeEdit.MainMenu.mnFile.mnImport`
+- [&New](mnnew-8dfdfa055d.md) — `ShapeEdit.MainMenu.mnFile.mnNew`
+- [&Open...](open-d7db1ca263.md) — `ShapeEdit.MainMenu.mnFile.Open`
+- [&Save](save-a4e6155259.md) — `ShapeEdit.MainMenu.mnFile.Save`
+- [Save &As...](saveas-756c5c05e1.md) — `ShapeEdit.MainMenu.mnFile.SaveAs`
+- [&Cancel](mncancele-9851ee7999.md) — `ShapeEdit.MainMenu.mnFileEmbedded.mnCancelE`
+- [&Import...](mnimporte-17b41d43cd.md) — `ShapeEdit.MainMenu.mnFileEmbedded.mnImportE`
+- [&OK](mnoke-fca75a7a30.md) — `ShapeEdit.MainMenu.mnFileEmbedded.mnOKE`
+- [&Bring in view](mnbringinview-04c0611d11.md) — `ShapeEdit.MainMenu.View.mnBringInView`
+- [&Grid](mngrid-06369fdadf.md) — `ShapeEdit.MainMenu.View.mnGrid`
+- [Pin &Markers](mnpinmarkers-f6bb57d77e.md) — `ShapeEdit.MainMenu.View.mnPinMarkers`
+- [&Redraw](mnredraw-5ae33cea51.md) — `ShapeEdit.MainMenu.View.mnRedraw`
+- [&Snap](mnsnap-347e0c4844.md) — `ShapeEdit.MainMenu.View.mnSnap`
+- [S&upplementary](mnsupplementary-c4427a1f8f.md) — `ShapeEdit.MainMenu.View.mnSupplementary`
+- [&1x](mnzoom1x-e40a43e1d4.md) — `ShapeEdit.MainMenu.View.Zoom.mnZoom1x`
+- [&2x](mnzoom2x-2f5d301f26.md) — `ShapeEdit.MainMenu.View.Zoom.mnZoom2x`
+- [&3x](mnzoom3x-baf976b5ea.md) — `ShapeEdit.MainMenu.View.Zoom.mnZoom3x`
+- [&4x](mnzoom4x-e3e32ea4f2.md) — `ShapeEdit.MainMenu.View.Zoom.mnZoom4x`
+- [&8x](mnzoom8x-372b462596.md) — `ShapeEdit.MainMenu.View.Zoom.mnZoom8x`
+- [Long clock pin](sbpinlc-02c49045d3.md) — `ShapeEdit.PartsPanel.PinPanel.sbPinLC`
+- [Long inverted pin](sbpinld-fcc96ca541.md) — `ShapeEdit.PartsPanel.PinPanel.sbPinLD`
+- [Long inverted clock pin](sbpinldc-4933965754.md) — `ShapeEdit.PartsPanel.PinPanel.sbPinLDC`
+- [Long pin](sbpinln-24404d5ef4.md) — `ShapeEdit.PartsPanel.PinPanel.sbPinLN`
+- [Short pin](sbpinmini-3db4758a26.md) — `ShapeEdit.PartsPanel.PinPanel.sbPinMini`
+- [Normal clock pin](sbpinnc-ccdd5d0a7a.md) — `ShapeEdit.PartsPanel.PinPanel.sbPinNC`
+- [Normal inverted pin](sbpinnd-ff0e4316dd.md) — `ShapeEdit.PartsPanel.PinPanel.sbPinND`
+- [Normal inverted clock pin](sbpinndc-4bcd4adda8.md) — `ShapeEdit.PartsPanel.PinPanel.sbPinNDC`
+- [Normal pin](sbpinnn-fe1fb882b6.md) — `ShapeEdit.PartsPanel.PinPanel.sbPinNN`
+- [Zero length pin](sbpinx-7fb376b81b.md) — `ShapeEdit.PartsPanel.PinPanel.sbPinX`
+- [Click to set object color](pboc-9ffa9d6c17.md) — `ShapeEdit.PartsPanel.pnlOC.pbOC`
+- [ Width ](rgpenwidth-bb591511c9.md) — `ShapeEdit.PartsPanel.rgPenWidth`
+- [pbEditor](pbeditor-89285dd7ff.md) — `ShapeEdit.scbEditor.pbEditor`
+- [Sort by name](cbxsortbyname-bc81bd7b24.md) — `ShapeEdit.TemplatePanel.cbxSortbyName`
+- [LBDevices](lbdevices-39c07c6951.md) — `ShapeEdit.TemplatePanel.LBDevices`
+- [Arc](sbarc-df6a4f6972.md) — `ShapeEdit.TopToolBar.EditorTools.sbArc`
+- [Bitmap](sbbitmap-eb32736106.md) — `ShapeEdit.TopToolBar.EditorTools.sbBitmap`
+- [Bring in view](sbbringinview-efc41377f8.md) — `ShapeEdit.TopToolBar.EditorTools.sbBringInView`
+- [Add cursor sensing rectangle (interactive area)](sbcursorrect-b4aa57966a.md) — `ShapeEdit.TopToolBar.EditorTools.sbCursorRect`
+- [Editing tool](sbedit-c17eef19e4.md) — `ShapeEdit.TopToolBar.EditorTools.sbEdit`
+- [Ellipse](sbellipse-c186fe3d6c.md) — `ShapeEdit.TopToolBar.EditorTools.sbEllipse`
+- [Grid on/off|Turns the grid on or off in the schematic editor](sbgrid-d3cc77c7ef.md) — `ShapeEdit.TopToolBar.EditorTools.sbGrid`
+- [Line](sbline-191c45baa6.md) — `ShapeEdit.TopToolBar.EditorTools.sbLine`
+- [Polygon|Click where you want to start to draw a polygon](sbpolygon-ca61bc717e.md) — `ShapeEdit.TopToolBar.EditorTools.sbPolygon`
+- [Auto-calculate sensing rectangle](sbrecalcsense-f884202c4c.md) — `ShapeEdit.TopToolBar.EditorTools.sbRecalcSense`
+- [Rectangle](sbrect-123d49a8d5.md) — `ShapeEdit.TopToolBar.EditorTools.sbRect`
+- [Rotate left|Rotate the selected component left (counterclockwise)](sbrleft-3c17825b80.md) — `ShapeEdit.TopToolBar.EditorTools.sbRLeft`
+- [Rotate right|Rotate the selected component right (clockwise)](sbrright-742a083934.md) — `ShapeEdit.TopToolBar.EditorTools.sbRRight`
+- [Snap on/off](sbsnap-f5be5c5649.md) — `ShapeEdit.TopToolBar.EditorTools.sbSnap`
+- [Show/hide supplementary data](sbsupplementary-c14277cb2d.md) — `ShapeEdit.TopToolBar.EditorTools.sbSupplementary`
+- [Text](sbtext-753bfa855d.md) — `ShapeEdit.TopToolBar.EditorTools.sbText`
+- [Copy](sbcopy-7c039cf948.md) — `ShapeEdit.TopToolBar.GeneralTools.sbCopy`
+- [OK|Apply changes](sboke-bb60303554.md) — `ShapeEdit.TopToolBar.GeneralTools.sbOKE`
+- [Open](sbopen-894aa8ce61.md) — `ShapeEdit.TopToolBar.GeneralTools.sbOpen`
+- [Paste](sbpaste-784ea8ff51.md) — `ShapeEdit.TopToolBar.GeneralTools.sbPaste`
+- [Save](sbsave-2d5e8a5483.md) — `ShapeEdit.TopToolBar.GeneralTools.sbSave`

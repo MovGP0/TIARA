@@ -1,0 +1,61 @@
+﻿# MCUProjectForm controls
+
+Identified OnClick controls: 57.
+
+- [Copy](mncopy-07f88cf058.md) — `MCUProjectForm.MainMenu.mnEdit.mnCopy`
+- [Cut](mncut-b4b4ede532.md) — `MCUProjectForm.MainMenu.mnEdit.mnCut`
+- [Find...](mnfind-b87be1e2ec.md) — `MCUProjectForm.MainMenu.mnEdit.mnFind`
+- [Delete](mnmaindelete-24e358bd60.md) — `MCUProjectForm.MainMenu.mnEdit.mnMainDelete`
+- [Paste](mnpaste-89e5af82c6.md) — `MCUProjectForm.MainMenu.mnEdit.mnPaste`
+- [Replace...](mnreplace-bf9e1b64af.md) — `MCUProjectForm.MainMenu.mnEdit.mnReplace`
+- [Search Again](mnsearchagain-f15ae04739.md) — `MCUProjectForm.MainMenu.mnEdit.mnSearchAgain`
+- [Select All](mnselectall-31352f827a.md) — `MCUProjectForm.MainMenu.mnEdit.mnSelectAll`
+- [Undo](mnundo-45ecc16180.md) — `MCUProjectForm.MainMenu.mnEdit.mnUndo`
+- [Exit](mnexit-5cb44c1a12.md) — `MCUProjectForm.MainMenu.mnFile.mnExit`
+- [New](mnmainnew-ac7f896a31.md) — `MCUProjectForm.MainMenu.mnFile.mnMainNew`
+- [New Eclipse Project](mnnewxmcproject-61c2f508c6.md) — `MCUProjectForm.MainMenu.mnFile.mnNewXMCProject`
+- [Refresh Eclipse Project](mnrefreshxmcproject-ad5dec4eea.md) — `MCUProjectForm.MainMenu.mnFile.mnRefreshXMCProject`
+- [Save As...](mnsaveas-9831556828.md) — `MCUProjectForm.MainMenu.mnFile.mnSaveAs`
+- [Assign ELF/HEX manually...](mnassignelf-1f785b49ba.md) — `MCUProjectForm.MainMenu.mnProject.mnAssignElf`
+- [Compiler Options](mncompileroptions-d02f6123a3.md) — `MCUProjectForm.MainMenu.mnProject.mnCompilerOptions`
+- [Run](mnmainrun-be2fcd071b.md) — `MCUProjectForm.MainMenu.mnRun.mnMainRun`
+- [Options](mnoptions-815fa8ed97.md) — `MCUProjectForm.MainMenu.mnRun.mnOptions`
+- [Ram display settings](mnramdisplaysettings-98d8a4eab0.md) — `MCUProjectForm.mnPopupMenuMemory.mnRamdisplaysettings`
+- [Add watch](addwatch1-345cab971a.md) — `MCUProjectForm.mnPopupRegisters.Addwatch1`
+- [Add Existing File...](mnadd-5508803b28.md) — `MCUProjectForm.pmAddToProject.mnAdd`
+- [Add files from a directory...](mnadddir-ccf1f5bb11.md) — `MCUProjectForm.pmAddToProject.mnAddDir`
+- [Create New File](mnnew-cbdfe0fc76.md) — `MCUProjectForm.pmAddToProject.mnNew`
+- [Delete](mndelete-de63809ead.md) — `MCUProjectForm.pmBreakpoints.mnDelete`
+- [Delete All](mndeleteall-d033ff2cf3.md) — `MCUProjectForm.pmBreakpoints.mnDeleteAll`
+- [Disable All](mndisableall-ac6acf5ca5.md) — `MCUProjectForm.pmBreakpoints.mnDisableAll`
+- [Enable All](mnenableall-1a89d06c2f.md) — `MCUProjectForm.pmBreakpoints.mnEnableAll`
+- [Enabled](mnenabled-747d81572b.md) — `MCUProjectForm.pmBreakpoints.mnEnabled`
+- [Add Watch at Cursor](mnaddwatchatcursor-64a21d21c3.md) — `MCUProjectForm.pmEditor.mnAddWatchatCursor`
+- [Run To Cursor](mnruntocursor-3b8d867d6f.md) — `MCUProjectForm.pmEditor.mnRunToCursor`
+- [Remove](mnremove-b5c6b3f10b.md) — `MCUProjectForm.pmFileProperties.mnRemove`
+- [Change Value](mnchangeperiphvalue-edd7156d6e.md) — `MCUProjectForm.pmPeriph.mnChangePeriphValue`
+- [Add files from a directory...](mnadddirtoproject-b8c4a71bab.md) — `MCUProjectForm.pmProjectProperties.mnAddDirToProject`
+- [Add Existing File...](mnaddto-1968543a3c.md) — `MCUProjectForm.pmProjectProperties.mnAddTo`
+- [Create New File](mncreatenew-98f938cd71.md) — `MCUProjectForm.pmProjectProperties.mnCreateNew`
+- [Remove All Files](mnremoveall-916bf9aa57.md) — `MCUProjectForm.pmProjectProperties.mnRemoveAll`
+- [Rename](mnrename-d986186098.md) — `MCUProjectForm.pmProjectProperties.mnRename`
+- [Save files to a directory...](mnsavefiles-0215c64c34.md) — `MCUProjectForm.pmProjectProperties.mnSaveFiles`
+- [Change Value](mnchangevalue-ba2a96e238.md) — `MCUProjectForm.pmWatches.mnChangeValue`
+- [Add Object](sbaddobjectwatch-406b102866.md) — `MCUProjectForm.pnMessagesClient.pcMessages.tsWatches.Panel1.pnWatchButtons.pnWatchButtonsRight.sbAddObjectWatch`
+- [Remove All](sbremoveallwatches-5b0af41fe0.md) — `MCUProjectForm.pnMessagesClient.pcMessages.tsWatches.Panel1.pnWatchButtons.pnWatchButtonsRight.sbRemoveAllWatches`
+- [Add New File To Project](sbaddnewfile-d544351707.md) — `MCUProjectForm.pnToolbar.sbAddNewFile`
+- [Add Existing File To Project](sbaddtoproject-c01cd2b826.md) — `MCUProjectForm.pnToolbar.sbAddToProject`
+- [A](sbanimate-a7683b5bc4.md) — `MCUProjectForm.pnToolbar.sbAnimate`
+- [D](sbdevel-2375574ee4.md) — `MCUProjectForm.pnToolbar.sbDevel`
+- [Make Project](sbmake-3ed2e19064.md) — `MCUProjectForm.pnToolbar.sbMake`
+- [N](sbnodes-54b38359fd.md) — `MCUProjectForm.pnToolbar.sbNodes`
+- [Remove File(s) From Project](sbremovefromproject-a063239ba9.md) — `MCUProjectForm.pnToolbar.sbRemoveFromProject`
+- [Restart](sbrestart-abd206d6e5.md) — `MCUProjectForm.pnToolbar.sbRestart`
+- [Run](sbrun-1dbe249f51.md) — `MCUProjectForm.pnToolbar.sbRun`
+- [Save As...](sbsavefile-85127a9d2e.md) — `MCUProjectForm.pnToolbar.sbSaveFile`
+- [Save Project](sbsaveproject-612330191a.md) — `MCUProjectForm.pnToolbar.sbSaveProject`
+- [Step Out](sbstepout-85502ee144.md) — `MCUProjectForm.pnToolbar.sbStepOut`
+- [Step Over](sbstepover-f6bcaa03cb.md) — `MCUProjectForm.pnToolbar.sbStepOver`
+- [Toggle BreakPoint](sbtogglebreakpoint-aa685cc9ad.md) — `MCUProjectForm.pnToolbar.sbToggleBreakPoint`
+- [Step](sbtraceinto-47d270dc65.md) — `MCUProjectForm.pnToolbar.sbTraceInto`
+- [Stop](sbtracestop-10c54a6644.md) — `MCUProjectForm.pnToolbar.sbTraceStop`

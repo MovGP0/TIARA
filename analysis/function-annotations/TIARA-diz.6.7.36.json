@@ -1,0 +1,37 @@
+﻿{
+  "bead": "TIARA-diz.6.7.36",
+  "control": "AddCurveDlg.UpperPl.Panel3.CancelBtn",
+  "functions": [
+    {
+      "address": "013cc9a0",
+      "recoveredRole": "Cancels tracked Add Curve preview state and hides the Post-processor dialog",
+      "likelyDelphiName": "TAddCurveDlg.CancelBtnClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-cancel-curve-preview",
+      "behavior": "If the preview-tracking list at form offset 0x8c0 is not empty, clears byte 0x18 on every attached preview object, clears the list, refreshes compatible result objects, and redraws the current result view. It then hides the form on every path. An empty list skips the rollback and refresh work but still hides the form. It does not delete or restore committed user-defined function records.",
+      "evidence": "The DFM binds CancelBtn.OnClick to 013cc9a0. PreviewClick at 013cfaa0 clears and populates the same form list before preview refresh. The cancel source iterates that list, writes zero at object offset 0x18, clears the list, calls FUN_01cec4a0 and FUN_01aceb90 only for a nonempty list, and always calls FUN_00805990; that wrapper reaches FUN_007fdf50(form, 0), the recovered VCL visibility path. No definition deletion, definition restoration, prompt, or modal-result write is present.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "curve-preview",
+        "cancel-command"
+      ]
+    },
+    {
+      "address": "013d0520",
+      "recoveredRole": "Routes Add Curve form closure through preview cancellation",
+      "likelyDelphiName": "TAddCurveDlg.FormClose",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-form-close",
+      "behavior": "Clears the form state byte at offset 0x931 and invokes the same preview-cancel and hide path as CancelBtnClick.",
+      "evidence": "The AddCurveDlg DFM binds OnClose to 013d0520. Its recovered body writes zero to form offset 0x931 and calls FUN_013cc9a0.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "form-lifecycle",
+        "curve-preview"
+      ]
+    }
+  ]
+}

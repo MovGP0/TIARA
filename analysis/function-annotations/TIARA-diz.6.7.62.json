@@ -1,0 +1,50 @@
+﻿{
+  "bead": "TIARA-diz.6.7.62",
+  "control": "AnalParametersDlg.pnlButtons.MenuBtn",
+  "functions": [
+    {
+      "address": "01153760",
+      "recoveredRole": "Analysis Parameters popup-menu anchor and display handler",
+      "likelyDelphiName": "TAnalParametersDlg.MenuBtnClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-popup-menu-launcher",
+      "behavior": "Builds a point at the MenuBtn client area's top-right edge, converts it to screen coordinates, adds two pixels to X, and opens the form's PopupMenu at that position without executing a menu command.",
+      "evidence": "The DFM resolves AnalParametersDlg.pnlButtons.MenuBtn.OnClick to this function. The source reads Width at offset 0x98 from the button field at form offset 0x710, packs (Width, 0), calls FUN_0064d1f0 for screen coordinates, adds 2 to X, and calls VMT slot 0xA8 on the TPopupMenu field at form offset 0x6C0. The handler returns immediately after the virtual popup call.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "popup-menu",
+        "menu-launcher"
+      ]
+    },
+    {
+      "address": "00498310",
+      "recoveredRole": "32-bit coordinate-pair packer",
+      "framework": "Delphi RTL",
+      "apiCategory": "Delphi geometry",
+      "behavior": "Returns two 32-bit coordinate values as one packed 64-bit point value, with the first coordinate in the low half and the second coordinate in the high half.",
+      "evidence": "The complete function body returns CONCAT44(param_2, param_1). MenuBtnClick passes MenuBtn.Width and zero, and later reads the low half as X and the high half as Y.",
+      "tags": [
+        "delphi-runtime",
+        "geometry-helper",
+        "point-packer"
+      ]
+    },
+    {
+      "address": "0064d1f0",
+      "recoveredRole": "VCL control-local to screen-coordinate point converter",
+      "likelyDelphiName": "TControl.ClientToScreen",
+      "framework": "Delphi VCL",
+      "apiCategory": "VCL geometry",
+      "uiRole": "ui-coordinate-conversion",
+      "behavior": "Gets a control's screen origin through its virtual method and adds that origin to an input point, returning the corresponding screen coordinates.",
+      "evidence": "The source calls VMT slot 0xD8 on the supplied control, splits the returned origin into X and Y, adds the two input point coordinates, and returns the packed sums. MenuBtnClick uses the result as the X and Y arguments for TPopupMenu.Popup.",
+      "tags": [
+        "delphi-vcl",
+        "ui-geometry",
+        "coordinate-conversion"
+      ]
+    }
+  ]
+}

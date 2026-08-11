@@ -1,0 +1,22 @@
+﻿{
+  "bead": "TIARA-diz.6.7.43",
+  "control": "AddWatch.sbMoveDown",
+  "functions": [
+    {
+      "address": "00f86070",
+      "recoveredRole": "Moves the selected Add Watch current item down by one position in stored and visible order",
+      "likelyDelphiName": "TAddWatch.sbMoveDownClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-list-item-move-down",
+      "behavior": "Reads lbCurrent.ItemIndex and the private current-items count. When the index is before the last row, it exchanges that index with the next index in the private TStringList and then in lbCurrent.Items. The VCL visible-list exchange changes ItemIndex to the new row, so the moved logical item stays selected at i + 1. A last-row selection is a no-op; a missing selection with a non-empty list passes the upper-bound-only guard and supplies -1 to the first VCL exchange.",
+      "evidence": "The DFM binds AddWatch.sbMoveDown.OnClick to 00f86070 and supplies the Move Down hint and downward two-frame glyph. The handler reads ItemIndex from form field +0x6b0, reads +0x710 Count, tests index < count - 1, and dispatches Exchange(index, index + 1) first on +0x710 and then on +0x6b0.Items. FormCreate constructs +0x710, FormShow copies it to lbCurrent.Items, and the Add and Delete handlers update both objects. Recovered VCL target FUN_0068acb0 swaps the visible string and item-data pairs and changes ItemIndex from the old exchanged position to the new position.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "list-reordering",
+        "move-down"
+      ]
+    }
+  ]
+}

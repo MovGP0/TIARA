@@ -1,0 +1,23 @@
+﻿{
+  "bead": "TIARA-diz.6.7.56",
+  "control": "AnalModeRangeDlg.RemoveBtn",
+  "functions": [
+    {
+      "address": "013ee280",
+      "recoveredRole": "Delete the current analysis-range record and accept the modal dialog",
+      "likelyDelphiName": "TAnalModeRangeDlg.RemoveBtnClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-analysis-range-remove",
+      "behavior": "Marks the Parameter Stepping, Optimization/Object, and Optimization/Target record states as delete, then calls the common dispatcher, which removes only the current page and submode record from its in-memory model collection. The handler updates stepping aggregate state, remembers the active page, copies item zero from each nonempty collection into shared working buffers, and returns to a button with modal result 1. It does not write durable storage.",
+      "evidence": "The DFM binds RemoveBtn.OnClick to 013ee280, captions it Remove, and assigns ModalResult 1. The handler writes 2 to form offsets 0x1098 through 0x109a and calls FUN_013ed640. That dispatcher treats state 2 as delete and, by page and submode, frees the current record at 0x10a8, 0x10b0, or 0x10b8 and removes its stored index from the application-model collection at 0x470, 0x468, or 0x478. The remaining handler reads index 0 from nonempty collections into shared buffers and stores the notebook page. A recovered caller treats modal result 1 as accepted and refreshes after ShowModal returns.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "analysis-range",
+        "delete",
+        "modal-accept"
+      ]
+    }
+  ]
+}

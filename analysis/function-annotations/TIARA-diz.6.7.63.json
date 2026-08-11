@@ -1,0 +1,78 @@
+﻿{
+  "bead": "TIARA-diz.6.7.63",
+  "control": "AnalParametersDlg.pnlButtons.OKBtn",
+  "functions": [
+    {
+      "address": "01153160",
+      "recoveredRole": "Commits validated analysis-parameter grid edits to the dialog's form-local parameter and description record",
+      "likelyDelphiName": "TAnalParametersDlg.OKBtnClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-analysis-parameters-commit",
+      "behavior": "Validates the active grid editor, decodes 45 typed values from the fixed-order packed buffer, copies the description, and invalidates dependent model state only when TNOM changed. On validation failure it sets the close-query guard and skips the commit.",
+      "evidence": "FUN_01153160 stores FUN_00b0a890's result at form offset +0x8e1, conditionally decodes 45 descriptors into form fields starting at +0x740, reads the memo at +0x720 into the string at +0x8d8, compares the TNOM snapshot at +0x8f0 with +0x740, and calls FUN_019af700 only when they differ. FUN_011537c0 uses +0x8e1 to reject one close attempt.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "parameter-commit"
+      ]
+    },
+    {
+      "address": "00b0a890",
+      "recoveredRole": "Validates and commits the active AttributeGrid cell editor",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-grid-edit-commit-gate",
+      "behavior": "Returns success when no cell editor is active. Otherwise it commits the active editor through FUN_00b0a150 and returns that routine's validation result.",
+      "evidence": "FUN_00b0a890 obtains the current editor with FUN_0084e390, returns zero for a null editor, and otherwise returns FUN_00b0a150's result. FUN_00b0a150 returns failure for invalid row or column indices and commits editor text, parsed data, callbacks, and dirty state when the indices are valid.",
+      "tags": [
+        "application-ui",
+        "grid-validation",
+        "grid-edit-commit"
+      ]
+    },
+    {
+      "address": "011537c0",
+      "recoveredRole": "Blocks one AnalParametersDlg close attempt after an analysis-parameter grid validation failure",
+      "likelyDelphiName": "TAnalParametersDlg.FormCloseQuery",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-modal-close-validation",
+      "behavior": "Sets CanClose only when the validation byte at form offset +0x8e1 is zero, then clears that byte so that the user can correct the edit and retry.",
+      "evidence": "The two recovered statements assign CanClose from the inverse of form byte +0x8e1 and immediately reset +0x8e1 to zero. FUN_01153160 writes the grid validation result to the same byte before the bkOK close request.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "form-close-query",
+        "validation-retry"
+      ]
+    },
+    {
+      "address": "01152760",
+      "recoveredRole": "Builds the analysis-parameter grid from the form-local record with main-parameter or all-parameter display ordering",
+      "likelyDelphiName": "TAnalParametersDlg.FormShow",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-analysis-parameter-grid-build",
+      "behavior": "Encodes all 45 editable values into a fixed descriptor-order buffer, adds either all rows or only main-parameter rows in the selected display order, and records the current TNOM value for later change detection.",
+      "evidence": "FUN_01152760 iterates 45 descriptors, uses the descriptor type to encode each form-local double into DAT_02030200, selects descriptor order byte -0x27 or -0x26 from the View All flag, applies filter byte -0x28 in main-parameter view, and stores form field +0x740 at +0x8f0.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "parameter-grid",
+        "parameter-filter"
+      ]
+    },
+    {
+      "address": "01152540",
+      "recoveredRole": "Constructs AnalParametersDlg with a form-local copy of the caller's analysis parameters and description",
+      "likelyDelphiName": "TAnalParametersDlg.Create",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-dialog-staging-copy",
+      "behavior": "Copies 50 eight-byte parameter slots and the description into dialog-owned fields before initializing the form. Modal callers copy this staged record back only after an OK result.",
+      "evidence": "FUN_01152540 copies 50 slots from its input record to form offsets +0x740 through +0x8cf and assigns the input description to +0x8d8. FUN_01c76bb0 and FUN_01532880 copy these fields back only when the modal result equals one.",
+      "tags": [
+        "application-ui",
+        "dialog-construction",
+        "staging-copy"
+      ]
+    }
+  ]
+}

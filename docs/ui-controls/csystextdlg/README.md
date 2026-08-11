@@ -1,0 +1,42 @@
+﻿# CSysTextDlg controls
+
+Identified OnClick controls: 38.
+
+- [FontBtn](fontbtn-4906a2eba7.md) — `CSysTextDlg.ButtonsNB.TPage.FontBtn`
+- [OKBtn](okbtn-0088a439f6.md) — `CSysTextDlg.ButtonsNB.TPage.OKBtn`
+- [TTPopUpBtn](ttpopupbtn-30ae3aa2ff.md) — `CSysTextDlg.ButtonsNB.TPage.TTPopUpBtn`
+- [AC Transfer Characteristic](actransfercharacteristicmnu-c765ab8013.md) — `CSysTextDlg.DeepLinkPopUpMnu.ACAnalysisMnu.ACTransferCharacteristicMnu`
+- [Network Analysis](networkanalysismnu-e54b4fca8c.md) — `CSysTextDlg.DeepLinkPopUpMnu.ACAnalysisMnu.NetworkAnalysisMnu`
+- [DC Transfer Characteristic](dctransfercharacteristicmnu-db4d80a4c7.md) — `CSysTextDlg.DeepLinkPopUpMnu.DCAnalysisMnu.DCTransferCharacteristicMnu`
+- [Temperature Analysis](temperatureanalysismnu-67e54cb915.md) — `CSysTextDlg.DeepLinkPopUpMnu.DCAnalysisMnu.TemperatureAnalysisMnu`
+- [Digital](digitalmnu-dfd4637f66.md) — `CSysTextDlg.DeepLinkPopUpMnu.DigitalMnu`
+- [Fourier Spectrum](fourierspectrummnu-a385756cd4.md) — `CSysTextDlg.DeepLinkPopUpMnu.FourierSpectrumMnu`
+- [Noise Analysis](noiseanalysismnu-1f0ec7b7cf.md) — `CSysTextDlg.DeepLinkPopUpMnu.NoiseAnalysisMnu`
+- [Set config file](setconfigfilemnu-873971408c.md) — `CSysTextDlg.DeepLinkPopUpMnu.SetConfigFileMnu`
+- [Set main parameter](setparametermnu-adeebb17d0.md) — `CSysTextDlg.DeepLinkPopUpMnu.SetParameterMnu`
+- [Transient](transientmnu-2cb8541955.md) — `CSysTextDlg.DeepLinkPopUpMnu.TransientMnu`
+- [Edit](editbtn-5d9d761684.md) — `CSysTextDlg.ToolsPanel.EditBtn`
+- [Anchor](anchorbtn-8bc6892282.md) — `CSysTextDlg.ToolsPanel.ToolsNB.Edit.AnchorBtn`
+- [Action link](deeplinkbtn-c12ad1c934.md) — `CSysTextDlg.ToolsPanel.ToolsNB.Edit.DeepLinkBtn`
+- [Exponent](expbtn-09e0371235.md) — `CSysTextDlg.ToolsPanel.ToolsNB.Edit.ExpBtn`
+- [Fraction](fracbtn-3f7ead4add.md) — `CSysTextDlg.ToolsPanel.ToolsNB.Edit.FracBtn`
+- [Index](indxbtn-a11c61e155.md) — `CSysTextDlg.ToolsPanel.ToolsNB.Edit.IndxBtn`
+- [Special character](specbtn-cc6ad1469d.md) — `CSysTextDlg.ToolsPanel.ToolsNB.Edit.SpecBtn`
+- [Symbol](symbolbtn-4aa203e946.md) — `CSysTextDlg.ToolsPanel.ToolsNB.Edit.SymbolBtn`
+- [Copy to Clipboard](tdcopybtn-f93a99da4b.md) — `CSysTextDlg.ToolsPanel.ToolsNB.View.TDCopyBtn`
+- [View](viewbtn-67af40ca3e.md) — `CSysTextDlg.ToolsPanel.ViewBtn`
+- [Wrap lines](autowrapmnu-b56afc9ce0.md) — `CSysTextDlg.TTPopupMnu.AutoWrapMnu`
+- [Opaque...](opaquemnu-271d54517f.md) — `CSysTextDlg.TTPopupMnu.Background1.OpaqueMnu`
+- [Transparent](transparentmnu-8b6aa88eb7.md) — `CSysTextDlg.TTPopupMnu.Background1.TransparentMnu`
+- [Dotted](dottedmnu-4a11d082c6.md) — `CSysTextDlg.TTPopupMnu.Border1.DottedMnu`
+- [None](nonemnu-5f8ac9c54e.md) — `CSysTextDlg.TTPopupMnu.Border1.NoneMnu`
+- [Solid](solidmnu-c2a1271105.md) — `CSysTextDlg.TTPopupMnu.Border1.SolidMnu`
+- [Copy](copymnu-f6e10038aa.md) — `CSysTextDlg.TTPopupMnu.CopyMnu`
+- [Cut](cutmnu-a34828d309.md) — `CSysTextDlg.TTPopupMnu.CutMnu`
+- [&Open...](openmnu-a14bf289fb.md) — `CSysTextDlg.TTPopupMnu.OpenMnu`
+- [Paste](pastemnu-795f34cecc.md) — `CSysTextDlg.TTPopupMnu.PasteMnu`
+- [Popup text](popuptext-4611f2b44e.md) — `CSysTextDlg.TTPopupMnu.PopupText`
+- [&Properties...](properties1-43a89e8944.md) — `CSysTextDlg.TTPopupMnu.Properties1`
+- [Save &As...](saveasmnu-d305b979bf.md) — `CSysTextDlg.TTPopupMnu.SaveAsMnu`
+- [&Save...](savemnu-cabce3c1cb.md) — `CSysTextDlg.TTPopupMnu.SaveMnu`
+- [Select all](selectall1-b4baae5994.md) — `CSysTextDlg.TTPopupMnu.Selectall1`

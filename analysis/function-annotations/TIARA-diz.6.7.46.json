@@ -1,0 +1,38 @@
+﻿{
+  "bead": "TIARA-diz.6.7.46",
+  "control": "AnalModeDlg.ButtonPanel.ModeSelectionRG",
+  "functions": [
+    {
+      "address": "01155ae0",
+      "recoveredRole": "Synchronize the Analysis Mode dialog layout with the selected analysis mode",
+      "likelyDelphiName": "TAnalModeDlg.ModeSelectionRGClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-analysis-mode-page-selection",
+      "behavior": "Reads ModeSelectionRG.ItemIndex. Index 0 hides the parameter notebook and reduces the centered form height when the notebook was visible. Nonzero indexes show the notebook, enlarge and recenter the form when it was hidden, and select notebook page ItemIndex minus one.",
+      "evidence": "The DFM binds ModeSelectionRG.OnClick to 01155ae0 and orders Single before four page modes. The recovered field table maps ModeSelectionRG to form offset +0x6d0 and Notebook to +0x6d8. The handler tests ItemIndex at +0x4a8, tests Notebook visibility at +0xa9, changes visibility through FUN_0064dbe0, adjusts the form height by the saved Notebook.Height at +0x7cc through FUN_01b1d750, and calls FUN_006d8180 with ItemIndex - 1.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "analysis-mode",
+        "page-selection"
+      ]
+    },
+    {
+      "address": "01155a80",
+      "recoveredRole": "Validate and capture the current analysis mode before a radio-group change",
+      "likelyDelphiName": "TAnalModeDlg.ModeSelectionRGModifyQuery",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-analysis-mode-change-guard",
+      "behavior": "Temporarily disables the dialog, captures and validates the controls for the current mode, re-enables the dialog, permits the proposed selection change only when no error was recorded, and clears the temporary error flag.",
+      "evidence": "The DFM binds ModeSelectionRG.OnModifyQuery to 01155a80. The handler brackets FUN_01155500 with the form enabled-state setter, passes the current ModeSelectionRG item index from form field +0x6d0, writes CanModify from the inverse of the error byte at +0x7c8, and resets that byte. FUN_01155500 has distinct Single, Temperature, Parameter, Worst Case, and Monte Carlo capture branches and reports invalid Temperature or population values through that error byte.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "change-guard",
+        "analysis-mode",
+        "validation"
+      ]
+    }
+  ]
+}

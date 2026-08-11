@@ -1,0 +1,42 @@
+﻿# FlowChartMainForm controls
+
+Identified OnClick controls: 38.
+
+- [&Preferences](mnpreferences-9c24abd866.md) — `FlowChartMainForm.MainMenu.mnDebug.mnPreferences`
+- [Run](mnrun-525954ad06.md) — `FlowChartMainForm.MainMenu.mnDebug.mnRun`
+- [Run Until](mnrununtil-024052e50a.md) — `FlowChartMainForm.MainMenu.mnDebug.mnRunUntil`
+- [Step Forward](mnstepforward-65873ff634.md) — `FlowChartMainForm.MainMenu.mnDebug.mnStepForward`
+- [Toggle Breakpoint](mntogglebreakpoint-038e7da221.md) — `FlowChartMainForm.MainMenu.mnDebug.mnToggleBreakpoint`
+- [Trace Stop](mntracestop-d011a11855.md) — `FlowChartMainForm.MainMenu.mnDebug.mnTraceStop`
+- [&Copy](mncopy-de85e2b95a.md) — `FlowChartMainForm.MainMenu.mnEdit.mnCopy`
+- [Select &All](mnselectall-fa907965cd.md) — `FlowChartMainForm.MainMenu.mnEdit.mnSelectAll`
+- [E&xit](mnexit-7ac4e278c1.md) — `FlowChartMainForm.MainMenu.mnFile.mnExit`
+- [&New Flowchart](mnnew-35393f51dc.md) — `FlowChartMainForm.MainMenu.mnFile.mnNew`
+- [&Open Flowchart](mnopen-0deda9ac0e.md) — `FlowChartMainForm.MainMenu.mnFile.mnOpen`
+- [&Save Flowchart](mnsave-8664e1acf2.md) — `FlowChartMainForm.MainMenu.mnFile.mnSave`
+- [Save Flowchart &As...](mnsaveas-147b72a3cf.md) — `FlowChartMainForm.MainMenu.mnFile.mnSaveAs`
+- [Save &ASM](mnsaveasm-fde363d108.md) — `FlowChartMainForm.MainMenu.mnFile.mnSaveASM`
+- [Save &HEX](mnsavehex-35d9b57d3a.md) — `FlowChartMainForm.MainMenu.mnFile.mnSaveHEX`
+- [Save &LST](mnsavelst-f2042cf8ce.md) — `FlowChartMainForm.MainMenu.mnFile.mnSaveLST`
+- [Save Flowchart Picture As...](mnsavepicture-e549b0d93a.md) — `FlowChartMainForm.MainMenu.mnFile.mnSavePicture`
+- [&FlowChart](mnflowchart-e510d5bdd1.md) — `FlowChartMainForm.MainMenu.mnHelp.mnFlowChart`
+- [MCU Debugger](mnmcudebugger-e7461f0ef5.md) — `FlowChartMainForm.MainMenu.mnHelp.mnMCUDebugger`
+- [&Options](mnoptions-ca9de74f08.md) — `FlowChartMainForm.MainMenu.mnTools.mnOptions`
+- [Redraw](mnredraw-28596b0da6.md) — `FlowChartMainForm.MainMenu.mnTools.mnRedraw`
+- [&Set Device...](mnsetdevice-55cdc2a124.md) — `FlowChartMainForm.MainMenu.mnTools.mnSetDevice`
+- [mnRamdisplaysettings](mnramdisplaysettings-b2100afbe0.md) — `FlowChartMainForm.pcMain.tsCode.Debugger.mnPopupMenuMemory.mnRamdisplaysettings`
+- [mnAddWatch](mnaddwatch-04b7260ee2.md) — `FlowChartMainForm.pcMain.tsCode.Debugger.mnPopupRegisters.mnAddWatch`
+- [mnToggleBreakPoint](mntogglebreakpoint-4d95c0a04a.md) — `FlowChartMainForm.pcMain.tsEditor.Editor.mnPopupEditor.mnToggleBreakPoint`
+- [mnRamdisplaysettings](mnramdisplaysettings-73f4ba6c1d.md) — `FlowChartMainForm.pcMain.tsEditorAndCode.pnDebugger2.Debugger2.mnPopupMenuMemory.mnRamdisplaysettings`
+- [mnAddWatch](mnaddwatch-2d7ee46fc3.md) — `FlowChartMainForm.pcMain.tsEditorAndCode.pnDebugger2.Debugger2.mnPopupRegisters.mnAddWatch`
+- [mnToggleBreakPoint](mntogglebreakpoint-96713c2934.md) — `FlowChartMainForm.pcMain.tsEditorAndCode.pnEditor2.Editor2.mnPopupEditor.mnToggleBreakPoint`
+- [Animate](cbanimate-bada72b800.md) — `FlowChartMainForm.pnEditStatus.cbAnimate`
+- [Check Flowchart](sbcheckflowchart-a2eb4a16e4.md) — `FlowChartMainForm.pnToolbar.sbCheckFlowChart`
+- [New Flowchart](sbnew-5ba1cc32b8.md) — `FlowChartMainForm.pnToolbar.sbNew`
+- [Open Flowchart](sbopen-58d7714540.md) — `FlowChartMainForm.pnToolbar.sbOpen`
+- [Run](sbrun-07590c2bf3.md) — `FlowChartMainForm.pnToolbar.sbRun`
+- [Save Flowchart](sbsave-d8480d4718.md) — `FlowChartMainForm.pnToolbar.sbSave`
+- [Save To Macro](sbsavetomacro-f0182882d3.md) — `FlowChartMainForm.pnToolbar.sbSaveToMacro`
+- [Step Forward (F8)](sbstepforward-f79f2c4735.md) — `FlowChartMainForm.pnToolbar.sbStepForward`
+- [Toggle BreakPoint](sbtogglebreakpoint-685f2e2252.md) — `FlowChartMainForm.pnToolbar.sbToggleBreakPoint`
+- [Stop](sbtracestop-cbbe1a6eb5.md) — `FlowChartMainForm.pnToolbar.sbTraceStop`

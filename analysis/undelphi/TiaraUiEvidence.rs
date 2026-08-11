@@ -27,27 +27,35 @@ const UI_PROPERTIES: &[&str] = &[
     "Caption",
     "Checked",
     "Default",
+    "DisabledImages",
     "DropDownCount",
     "Enabled",
     "GroupIndex",
     "Height",
     "Hint",
+    "HotImages",
     "ImageIndex",
+    "ImageName",
+    "Images",
     "Items.Strings",
     "Kind",
+    "LargeImages",
     "Left",
     "Max",
     "Min",
     "ModalResult",
+    "NumGlyphs",
     "PageIndex",
     "ParentShowHint",
     "Position",
+    "PressedImageIndex",
     "RadioItem",
     "ReadOnly",
     "ShortCut",
     "ShowHint",
     "State",
     "Style",
+    "SelectedImageIndex",
     "TabOrder",
     "Text",
     "Top",
@@ -107,7 +115,8 @@ fn main()
         {
             writeln!(output, ",").expect("cannot write JSON");
         }
-        write_form(&mut output, resource, root, &binding_map).expect("cannot write form JSON");
+        write_form(&mut output, &binary, resource, root, &binding_map)
+            .expect("cannot write form JSON");
     }
 
     writeln!(output).expect("cannot write JSON");
@@ -146,6 +155,7 @@ fn binding_key(resource: &str, path: &str, event_name: &str) -> String
 
 fn write_form(
     output: &mut impl Write,
+    binary: &DelphiBinary<'_>,
     resource: &str,
     root: &DfmObject<'_>,
     binding_map: &BTreeMap<String, HandlerBinding>,
@@ -192,7 +202,9 @@ fn write_form(
         latest_unique_paths.insert(source_path.to_string(), unique_path.clone());
         write_component(
             output,
+            binary,
             resource,
+            root.class_name(),
             source_path,
             &unique_path,
             unique_parent_path.as_deref(),
@@ -209,7 +221,9 @@ fn write_form(
 
 fn write_component(
     output: &mut impl Write,
+    binary: &DelphiBinary<'_>,
     resource: &str,
+    form_class_name: &str,
     source_path: &str,
     unique_path: &str,
     unique_parent_path: Option<&str>,
@@ -247,6 +261,7 @@ fn write_component(
             UI_PROPERTIES
                 .iter()
                 .any(|name| property.name().eq_ignore_ascii_case(name))
+                || is_embedded_image_property(property.name(), &property.value)
         })
         .collect();
     for (property_index, property) in selected_properties.iter().enumerate()
@@ -289,7 +304,15 @@ fn write_component(
             binding.map(|value| value.method_name.as_str()).unwrap_or(""),
         )?;
         write!(output, ", \"codeAddress\": ")?;
-        match binding.and_then(|value| value.code_va)
+        let code_address = binding
+            .and_then(|value| value.code_va)
+            .or_else(||
+            {
+                let binding = binding?;
+                let form_class = binary.classes().find_by_name(form_class_name)?;
+                binary.resolve_event_handler(form_class, &binding.method_name)
+            });
+        match code_address
         {
             Some(address) => write_json_string(output, &format!("{address:08x}"))?,
             None => write!(output, "null")?,
@@ -318,8 +341,20 @@ fn property_value(value: &DfmValue<'_>) -> String
                 .collect();
             String::from_utf16_lossy(&units)
         }
+        DfmValue::Binary(bytes) => format!("<embedded image: {} bytes>", bytes.len()),
         _ => render_value(value, None),
     }
+}
+
+fn is_embedded_image_property(name: &str, value: &DfmValue<'_>) -> bool
+{
+    matches!(value, DfmValue::Binary(_))
+        && (name.eq_ignore_ascii_case("Glyph.Data")
+            || name.eq_ignore_ascii_case("Picture.Data")
+            || name.eq_ignore_ascii_case("Image.Data")
+            || name.ends_with("Glyph.Data")
+            || name.ends_with("Picture.Data")
+            || name.ends_with("Image.Data"))
 }
 
 fn write_json_string(output: &mut impl Write, value: &str) -> io::Result<()>

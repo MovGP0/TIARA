@@ -9,6 +9,14 @@ FROM read_json_auto(
   maximum_object_size = 100000000
 );
 
+CREATE TEMP TABLE glyph_source AS
+SELECT *
+FROM read_json_auto(
+  getvariable('glyph_manifest_path'),
+  format = 'unstructured',
+  maximum_object_size = 100000000
+);
+
 CREATE TABLE graph_metadata AS
 SELECT
   version,
@@ -73,6 +81,26 @@ SELECT
 FROM graph_source,
 UNNEST(tour) WITH ORDINALITY AS item(step, ordinal);
 
+CREATE TABLE glyph_resources AS
+SELECT
+  ordinal::UBIGINT AS ordinal,
+  resource.FileName AS file_name,
+  resource.Format AS format,
+  resource.OriginalFormat AS original_format,
+  resource.FormResource AS form_resource,
+  resource.FormClass AS form_class,
+  resource.ComponentPath AS component_path,
+  resource.ControlClass AS control_class,
+  resource.Property AS property_name,
+  resource.Width AS width,
+  resource.Height AS height,
+  resource.SourceBytes AS source_bytes,
+  resource.ExtractedBytes AS extracted_bytes,
+  resource.SourceOffset AS source_offset,
+  resource.Sha256 AS sha256
+FROM glyph_source,
+UNNEST(Resources) WITH ORDINALITY AS item(resource, ordinal);
+
 CREATE VIEW graph_statistics AS
 SELECT
   (SELECT count(*) FROM nodes) AS node_count,
@@ -97,6 +125,143 @@ CREATE VIEW ui_events AS
 SELECT source, target, eventName AS event_name, handlerName AS handler_name
 FROM edges
 WHERE type = 'triggers';
+
+CREATE VIEW ui_event_resource_evidence AS
+WITH direct_evidence AS (
+  SELECT
+    ui_events.source AS control_node_id,
+    ui_events.target AS handler_node_id,
+    ui_events.event_name,
+    controls.formResource AS form_resource,
+    controls.formClass AS form_class,
+    controls.componentPath AS component_path,
+    controls.parentPath AS parent_path,
+    controls.controlClass AS control_class,
+    controls.uiControlType AS ui_control_type,
+    controls.caption,
+    controls.hint,
+    json_extract_string(to_json(controls.uiProperties), '$.Text') AS control_text,
+    json_extract_string(to_json(controls.uiProperties), '$."Items.Strings"') AS list_items,
+    json_extract_string(to_json(controls.uiProperties), '$.Action') AS action_name,
+    json_extract_string(to_json(controls.uiProperties), '$.ImageIndex') AS image_index,
+    json_extract_string(to_json(controls.uiProperties), '$.ImageName') AS image_name,
+    json_extract_string(to_json(controls.uiProperties), '$.Images') AS images,
+    json_extract_string(to_json(controls.uiProperties), '$.HotImages') AS hot_images,
+    json_extract_string(to_json(controls.uiProperties), '$.DisabledImages') AS disabled_images,
+    json_extract_string(to_json(controls.uiProperties), '$.LargeImages') AS large_images,
+    json_extract_string(to_json(controls.uiProperties), '$."Glyph.Data"') AS glyph_data,
+    json_extract_string(to_json(controls.uiProperties), '$."Picture.Data"') AS picture_data,
+    json_extract_string(to_json(controls.uiProperties), '$."Image.Data"') AS image_data,
+    json_extract_string(to_json(controls.uiProperties), '$.Kind') AS control_kind,
+    json_extract_string(to_json(controls.uiProperties), '$.ModalResult') AS modal_result,
+    json_extract_string(to_json(controls.uiProperties), '$.Default') AS is_default,
+    json_extract_string(to_json(controls.uiProperties), '$.Cancel') AS is_cancel,
+    json_extract_string(to_json(controls.uiProperties), '$.Checked') AS is_checked,
+    json_extract_string(to_json(controls.uiProperties), '$.State') AS control_state,
+    ui_events.handler_name,
+    handlers.type AS handler_node_type,
+    handlers.address AS handler_address,
+    handlers.name AS handler_node_name,
+    handlers.summary AS handler_summary,
+    handlers.type = 'function' AS resolved_function,
+    list_contains(controls.tags, 'ui-button') AS is_button,
+    list_contains(controls.tags, 'ui-label') AS is_label
+  FROM ui_events
+  JOIN nodes AS controls ON controls.id = ui_events.source
+  JOIN nodes AS handlers ON handlers.id = ui_events.target
+), classified_evidence AS (
+  SELECT
+    *,
+    concat_ws('', caption, hint, control_text, list_items, action_name) <> ''
+      AS has_direct_text_evidence,
+    coalesce(try_cast(image_index AS INTEGER), -1) >= 0
+      OR concat_ws(
+        '',
+        image_name,
+        images,
+        hot_images,
+        disabled_images,
+        large_images,
+        glyph_data,
+        picture_data,
+        image_data
+      ) <> '' AS has_image_evidence,
+    lower(coalesce(control_kind, '')) NOT IN ('', 'bkcustom')
+      OR lower(coalesce(modal_result, '')) NOT IN ('', '0', 'mrnone')
+      OR lower(coalesce(is_default, '')) = 'true'
+      OR lower(coalesce(is_cancel, '')) = 'true'
+      OR lower(coalesce(is_checked, '')) = 'true'
+      OR coalesce(control_state, '') <> '' AS has_semantic_property_evidence
+  FROM direct_evidence
+)
+SELECT
+  *,
+  has_direct_text_evidence
+    OR has_image_evidence
+    OR has_semantic_property_evidence AS has_direct_resource_evidence
+FROM classified_evidence;
+
+CREATE VIEW ui_event_nearby_labels AS
+WITH label_candidates AS (
+  SELECT
+    events.control_node_id,
+    events.handler_node_id,
+    events.event_name,
+    events.handler_name,
+    events.form_resource,
+    events.component_path,
+    labels.id AS label_node_id,
+    labels.componentPath AS label_component_path,
+    labels.controlClass AS label_control_class,
+    labels.caption AS label_caption,
+    labels.hint AS label_hint,
+    abs(
+      try_cast(labels.uiProperties.Left AS INTEGER)
+      - try_cast(controls.uiProperties.Left AS INTEGER)
+    ) + abs(
+      try_cast(labels.uiProperties.Top AS INTEGER)
+      - try_cast(controls.uiProperties.Top AS INTEGER)
+    ) AS coordinate_distance
+  FROM ui_event_resource_evidence AS events
+  JOIN nodes AS controls ON controls.id = events.control_node_id
+  JOIN nodes AS labels
+    ON labels.formResource = events.form_resource
+    AND labels.parentPath IS NOT DISTINCT FROM events.parent_path
+    AND list_contains(labels.tags, 'ui-label')
+    AND coalesce(labels.caption, '') <> ''
+), ranked_labels AS (
+  SELECT
+    *,
+    row_number() OVER (
+      PARTITION BY control_node_id, handler_node_id, event_name
+      ORDER BY coordinate_distance NULLS LAST, label_component_path
+    ) AS candidate_rank
+  FROM label_candidates
+)
+SELECT *
+FROM ranked_labels
+WHERE candidate_rank <= 5;
+
+CREATE VIEW ui_event_glyphs AS
+SELECT
+  events.control_node_id,
+  events.handler_node_id,
+  events.event_name,
+  events.handler_name,
+  events.handler_address,
+  events.resolved_function,
+  glyph_resources.* EXCLUDE (ordinal)
+FROM ui_event_resource_evidence AS events
+JOIN glyph_resources
+  ON glyph_resources.form_resource = events.form_resource
+  AND glyph_resources.component_path = events.component_path;
+
+CREATE VIEW button_clicks AS
+SELECT
+  *
+FROM ui_event_resource_evidence
+WHERE lower(event_name) = 'onclick'
+  AND is_button;
 
 CREATE VIEW knowledge_graph_document AS
 SELECT json_object(

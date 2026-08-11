@@ -1,0 +1,45 @@
+﻿# frmModelTestBenchEditor controls
+
+Identified OnClick controls: 41.
+
+- [Deselect all](btndeselectall-a8d9441b70.md) — `frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSelectors.btnDeselectAll`
+- [Invert selection](btninvertselection-8b281008a4.md) — `frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSelectors.btnInvertSelection`
+- [Select all](btnselectall-1f88d351a4.md) — `frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSelectors.btnSelectAll`
+- [Remove data file](btn-removerefdatafile-3a9180fb39.md) — `frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSetRoot.btn_removeRefDataFile`
+- [Select data file](btn-seldatafile-2688f5d4fd.md) — `frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSetRoot.btn_selDataFile`
+- [Modify folder](btnmodifycircuitfolder-bb33455c40.md) — `frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSetRoot.btnModifyCircuitFolder`
+- [Reload files](btnreloadfiles-03a645d244.md) — `frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSetRoot.btnReloadFiles`
+- [Select folder](btnselectresultfolder-8387e878d6.md) — `frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSetRoot.btnSelectResultFolder`
+- [Start test](btnstarttest-e8cd40295a.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.btnStartTest`
+- [Show report](chkbxshowreport-65163123bd.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.chkbxShowReport`
+- [Add spice result](cb-addspiceres-17a097b6b6.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_globalSettings.cB_addSpiceRes`
+- [Use custom global comparison range](cb-globtime-230ce727c7.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_globalSettings.cB_globTime`
+- [LTspice](cb-ltspice-14320fb015.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_globalSettings.cB_LTSpice`
+- [PSpice](cb-pspice-4ce456fe6e.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_globalSettings.cB_PSpice`
+- [SIMetrix](cb-simetrix-195a53dccc.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_globalSettings.cB_SIMetrix`
+- [Change curve name](btn-changecurvename-0d3e953ed4.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_localSettings.pctrl_localSettingst.ts_manage.btn_changeCurveName`
+- [Default settings](btn-defsettings-e844a5d6a6.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_localSettings.pctrl_localSettingst.ts_manage.btn_defSettings`
+- [Uncheck all](btn-deselallrefs-649b41975d.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_localSettings.pctrl_localSettingst.ts_select.btn_deselAllRefs`
+- [Check all](btn-selallrefs-f38fd1c967.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_localSettings.pctrl_localSettingst.ts_select.btn_selAllRefs`
+- [Set all](btn-timesetall-2dd45a1e67.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_localSettings.pctrl_localSettingst.ts_time.btn_timeSetAll`
+- [Set all](btn-tolerancesetall-6650d23365.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_localSettings.pctrl_localSettingst.ts_tolerance.btn_toleranceSetAll`
+- [Use datasheet min/max values](chkb-tolerance-dbdc26a8c3.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_localSettings.pctrl_localSettingst.ts_tolerance.chkB_tolerance`
+- [Load](btn-loadref-634aaa703b.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_references.btn_loadRef`
+- [Load](btn-loadres-2def00929b.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_results.btn_loadRes`
+- [Setup corner test](btn-setupcornertest-1308b443ef.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_testSettings.btn_setupCornerTest`
+- [Apply setting to all circuits](btnapplyall-3f22ad9d67.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_testSettings.btnApplyAll`
+- [Comparison](rbtn-comparision-ebc8609b13.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_testSettings.rbtn_comparision`
+- [Do not run](rbtn-none-68985d0866.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_testSettings.rbtn_None`
+- [Run without comparison](rbtn-runwithoutcomp-f13e7ceed6.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_testSettings.rbtn_RunWithoutComp`
+- [Save reference](rbtn-saveresult-4d7cd459f8.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_testSettings.rbtn_saveResult`
+- [Run all circuits](rbtn-runall-40fc4b8f0e.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.rbtn_runAll`
+- [Run current circuit](rbtn-runcurrent-56206ea8f9.md) — `frmModelTestBenchEditor.pnlMain.pnlTestOptions.rbtn_runCurrent`
+- [Clone Testbench...](mnclonetestbench-19f62ad934.md) — `frmModelTestBenchEditor.TestBenchEditorMenu.mnFile.mnCloneTestbench`
+- [Decrypt Circuits...](mndecryptcircuits-8dc8671e99.md) — `frmModelTestBenchEditor.TestBenchEditorMenu.mnFile.mnDecryptCircuits`
+- [Load...](mnload-ed0458c5ad.md) — `frmModelTestBenchEditor.TestBenchEditorMenu.mnFile.mnLoad`
+- [New](mnnew-4c8e329090.md) — `frmModelTestBenchEditor.TestBenchEditorMenu.mnFile.mnNew`
+- [Save](mnsave-676f6b63ec.md) — `frmModelTestBenchEditor.TestBenchEditorMenu.mnFile.mnSave`
+- [Save As...](mnsaveas-3f2052ce81.md) — `frmModelTestBenchEditor.TestBenchEditorMenu.mnFile.mnSaveAs`
+- [Modify replication file](mnmodifyreplicationfile-ce2158e3f0.md) — `frmModelTestBenchEditor.TestBenchEditorMenu.mnTools.mnModifyReplicationFile`
+- [Options](mnoptions-092911de02.md) — `frmModelTestBenchEditor.TestBenchEditorMenu.mnTools.mnOptions`
+- [Run Multiple...](mnrunmultiple-3cecc48a3d.md) — `frmModelTestBenchEditor.TestBenchEditorMenu.mnTools.mnRunMultiple`

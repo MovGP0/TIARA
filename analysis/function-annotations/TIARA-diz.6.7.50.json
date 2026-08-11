@@ -1,0 +1,40 @@
+﻿{
+  "bead": "TIARA-diz.6.7.50",
+  "control": "AnalModeDlg.Notebook.tsWorstCase.GroupBox3.WCMethodRG",
+  "functions": [
+    {
+      "address": "01155c00",
+      "recoveredRole": "Worst-case method case-count enablement handler",
+      "likelyDelphiName": "TAnalModeDlg.WCMethodRGClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-worst-case-method-selection",
+      "behavior": "Reads WCMethodRG.ItemIndex, enables the WCPoints integer editor for Stochastic item 0, and disables the editor for every other index without changing its value or control visibility.",
+      "evidence": "The DFM resolves WCMethodRG.OnClick to this function and orders item 0 as Stochastic and item 1 as Analytic. The source reads ItemIndex at form field 0x758 plus 0x4A8 and calls VMT slot 0x128 with one or zero on form field 0x750. FormShow and the integer getter and setter paths map 0x750 to WCPoints. Repeated form code identifies VMT slot 0x128 as SetEnabled.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "radio-group-handler",
+        "control-enablement",
+        "worst-case-analysis"
+      ]
+    },
+    {
+      "address": "01155bb0",
+      "recoveredRole": "Stochastic worst-case method selection query and case-count initializer",
+      "likelyDelphiName": "TAnalModeDlg.WCMethodRGModifyQuery",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-worst-case-method-query",
+      "behavior": "For Stochastic item 0, asks the application model for a supported power-of-two case count, returns whether the query succeeded, and initializes WCPoints only on success. It does not change the case count for a nonzero method index or a failed derivation.",
+      "evidence": "The DFM resolves WCMethodRG.OnModifyQuery to this function. The source enters its calculation only when the ItemIndex at form field 0x758 is zero, obtains the application model through FUN_019a4600, calls FUN_0114ee40 for a Boolean result and integer output, copies that result to the query output parameter, and calls the WCPoints integer setter only when the result is true.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "radio-group-handler",
+        "selection-query",
+        "case-count-initialization",
+        "worst-case-analysis"
+      ]
+    }
+  ]
+}

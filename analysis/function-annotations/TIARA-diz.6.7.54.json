@@ -1,0 +1,110 @@
+﻿{
+  "bead": "TIARA-diz.6.7.54",
+  "control": "AnalModeRangeDlg.Notebook.tsOptimization.GroupBox3.btnDCTableEdit",
+  "functions": [
+    {
+      "address": "013ee700",
+      "recoveredRole": "Opens and applies the DC target-table editor for an optimization target",
+      "likelyDelphiName": "TAnalModeRangeDlg.btnDCTableEditClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-dc-target-table-editor-command",
+      "behavior": "Sets the parent pending target marker to DC table, opens TCplxForm11 in DC mode over a private copy of the staged table, and shows it modally. On mrOk, it keeps the committed table and activates the DC-table selector. On another modal result, it leaves the table and selector unchanged, but it does not restore the pending target marker.",
+      "evidence": "The DFM binds btnDCTableEdit.OnClick to 013ee700. The handler writes 3 to parent offset 0x108c, passes table 0x10c0 and mode 0 to FUN_013e70f0, tests modal result 1, and then calls FUN_013ee4e0 with the control at 0x6f8. Parent load maps marker 3 to that control. The sibling AC-table handler passes mode 1, while FUN_013e7930 disables rgMeasUnit only for mode 0.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "optimization-target",
+        "dc-table",
+        "modal-editor"
+      ]
+    },
+    {
+      "address": "013e70f0",
+      "recoveredRole": "Constructs the Target Setting Editor over a caller-owned table",
+      "likelyDelphiName": "TCplxForm11.Create",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-target-table-editor-construction",
+      "behavior": "Allocates the editor's private string and record collections, stores the caller-owned table pointer and AC or DC mode, and initializes the modal VCL form with the supplied owner.",
+      "evidence": "FUN_013e70f0 allocates collections at child offsets 0x770 and 0x788, stores the fourth argument at 0x790 and the mode byte at 0x798, and then invokes the inherited form constructor. The DC and AC table handlers pass the same parent table with mode 0 and mode 1 respectively.",
+      "tags": [
+        "application-ui",
+        "modal-editor",
+        "table-editing"
+      ]
+    },
+    {
+      "address": "013e7930",
+      "recoveredRole": "Initializes a private Target Setting Editor working copy",
+      "likelyDelphiName": "TCplxForm11.FormCreate",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-target-table-editor-initialization",
+      "behavior": "Deep-copies each 16-byte supplied table record into the private working list, loads the first value into the tolerance edit, populates the attribute grid, and disables the dB or V control when the constructor mode is DC mode 0.",
+      "evidence": "The CplxForm11 DFM binds OnCreate to 013e7930. The function allocates 16 bytes per source record, copies two 8-byte fields from table 0x790 to working list 0x788, initializes the tolerance and grid, tests mode byte 0x798, and disables child control 0x748 only when that byte is zero. The resource maps that control to rgMeasUnit with dB and V items.",
+      "tags": [
+        "application-ui",
+        "form-lifecycle",
+        "table-editing",
+        "deep-copy"
+      ]
+    },
+    {
+      "address": "013e7bc0",
+      "recoveredRole": "Validates and commits the Target Setting Editor working table",
+      "likelyDelphiName": "TCplxForm11.okClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-accept-target-table",
+      "behavior": "Asks the grid to finish its active cell. On success, it preserves the first record, sorts the remaining records by their first floating-point value, writes the tolerance value to the first record, frees and clears the supplied table, and deep-copies the working records into it. On validation failure, it records the failure and does not change the supplied table.",
+      "evidence": "The CplxForm11 DFM binds the built-in OK button to 013e7bc0. The function stores the FUN_00b0a890 result at child offset 0x768 and enters the sort and copy-back block only when that result is zero. The block frees every record in table 0x790, clears it, allocates one 16-byte destination record for each working entry, and copies both fields.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "validation",
+        "table-editing",
+        "commit"
+      ]
+    },
+    {
+      "address": "013e7290",
+      "recoveredRole": "Blocks Target Setting Editor closure after failed validation",
+      "likelyDelphiName": "TCplxForm11.FormCloseQuery",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-validation-close-guard",
+      "behavior": "Sets CanClose only when the editor validation-result byte is zero, then resets that byte so a corrected close request can be evaluated again.",
+      "evidence": "The CplxForm11 DFM binds OnCloseQuery to 013e7290. The function writes CanClose as the inverse of child byte 0x768 and then clears byte 0x768. The OK handler stores the grid validation result at the same offset.",
+      "tags": [
+        "application-ui",
+        "form-lifecycle-handler",
+        "validation"
+      ]
+    },
+    {
+      "address": "013e71f0",
+      "recoveredRole": "Releases Target Setting Editor private working state",
+      "apiCategory": "Application UI",
+      "behavior": "Destroys the private string collection, frees every private 16-byte working record, destroys the private record list, and continues VCL form destruction. It does not free the caller-owned supplied table pointer.",
+      "evidence": "FUN_013e71f0 destroys child field 0x770, iterates field 0x788 and frees each entry, destroys the 0x788 list, and then continues form cleanup. It never frees the supplied table stored at child offset 0x790.",
+      "tags": [
+        "application-ui",
+        "modal-editor",
+        "cleanup",
+        "table-editing"
+      ]
+    },
+    {
+      "address": "013ee4e0",
+      "recoveredRole": "Selects one optimization-target editor button by font style",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-optimization-target-selection",
+      "behavior": "Clears the font style on all four optimization-target editor buttons and sets the supplied button's style to the recovered bold value.",
+      "evidence": "FUN_013ee4e0 writes style value 0 to controls at parent offsets 0x6f0, 0x6f8, 0x700, and 0x708, then writes value 1 to the supplied control. The four sibling handlers pass their corresponding button only after modal result 1, and the parent load path maps target kinds 0 through 3 to these controls.",
+      "tags": [
+        "application-ui",
+        "optimization-target",
+        "button-style",
+        "selection-state"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+﻿{
+  "bead": "TIARA-diz.6.7.37",
+  "control": "AddCurveDlg.UpperPl.Panel3.MoreBtn",
+  "functions": [
+    {
+      "address": "013cf760",
+      "recoveredRole": "Add Curve advanced-panel expansion toggle handler",
+      "likelyDelphiName": "TAddCurveDlg.MoreBtnClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-panel-expansion-toggle",
+      "behavior": "Inverts the Add Curve expanded-state flag, changes MoreBtn between the More and Less resource captions, and applies the matching advanced-panel layout.",
+      "evidence": "AddCurveDlg.MoreBtn.OnClick resolves to this function. The source toggles form byte 0x949, reads ResStrs item 13 for << Less or item 12 for More >>, sets the button text at form field 0x808, and calls FUN_013cd390. FormCreate initializes the same flag to zero and applies the collapsed caption and layout.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "panel-toggle",
+        "expandable-ui"
+      ]
+    },
+    {
+      "address": "013cd390",
+      "recoveredRole": "Add Curve advanced-panel visibility and height applier",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-panel-layout",
+      "behavior": "Shows or hides AdvancedPanel from the expanded-state flag, recalculates the form client height, and fixes the form minimum and maximum height to the result.",
+      "evidence": "The function tests form byte 0x949, calls the VCL visibility setter for the form field mapped to AdvancedPanel, computes collapsed or expanded height from AdvancedPanel, InfoLb, and their current dimensions, calls the form client-height setter, and restores both height constraints to the resulting form height. FormCreate and MoreBtnClick both call it after setting the state.",
+      "tags": [
+        "application-ui",
+        "panel-visibility",
+        "window-resize",
+        "layout"
+      ]
+    }
+  ]
+}

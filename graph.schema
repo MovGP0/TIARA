@@ -119,7 +119,36 @@
         "controlNodeCount",
         "unresolvedHandlerNodeCount",
         "containsEdgeCount",
-        "eventEdgeCount"
+        "eventEdgeCount",
+        "onClickBindingCount",
+        "onClickDistinctHandlerCount",
+        "resolvedOnClickBindingCount",
+        "resolvedOnClickFunctionCount",
+        "unresolvedOnClickBindingCount",
+        "buttonOnClickBindingCount",
+        "buttonOnClickDistinctHandlerCount",
+        "buttonOnClickFormCount",
+        "resolvedButtonOnClickBindingCount",
+        "unresolvedButtonOnClickBindingCount",
+        "buttonOnClickCaptionCount",
+        "buttonOnClickHintCount",
+        "buttonOnClickActionCount",
+        "buttonOnClickTextEvidenceCount",
+        "buttonOnClickWithoutTextEvidenceCount",
+        "uiEventDirectTextEvidenceCount",
+        "uiEventImageEvidenceCount",
+        "uiEventSemanticPropertyEvidenceCount",
+        "uiEventDirectResourceEvidenceCount",
+        "uiEventWithoutDirectResourceEvidenceCount",
+        "onClickCaptionCount",
+        "onClickHintCount",
+        "onClickTextCount",
+        "onClickItemsCount",
+        "onClickActionCount",
+        "onClickImageEvidenceCount",
+        "onClickSemanticPropertyEvidenceCount",
+        "onClickDirectResourceEvidenceCount",
+        "onClickWithoutDirectResourceEvidenceCount"
       ],
       "properties": {
         "formCount": {
@@ -156,6 +185,93 @@
           "type": "integer"
         },
         "eventEdgeCount": {
+          "type": "integer"
+        },
+        "onClickBindingCount": {
+          "type": "integer"
+        },
+        "onClickDistinctHandlerCount": {
+          "type": "integer"
+        },
+        "resolvedOnClickBindingCount": {
+          "type": "integer"
+        },
+        "resolvedOnClickFunctionCount": {
+          "type": "integer"
+        },
+        "unresolvedOnClickBindingCount": {
+          "type": "integer"
+        },
+        "buttonOnClickBindingCount": {
+          "type": "integer"
+        },
+        "buttonOnClickDistinctHandlerCount": {
+          "type": "integer"
+        },
+        "buttonOnClickFormCount": {
+          "type": "integer"
+        },
+        "resolvedButtonOnClickBindingCount": {
+          "type": "integer"
+        },
+        "unresolvedButtonOnClickBindingCount": {
+          "type": "integer"
+        },
+        "buttonOnClickCaptionCount": {
+          "type": "integer"
+        },
+        "buttonOnClickHintCount": {
+          "type": "integer"
+        },
+        "buttonOnClickActionCount": {
+          "type": "integer"
+        },
+        "buttonOnClickTextEvidenceCount": {
+          "type": "integer"
+        },
+        "buttonOnClickWithoutTextEvidenceCount": {
+          "type": "integer"
+        },
+        "uiEventDirectTextEvidenceCount": {
+          "type": "integer"
+        },
+        "uiEventImageEvidenceCount": {
+          "type": "integer"
+        },
+        "uiEventSemanticPropertyEvidenceCount": {
+          "type": "integer"
+        },
+        "uiEventDirectResourceEvidenceCount": {
+          "type": "integer"
+        },
+        "uiEventWithoutDirectResourceEvidenceCount": {
+          "type": "integer"
+        },
+        "onClickCaptionCount": {
+          "type": "integer"
+        },
+        "onClickHintCount": {
+          "type": "integer"
+        },
+        "onClickTextCount": {
+          "type": "integer"
+        },
+        "onClickItemsCount": {
+          "type": "integer"
+        },
+        "onClickActionCount": {
+          "type": "integer"
+        },
+        "onClickImageEvidenceCount": {
+          "type": "integer"
+        },
+        "onClickSemanticPropertyEvidenceCount": {
+          "type": "integer"
+        },
+        "onClickDirectResourceEvidenceCount": {
+          "type": "integer"
+        },
+        "onClickWithoutDirectResourceEvidenceCount": {
           "type": "integer"
         }
       },

@@ -2,6 +2,7 @@
 param(
     [string]$GraphPath = '.understand-anything/knowledge-graph.json',
     [string]$DatabasePath = '.understand-anything/knowledge-graph.duckdb',
+    [string]$GlyphManifestPath = 'glyph/manifest.json',
     [switch]$RemoveGraphJson
 )
 
@@ -48,12 +49,20 @@ $projectRoot = [System.IO.Path]::GetFullPath(
 )
 $resolvedGraphPath = Resolve-ProjectPath -Path $GraphPath -ProjectRoot $projectRoot
 $resolvedDatabasePath = Resolve-ProjectPath -Path $DatabasePath -ProjectRoot $projectRoot
+$resolvedGlyphManifestPath = Resolve-ProjectPath `
+    -Path $GlyphManifestPath `
+    -ProjectRoot $projectRoot
 Assert-ProjectPath -Path $resolvedGraphPath -ProjectRoot $projectRoot
 Assert-ProjectPath -Path $resolvedDatabasePath -ProjectRoot $projectRoot
+Assert-ProjectPath -Path $resolvedGlyphManifestPath -ProjectRoot $projectRoot
 
 if (-not [System.IO.File]::Exists($resolvedGraphPath))
 {
     throw "The knowledge graph does not exist: $resolvedGraphPath"
+}
+if (-not [System.IO.File]::Exists($resolvedGlyphManifestPath))
+{
+    throw "The glyph manifest does not exist: $resolvedGlyphManifestPath"
 }
 
 $duckDbCommand = Get-Command 'duckdb' -CommandType Application -ErrorAction Stop
@@ -90,9 +99,11 @@ try
     [System.IO.File]::Delete($temporaryDatabasePath)
     [System.IO.File]::Delete($backupDatabasePath)
     $duckDbGraphPath = $resolvedGraphPath.Replace('\', '/').Replace("'", "''")
+    $duckDbGlyphManifestPath = $resolvedGlyphManifestPath.Replace('\', '/').Replace("'", "''")
     & $duckDbCommand.Source $temporaryDatabasePath `
         -bail `
         -cmd "SET VARIABLE graph_path='$duckDbGraphPath';" `
+        -cmd "SET VARIABLE glyph_manifest_path='$duckDbGlyphManifestPath';" `
         -f $sqlPath
     if ($LASTEXITCODE -ne 0)
     {

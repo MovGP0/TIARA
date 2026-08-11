@@ -1,0 +1,53 @@
+﻿{
+  "bead": "TIARA-diz.6.7.42",
+  "control": "AddWatch.sbAdd",
+  "functions": [
+    {
+      "address": "00f85f10",
+      "recoveredRole": "Add Watch selected-item transfer handler",
+      "likelyDelphiName": "TAddWatch.sbAddClick",
+      "uiRole": "ui-list-item-add",
+      "apiCategory": "Application UI",
+      "behavior": "Reads the selected All Items entry. If Current Items does not contain the same text, it adds the entry to the private current-items collection and the visible Current Items list.",
+      "evidence": "AddWatch.sbAdd has the hint Add and a two-frame glyph. The handler rejects a negative selection, reads the selected source string, uses the target list IndexOf result to reject duplicates, and adds the string to both target collections.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "watch-list",
+        "list-item-transfer",
+        "duplicate-prevention"
+      ]
+    },
+    {
+      "address": "00f85e80",
+      "recoveredRole": "Initializes the Add Watch dialog private current-items collection",
+      "likelyDelphiName": "TAddWatch.FormCreate",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-list-state-initialization",
+      "behavior": "Constructs the private Delphi string collection at form offset 0x710. Add and Remove update this collection together with the visible Current Items list.",
+      "evidence": "The DFM binds AddWatch.OnCreate to 00f85e80. FUN_00f85e80 constructs a Delphi list object and stores it at offset 0x710. FormShow assigns that collection to lbCurrent.Items, and sbAddClick appends the selected text to the same collection.",
+      "tags": [
+        "application-ui",
+        "form-lifecycle",
+        "watch-list",
+        "state-initialization"
+      ]
+    },
+    {
+      "address": "00f85e30",
+      "recoveredRole": "Loads the Add Watch source and current item lists when the form is shown",
+      "likelyDelphiName": "TAddWatch.FormShow",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-list-population",
+      "behavior": "Assigns the private all-items collection to lbAll.Items and the private current-items collection to lbCurrent.Items before user interaction.",
+      "evidence": "The DFM binds AddWatch.OnShow to 00f85e30. FUN_00f85e30 assigns the collection at form offset 0x708 to the list box at 0x6d0 and the collection at 0x710 to the list box at 0x6b0. sbAddClick reads the first list and appends to the second list and the 0x710 collection.",
+      "tags": [
+        "application-ui",
+        "form-lifecycle",
+        "watch-list",
+        "ui-list-population"
+      ]
+    }
+  ]
+}

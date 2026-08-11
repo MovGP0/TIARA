@@ -1,0 +1,89 @@
+﻿{
+  "bead": "TIARA-diz.6.7.39",
+  "control": "AddCurveDlg.pmMain.mnCopy",
+  "functions": [
+    {
+      "address": "013d0550",
+      "recoveredRole": "Selects and copies the complete Add Curve Advanced Edit document to the clipboard",
+      "likelyDelphiName": "TAddCurveDlg.mnCopyClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-copy-all-advanced-editor-text",
+      "behavior": "Selects all text in AdvancedEdit, then copies the nonempty selection as standard clipboard text plus SynEdit selection-mode metadata. Empty editor content leaves the existing clipboard unchanged.",
+      "evidence": "AddCurveDlg.pmMain.mnCopy.OnClick resolves to 013d0550. The handler passes form field 0x848 first to FUN_00bfa390 and then to FUN_00bf1d60. AdvancedEditMouseDown independently uses 0x848 for its bound AdvancedEdit event, and mnSelectAllClick calls the same select-all helper.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "clipboard",
+        "synedit"
+      ]
+    },
+    {
+      "address": "00bfa390",
+      "recoveredRole": "Selects the complete document in a SynEdit control",
+      "framework": "Delphi SynEdit",
+      "uiRole": "text-select-all",
+      "behavior": "Builds a selection from line 1 and column 1 through the last character of the final line, applies both endpoints to the editor, and requests a selection-state update.",
+      "evidence": "FUN_00bfa390 reads the editor line count and final line text, calculates final column as line length plus one, calls FUN_00c0a5f0 with start position 1:1 and the calculated endpoint, and calls FUN_00c0a950. AddCurveDlg.mnSelectAllClick contains only a call to this function.",
+      "tags": [
+        "delphi-synedit",
+        "text-selection",
+        "select-all"
+      ]
+    },
+    {
+      "address": "00bf1d60",
+      "recoveredRole": "Copies a nonempty SynEdit selection to standard and SynEdit-specific clipboard formats",
+      "framework": "Delphi SynEdit",
+      "apiCategory": "Clipboard",
+      "uiRole": "text-copy",
+      "behavior": "Returns without clipboard access when the selection is empty. Otherwise it extracts the selected text, preserves the block-selection flag while needed, writes standard clipboard text, and adds the SynEdit selection-mode payload.",
+      "evidence": "FUN_00bf1d60 gates the path with FUN_00bf2c80, temporarily clears and restores flag 0x04000000 for selection mode 2, gets selected text through FUN_00bf2ed0, and passes it to FUN_00bf1bf0. Its only local failure path finalizes the temporary string and returns without a message.",
+      "tags": [
+        "delphi-synedit",
+        "clipboard",
+        "text-copy",
+        "selection"
+      ]
+    },
+    {
+      "address": "00bf2ed0",
+      "recoveredRole": "Extracts selected SynEdit text for normal, whole-line, and column selection modes",
+      "framework": "Delphi SynEdit",
+      "behavior": "Reads the selection endpoints and editor lines, then constructs the selected string with the correct start and end columns and inter-line separators for selection modes 0, 1, and 2. An empty selection produces an empty string.",
+      "evidence": "FUN_00bf2ed0 first calls FUN_00bf2c80, obtains selection coordinates with FUN_00bf2b30 and FUN_00bf2b90, branches on the mode byte at offset 0x5f5, reads source lines from the collection at 0x4e8, and builds the result with substring and append helpers.",
+      "tags": [
+        "delphi-synedit",
+        "text-selection",
+        "string-extraction"
+      ]
+    },
+    {
+      "address": "00bf1bf0",
+      "recoveredRole": "Publishes copied SynEdit text with standard and block-type clipboard metadata",
+      "framework": "Delphi SynEdit",
+      "apiCategory": "Clipboard",
+      "behavior": "Writes the supplied text through the standard clipboard-text helper, then adds a custom payload whose first byte is the SynEdit selection mode and whose remaining bytes contain the copied text. A null string is a no-op.",
+      "evidence": "FUN_00bf1bf0 returns around all clipboard work when its text parameter is null. Otherwise it calls FUN_00bd1c50, allocates and locks global memory, writes the byte at editor offset 0x5f5 before the encoded text, and publishes the handle under DAT_02019b30. FUN_00c116d0 registers that format as 'SynEdit Control Block Type'.",
+      "tags": [
+        "delphi-synedit",
+        "clipboard",
+        "custom-clipboard-format"
+      ]
+    },
+    {
+      "address": "00bd1c50",
+      "recoveredRole": "Writes text to the Windows clipboard in standard text formats",
+      "framework": "Delphi VCL",
+      "apiCategory": "Clipboard",
+      "behavior": "Opens and clears the clipboard, conditionally writes CF_TEXT, always writes CF_UNICODETEXT, and closes the clipboard. Allocation or lock failure skips the affected format without showing an error.",
+      "evidence": "FUN_00bd1c50 gets the shared clipboard object, invokes its open and clear methods, allocates movable zero-initialized global memory, copies encoded text for format 1 when FUN_0044f060 is not 2, copies UTF-16 text for format 13, transfers each successful handle through FUN_006a5e10, and closes the clipboard.",
+      "tags": [
+        "delphi-vcl",
+        "windows-clipboard",
+        "cf-text",
+        "cf-unicodetext"
+      ]
+    }
+  ]
+}

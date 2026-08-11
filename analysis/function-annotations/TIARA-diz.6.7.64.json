@@ -1,0 +1,24 @@
+﻿{
+  "bead": "TIARA-diz.6.7.64",
+  "control": "Analog_form1.Active_RadioButton1",
+  "functions": [
+    {
+      "address": "01235b70",
+      "recoveredRole": "Configures the Filter design UI for active-filter synthesis.",
+      "likelyDelphiName": "TAnalog_form1.Active_RadioButton1Click",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-active-filter-mode-selection",
+      "behavior": "Uses the Active and Passive radio states to enable active OPAMP and resistance inputs, disable passive alternatives, rebuild the approximation combo box with Butterworth, Chebyshev, Elliptic, and Inverse Chebyshev, and restore its selection from the shared approximation code. It does not synthesize or save the filter.",
+      "evidence": "The DFM binds Active_RadioButton1.OnClick to 01235b70 and marks Active checked initially beside Passive in the Active/passive filter group. The handler reads controls at 0x9c0 and 0x9c8, applies inverse enabled states through FUN_0064dbe0, clears and fills the combo at 0x798 with four named families, maps shared codes B/C/E/I and digits to item indexes, and updates its text through FUN_0064de00. FUN_012281f0 later identifies 0x9c0 as the active radio by storing its checked value and branching to active versus passive synthesis; sibling FUN_01235730 performs the inverse passive UI configuration.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "filter-design",
+        "active-filter",
+        "mode-selection",
+        "approximation-selection"
+      ]
+    }
+  ]
+}

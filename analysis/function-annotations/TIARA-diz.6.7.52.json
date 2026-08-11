@@ -1,0 +1,23 @@
+﻿{
+  "bead": "TIARA-diz.6.7.52",
+  "control": "AnalModeRangeDlg.Notebook.tsOptimization.GroupBox3.btnACTableEdit",
+  "functions": [
+    {
+      "address": "013ee580",
+      "recoveredRole": "Opens and applies the AC target-table editor for an optimization target.",
+      "likelyDelphiName": "TAnalModeRangeDlg.btnACTableEditClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-ac-target-table-editor-command",
+      "behavior": "Sets the parent target-kind marker to AC table, opens TCplxForm11 in AC mode with a private copy of the target table, initializes its dB/V selection, and shows it modally. On mrOk, it copies the selected unit back and activates the AC-table target selector. On another modal result, it leaves the table, unit, and selector unchanged, but it does not restore the target-kind marker.",
+      "evidence": "The DFM binds btnACTableEdit.OnClick to address 013ee580. The handler writes 1 to form offset 0x108c, passes the table at 0x10c0 and mode 1 to FUN_013e70f0, transfers the byte at 0x10d8 through the editor control ItemIndex, tests modal result 1, and then calls FUN_013ee4e0 with the selector at 0x708. TCplxForm11 resource evidence identifies the modal form as Target Setting Editor and its rgMeasUnit items as dB and V. FUN_013e7930 deep-copies the supplied table, FUN_013e7bc0 commits it only after grid validation, and sibling handler FUN_013ee700 uses the same editor and table with mode 0 for DC Table.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "optimization-target",
+        "ac-table",
+        "modal-editor"
+      ]
+    }
+  ]
+}

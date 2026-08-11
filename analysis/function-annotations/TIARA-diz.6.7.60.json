@@ -1,0 +1,35 @@
+﻿{
+  "bead": "TIARA-diz.6.7.60",
+  "control": "AnalParametersDlg.PopupMenu.PMISaveAs",
+  "functions": [
+    {
+      "address": "01153680",
+      "recoveredRole": "Prompts for an analysis-parameter path and saves in the selected PRM or TXT format",
+      "likelyDelphiName": "TAnalParametersDlg.PMISaveAsClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-analysis-parameters-save-as-command",
+      "behavior": "Executes SaveParamsDlg. Cancel returns without changing the current path or writing a file. Accept stores the selected FileName at form offset 0x8d0, calls the shared grid-commit routine, converts FilterIndex 1 or 2 to writer format 0 or 1, and starts serialization. It does not stop the write when the shared commit routine records a validation failure.",
+      "evidence": "The AnalParametersDlg DFM binds PMISaveAs.OnClick to 01153680. FUN_01153680 executes the dialog at form offset 0x900, guards all state and file operations with its Boolean result, gets FileName through FUN_00724270, assigns it to form offset 0x8d0, calls FUN_01153160, gets FilterIndex through FUN_00724300, subtracts one, and calls FUN_014ae370. FUN_01153810 configures SaveParamsDlg with PRM and TXT filters. FUN_01153600 uses offset 0x8d0 as the remembered Save path.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "file-save",
+        "analysis-parameters"
+      ]
+    },
+    {
+      "address": "014ae370",
+      "recoveredRole": "Serializes analysis parameters as a structured PRM file or text table",
+      "apiCategory": "Analysis parameter persistence",
+      "behavior": "Format 0 creates a structured Analysis parameters container with version and product metadata, serializes the parameter data, and reports a nonzero writer status. Other format values build a text table of parameter names and typed values and save it to the supplied path.",
+      "evidence": "FUN_014ae370 branches on its format argument. The zero branch creates a file-backed writer, adds the Analysis parameters title and metadata, serializes the parameter object, and sends a nonzero writer status to FUN_00b047e0. The nonzero branch creates text and value lists, appends the recovered parameter names and current integer, Boolean, enumeration, or floating-point values, then invokes the list save-to-file method. PMISaveAsClick passes SaveParamsDlg.FilterIndex minus one. The inverse loader FUN_014aeb50 uses the same zero/nonzero split for structured and text input.",
+      "tags": [
+        "application-logic",
+        "file-save",
+        "serialization",
+        "analysis-parameters"
+      ]
+    }
+  ]
+}

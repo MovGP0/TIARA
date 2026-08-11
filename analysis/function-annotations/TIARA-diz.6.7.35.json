@@ -1,0 +1,34 @@
+﻿{
+  "bead": "TIARA-diz.6.7.35",
+  "control": "AddCurveDlg.UpperPl.Panel2.RemoveBtn",
+  "functions": [
+    {
+      "address": "013ca490",
+      "recoveredRole": "Moves selected curve entries from the insertion list back to the filtered available-curve view.",
+      "likelyDelphiName": "TAddCurveDlg.RemoveBtnClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-remove-curves-from-insertion-list",
+      "behavior": "Copies each selected insertion-list entry and its attached curve object to the available list, deletes the selected insertion rows with shift-safe iteration, and rebuilds the available list with active filters. An empty selection only causes a refresh.",
+      "evidence": "The DFM binds RemoveBtn.OnClick and CurveToInsertLB.OnDblClick to address 013ca490. The source iterates the list at form offset 0x7e0, tests selection with FUN_0068bca0, reads each selected string and object, adds that pair to the list at offset 0x778, deletes selected rows from 0x7e0, and calls FUN_013cab80 with false. The mirrored Add handler, resource labels, and OK-handler consumer identify 0x7e0 as CurveToInsertLB and 0x778 as AvailableCurvesLB.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "mouse-handler"
+      ]
+    },
+    {
+      "address": "0068bca0",
+      "recoveredRole": "Returns whether a list-box item is selected and raises an indexed list error when the native query fails.",
+      "likelyDelphiName": "Vcl.StdCtrls.TCustomListBox.GetSelected",
+      "framework": "Delphi VCL",
+      "behavior": "Gets the list-box window handle, sends LB_GETSEL for the requested item index, returns true for a selected item, and raises a formatted exception when the result is LB_ERR.",
+      "evidence": "FUN_0068bca0 obtains the control handle, sends native message 0x187 (LB_GETSEL) with the item index, compares the result with -1 (LB_ERR), formats an exception with that index, and otherwise returns whether the result is nonzero. Both transfer handlers use this result as their per-row selection test.",
+      "tags": [
+        "delphi-vcl",
+        "list-box",
+        "selection-query"
+      ]
+    }
+  ]
+}

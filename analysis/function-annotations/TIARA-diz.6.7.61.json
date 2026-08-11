@@ -1,0 +1,23 @@
+﻿{
+  "bead": "TIARA-diz.6.7.61",
+  "control": "AnalParametersDlg.PopupMenu.PMIViewAll",
+  "functions": [
+    {
+      "address": "01153360",
+      "recoveredRole": "Toggles the Analysis Parameters grid between all parameters and main parameters, persists the view preference, and rebuilds the grid",
+      "likelyDelphiName": "TAnalParametersDlg.PMIViewAllClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-analysis-parameter-view-toggle",
+      "behavior": "Inverts the Main Params view flag, writes it to TINA.INI, and checks View All only when that flag is false. It attempts to commit the active grid editor and the dialog's working values, clears the AttributeGrid, applies the height for the selected mode, recenters the dialog, and rebuilds either all 45 parameter definitions or only definitions marked as main. A failed active-editor validation skips the backing-value copy but does not stop the view switch or rebuild.",
+      "evidence": "The AnalParametersDlg DFM binds PMIViewAll.OnClick to 01153360. The handler toggles byte 0x8e0, writes it through FUN_00f06730 with the exact key Main Params view, and passes its inverse to the VCL TMenuItem checked setter FUN_007e2d20 for form field 0x6e8. It calls FUN_01153160 before FUN_00b0b020, selects the mode-specific height, recenters through FUN_01b1d750, and calls FUN_01152760. That rebuild function loops over 45 definitions; flag false includes all, while flag true requires the recovered main-parameter marker to equal 1. FUN_01153160 copies values and Description only when active-editor validation returns zero, but 01153360 does not inspect its error byte.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "parameter-grid",
+        "view-filter",
+        "ini-preference"
+      ]
+    }
+  ]
+}

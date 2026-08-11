@@ -1,0 +1,33 @@
+﻿{
+  "bead": "TIARA-diz.6.7.48",
+  "control": "AnalModeDlg.Notebook.tsTemperature.GroupBox1.TempScaleRG",
+  "functions": [
+    {
+      "address": "01155a40",
+      "recoveredRole": "Enables the temperature list editor only for List sweep mode",
+      "likelyDelphiName": "TAnalModeDlg.TempScaleRGClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-temperature-sweep-mode-toggle",
+      "behavior": "Reads TempScaleRG.ItemIndex and sets the Set List button Enabled property to true only when the index is 2, the List item. Linear, Logarithmic, and every other index disable the button. It changes no temperature value or sweep data and raises no error itself.",
+      "evidence": "The AnalModeDlg DFM binds TempScaleRG.OnClick to 01155a40 and defines items Linear, Logarithmic, and List in that order. The handler compares the radio-group field at form offset 0x7b8 plus ItemIndex offset 0x4a8 with 2, then passes the Boolean result to VCL virtual slot 0x128 on the sibling control at form offset 0x7c0. The sibling resource is btnListEdit, captioned Set List.... FUN_0064dc60 shows that this virtual slot is the TControl enabled-state setter because it writes control byte 0xaa and sends CM_ENABLEDCHANGED 0xB00C.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "temperature-sweep"
+      ]
+    },
+    {
+      "address": "017c58f0",
+      "recoveredRole": "Calculates one value from a linear, logarithmic, or explicit-list sweep",
+      "apiCategory": "Analysis stepping",
+      "behavior": "Returns the start value when the interval count is zero. Mode 0 uses linear interpolation between start and end. Mode 1 uses geometric interpolation. Other modes return the indexed value from the supplied numeric list.",
+      "evidence": "FUN_017c58f0 branches on its mode byte. Mode 0 calculates start + ((end - start) / intervalCount) * index. Mode 1 calculates a power-scaled ratio from end/start and multiplies it by start. The other branch calls FUN_01d0f3b0, which bounds-checks the list index and returns that element. FUN_01342880 passes the temperature state fields at offsets 0x418, 0x420, 0x428, 0x416, and 0x430 to this function when the analysis mode is Temperature stepping.",
+      "tags": [
+        "application-logic",
+        "temperature-sweep",
+        "numeric-interpolation"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+﻿{
+  "bead": "TIARA-diz.6.7.47",
+  "control": "AnalModeDlg.ButtonPanel.OKBtn",
+  "functions": [
+    {
+      "address": "011559e0",
+      "recoveredRole": "Validates and commits the selected analysis mode and its settings for modal acceptance",
+      "likelyDelphiName": "TAnalModeDlg.OKBtnClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-analysis-mode-accept",
+      "behavior": "Reads ModeSelectionRG.ItemIndex, stages and validates the controls for that mode, and tests the dialog error flag. With no error, it copies the staged settings record to shared analysis configuration and stores the selected mode byte. With an error, it skips both writes; the form close query then keeps the dialog open.",
+      "evidence": "The DFM binds OKBtn.OnClick to 011559e0 and marks the TBitBtn as bkOK. The handler reads ItemIndex at published field +0x6d0, calls FUN_01155500, tests error byte +0x7c8, conditionally copies the record at +0x7d0 to PTR_DAT_02004010 with FUN_00417c40, and writes the mode to shared byte 3. FormCloseQuery at 01155b90 vetoes closure while +0x7c8 is set.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "analysis-configuration",
+        "settings-commit"
+      ]
+    },
+    {
+      "address": "01155500",
+      "recoveredRole": "Stages and validates the settings for the selected analysis mode",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-analysis-mode-validation",
+      "behavior": "Processes one ModeSelectionRG index from 0 through 4. It stages the applicable Single, Temperature, Parameter, Worst Case, or Monte Carlo controls and calculates the derived case count. It rejects equal or out-of-range temperatures and a Monte Carlo population outside 0 through 100 by setting the dialog error state through FUN_01155400.",
+      "evidence": "The recovered function branches directly on the supplied mode byte. Published TAnalModeDlg fields map its control reads to the mode-specific editors, check boxes, and radio groups. The temperature branch compares both values with -100 and 500 and rejects equality. The Monte Carlo branch compares population with 0 and 100. Both failure branches load string resource 0x134 and call FUN_01155400.",
+      "tags": [
+        "application-ui",
+        "analysis-configuration",
+        "settings-staging",
+        "validation"
+      ]
+    },
+    {
+      "address": "01155400",
+      "recoveredRole": "Routes an analysis-mode validation message through the dialog error flag",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-validation-error",
+      "behavior": "Passes a supplied localized message and the AnalModeDlg error flag at +0x7c8 to the shared first-error helper. That helper shows the message and sets the flag only when the flag was clear.",
+      "evidence": "FUN_01155400 preserves the supplied UnicodeString and calls FUN_01b1cf30 with param_1 + 0x7c8. FUN_01b1cf30 tests the byte, calls the message dialog only for zero, and then writes one. FUN_01155500 calls this wrapper after loading resource 0x134 for its explicit range failures.",
+      "tags": [
+        "application-ui",
+        "validation",
+        "error-feedback"
+      ]
+    },
+    {
+      "address": "01155b90",
+      "recoveredRole": "Blocks AnalModeDlg closure while a validation error is pending",
+      "likelyDelphiName": "TAnalModeDlg.FormCloseQuery",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-validation-close-guard",
+      "behavior": "Sets CanClose to true only when the dialog error flag at +0x7c8 is clear, then resets the flag for the next close attempt.",
+      "evidence": "The DFM binds AnalModeDlg.OnCloseQuery to 01155b90. The recovered handler writes the inverse of byte +0x7c8 to the caller-supplied CanClose Boolean and then clears +0x7c8. OKBtnClick tests the same byte before it commits shared settings.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "form-close-guard",
+        "validation"
+      ]
+    }
+  ]
+}

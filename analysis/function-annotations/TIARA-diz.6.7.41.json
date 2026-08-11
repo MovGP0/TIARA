@@ -1,0 +1,23 @@
+﻿{
+  "bead": "TIARA-diz.6.7.41",
+  "control": "AddCurveDlg.pmMain.mnSelectAll",
+  "functions": [
+    {
+      "address": "013d0590",
+      "recoveredRole": "Selects all content in the Add Curve advanced editor.",
+      "likelyDelphiName": "TAddCurveDlg.mnSelectAllClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-select-all-advanced-editor-text",
+      "behavior": "Passes AdvancedEdit to the shared SynEdit select-all routine, which moves the caret to the calculated end of the buffer and selects from line 1, column 1 through that endpoint. Empty content produces an empty selection at line 1, column 1.",
+      "evidence": "The DFM binds AddCurveDlg.pmMain.mnSelectAll.OnClick to address 013d0590. The handler reads form field 0x848 and calls FUN_00bfa390. AdvancedEditMouseDown independently identifies field 0x848 as AdvancedEdit. FUN_00bfa390 builds the range from 1:1 through the last line length plus one, and the sibling Copy handler calls it before clipboard copying.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "synedit",
+        "text-selection",
+        "select-all"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+﻿{
+  "bead": "TIARA-diz.6.7.31",
+  "control": "AddCurveDlg.UpperPl.Panel2.FilterGB.MeasCB",
+  "functions": [
+    {
+      "address": "013d0540",
+      "recoveredRole": "Refresh the available-curve list after the Measurement filter changes",
+      "likelyDelphiName": "TAddCurveDlg.MeasCBClick",
+      "apiCategory": "Application UI",
+      "uiRole": "ui-measurement-curve-filter-toggle",
+      "behavior": "Passes the Add Curve form and regular filter mode to the shared available-list rebuild. The rebuild reads MeasCB.Checked with the other category controls, excludes objects already selected for insertion, applies the text filter, and repopulates AvailableCurvesLB without changing the selected-curves list.",
+      "evidence": "The DFM binds MeasCB.OnClick to address 013d0540 and gives the control the caption Measurement. The recovered handler contains only FUN_013cab80(param_1, 0). The DFM field order and the rebuild's form accesses map MeasCB to +0x7c8; FUN_013cab80 tests that checked state for objects in the collection referenced by PTR_DAT_02001d00, then adds accepted display-string and object pairs to AvailableCurvesLB at +0x778.",
+      "tags": [
+        "application-ui",
+        "ui-event-handler",
+        "click-handler",
+        "curve-filter"
+      ]
+    }
+  ]
+}

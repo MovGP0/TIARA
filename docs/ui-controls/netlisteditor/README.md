@@ -1,0 +1,57 @@
+﻿# NetlistEditor controls
+
+Identified OnClick controls: 53.
+
+- [Compile](compilebutton-b113b61244.md) — `NetlistEditor.BtnPanel.CompileButton`
+- [Copy](copybutton-ff6b2d9340.md) — `NetlistEditor.BtnPanel.CopyButton`
+- [Open](openbutton-bd16e3c72a.md) — `NetlistEditor.BtnPanel.OpenButton`
+- [Paste](pastebutton-77df9e473a.md) — `NetlistEditor.BtnPanel.PasteButton`
+- [Save](savebutton-57b02a4ac0.md) — `NetlistEditor.BtnPanel.SaveButton`
+- [Close (Ctrl+F4)](toolclose-015b269c82.md) — `NetlistEditor.BtnPanel.ToolClose`
+- [&Edit Source](pmieditsource-a53d5eb164.md) — `NetlistEditor.ListBoxPopup.pmiEditSource`
+- [&Remove messages](pmiremovemessages-9dea770a8a.md) — `NetlistEditor.ListBoxPopup.pmiRemoveMessages`
+- [&Calculate nodal voltages](miaccalculatenodalvoltages-7f8b15e03c.md) — `NetlistEditor.MainMenu.MAnalysis.MIACAnalysis.MIACCalculateNodalVoltages`
+- [AC Multisine Analysis...](miacmultisineanalysis-db80fea978.md) — `NetlistEditor.MainMenu.MAnalysis.MIACAnalysis.MIACMultisineAnalysis`
+- [&Time Function...](miactimefunction-ed3fcc3e7c.md) — `NetlistEditor.MainMenu.MAnalysis.MIACAnalysis.MIACTimeFunction`
+- [&AC Transfer Characteristic...](miactransfercharacteristic-570ad5d4de.md) — `NetlistEditor.MainMenu.MAnalysis.MIACAnalysis.MIACTransferCharacteristic`
+- [&Phasor Diagram](miacvectordiagram-98f4bee178.md) — `NetlistEditor.MainMenu.MAnalysis.MIACAnalysis.MIACVectorDiagram`
+- [&Compile](micompile-243c2eaf69.md) — `NetlistEditor.MainMenu.MAnalysis.MICompile`
+- [&Calculate nodal voltages](midccalculatenodalvoltages-2f921dd293.md) — `NetlistEditor.MainMenu.MAnalysis.MIDCAnalysis.MIDCCalculateNodalVoltages`
+- [&DC Transfer Characteristic...](midctransfercharacteristic-e55c8e77b1.md) — `NetlistEditor.MainMenu.MAnalysis.MIDCAnalysis.MIDCTransferCharacteristic`
+- [&Temperature Analysis...](mitemperatureanalysis-b3833c37a4.md) — `NetlistEditor.MainMenu.MAnalysis.MIDCAnalysis.MITemperatureAnalysis`
+- [Digital Transient...](midigitaltransient-c386aaf509.md) — `NetlistEditor.MainMenu.MAnalysis.MIDigitalTransient`
+- [ERC](mierc-bba452d3be.md) — `NetlistEditor.MainMenu.MAnalysis.MIERC`
+- [Fourier Series...](mifourierseries-3cab767b5e.md) — `NetlistEditor.MainMenu.MAnalysis.MIFourier.MIFourierSeries`
+- [Fourier Spectrum...](mifourierspectrum-1c349a73af.md) — `NetlistEditor.MainMenu.MAnalysis.MIFourier.MIFourierSpectrum`
+- [&Mode...](mimode-bb946c7648.md) — `NetlistEditor.MainMenu.MAnalysis.MIMode`
+- [&Noise Analysis...](minoiseanalysis-a4ace1e017.md) — `NetlistEditor.MainMenu.MAnalysis.MINoiseAnalysis`
+- [&Options...](mioption-be8c824b9c.md) — `NetlistEditor.MainMenu.MAnalysis.MIOption`
+- [&Set Parameters...](misetparameters-6e98396670.md) — `NetlistEditor.MainMenu.MAnalysis.MISetParameters`
+- [Show &Warnings](mishowwarnings-1acb7a18fc.md) — `NetlistEditor.MainMenu.MAnalysis.MIShowWarnings`
+- [St&eady State Solver...](misteadystatesolver-adac521f96.md) — `NetlistEditor.MainMenu.MAnalysis.MISteadyStateSolver`
+- [AC Result](miacresult-0b7f3d13f6.md) — `NetlistEditor.MainMenu.MAnalysis.MISymbolic.MIACResult`
+- [AC transfer](miactransfer-a0e663d77f.md) — `NetlistEditor.MainMenu.MAnalysis.MISymbolic.MIACTransfer`
+- [DC Result](midcresult-5694f20083.md) — `NetlistEditor.MainMenu.MAnalysis.MISymbolic.MIDCResult`
+- [Poles and Zeros](mipolesandzeros-877a2f4d36.md) — `NetlistEditor.MainMenu.MAnalysis.MISymbolic.MIPolesandZeros`
+- [Semi-symbolic AC Result](misemisymbolicacresult-bc51b9066d.md) — `NetlistEditor.MainMenu.MAnalysis.MISymbolic.MISemisymbolicACResult`
+- [Semi-symbolic AC transfer](misemisymbolicactransfer-805ef44fea.md) — `NetlistEditor.MainMenu.MAnalysis.MISymbolic.MISemisymbolicACTransfer`
+- [Semi-symbolic DC Result](misemisymbolicdcresult-0c019052cf.md) — `NetlistEditor.MainMenu.MAnalysis.MISymbolic.MISemisymbolicDCResult`
+- [Semi-symbolic transient](misemisymbolictransient-03a217ed27.md) — `NetlistEditor.MainMenu.MAnalysis.MISymbolic.MISemisymbolicTransient`
+- [&Transient...](mitransient-5a6fb623d3.md) — `NetlistEditor.MainMenu.MAnalysis.MITransient`
+- [&Copy](micopy-1f2ce84c07.md) — `NetlistEditor.MainMenu.MEdit.MICopy`
+- [Cu&t](micut-7a6ecbe38d.md) — `NetlistEditor.MainMenu.MEdit.MICut`
+- [&Delete](midelete-161a7fa538.md) — `NetlistEditor.MainMenu.MEdit.MIDelete`
+- [&Find...](mifind-94c8472839.md) — `NetlistEditor.MainMenu.MEdit.MIFind`
+- [&Paste](mipaste-ad161aa012.md) — `NetlistEditor.MainMenu.MEdit.MIPaste`
+- [&Replace...](mireplace-5123458aeb.md) — `NetlistEditor.MainMenu.MEdit.MIReplace`
+- [Search &Again](misearchagain-50df13756e.md) — `NetlistEditor.MainMenu.MEdit.MISearchAgain`
+- [&Select All](miselectall-b0417eedac.md) — `NetlistEditor.MainMenu.MEdit.MISelectAll`
+- [&Undo](miundo-ab60913404.md) — `NetlistEditor.MainMenu.MEdit.MIUndo`
+- [&Close Netlist Editor](miexit-9dddef910d.md) — `NetlistEditor.MainMenu.MFile.MIExit`
+- [&New](minew-13efdc6619.md) — `NetlistEditor.MainMenu.MFile.MINew`
+- [&Open...](miopen-e2a21b5902.md) — `NetlistEditor.MainMenu.MFile.MIOpen`
+- [&Print...](miprint-209fadbe76.md) — `NetlistEditor.MainMenu.MFile.MIPrint`
+- [Printer &Setup...](miprintersetup-eab111bf54.md) — `NetlistEditor.MainMenu.MFile.MIPrinterSetup`
+- [&Save](misave-b85e29d2dc.md) — `NetlistEditor.MainMenu.MFile.MISave`
+- [Save &As...](misaveas-3862886cb5.md) — `NetlistEditor.MainMenu.MFile.MISaveAs`
+- [&Netlist Editor](minetlisteditor-6662d484db.md) — `NetlistEditor.MainMenu.MHelp.MINetlistEditor`

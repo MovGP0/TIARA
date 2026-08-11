@@ -1,0 +1,23 @@
+/* Ghidra address: 01d3f210 */
+/* Ghidra symbol: FUN_01d3f210 */
+
+
+undefined8 FUN_01d3f210(longlong param_1)
+
+{
+  longlong lVar1;
+  undefined8 uVar2;
+  
+  uVar2 = 0;
+  if (param_1 != 0) {
+    lVar1 = *(longlong *)(param_1 + 0x1a8);
+    if ((lVar1 == 0) || (*(char *)(lVar1 + 0x70) != '\x03')) {
+      uVar2 = 0;
+    }
+    else {
+      uVar2 = CONCAT71((int7)((ulonglong)lVar1 >> 8),1);
+    }
+  }
+  return uVar2;
+}
+

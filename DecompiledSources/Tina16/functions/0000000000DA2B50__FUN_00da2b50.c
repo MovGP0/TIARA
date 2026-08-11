@@ -1,0 +1,14 @@
+/* Ghidra address: 00da2b50 */
+/* Ghidra symbol: FUN_00da2b50 */
+
+
+void FUN_00da2b50(longlong param_1,undefined4 param_2,undefined8 param_3)
+
+{
+  undefined8 local_res18 [2];
+  
+  local_res18[0] = param_3;
+  FUN_005952e0(param_1 + 8,local_res18,param_2);
+  return;
+}
+

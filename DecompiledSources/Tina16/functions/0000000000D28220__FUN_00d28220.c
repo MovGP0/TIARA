@@ -1,0 +1,13 @@
+/* Ghidra address: 00d28220 */
+/* Ghidra symbol: FUN_00d28220 */
+
+
+void FUN_00d28220(undefined8 param_1,undefined4 *param_2,undefined4 *param_3,undefined4 *param_4)
+
+{
+  *param_2 = 0x10;
+  *param_3 = 0x10;
+  *param_4 = 0x120;
+  return;
+}
+

@@ -1,0 +1,12 @@
+/* Ghidra address: 004d2090 */
+/* Ghidra symbol: FUN_004d2090 */
+
+
+void FUN_004d2090(undefined8 param_1,longlong param_2)
+
+{
+  FUN_00414480(param_2 + 0x28);
+  FUN_004144d0(param_2 + 0x40);
+  return;
+}
+

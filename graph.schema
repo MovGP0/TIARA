@@ -1,0 +1,414 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tiara.local/understand-anything-knowledge-graph.schema.json",
+  "title": "Understand Anything knowledge graph",
+  "type": "object",
+  "required": [
+    "version",
+    "project",
+    "nodes",
+    "edges",
+    "layers",
+    "tour"
+  ],
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "codebase",
+        "knowledge"
+      ]
+    },
+    "project": {
+      "$ref": "#/$defs/project"
+    },
+    "analysis": {
+      "$ref": "#/$defs/analysis"
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/edge"
+      }
+    },
+    "layers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/layer"
+      }
+    },
+    "tour": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/tourStep"
+      }
+    }
+  },
+  "$defs": {
+    "analysis": {
+      "type": "object",
+      "required": [
+        "complexityMetric",
+        "lowerPercentile",
+        "upperPercentile",
+        "simpleMaximumCalls",
+        "moderateMaximumCalls",
+        "distribution"
+      ],
+      "properties": {
+        "complexityMetric": {
+          "type": "string"
+        },
+        "lowerPercentile": {
+          "type": "number"
+        },
+        "upperPercentile": {
+          "type": "number"
+        },
+        "simpleMaximumCalls": {
+          "type": "number"
+        },
+        "moderateMaximumCalls": {
+          "type": "number"
+        },
+        "distribution": {
+          "type": "object",
+          "required": [
+            "simple",
+            "moderate",
+            "complex"
+          ],
+          "properties": {
+            "simple": {
+              "type": "integer"
+            },
+            "moderate": {
+              "type": "integer"
+            },
+            "complex": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        },
+        "uiEvidence": {
+          "$ref": "#/$defs/uiEvidenceAnalysis"
+        }
+      },
+      "additionalProperties": false
+    },
+    "uiEvidenceAnalysis": {
+      "type": "object",
+      "required": [
+        "formCount",
+        "componentCount",
+        "eventBindingCount",
+        "resolvedEventBindingCount",
+        "unresolvedEventBindingCount",
+        "hintCount",
+        "captionCount",
+        "formNodeCount",
+        "controlNodeCount",
+        "unresolvedHandlerNodeCount",
+        "containsEdgeCount",
+        "eventEdgeCount"
+      ],
+      "properties": {
+        "formCount": {
+          "type": "integer"
+        },
+        "componentCount": {
+          "type": "integer"
+        },
+        "eventBindingCount": {
+          "type": "integer"
+        },
+        "resolvedEventBindingCount": {
+          "type": "integer"
+        },
+        "unresolvedEventBindingCount": {
+          "type": "integer"
+        },
+        "hintCount": {
+          "type": "integer"
+        },
+        "captionCount": {
+          "type": "integer"
+        },
+        "formNodeCount": {
+          "type": "integer"
+        },
+        "controlNodeCount": {
+          "type": "integer"
+        },
+        "unresolvedHandlerNodeCount": {
+          "type": "integer"
+        },
+        "containsEdgeCount": {
+          "type": "integer"
+        },
+        "eventEdgeCount": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "project": {
+      "type": "object",
+      "required": [
+        "name",
+        "languages",
+        "frameworks",
+        "description",
+        "analyzedAt",
+        "gitCommitHash"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "languages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "frameworks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": {
+          "type": "string"
+        },
+        "analyzedAt": {
+          "type": "string"
+        },
+        "gitCommitHash": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "node": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "name",
+        "summary",
+        "tags",
+        "complexity"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "file",
+            "function",
+            "class",
+            "module",
+            "concept",
+            "config",
+            "document",
+            "service",
+            "table",
+            "endpoint",
+            "pipeline",
+            "schema",
+            "resource",
+            "domain",
+            "flow",
+            "step",
+            "article",
+            "entity",
+            "topic",
+            "claim",
+            "source"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "filePath": {
+          "type": "string"
+        },
+        "lineRange": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "summary": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "complexity": {
+          "enum": [
+            "simple",
+            "moderate",
+            "complex"
+          ]
+        },
+        "languageNotes": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "edge": {
+      "type": "object",
+      "required": [
+        "source",
+        "target",
+        "type",
+        "direction",
+        "weight"
+      ],
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "imports",
+            "exports",
+            "contains",
+            "inherits",
+            "implements",
+            "calls",
+            "subscribes",
+            "publishes",
+            "middleware",
+            "reads_from",
+            "writes_to",
+            "transforms",
+            "validates",
+            "depends_on",
+            "tested_by",
+            "configures",
+            "related",
+            "similar_to",
+            "deploys",
+            "serves",
+            "provisions",
+            "triggers",
+            "migrates",
+            "documents",
+            "routes",
+            "defines_schema",
+            "contains_flow",
+            "flow_step",
+            "cross_domain",
+            "cites",
+            "contradicts",
+            "builds_on",
+            "exemplifies",
+            "categorized_under",
+            "authored_by"
+          ]
+        },
+        "direction": {
+          "enum": [
+            "forward",
+            "backward",
+            "bidirectional"
+          ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "layer": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "description",
+        "nodeIds"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "nodeIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "tourStep": {
+      "type": "object",
+      "required": [
+        "order",
+        "title",
+        "description",
+        "nodeIds"
+      ],
+      "properties": {
+        "order": {
+          "type": "number"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "nodeIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "languageLesson": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

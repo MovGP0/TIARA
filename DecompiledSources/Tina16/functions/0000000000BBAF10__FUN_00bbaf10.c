@@ -1,0 +1,17 @@
+/* Ghidra address: 00bbaf10 */
+/* Ghidra symbol: FUN_00bbaf10 */
+
+
+void FUN_00bbaf10(longlong param_1,int param_2)
+
+{
+  if (param_2 < 0) {
+    param_2 = 0;
+  }
+  if ((*(int *)(param_1 + 0x18) != param_2) &&
+     (*(int *)(param_1 + 0x18) = param_2, *(longlong *)(param_1 + 0x38) != 0)) {
+    (**(code **)(param_1 + 0x38))(*(undefined8 *)(param_1 + 0x40),param_1);
+  }
+  return;
+}
+

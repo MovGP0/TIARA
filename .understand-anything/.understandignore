@@ -1,0 +1,7 @@
+# Analyze only the recovered TINA function sources in this pass.
+*
+!DecompiledSources/
+!DecompiledSources/Tina16/
+!DecompiledSources/Tina16/functions/
+!DecompiledSources/Tina16/functions/*.c
+!DecompiledSources/Tina16/functions/function-index.csv

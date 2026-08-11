@@ -1,0 +1,94 @@
+/* Ghidra address: 00f79ce0 */
+/* Ghidra symbol: FUN_00f79ce0 */
+
+
+int FUN_00f79ce0(undefined8 param_1,longlong param_2)
+
+{
+  ushort uVar1;
+  int iVar2;
+  int iVar3;
+  int iVar4;
+  longlong local_res10 [3];
+  undefined8 local_30 [2];
+  ushort *local_20;
+  
+  local_30[0] = 0;
+  local_20 = (ushort *)0x0;
+  local_res10[0] = param_2;
+  FUN_00414610(param_2);
+  iVar2 = FUN_004170c0(&PTR_DAT_00f79f4c,local_res10[0],1);
+  if (iVar2 == 0) {
+    iVar2 = FUN_004170c0(&PTR_DAT_00f79f60,local_res10[0],1);
+  }
+  if (iVar2 != 0) {
+    iVar2 = 0;
+    if (local_res10[0] != 0) {
+      iVar2 = *(int *)(local_res10[0] + -4);
+    }
+    FUN_00416dc0(local_res10,local_res10[0],3,iVar2 + -2);
+  }
+  iVar2 = FUN_004170c0(&DAT_00f79f74,local_res10[0],1);
+  if (iVar2 != 0) {
+    iVar2 = 0;
+    if (local_res10[0] != 0) {
+      iVar2 = *(int *)(local_res10[0] + -4);
+    }
+    FUN_00416dc0(local_res10,local_res10[0],2,iVar2 + -1);
+  }
+  iVar2 = FUN_004170c0(&DAT_00f79f84,local_res10[0],1);
+  if (iVar2 == 1) {
+    iVar2 = 0;
+    if (local_res10[0] != 0) {
+      iVar2 = *(int *)(local_res10[0] + -4);
+    }
+    FUN_00416dc0(local_res10,local_res10[0],3,iVar2 + -1);
+  }
+  else {
+    iVar2 = FUN_004170c0(&LAB_00f79f98,local_res10[0],1);
+    if (iVar2 == 1) {
+      iVar2 = 0;
+      if (local_res10[0] != 0) {
+        iVar2 = *(int *)(local_res10[0] + -4);
+      }
+      FUN_00416dc0(local_res10,local_res10[0],2,iVar2 + -1);
+    }
+    else if (iVar2 != 0) {
+      iVar2 = 0;
+      if (local_res10[0] != 0) {
+        iVar2 = *(int *)(local_res10[0] + -4);
+      }
+      FUN_00416dc0(local_res10,local_res10[0],1,iVar2 + -1);
+    }
+  }
+  iVar4 = 0;
+  iVar2 = 0;
+  if (local_res10[0] != 0) {
+    iVar2 = *(int *)(local_res10[0] + -4);
+  }
+  if (0 < iVar2) {
+    do {
+      FUN_005b8820(&local_20,local_res10[0],1);
+      uVar1 = *local_20;
+      if (uVar1 < 0x3a) {
+        iVar3 = uVar1 - 0x30;
+      }
+      else {
+        iVar3 = uVar1 - 0x37;
+      }
+      iVar4 = iVar4 * 0x10 + iVar3;
+      iVar3 = 0;
+      if (local_res10[0] != 0) {
+        iVar3 = *(int *)(local_res10[0] + -4);
+      }
+      FUN_005b8850(local_30,local_res10[0],iVar3 + -1);
+      FUN_00414b50(local_res10,local_30[0]);
+      iVar2 = iVar2 + -1;
+    } while (iVar2 != 0);
+  }
+  FUN_00414480(local_30);
+  FUN_00414480(&local_20);
+  FUN_00414480(local_res10);
+  return iVar4;
+}
+

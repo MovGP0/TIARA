@@ -1,0 +1,15 @@
+/* Ghidra address: 0172a270 */
+/* Ghidra symbol: FUN_0172a270 */
+
+
+void FUN_0172a270(longlong param_1,undefined4 param_2)
+
+{
+  FUN_00411a80(param_1,param_2);
+  FUN_004095f0(*(undefined8 *)(param_1 + 0x18));
+  if ('\0' < (char)param_2) {
+    FUN_00411a00(param_1);
+  }
+  return;
+}
+

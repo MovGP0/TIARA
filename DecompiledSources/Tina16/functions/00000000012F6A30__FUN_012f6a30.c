@@ -1,0 +1,46 @@
+/* Ghidra address: 012f6a30 */
+/* Ghidra symbol: FUN_012f6a30 */
+
+
+void FUN_012f6a30(longlong param_1)
+
+{
+  int iVar1;
+  longlong lVar2;
+  undefined8 uVar3;
+  longlong lVar4;
+  undefined8 local_38;
+  undefined8 local_30 [2];
+  undefined8 local_20 [2];
+  
+  local_38 = 0;
+  local_30[0] = 0;
+  local_20[0] = 0;
+  lVar2 = FUN_006e2530(*(undefined8 *)(param_1 + 0x700));
+  if (lVar2 != 0) {
+    lVar2 = FUN_006e2530(*(undefined8 *)(param_1 + 0x700));
+    if ((*(uint *)(*(longlong *)(lVar2 + 0x18) + 4) & 0x20) == 0x20) {
+      uVar3 = FUN_006e2530(*(undefined8 *)(param_1 + 0x700));
+      lVar2 = FUN_006dd390(uVar3);
+      iVar1 = FUN_00416db0(*(undefined8 *)(lVar2 + 0x10),&DAT_012f6c28);
+      if (iVar1 == 0) {
+        FUN_0064dd90(*(undefined8 *)(param_1 + 0x7a0),local_30);
+        lVar2 = FUN_006e2530(*(undefined8 *)(param_1 + 0x700));
+        FUN_00416cd0(local_20,4,local_30[0],&DAT_012f6c28,*(undefined8 *)(lVar2 + 0x10),L".TSC");
+      }
+      else {
+        FUN_0064dd90(*(undefined8 *)(param_1 + 0x7a0),&local_38);
+        uVar3 = FUN_006e2530(*(undefined8 *)(param_1 + 0x700));
+        lVar2 = FUN_006dd390(uVar3);
+        lVar4 = FUN_006e2530(*(undefined8 *)(param_1 + 0x700));
+        FUN_00416cd0(local_20,6,local_38,&DAT_012f6c28,*(undefined8 *)(lVar2 + 0x10),&DAT_012f6c28,
+                     *(undefined8 *)(lVar4 + 0x10),L".TSC");
+      }
+      FUN_01c681b0(*(undefined8 *)PTR_DAT_02004e40,local_20[0],0,0,0,0,1);
+    }
+  }
+  FUN_00414560(&local_38,2);
+  FUN_00414480(local_20);
+  return;
+}
+

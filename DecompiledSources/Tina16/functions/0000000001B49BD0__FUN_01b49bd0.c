@@ -1,0 +1,32 @@
+/* Ghidra address: 01b49bd0 */
+/* Ghidra symbol: FUN_01b49bd0 */
+
+
+undefined8 FUN_01b49bd0(longlong *param_1,undefined8 param_2,int param_3,undefined8 param_4)
+
+{
+  int iVar1;
+  undefined8 local_res20;
+  undefined8 local_10;
+  
+  local_10 = 0;
+  local_res20 = param_4;
+  FUN_00414610(param_4);
+  FUN_00414520(param_2);
+  if (-1 < param_3) {
+    iVar1 = (**(code **)(*param_1 + 0x28))(param_1,0);
+    if (param_3 < iVar1) {
+      if ((int)param_1[3] == -0x578) {
+        FUN_004168e0(&local_10,(&PTR_u_ADC_8_bit_01fd7b78)[param_3]);
+      }
+      else if ((int)param_1[3] == -0x57d) {
+        FUN_004168e0(&local_10,(&PTR_u_DAC_8_bit_01fd7ba0)[param_3]);
+      }
+      FUN_00414b90(param_2,local_10);
+    }
+  }
+  FUN_00414520(&local_10);
+  FUN_00414480(&local_res20);
+  return param_2;
+}
+

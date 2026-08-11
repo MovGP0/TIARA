@@ -1,0 +1,18 @@
+/* Ghidra address: 005bf7f0 */
+/* Ghidra symbol: FUN_005bf7f0 */
+
+
+void FUN_005bf7f0(longlong param_1,uint param_2)
+
+{
+  FUN_00411a80(param_1,param_2);
+  FUN_005bf790(param_1);
+  FUN_00419430(param_1 + 8,&DAT_005bc5e8);
+  FUN_00410f20(*(undefined8 *)(param_1 + 0x10));
+  FUN_00410ef0(param_1,param_2 & 0xfffffffc);
+  if ('\0' < (char)param_2) {
+    FUN_00411a00(param_1);
+  }
+  return;
+}
+

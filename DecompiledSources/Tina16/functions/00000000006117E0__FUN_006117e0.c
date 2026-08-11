@@ -1,0 +1,11 @@
+/* Ghidra address: 006117e0 */
+/* Ghidra symbol: FUN_006117e0 */
+
+
+void FUN_006117e0(void)
+
+{
+  DAT_02012048 = DAT_02012048 + 1;
+  return;
+}
+

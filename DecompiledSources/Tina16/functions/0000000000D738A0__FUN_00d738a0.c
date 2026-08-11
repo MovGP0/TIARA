@@ -1,0 +1,24 @@
+/* Ghidra address: 00d738a0 */
+/* Ghidra symbol: FUN_00d738a0 */
+
+
+void FUN_00d738a0(undefined8 param_1,longlong param_2)
+
+{
+  undefined1 auStack_58 [40];
+  undefined1 *local_30;
+  undefined8 local_28;
+  longlong *local_20;
+  
+  local_30 = auStack_58;
+  if (param_2 != 0) {
+    local_28 = FUN_004b9860(&PTR_FUN_0047c498,1,param_2,0xff00);
+    local_20 = (longlong *)FUN_00410e60(&PTR_FUN_00d5c6d8,1);
+    FUN_00d75380(local_20,param_1);
+    (**(code **)(*local_20 + 0x40))(local_20,local_28);
+    FUN_00410f20(local_20);
+    FUN_00410f20(local_28);
+  }
+  return;
+}
+

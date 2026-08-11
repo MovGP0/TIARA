@@ -1,0 +1,17 @@
+/* Ghidra address: 005d01b0 */
+/* Ghidra symbol: FUN_005d01b0 */
+
+
+void FUN_005d01b0(void)
+
+{
+  DAT_02011f70 = DAT_02011f70 + 1;
+  if (DAT_02011f70 == 0) {
+    FUN_00419430(&DAT_02011f68,&DAT_004065c0);
+    FUN_00419430(&DAT_02011f60,&DAT_004065c0);
+    FUN_00419430(&DAT_02011f58,&DAT_004065c0);
+    FUN_00419430(&DAT_02011f50,&DAT_004065c0);
+  }
+  return;
+}
+

@@ -1,0 +1,28 @@
+/* Ghidra address: 013199d0 */
+/* Ghidra symbol: FUN_013199d0 */
+
+
+void FUN_013199d0(undefined8 param_1,longlong param_2)
+
+{
+  FUN_0041b800(param_2 + 0x38);
+  FUN_00414480(param_2 + 0x40);
+  FUN_0041b800(param_2 + 0x48);
+  FUN_00414560(param_2 + 0x50,2);
+  FUN_00417840(param_2 + 0x60,&DAT_00b9f8e0,6);
+  FUN_00414560(param_2 + 0x90,2);
+  FUN_00417840(param_2 + 0xa0,&DAT_00b9f8e0,2);
+  FUN_00417840(param_2 + 0xb0,&LAB_00b9fca0,2);
+  FUN_0041b800(param_2 + 0xc0);
+  FUN_0041b800(param_2 + 200);
+  FUN_0041b800(param_2 + 0xd0);
+  FUN_00414560(param_2 + 0xd8,0xc);
+  FUN_00417840(param_2 + 0x138,&LAB_00b9fca0,2);
+  FUN_00414560(param_2 + 0x1b8,3);
+  FUN_0041b800(param_2 + 0x1d0);
+  FUN_0041b800(param_2 + 0x1d8);
+  FUN_00414560(param_2 + 0x1e8,3);
+  FUN_00414560(param_2 + 0x230,3);
+  return;
+}
+

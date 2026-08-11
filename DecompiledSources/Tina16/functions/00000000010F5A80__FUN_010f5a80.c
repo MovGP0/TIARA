@@ -1,0 +1,197 @@
+/* Ghidra address: 010f5a80 */
+/* Ghidra symbol: FUN_010f5a80 */
+
+
+/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+
+void FUN_010f5a80(longlong *param_1)
+
+{
+  longlong lVar1;
+  longlong lVar2;
+  
+  FUN_010e1dd0(param_1,param_1);
+  param_1[0xfe] = *(longlong *)(param_1[0x11e] + 8);
+  if (((byte)((char)param_1[0x132] - 0xbU) < 3) || ((char)param_1[0x132] == '\x0f')) {
+    lVar1 = FUN_010e7480(&PTR_FUN_010e62f0,1,param_1[0x11e],
+                         *(undefined4 *)((longlong)param_1 + 0x9cc));
+    param_1[0x136] = lVar1;
+  }
+  else {
+    lVar1 = FUN_010e6f30(&PTR_FUN_010e5028,1,param_1[0x11e],
+                         *(undefined4 *)((longlong)param_1 + 0x9cc));
+    param_1[0x136] = lVar1;
+  }
+  param_1[0xf0] = *(longlong *)(param_1[0x136] + 0x68);
+  param_1[0xf3] = *(longlong *)(param_1[0x136] + 0x50);
+  param_1[0xf4] = 0;
+  lVar1 = FUN_01cebd00(&PTR_FUN_01cead48,1,param_1);
+  param_1[0xf4] = lVar1;
+  param_1[0x133] = 0;
+  param_1[0x110] = 0;
+  param_1[0x134] = 0;
+  param_1[0x135] = 0;
+  *(undefined1 *)((longlong)param_1 + 0x9c1) = 0;
+  *(undefined1 *)(param_1 + 0x138) = 0;
+  *(undefined1 *)((longlong)param_1 + 0x9c3) = 0;
+  *(undefined2 *)((longlong)param_1 + 0x9c4) = 0;
+  *(undefined2 *)((longlong)param_1 + 0x9c6) = 0;
+  *(undefined2 *)(param_1 + 0x139) = 0;
+  lVar1 = param_1[0x136];
+  *(undefined1 *)(lVar1 + 0xc0) = 0;
+  *(undefined1 *)(lVar1 + 0xc1) = 0;
+  *(undefined1 *)(param_1 + 0x13a) = 1;
+  _DAT_02030100 = 0;
+  lVar1 = FUN_00742bf0(&PTR_FUN_007334d8,1,param_1);
+  param_1[0x154] = lVar1;
+  lVar1 = FUN_007e8760(&PTR_FUN_007dba80,1,param_1);
+  param_1[0x13b] = lVar1;
+  FUN_007e6950(lVar1,param_1[0x8d]);
+  lVar1 = param_1[0x13b];
+  lVar2 = FUN_007dd3a0(&PTR_FUN_007d94d0,1,param_1);
+  param_1[0x13c] = lVar2;
+  lVar2 = param_1[0x13c];
+  FUN_007e2c60(lVar2,L"Add new X Axis");
+  *(longlong **)(lVar2 + 0x118) = param_1;
+  *(undefined8 *)(lVar2 + 0x110) = *(undefined8 *)(*param_1 + 0x2f8);
+  FUN_007e34c0(*(undefined8 *)(lVar1 + 0x80),param_1[0x13c]);
+  lVar2 = FUN_007dd3a0(&PTR_FUN_007d94d0,1,param_1);
+  param_1[0x13d] = lVar2;
+  lVar2 = param_1[0x13d];
+  FUN_007e2c60(lVar2,L"Add new Y Axis");
+  *(longlong **)(lVar2 + 0x118) = param_1;
+  *(undefined8 *)(lVar2 + 0x110) = *(undefined8 *)(*param_1 + 0x2f0);
+  FUN_007e34c0(*(undefined8 *)(lVar1 + 0x80),param_1[0x13d]);
+  lVar2 = FUN_007dd3a0(&PTR_FUN_007d94d0,1,param_1);
+  param_1[0x13e] = lVar2;
+  lVar2 = param_1[0x13e];
+  FUN_007e2c60(lVar2,L"Statistics...");
+  *(longlong **)(lVar2 + 0x118) = param_1;
+  *(undefined8 *)(lVar2 + 0x110) = *(undefined8 *)(*param_1 + 0x308);
+  FUN_007e34c0(*(undefined8 *)(lVar1 + 0x80),param_1[0x13e]);
+  lVar2 = FUN_007dd3a0(&PTR_FUN_007d94d0,1,param_1);
+  param_1[0x14c] = lVar2;
+  lVar2 = param_1[0x14c];
+  FUN_007e2c60(lVar2,L"Fourier Series...");
+  *(longlong **)(lVar2 + 0x118) = param_1;
+  *(undefined8 *)(lVar2 + 0x110) = *(undefined8 *)(*param_1 + 0x310);
+  FUN_007e34c0(*(undefined8 *)(lVar1 + 0x80),param_1[0x14c]);
+  lVar2 = FUN_007dd3a0(&PTR_FUN_007d94d0,1,param_1);
+  param_1[0x14e] = lVar2;
+  lVar2 = param_1[0x14e];
+  FUN_007e2c60(lVar2,L"Fourier Spectrum...");
+  *(longlong **)(lVar2 + 0x118) = param_1;
+  *(undefined8 *)(lVar2 + 0x110) = *(undefined8 *)(*param_1 + 0x318);
+  FUN_007e34c0(*(undefined8 *)(lVar1 + 0x80),param_1[0x14e]);
+  lVar2 = FUN_007dd3a0(&PTR_FUN_007d94d0,1,param_1);
+  param_1[0x151] = lVar2;
+  lVar2 = param_1[0x151];
+  FUN_007e2c60(lVar2,L"Modified components...");
+  FUN_007e2f80(lVar2,0);
+  *(longlong **)(lVar2 + 0x118) = param_1;
+  *(undefined8 *)(lVar2 + 0x110) = *(undefined8 *)(*param_1 + 800);
+  FUN_007e34c0(*(undefined8 *)(lVar1 + 0x80),param_1[0x151]);
+  lVar2 = FUN_007dd3a0(&PTR_FUN_007d94d0,1,param_1);
+  param_1[0x13f] = lVar2;
+  lVar2 = param_1[0x13f];
+  FUN_007e2c60(lVar2,L"Delete");
+  *(longlong **)(lVar2 + 0x118) = param_1;
+  *(undefined8 *)(lVar2 + 0x110) = *(undefined8 *)(*param_1 + 0x328);
+  FUN_007e34c0(*(undefined8 *)(lVar1 + 0x80),param_1[0x13f]);
+  lVar2 = FUN_007dd3a0(&PTR_FUN_007d94d0,1,param_1);
+  param_1[0x140] = lVar2;
+  FUN_007e2c60(param_1[0x140],&DAT_010f64a8);
+  FUN_007e34c0(*(undefined8 *)(lVar1 + 0x80),param_1[0x140]);
+  lVar2 = FUN_007dd3a0(&PTR_FUN_007d94d0,1,param_1);
+  param_1[0x152] = lVar2;
+  lVar2 = param_1[0x152];
+  FUN_007e2c60(lVar2,L"Default ranges");
+  *(longlong **)(lVar2 + 0x118) = param_1;
+  *(undefined8 *)(lVar2 + 0x110) = *(undefined8 *)(*param_1 + 0x330);
+  FUN_007e34c0(*(undefined8 *)(lVar1 + 0x80),param_1[0x152]);
+  lVar2 = FUN_007dd3a0(&PTR_FUN_007d94d0,1,param_1);
+  param_1[0x141] = lVar2;
+  lVar2 = param_1[0x141];
+  FUN_007e2c60(lVar2,L"Delete");
+  *(longlong **)(lVar2 + 0x118) = param_1;
+  *(undefined8 *)(lVar2 + 0x110) = *(undefined8 *)(*param_1 + 0x300);
+  FUN_007e34c0(*(undefined8 *)(lVar1 + 0x80),param_1[0x141]);
+  lVar2 = FUN_007dd3a0(&PTR_FUN_007d94d0,1,param_1);
+  param_1[0x142] = lVar2;
+  FUN_007e2c60(param_1[0x142],&DAT_010f64a8);
+  FUN_007e34c0(*(undefined8 *)(lVar1 + 0x80),param_1[0x142]);
+  lVar2 = FUN_007dd3a0(&PTR_FUN_007d94d0,1,param_1);
+  param_1[0x143] = lVar2;
+  lVar2 = param_1[0x143];
+  FUN_007e2c60(lVar2,L"Set position to");
+  FUN_007e2da0(lVar2,0);
+  FUN_007e34c0(*(undefined8 *)(lVar1 + 0x80),param_1[0x143]);
+  lVar2 = FUN_007dd3a0(&PTR_FUN_007d94d0,1,param_1);
+  param_1[0x14d] = lVar2;
+  lVar2 = param_1[0x14d];
+  FUN_007e2c60(lVar2,L"Delete");
+  *(longlong **)(lVar2 + 0x118) = param_1;
+  *(undefined8 *)(lVar2 + 0x110) = *(undefined8 *)(*param_1 + 0x338);
+  FUN_007e34c0(*(undefined8 *)(lVar1 + 0x80),param_1[0x14d]);
+  lVar2 = FUN_007dd3a0(&PTR_FUN_007d94d0,1,param_1);
+  param_1[0x148] = lVar2;
+  FUN_007e2c60(param_1[0x148],&DAT_010f64a8);
+  FUN_007e34c0(*(undefined8 *)(lVar1 + 0x80),param_1[0x148]);
+  lVar2 = FUN_007dd3a0(&PTR_FUN_007d94d0,1,param_1);
+  param_1[0x153] = lVar2;
+  lVar2 = param_1[0x153];
+  FUN_007e2c60(lVar2,L"Delete");
+  FUN_007e2f50(lVar2,0x2e);
+  *(longlong **)(lVar2 + 0x118) = param_1;
+  *(undefined8 *)(lVar2 + 0x110) = *(undefined8 *)(*param_1 + 0x340);
+  FUN_007e34c0(*(undefined8 *)(lVar1 + 0x80),param_1[0x153]);
+  lVar2 = FUN_007dd3a0(&PTR_FUN_007d94d0,1,param_1);
+  param_1[0x14f] = lVar2;
+  FUN_007e2c60(param_1[0x14f],&DAT_010f64a8);
+  FUN_007e34c0(*(undefined8 *)(lVar1 + 0x80),param_1[0x14f]);
+  lVar2 = FUN_007dd3a0(&PTR_FUN_007d94d0,1,param_1);
+  param_1[0x149] = lVar2;
+  lVar2 = param_1[0x149];
+  FUN_007e2c60(lVar2,L"Text...");
+  *(longlong **)(lVar2 + 0x118) = param_1;
+  *(undefined8 *)(lVar2 + 0x110) = *(undefined8 *)(*param_1 + 0x348);
+  FUN_007e34c0(*(undefined8 *)(lVar1 + 0x80),param_1[0x149]);
+  lVar2 = FUN_007dd3a0(&PTR_FUN_007d94d0,1,param_1);
+  param_1[0x14a] = lVar2;
+  lVar2 = param_1[0x14a];
+  FUN_007e2c60(lVar2,L"Line");
+  *(longlong **)(lVar2 + 0x118) = param_1;
+  *(undefined8 *)(lVar2 + 0x110) = *(undefined8 *)(*param_1 + 0x350);
+  FUN_007e34c0(*(undefined8 *)(lVar1 + 0x80),param_1[0x14a]);
+  lVar2 = FUN_007dd3a0(&PTR_FUN_007d94d0,1,param_1);
+  param_1[0x14b] = lVar2;
+  lVar2 = param_1[0x14b];
+  FUN_007e2c60(lVar2,L"Circle");
+  *(longlong **)(lVar2 + 0x118) = param_1;
+  *(undefined8 *)(lVar2 + 0x110) = *(undefined8 *)(*param_1 + 0x358);
+  FUN_007e34c0(*(undefined8 *)(lVar1 + 0x80),param_1[0x14b]);
+  lVar2 = FUN_007dd3a0(&PTR_FUN_007d94d0,1,param_1);
+  param_1[0x150] = lVar2;
+  lVar2 = param_1[0x150];
+  FUN_007e2c60(lVar2,L"Properties...");
+  *(longlong **)(lVar2 + 0x118) = param_1;
+  *(undefined8 *)(lVar2 + 0x110) = *(undefined8 *)(*param_1 + 0x360);
+  FUN_007e34c0(*(undefined8 *)(lVar1 + 0x80),param_1[0x150]);
+  lVar1 = FUN_004b6930(&PTR_FUN_00478280,1);
+  param_1[0x161] = lVar1;
+  lVar1 = FUN_004b6930(&PTR_FUN_00478280,1);
+  param_1[0x162] = lVar1;
+  lVar1 = FUN_004b6930(&PTR_FUN_00478280,1);
+  param_1[0x165] = lVar1;
+  FUN_00414480(param_1 + 0x16a);
+  *(undefined1 *)((longlong)param_1 + 0x8d2) = 1;
+  lVar1 = FUN_010fcdd0(&DAT_010f2db8,1,param_1);
+  param_1[0x166] = lVar1;
+  lVar1 = FUN_010fcdd0(&DAT_010f2db8,1,param_1);
+  param_1[0x167] = lVar1;
+  (**(code **)(*param_1 + 0x3b0))(param_1);
+  FUN_00414480(param_1 + 0x16b);
+  param_1[0x16c] = 0;
+  return;
+}
+

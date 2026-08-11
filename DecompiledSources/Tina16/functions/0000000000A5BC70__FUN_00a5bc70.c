@@ -1,0 +1,13 @@
+/* Ghidra address: 00a5bc70 */
+/* Ghidra symbol: FUN_00a5bc70 */
+
+
+void FUN_00a5bc70(undefined8 param_1,longlong param_2)
+
+{
+  FUN_00414560(param_2 + 0x30,4);
+  FUN_00417840(param_2 + 0x50,&DAT_004013d8,2);
+  FUN_00414560(param_2 + 0x80,2);
+  return;
+}
+

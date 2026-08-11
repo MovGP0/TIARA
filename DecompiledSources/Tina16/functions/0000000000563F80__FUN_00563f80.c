@@ -1,0 +1,15 @@
+/* Ghidra address: 00563f80 */
+/* Ghidra symbol: FUN_00563f80 */
+
+
+bool FUN_00563f80(undefined8 param_1,undefined8 param_2)
+
+{
+  undefined4 uVar1;
+  int iVar2;
+  
+  uVar1 = FUN_005630a0(param_1,param_2);
+  iVar2 = FUN_00562ff0(param_1,param_2,uVar1);
+  return -1 < iVar2;
+}
+

@@ -1,0 +1,16 @@
+/* Ghidra address: 009a54e0 */
+/* Ghidra symbol: FUN_009a54e0 */
+
+
+void FUN_009a54e0(longlong param_1,uint param_2)
+
+{
+  FUN_00411a80(param_1,param_2);
+  FUN_0059b7f0(param_1 + 8);
+  FUN_009a5090(param_1,param_2 & 0xfffffffc);
+  if ('\0' < (char)param_2) {
+    FUN_00411a00(param_1);
+  }
+  return;
+}
+

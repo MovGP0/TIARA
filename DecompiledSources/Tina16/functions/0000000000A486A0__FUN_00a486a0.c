@@ -1,0 +1,20 @@
+/* Ghidra address: 00a486a0 */
+/* Ghidra symbol: FUN_00a486a0 */
+
+
+undefined8 FUN_00a486a0(longlong param_1)
+
+{
+  longlong *plVar1;
+  undefined8 uVar2;
+  
+  plVar1 = *(longlong **)(param_1 + 0x18);
+  if (plVar1 == (longlong *)0x0) {
+    uVar2 = 0;
+  }
+  else {
+    uVar2 = (**(code **)(*plVar1 + 0x60))(plVar1);
+  }
+  return uVar2;
+}
+

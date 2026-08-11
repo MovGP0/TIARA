@@ -1,0 +1,19 @@
+/* Ghidra address: 0046f620 */
+/* Ghidra symbol: FUN_0046f620 */
+
+
+void FUN_0046f620(void)
+
+{
+  DAT_02010984 = DAT_02010984 + 1;
+  if (DAT_02010984 == 0) {
+    FUN_0046de80();
+    FUN_00410f20(DAT_020115c0);
+    FUN_00414480(&DAT_01dc4370);
+    FUN_00417840(&DAT_02010988,&DAT_00401390,6);
+    FUN_00417840(&DAT_020109b8,&DAT_00401390,0x180);
+    FUN_00419430(&DAT_020115b8,&DAT_0046de48);
+  }
+  return;
+}
+

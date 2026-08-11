@@ -1,0 +1,15 @@
+/* Ghidra address: 00894950 */
+/* Ghidra symbol: FUN_00894950 */
+
+
+void FUN_00894950(void)
+
+{
+  PTR_FUN_01e23570 = FUN_008945d0;
+  PTR_FUN_01e23578 = FUN_00894670;
+  PTR_FUN_01e23580 = FUN_00894730;
+  PTR_FUN_01e23588 = FUN_008947e0;
+  PTR_FUN_01e23590 = FUN_008948b0;
+  return;
+}
+

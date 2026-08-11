@@ -1,0 +1,20 @@
+/* Ghidra address: 01969e00 */
+/* Ghidra symbol: FUN_01969e00 */
+
+
+void FUN_01969e00(longlong param_1,byte param_2)
+
+{
+  undefined1 auStack_38 [40];
+  undefined1 *local_10;
+  
+  local_10 = auStack_38;
+  FUN_00411a80(param_1,param_2);
+  FUN_01969e70(param_1,param_2 & 0xfc);
+  FUN_00452320(param_1 + 0x180);
+  if ('\0' < (char)param_2) {
+    FUN_00411a00(param_1);
+  }
+  return;
+}
+

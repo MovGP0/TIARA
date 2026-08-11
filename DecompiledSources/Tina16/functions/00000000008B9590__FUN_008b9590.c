@@ -1,0 +1,12 @@
+/* Ghidra address: 008b9590 */
+/* Ghidra symbol: FUN_008b9590 */
+
+
+void FUN_008b9590(longlong param_1,undefined8 *param_2,undefined8 *param_3)
+
+{
+  (**(code **)(**(longlong **)(param_1 + 0x38) + 0x18))
+            (*(longlong **)(param_1 + 0x38),*param_2,*param_3);
+  return;
+}
+

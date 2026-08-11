@@ -1,0 +1,12 @@
+/* Ghidra address: 007a6760 */
+/* Ghidra symbol: FUN_007a6760 */
+
+
+void FUN_007a6760(longlong param_1,undefined8 param_2,undefined8 param_3,undefined8 param_4,
+                 undefined4 param_5)
+
+{
+  FUN_0059a5a0(param_1 + 8,param_2,param_3,param_5);
+  return;
+}
+

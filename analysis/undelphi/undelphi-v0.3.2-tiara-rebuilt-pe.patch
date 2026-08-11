@@ -1,0 +1,47 @@
+diff --git a/src/formats.rs b/src/formats.rs
+index faf26df..3acd132 100644
+--- a/src/formats.rs
++++ b/src/formats.rs
+@@ -374,6 +374,42 @@ impl<'a> BinaryContext<'a> {
+             }
+         }
+ 
++        // The TIARA runtime reconstruction has valid section payloads but a
++        // deliberately minimal optional header that goblin rejects. Supply
++        // its recorded RVA-to-file mappings so the metadata scanner can test
++        // the recovered Delphi VMTs and resolve published event methods.
++        if segments.is_empty()
++            && data.len() == 77_801_472
++            && data.get(..2) == Some(b"MZ")
++        {
++            const IMAGE_BASE: u64 = 0x0040_0000;
++            let recovered = [
++                (1_536usize, 26_964_480usize, 4_096u64),
++                (26_966_016, 2_412_032, 26_972_160),
++                (51_799_040, 28_672, 51_806_208),
++                (51_827_712, 16_896, 51_834_880),
++                (51_844_608, 512, 51_855_360),
++                (51_846_144, 512, 51_863_552),
++                (51_846_656, 971_264, 51_867_648),
++                (52_817_920, 1_052_160, 52_842_496),
++                (53_870_080, 2_132_992, 53_895_168),
++            ];
++            for (offset, size, rva) in recovered {
++                let range = SectionRange {
++                    offset,
++                    size,
++                    va: IMAGE_BASE + rva,
++                };
++                segments.push((range.va, range.offset as u64, range.size as u64));
++                sections.scan_targets.push(range);
++            }
++            sections.text = sections.scan_targets.first().copied();
++            pointer_size = Some(8);
++            format = BinaryFormat::Pe64;
++            target_os = TargetOs::Windows;
++            target_arch = TargetArch::X86_64;
++        }
++
+         // Pre-sort segments so `va_to_file` can binary-search.
+         segments.sort_unstable_by_key(|&(seg_va, _, _)| seg_va);
+ 

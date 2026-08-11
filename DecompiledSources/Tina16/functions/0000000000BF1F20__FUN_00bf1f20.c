@@ -1,0 +1,155 @@
+/* Ghidra address: 00bf1f20 */
+/* Ghidra symbol: FUN_00bf1f20 */
+
+
+longlong * FUN_00bf1f20(longlong *param_1,char param_2,undefined8 param_3)
+
+{
+  undefined1 *puVar1;
+  undefined4 uVar2;
+  longlong lVar3;
+  longlong *plVar4;
+  longlong *local_res8;
+  undefined1 auStack_78 [32];
+  undefined4 local_58;
+  code *local_40;
+  longlong *local_38;
+  undefined1 *local_30;
+  longlong local_20;
+  
+  local_30 = auStack_78;
+  local_res8 = param_1;
+  puVar1 = auStack_78;
+  if (param_2 != '\0') {
+    local_res8 = (longlong *)FUN_004119e0(param_1,param_2);
+    puVar1 = local_30;
+  }
+  local_30 = puVar1;
+  FUN_00660290(local_res8,0,param_3);
+  local_38 = local_res8;
+  local_40 = FUN_00bf6d50;
+  lVar3 = FUN_00bcef30(&PTR_FUN_00bcce18,1,&local_40);
+  local_res8[0x9d] = lVar3;
+  local_res8[0x9e] = lVar3;
+  local_20 = local_res8[0x9d];
+  *(longlong **)(local_20 + 0x80) = local_res8;
+  *(undefined8 *)(local_20 + 0x78) = *(undefined8 *)(*local_res8 + 0x288);
+  *(longlong **)(local_20 + 0x90) = local_res8;
+  *(code **)(local_20 + 0x88) = FUN_00bf4150;
+  *(longlong **)(local_20 + 0xa0) = local_res8;
+  *(code **)(local_20 + 0x98) = FUN_00bfef90;
+  *(longlong **)(local_20 + 0xb0) = local_res8;
+  *(code **)(local_20 + 0xa8) = FUN_00bff050;
+  *(longlong **)(local_20 + 0xc0) = local_res8;
+  *(code **)(local_20 + 0xb8) = FUN_00bff140;
+  *(longlong **)(local_20 + 0xd0) = local_res8;
+  *(code **)(local_20 + 200) = FUN_00bff270;
+  lVar3 = FUN_005fc570(&PTR_FUN_005f2d40,1);
+  local_res8[0x9b] = lVar3;
+  lVar3 = FUN_00bd0c40(&PTR_FUN_00bce548,1);
+  local_res8[0xaa] = lVar3;
+  *(longlong **)(lVar3 + 0x40) = local_res8;
+  *(code **)(lVar3 + 0x38) = FUN_00c0ea80;
+  local_res8[0x9f] = lVar3;
+  lVar3 = FUN_00bd0c40(&PTR_FUN_00bce548,0xc0ea01);
+  local_res8[0xab] = lVar3;
+  *(longlong **)(lVar3 + 0x40) = local_res8;
+  *(code **)(lVar3 + 0x38) = FUN_00c0ea80;
+  local_res8[0xa0] = lVar3;
+  FUN_00659460(local_res8,0);
+  *(undefined4 *)(local_res8 + 0xa9) = 0x1fffffff;
+  lVar3 = FUN_00bba4f0(&PTR_FUN_00bb7948,1);
+  local_res8[0xa8] = lVar3;
+  *(longlong **)(lVar3 + 0x18) = local_res8;
+  *(code **)(lVar3 + 0x10) = FUN_00c09060;
+  lVar3 = FUN_00bbb1e0(&PTR_FUN_00bb89f0,1,local_res8);
+  local_res8[0xb7] = lVar3;
+  *(longlong **)(lVar3 + 0x30) = local_res8;
+  *(code **)(lVar3 + 0x28) = FUN_00c09de0;
+  *(undefined4 *)((longlong)local_res8 + 0x51c) = 0x50;
+  lVar3 = FUN_00bba6f0(&PTR_FUN_00bb7c88,1);
+  local_res8[0xc2] = lVar3;
+  *(longlong **)(lVar3 + 0x40) = local_res8;
+  *(code **)(lVar3 + 0x38) = FUN_00c08d90;
+  uVar2 = FUN_00bbb190(lVar3);
+  *(undefined4 *)(local_res8 + 0x122) = uVar2;
+  local_58 = 0xff00;
+  lVar3 = FUN_00bbb4f0(&PTR_FUN_00bb8ef0,1,PTR_IMAGE_DOS_HEADER_0200c280,L"SynEditWrapped");
+  local_res8[0xc0] = lVar3;
+  *(longlong **)(lVar3 + 0x30) = local_res8;
+  *(code **)(lVar3 + 0x28) = FUN_00c111c0;
+  *(int *)(local_res8 + 0xa6) = (int)local_res8[0x122] + 2;
+  *(uint *)(local_res8 + 0x14) = *(uint *)(local_res8 + 0x14) | 0x60;
+  *(uint *)(local_res8 + 0x14) = *(uint *)(local_res8 + 0x14) | 0x20000;
+  FUN_0064cc50(local_res8,0x96);
+  FUN_0064cbf0(local_res8,200);
+  FUN_0064e140(local_res8,0xfffc);
+  FUN_0064e030(local_res8,0xff000005);
+  FUN_005fcd80(local_res8[0x9b],L"Courier New");
+  FUN_005fce30(local_res8[0x9b],10);
+  FUN_005fcfa0(local_res8[0x9b],1);
+  lVar3 = FUN_00bd42e0(&PTR_FUN_00bd2d48,1,1,local_res8[0x9b]);
+  local_res8[0xc4] = lVar3;
+  plVar4 = (longlong *)FUN_00bf2c10(local_res8);
+  (**(code **)(*plVar4 + 0x10))(plVar4,local_res8[0x9b]);
+  lVar3 = FUN_00bf2c10(local_res8);
+  *(longlong **)(lVar3 + 0x10) = local_res8;
+  *(code **)(lVar3 + 8) = FUN_00bf2bf0;
+  FUN_0064df70(local_res8,0);
+  FUN_0064e0c0(local_res8,0);
+  FUN_0065bce0(local_res8,1);
+  *(undefined1 *)((longlong)local_res8 + 0x4e2) = 1;
+  *(undefined4 *)(local_res8 + 0xa2) = 0x400;
+  *(undefined1 *)((longlong)local_res8 + 0x529) = 3;
+  *(undefined1 *)(local_res8 + 0xb8) = 1;
+  *(undefined1 *)((longlong)local_res8 + 0x4e1) = 0;
+  *(undefined1 *)((longlong)local_res8 + 0x5c9) = 0;
+  *(undefined1 *)(local_res8 + 0xb9) = 3;
+  *(undefined1 *)((longlong)local_res8 + 0x5f4) = 0;
+  *(undefined1 *)((longlong)local_res8 + 0x5f5) = 0;
+  lVar3 = FUN_00410e60(&PTR_FUN_00472dd0,1);
+  local_res8[0xcc] = lVar3;
+  lVar3 = FUN_00bd98d0(&DAT_00bd8da8,1);
+  local_res8[0xcb] = lVar3;
+  lVar3 = FUN_00bd73a0(&PTR_FUN_00bd5550,1,local_res8);
+  local_res8[0xbb] = lVar3;
+  lVar3 = FUN_00c11480(&LAB_00be9c48,1,local_res8);
+  local_res8[0xbd] = lVar3;
+  *(longlong **)(lVar3 + 0x30) = local_res8;
+  *(code **)(lVar3 + 0x28) = FUN_00c08850;
+  (**(code **)(*local_res8 + 0x3b8))(local_res8);
+  *(undefined4 *)(local_res8 + 0xa4) = 0xc0c0c0;
+  *(undefined1 *)((longlong)local_res8 + 0x5f6) = 1;
+  *(undefined1 *)((longlong)local_res8 + 0x5f7) = 0;
+  *(undefined4 *)(local_res8 + 0xc3) = 8;
+  *(undefined4 *)((longlong)local_res8 + 0x50c) = 1;
+  *(undefined4 *)((longlong)local_res8 + 0x534) = 1;
+  *(undefined4 *)((longlong)local_res8 + 0x4c4) = 1;
+  *(undefined4 *)(local_res8 + 0x99) = 1;
+  *(undefined4 *)((longlong)local_res8 + 0x4cc) = 1;
+  *(undefined4 *)((longlong)local_res8 + 0x4b4) = 1;
+  *(undefined4 *)(local_res8 + 0x97) = 1;
+  *(undefined8 *)((longlong)local_res8 + 0x4bc) = *(undefined8 *)((longlong)local_res8 + 0x4b4);
+  *(undefined4 *)((longlong)local_res8 + 0x63a) = 0x26c0192;
+  lVar3 = FUN_00742bf0(&PTR_FUN_007334d8,1,local_res8);
+  local_res8[0xce] = lVar3;
+  FUN_00742eb0(lVar3,0);
+  FUN_00742ed0(local_res8[0xce],100);
+  local_38 = local_res8;
+  local_40 = FUN_00bf4820;
+  FUN_00742ef0(local_res8[0xce],&local_40);
+  *(undefined4 *)((longlong)local_res8 + 0x524) = 0xff000018;
+  *(undefined1 *)(local_res8 + 0xa5) = 0;
+  lVar3 = FUN_00be1df0(&PTR_FUN_00bdb7c0,1);
+  local_res8[0x94] = lVar3;
+  *(longlong **)(lVar3 + 0x28) = local_res8;
+  *(code **)(lVar3 + 0x20) = FUN_00bfcde0;
+  lVar3 = FUN_00be0570(&DAT_00bda6b0,1);
+  local_res8[0x95] = lVar3;
+  FUN_00bf2bf0(local_res8,0);
+  if (param_2 != '\0') {
+    local_res8 = (longlong *)FUN_00411a20(local_res8);
+  }
+  return local_res8;
+}
+

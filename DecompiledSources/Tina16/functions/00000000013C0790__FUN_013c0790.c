@@ -1,0 +1,17 @@
+/* Ghidra address: 013c0790 */
+/* Ghidra symbol: FUN_013c0790 */
+
+
+void FUN_013c0790(void)
+
+{
+  DAT_02108428 = DAT_02108428 + 1;
+  if (DAT_02108428 == 0) {
+    FUN_00417840(&PTR_DAT_01f43d60,&DAT_013c0468,0x10);
+    FUN_00417840(&PTR_u_Ucc1__Ucc_VC2___01f43ee0,&DAT_00401390,5);
+    FUN_00414480(&DAT_02108410);
+    FUN_00417740(&DAT_02108420,&DAT_013c0508);
+  }
+  return;
+}
+

@@ -1,0 +1,22 @@
+/* Ghidra address: 00ebde10 */
+/* Ghidra symbol: FUN_00ebde10 */
+
+
+void FUN_00ebde10(longlong param_1)
+
+{
+  int iVar1;
+  int iVar2;
+  
+  iVar1 = (**(code **)(**(longlong **)(*(longlong *)(param_1 + 0x6d0) + 0x4a0) + 0x28))();
+  iVar2 = 0;
+  if (-1 < iVar1 + -1) {
+    do {
+      FUN_0068bd10(*(undefined8 *)(param_1 + 0x6d0),iVar2,0);
+      iVar2 = iVar2 + 1;
+      iVar1 = iVar1 + -1;
+    } while (iVar1 != 0);
+  }
+  return;
+}
+

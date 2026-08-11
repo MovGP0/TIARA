@@ -1,0 +1,14 @@
+/* Ghidra address: 00791080 */
+/* Ghidra symbol: FUN_00791080 */
+
+
+void FUN_00791080(longlong param_1,undefined8 param_2,undefined4 param_3)
+
+{
+  FUN_0078fb40(param_1,param_2,param_3);
+  if (((char)param_3 == '\x05') && ((*(byte *)(param_1 + 0x58) & 2) != 0)) {
+    FUN_00410f20(param_2);
+  }
+  return;
+}
+

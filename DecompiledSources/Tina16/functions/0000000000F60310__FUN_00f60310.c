@@ -1,0 +1,28 @@
+/* Ghidra address: 00f60310 */
+/* Ghidra symbol: FUN_00f60310 */
+
+
+undefined8 FUN_00f60310(longlong param_1,int param_2,longlong *param_3)
+
+{
+  longlong lVar1;
+  int iVar2;
+  int iVar3;
+  
+  *param_3 = 0;
+  iVar3 = *(int *)(param_1 + 0x10);
+  iVar2 = 0;
+  if (-1 < iVar3 + -1) {
+    do {
+      lVar1 = FUN_004aeac0(param_1,iVar2);
+      *param_3 = lVar1;
+      if (*(int *)(*param_3 + 8) == param_2) {
+        return 1;
+      }
+      iVar2 = iVar2 + 1;
+      iVar3 = iVar3 + -1;
+    } while (iVar3 != 0);
+  }
+  return 0;
+}
+

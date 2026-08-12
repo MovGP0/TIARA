@@ -1,7 +1,5 @@
 ﻿# Tina Schematic Diagram
 
-> Analysis status: Pending individual source review.
-
 ## Control
 
 | Property | Recovered value |
@@ -10,8 +8,7 @@
 | Component path | Analog_form1.TargetGroupBox6.SaveTinaCheckBox1 |
 | Control class | TRadioButton |
 | Caption | Tina Schematic Diagram |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Initial checked state | true |
 | Handler name | SaveTinaCheckBox1Click |
 | Handler address | 01233ad0 |
 | Graph node | `resource:dfm:Analog_form1/Analog_form1.TargetGroupBox6.SaveTinaCheckBox1` |
@@ -20,45 +17,60 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The click selects **Tina Schematic Diagram** as the filter build target. The Delphi VCL `TRadioButton` behavior sets this control to checked and clears the two sibling target choices, **Tina Schematic Macro** and **Spice Netlist File**. This selection is the only click-time state change that the recovered evidence supports.
+
+`FUN_01233ad0` is the published `OnClick` handler, but its body contains only `return`. It does not validate the filter, build a schematic, write a file, close the form, or change application state. The two sibling target handlers are also empty. This repeated structure confirms that VCL radio-button behavior owns the target selection.
+
+The selected target is deferred state. A later click on **Build** runs `FUN_0122e740`. If all build stages succeed, it calls `FUN_01228900`. That dispatcher reads the checked state at form offset `+0x8B8` and creates and inserts a TINA schematic diagram. A failed build stage prevents output dispatch but does not undo the selected target.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Tina Schematic Diagram"] -->|OnClick| handler["FUN_01233ad0"]
+flowchart TD
+    control["Tina Schematic Diagram radio"] -->|VCL selection| checked["Check this radio"]
+    checked --> siblings["Clear Macro and SPICE sibling choices"]
+    siblings --> handler["FUN_01233ad0"]
+    handler --> noOp["Return without custom work"]
+    noOp --> later["Later: user clicks Build"]
+    later --> valid{"Build stages succeed?"}
+    valid -->|No| noOutput["Keep the target selection; create no output"]
+    valid -->|Yes| dispatch["FUN_01228900 reads +0x8B8"]
+    dispatch --> diagram["Create and insert a TINA schematic diagram"]
+
+    classDef success fill:#d5f5e3,stroke:#1e8449,color:#000
+    classDef failure fill:#fadbd8,stroke:#922b21,color:#000
+    class diagram success
+    class noOutput failure
 ```
+
+## State and decision details
+
+- The DFM marks this radio as checked. It is the initial build target.
+- Selection is exclusive within the three `TRadioButton` controls under `TargetGroupBox6`.
+- Clicking an already selected radio keeps the same selection. The published handler still performs no work.
+- Calling `FUN_01233ad0` directly does not select the radio because the function reads and writes no state. VCL selection happens outside this handler.
+- Focus entry uses a separate handler, `FUN_01234dc0`. It sets help context `0x21FC` and the status text `Build target Tina Schematic Diagram`. These help updates are not actions of `FUN_01233ad0`.
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001233AD0__FUN_01233ad0.c](../../../DecompiledSources/Tina16/functions/0000000001233AD0__FUN_01233ad0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: Analog_form1.TargetGroupBox6.SaveTinaCheckBox1.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: simple
-- Distinct outgoing calls: 0
+- [OnClick handler `FUN_01233ad0`](../../../DecompiledSources/Tina16/functions/0000000001233AD0__FUN_01233ad0.c) contains only `return`.
+- [Macro OnClick handler `FUN_01233ae0`](../../../DecompiledSources/Tina16/functions/0000000001233AE0__FUN_01233ae0.c) and [SPICE OnClick handler `FUN_01234580`](../../../DecompiledSources/Tina16/functions/0000000001234580__FUN_01234580.c) are also empty.
+- [Build handler `FUN_0122e740`](../../../DecompiledSources/Tina16/functions/000000000122E740__FUN_0122e740.c) calls the output dispatcher only after its status-gated build stages succeed.
+- [Output dispatcher `FUN_01228900`](../../../DecompiledSources/Tina16/functions/0000000001228900__FUN_01228900.c) reads the diagram radio at form offset `+0x8B8` and runs the TINA diagram branch.
+- [Focus-entry handler `FUN_01234dc0`](../../../DecompiledSources/Tina16/functions/0000000001234DC0__FUN_01234dc0.c) supplies the control-specific help context and status text.
 
 ## Direct calls
 
-- No direct call edge is present in the recovered graph.
+- `FUN_01233ad0` has no direct calls.
 
-## Resource evidence
+## Failure and no-op behavior
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: true
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- The click handler has no validation, error, cancel, or exception branch because it has no executable operation.
+- The click does not create or save output. It only selects the target through VCL state.
+- If a later Build stage reports a nonzero status, `FUN_0122e740` skips `FUN_01228900`. No TINA schematic is created, and the form remains open.
+- No glyph, hint, text property, or nearby label is needed to identify this control. Its caption, checked state, sibling captions, and downstream field read provide direct evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not expose the internal VCL function that applies radio-button exclusivity.
+- The recovered field name for form offset `+0x8B8` is not available. Its control identity comes from the recovered form field table and the DFM component evidence.

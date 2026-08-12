@@ -1,17 +1,18 @@
 ﻿# sbtnBrowseShape
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
 | Form | CspEditorDlg |
+| Form caption | Controlled Source Editor |
 | Component path | CspEditorDlg.pnlIO.sbtnBrowseShape |
 | Control class | TSpeedButton |
 | Caption | Not present in the recovered resource. |
 | Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Nearby label | &Shape: |
 | Handler name | sbtnBrowseShapeClick |
 | Handler address | 01402f10 |
 | Graph node | `resource:dfm:CspEditorDlg/CspEditorDlg.pnlIO.sbtnBrowseShape` |
@@ -20,62 +21,76 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+This button opens the custom **Macro Shapes** selector. It does not open a file browser. The handler first builds a compatibility filter from the values that are currently staged in the Controlled Source Editor:
+
+- For each value in **Number of voltages**, it adds the recovered descriptor `N1`, `N2`, and so on.
+- For each value in **Number of currents**, it adds a pair of recovered descriptors, such as `V1` and `V1-`.
+- It adds `O(V)` when **Voltage** is selected, or `O(I)` when **Current** is selected.
+- If **Differential** is selected, it also adds `O-(V)` or `O-(I)`.
+
+The descriptor letters are recovered program strings. Their original Delphi field names are not available, so this article does not assign a wider meaning to `N` or `V`.
+
+The handler passes this list to `frmDeviceList`. That dialog filters the global macro-shape catalog with the list and shows only compatible entries. Its library selector starts at item 0, **All**. The displayed shape list starts with no selection, and the search edit is reset to `Search`. The handler does not pass the current Shape value to the selector, so it does not preselect the shape that is already staged.
+
+If the user accepts the selector and a list item is selected, the handler makes two form-local updates:
+
+1. It writes the selected display name to the read-only **Shape** edit.
+2. It copies the selected catalog entry's library string to a hidden form string at offset `+0x8c8`.
+
+The first update is the only immediate visible feedback. The handler does not update a separate preview, change the controlled-source model, or close the editor. A later accepted selection replaces both staged values.
+
+If the user cancels the selector, or accepts it with no selected item, the handler leaves both values unchanged.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["sbtnBrowseShape"] -->|OnClick| handler["FUN_01402f10"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["Delphi UnicodeString assignment helper"]
-    handler --> call3["FUN_00414b50"]
-    handler --> call4["FUN_00416ba0"]
-    handler --> call5["FUN_00416cd0"]
-    handler --> call6["FUN_00418590"]
+flowchart TD
+    browse["Click the ellipsis Shape button"] --> read["Read voltage/current counts and output options"]
+    read --> filter["Build N#, V#/V#-, and O descriptors"]
+    filter --> selector["Open Macro Shapes with library All and compatible entries"]
+    selector --> accepted{"Modal result is OK and one item is selected?"}
+    accepted -->|No| unchanged["Keep the staged shape name and library unchanged"]
+    accepted -->|Yes| visible["Put the selected name in read-only Shape"]
+    visible --> metadata["Store the selected library at form offset +0x8c8"]
+    metadata --> editorDecision{"How is the Controlled Source Editor closed?"}
+    editorDecision -->|Cancel| discard["Discard the form-local selection"]
+    editorDecision -->|OK| lookup["Build library:name and look up the macro shape"]
+    lookup --> apply["Copy its graphic to the controlled-source symbol and update the pin layout"]
 ```
+
+## Staging, validation, and persistence
+
+- `edShape` is read-only. This browse path sets its text programmatically.
+- The click handler reads the bounded integer-edit controls when it builds the filter. The integer reader can report a range or format error. The handler has no local exception handler.
+- The shape selector applies its compatibility test while it builds the displayed list. There is no file path, initial directory, file filter, or file-system validation in this path.
+- The handler sets the visible name before it stores the hidden library value. It has no local rollback if a later assignment raises an exception. The recovered code does not show that such a failure occurred.
+- The selector has no local preview. Its owner-draw list is the selection view, and `edShape` is the editor's visible staged result.
+- The editor's built-in **Cancel** button has no application event handler. It closes the modal form without calling `btnOKClick`, so the staged shape does not reach the controlled-source model.
+- On editor **OK**, `FUN_01403320` reads the staged shape name and hidden library value and calls `FUN_013ff530`. A non-empty name becomes `library:name`; the catalog lookup supplies the macro graphic that is copied to the source symbol. The same operation updates the source pin count and layout.
+- If Shape is empty on editor **OK**, `FUN_013ff530` generates the default controlled-source graphic from the current counts and output options instead of using a catalog shape.
+- The downstream lookup has no explicit stale-selection check before it reads the returned catalog entry. Under normal use, the selector provides an entry from the same global catalog.
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001402F10__FUN_01402f10.c](../../../DecompiledSources/Tina16/functions/0000000001402F10__FUN_01402f10.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: CspEditorDlg.pnlIO.sbtnBrowseShape.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 12
+- Primary source: [FUN_01402f10](../../../DecompiledSources/Tina16/functions/0000000001402F10__FUN_01402f10.c)
+- Filter-item helper: [FUN_01402e80](../../../DecompiledSources/Tina16/functions/0000000001402E80__FUN_01402e80.c)
+- Selector constructor: [FUN_00c86a90](../../../DecompiledSources/Tina16/functions/0000000000C86A90__FUN_00c86a90.c)
+- Selector initialization: [FUN_00c86cb0](../../../DecompiledSources/Tina16/functions/0000000000C86CB0__FUN_00c86cb0.c)
+- Catalog filtering: [FUN_00c86f80](../../../DecompiledSources/Tina16/functions/0000000000C86F80__FUN_00c86f80.c)
+- Search reset: [FUN_00c86f20](../../../DecompiledSources/Tina16/functions/0000000000C86F20__FUN_00c86f20.c)
+- Editor OK handler: [FUN_01403320](../../../DecompiledSources/Tina16/functions/0000000001403320__FUN_01403320.c)
+- Symbol-shape application: [FUN_013ff530](../../../DecompiledSources/Tina16/functions/00000000013FF530__FUN_013ff530.c)
+- UI resource evidence: [ui-evidence.json](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json)
+- Complexity: complex; 12 distinct outgoing calls.
 
-## Direct calls
+## Resource and image evidence
 
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:00414b50` — FUN_00414b50
-- `function:00416ba0` — FUN_00416ba0
-- `function:00416cd0` — FUN_00416cd0
-- `function:00418590` — FUN_00418590
-- `function:0043f750` — FUN_0043f750
-- `function:0064de00` — VCL control text setter with change suppression
-- `function:00c86a90` — FUN_00c86a90
-- `function:00f04d50` — FUN_00f04d50
-- `function:01402e80` — FUN_01402e80
-- `function:0198b200` — FUN_0198b200
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: [`0040_CspEditorDlg_CspEditorDlg_pnlIO_sbtnBrowseShape_Glyph_Data.png`](../../../glyph/0040_CspEditorDlg_CspEditorDlg_pnlIO_sbtnBrowseShape_Glyph_Data.png)
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: &Shape: at distance 197.
+- The same panel contains a read-only `edShape` control and the nearby label **&Shape:**.
+- The extracted 9 x 9 glyph is an ellipsis. It supports a browse or more action, while the handler proves that the target is the Macro Shapes selector.
+- Extracted glyph: [0040_CspEditorDlg_CspEditorDlg_pnlIO_sbtnBrowseShape_Glyph_Data.png](../../../glyph/0040_CspEditorDlg_CspEditorDlg_pnlIO_sbtnBrowseShape_Glyph_Data.png)
+- The selector resource has caption **Macro Shapes**, an owner-draw device list, a **Library** selector with **All**, a search edit, and built-in OK and Cancel buttons.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Recovered object fields do not retain their original Delphi names. The form offsets in this article identify fields only where component access or later use proves their role.
+- The recovered source proves the selector's filter, accepted-selection updates, and later model application. It does not prove an error message or recovery path for allocation, modal creation, catalog changes, or string-assignment failures.

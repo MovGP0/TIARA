@@ -10,6 +10,8 @@ import json
 import math
 import os
 import re
+import shutil
+import subprocess
 import sys
 import time
 from collections import defaultdict
@@ -1769,7 +1771,6 @@ ONCLICK_CALL_TREE_FUNCTIONS = {
     },
 }
 
-FUNCTION_ANNOTATION_DIRECTORY = Path("analysis/function-annotations")
 FUNCTION_ANNOTATION_FIELDS = {
     "recoveredRole",
     "likelyDelphiName",
@@ -1785,7 +1786,7 @@ FUNCTION_ANNOTATION_FIELDS = {
 def merge_function_annotation(
     address: int,
     incoming: dict[str, object],
-    source_path: Path,
+    source_path: str | Path,
 ) -> None:
     target = ONCLICK_CALL_TREE_FUNCTIONS.setdefault(address, {})
     for key, value in incoming.items():
@@ -1819,43 +1820,96 @@ def merge_function_annotation(
         target[key] = value
 
 
-def load_function_annotation_fragments() -> int:
-    if not FUNCTION_ANNOTATION_DIRECTORY.exists():
-        return 0
+def load_function_annotations_from_database(
+    database_path: Path,
+) -> tuple[int, int]:
+    if not database_path.is_file():
+        raise ValueError(
+            f"Function annotation database does not exist: {database_path}"
+        )
 
-    fragment_count = 0
-    for source_path in sorted(FUNCTION_ANNOTATION_DIRECTORY.glob("*.json")):
-        payload = json.loads(source_path.read_text(encoding="utf-8-sig"))
-        if not isinstance(payload, dict):
-            raise ValueError(f"Annotation fragment must be an object: {source_path}")
-        functions = payload.get("functions")
-        if not isinstance(functions, list) or not functions:
+    duckdb_command = shutil.which("duckdb")
+    if duckdb_command is None:
+        raise ValueError("The DuckDB command-line program is not available.")
+
+    query = """
+SELECT
+  source_file,
+  address,
+  recovered_role,
+  likely_delphi_name,
+  framework,
+  api_category,
+  ui_role,
+  behavior,
+  evidence,
+  tags
+FROM function_annotations
+ORDER BY source_file, address;
+"""
+    process = subprocess.run(
+        [
+            duckdb_command,
+            str(database_path),
+            "-json",
+            "-readonly",
+            "-c",
+            query,
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    if process.returncode != 0:
+        message = process.stderr.strip() or process.stdout.strip()
+        raise ValueError(
+            f"DuckDB function annotation query failed: {message}"
+        )
+
+    rows = json.loads(process.stdout)
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("The DuckDB function annotation table is empty.")
+
+    field_mapping = {
+        "recovered_role": "recoveredRole",
+        "likely_delphi_name": "likelyDelphiName",
+        "framework": "framework",
+        "api_category": "apiCategory",
+        "ui_role": "uiRole",
+        "behavior": "behavior",
+        "evidence": "evidence",
+        "tags": "tags",
+    }
+    source_files: set[str] = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("DuckDB returned an invalid annotation row.")
+        source_file = row.get("source_file")
+        address_text = row.get("address")
+        if not isinstance(source_file, str) or not source_file.strip():
+            raise ValueError("DuckDB returned an annotation without a source file.")
+        if not isinstance(address_text, str):
+            raise ValueError(f"Missing function address in {source_file}.")
+        normalized_address = address_text.lower().removeprefix("0x")
+        if not re.fullmatch(r"[0-9a-f]{1,16}", normalized_address):
             raise ValueError(
-                f"Annotation fragment must contain a non-empty functions list: "
-                f"{source_path}"
+                f"Invalid function address {address_text!r} in {source_file}."
             )
-        for annotation in functions:
-            if not isinstance(annotation, dict):
-                raise ValueError(f"Invalid function entry in {source_path}.")
-            address_text = annotation.get("address")
-            if not isinstance(address_text, str):
-                raise ValueError(f"Missing function address in {source_path}.")
-            normalized_address = address_text.lower().removeprefix("0x")
-            if not re.fullmatch(r"[0-9a-f]{1,16}", normalized_address):
-                raise ValueError(
-                    f"Invalid function address {address_text!r} in {source_path}."
-                )
-            merge_function_annotation(
-                int(normalized_address, 16),
-                annotation,
-                source_path,
-            )
-        fragment_count += 1
 
-    return fragment_count
+        annotation: dict[str, object] = {"address": normalized_address}
+        for database_field, annotation_field in field_mapping.items():
+            value = row.get(database_field)
+            if value is not None:
+                annotation[annotation_field] = value
+        merge_function_annotation(
+            int(normalized_address, 16),
+            annotation,
+            source_file,
+        )
+        source_files.add(source_file)
 
-
-FUNCTION_ANNOTATION_FRAGMENT_COUNT = load_function_annotation_fragments()
+    return len(source_files), len(rows)
 
 NATIVE_CONTROL_TYPES = {
     "BUTTON": "button-family control",
@@ -1989,6 +2043,15 @@ def parse_arguments() -> argparse.Namespace:
         type=Path,
         default=DEFAULT_UI_EVIDENCE_PATH,
         help="Extracted Delphi DFM UI evidence, relative to the project root.",
+    )
+    parser.add_argument(
+        "--annotation-database",
+        type=Path,
+        default=Path(".understand-anything/knowledge-graph.duckdb"),
+        help=(
+            "DuckDB database that stores function annotations, relative to "
+            "the project root by default."
+        ),
     )
     parser.add_argument(
         "--limit",
@@ -3203,6 +3266,9 @@ def main() -> int:
     index_path = resolve_path(project_root, arguments.index)
     output_path = resolve_path(project_root, arguments.output)
     ui_evidence_path = resolve_path(project_root, arguments.ui_evidence)
+    annotation_database_path = resolve_path(
+        project_root, arguments.annotation_database
+    )
 
     if not project_root.is_dir():
         raise ValueError(f"Project root does not exist: {project_root}")
@@ -3212,6 +3278,15 @@ def main() -> int:
         raise ValueError(f"UI evidence does not exist: {ui_evidence_path}")
     if arguments.limit is not None and arguments.limit < 1:
         raise ValueError("--limit must be greater than zero.")
+
+    annotation_source_count, annotation_row_count = (
+        load_function_annotations_from_database(annotation_database_path)
+    )
+    print(
+        f"Loaded {annotation_row_count:,} function annotations from "
+        f"{annotation_source_count:,} DuckDB sources.",
+        flush=True,
+    )
 
     records, failed_count = load_function_records(
         project_root, index_path, arguments.limit
@@ -3270,6 +3345,8 @@ def main() -> int:
         "uiEdges": len(ui_edges),
         "edges": len(edges) + len(ui_edges),
         "failedIndexRowsExcluded": failed_count,
+        "functionAnnotationSources": annotation_source_count,
+        "functionAnnotationRows": annotation_row_count,
         **extraction_stats,
         "uiEvidence": ui_analysis,
         "layers": layer_counts,

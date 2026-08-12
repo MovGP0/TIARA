@@ -110,6 +110,50 @@ try
         throw "DuckDB graph import failed with exit code $LASTEXITCODE."
     }
 
+    $expectedAnnotationCounts = @('0', '0', '0')
+    if ([System.IO.File]::Exists($resolvedDatabasePath))
+    {
+        $annotationTableResult = & $duckDbCommand.Source $resolvedDatabasePath `
+            -readonly `
+            -noheader `
+            -list `
+            -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'main' AND table_name = 'function_annotations';"
+        if ($LASTEXITCODE -ne 0)
+        {
+            throw "DuckDB annotation-table inspection failed with exit code $LASTEXITCODE."
+        }
+
+        if (($annotationTableResult | Select-Object -Last 1) -eq '1')
+        {
+            $annotationCountResult = & $duckDbCommand.Source $resolvedDatabasePath `
+                -readonly `
+                -noheader `
+                -list `
+                -c "SELECT concat_ws('|', count(*), count(DISTINCT source_file), count(DISTINCT address)) FROM function_annotations;"
+            if ($LASTEXITCODE -ne 0)
+            {
+                throw "DuckDB annotation count failed with exit code $LASTEXITCODE."
+            }
+            $expectedAnnotationCounts = ($annotationCountResult | Select-Object -Last 1).Split('|')
+
+            $duckDbPreviousPath = $resolvedDatabasePath.Replace('\', '/').Replace("'", "''")
+            $copyAnnotationSql = @"
+ATTACH '$duckDbPreviousPath' AS previous_graph (READ_ONLY);
+INSERT INTO function_annotations
+SELECT * FROM previous_graph.function_annotations;
+DETACH previous_graph;
+CHECKPOINT;
+"@
+            & $duckDbCommand.Source $temporaryDatabasePath `
+                -bail `
+                -c $copyAnnotationSql
+            if ($LASTEXITCODE -ne 0)
+            {
+                throw "DuckDB annotation copy failed with exit code $LASTEXITCODE."
+            }
+        }
+    }
+
     $integritySql = @'
 SELECT concat_ws('|',
   (SELECT count(*) FROM nodes),
@@ -119,7 +163,10 @@ SELECT concat_ws('|',
   (SELECT count(*) FROM edges e LEFT JOIN nodes t ON t.id = e.target WHERE t.id IS NULL),
   (SELECT count(*) FROM layer_nodes ln LEFT JOIN nodes n ON n.id = ln.node_id WHERE n.id IS NULL),
   (SELECT count(*) FROM nodes n LEFT JOIN layer_nodes ln ON ln.node_id = n.id WHERE ln.node_id IS NULL),
-  (SELECT count(*) FROM (SELECT node_id FROM layer_nodes GROUP BY node_id HAVING count(*) > 1))
+  (SELECT count(*) FROM (SELECT node_id FROM layer_nodes GROUP BY node_id HAVING count(*) > 1)),
+  (SELECT count(*) FROM function_annotations),
+  (SELECT count(DISTINCT source_file) FROM function_annotations),
+  (SELECT count(DISTINCT address) FROM function_annotations)
 );
 '@
     $integrityResult = & $duckDbCommand.Source $temporaryDatabasePath `
@@ -133,7 +180,7 @@ SELECT concat_ws('|',
     }
 
     $counts = ($integrityResult | Select-Object -Last 1).Split('|')
-    if ($counts.Count -ne 8)
+    if ($counts.Count -ne 11)
     {
         throw "DuckDB returned an invalid graph validation result."
     }
@@ -150,6 +197,14 @@ SELECT concat_ws('|',
     )
     {
         throw "DuckDB imported dangling graph references."
+    }
+    if (
+        [long]$counts[8] -ne [long]$expectedAnnotationCounts[0] -or
+        [long]$counts[9] -ne [long]$expectedAnnotationCounts[1] -or
+        [long]$counts[10] -ne [long]$expectedAnnotationCounts[2]
+    )
+    {
+        throw "DuckDB did not preserve the function annotation table."
     }
 
     if ([System.IO.File]::Exists($resolvedDatabasePath))
@@ -176,6 +231,8 @@ SELECT concat_ws('|',
     Write-Output "Nodes: $($counts[0])"
     Write-Output "Edges: $($counts[1])"
     Write-Output "Layers: $($counts[2])"
+    Write-Output "Function annotations: $($counts[8])"
+    Write-Output "Annotation sources: $($counts[9])"
     Write-Output "Bytes: $databaseSize"
     Write-Output "Source JSON removed: $($RemoveGraphJson.IsPresent)"
 }

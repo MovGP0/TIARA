@@ -1,4 +1,4 @@
-# Agent Instructions
+﻿# Agent Instructions
 
 This project uses **bd** (beads) for issue tracking. Run `bd prime` for full workflow context.
 
@@ -132,8 +132,8 @@ bd prime                # Refresh Beads context
 
 The Understand Anything graph is generated. The primary checked-in graph is
 `.understand-anything/knowledge-graph.duckdb`. Do not edit the database or its
-generated JSON export by hand. The database path is tracked by Git LFS through
-`.gitattributes`.
+generated JSON export by hand. Use the repository scripts for database writes.
+The database path is tracked by Git LFS through `.gitattributes`.
 
 - Run `pwsh.exe -NoProfile -NoLogo -File analysis/Export-TinaUiEvidence.ps1`
   from the repository root before graph generation. The script verifies the
@@ -283,16 +283,25 @@ generated JSON export by hand. The database path is tracked by Git LFS through
   recovered handler and relevant callees, and inspect UI resource and glyph
   evidence. Controls that share a Delphi handler still need separate articles
   because the handler can branch on `Sender`, control state, or form fields.
-- When an agent establishes a function's responsibility, it must also create
-  `analysis/function-annotations/<bead-id>.json`. The fragment can describe the
-  handler and application-relevant callees. Use the format in
-  `analysis/function-annotations/README.md`. Do not add a generic description
-  merely because a function is in the call tree.
-- The graph generator loads annotation fragments in file-name order, combines
-  tags, and rejects conflicting field values. The orchestrator rebuilds the
-  DuckDB graph after each completed agent wave. Agents must not update the
-  DuckDB file directly because concurrent writers and later rebuilds can lose
-  those changes.
+- When an agent establishes a function's responsibility, store the annotation
+  in DuckDB table `function_annotations`. Use the Bead ID and control path as
+  `bead_id` and `control_id`. Do not add a generic description merely because a
+  function is in the call tree.
+- Use `analysis/Import-TinaFunctionAnnotations.ps1` for annotation writes. The
+  input is one temporary JSON object with `bead`, `control`, and a non-empty
+  `functions` array. Put the input under `.temp/`, import it, and remove it. The
+  accepted function fields are `address`, `recoveredRole`,
+  `likelyDelphiName`, `framework`, `apiCategory`, `uiRole`, `behavior`,
+  `evidence`, and `tags`.
+- The importer replaces all rows for each input source file in one transaction.
+  It combines no field silently: equal scalar values can repeat across sources,
+  tags are combined by the graph loader, and conflicting scalar values stop the
+  import. Run annotation imports serially. Do not run an import while another
+  agent or graph rebuild writes the database.
+- The graph generator reads annotations from DuckDB in `source_file` and
+  address order. The database rebuild copies the annotation table into the new
+  graph database and checks its row, source, and address counts before it
+  replaces the tracked database.
 - Replace the pending text only when the source and call path support a
   specific explanation. Describe inputs, decisions, state changes, outputs,
   error behavior, and no-op behavior where applicable. Keep unknown behavior
@@ -322,6 +331,9 @@ well. Array order is stored explicitly to make the JSON export deterministic.
 - `graph_metadata` has one row. It stores `version`, `project`, and `analysis`.
 - `storage_metadata` has one row. It stores `schema_version`, the source JSON
   SHA-256 value, source byte count, and import time.
+- `function_annotations` stores source-file ownership, Bead and control IDs,
+  function addresses, recovered scalar fields, and tag lists. Multiple sources
+  can own the same address when their scalar fields agree.
 - `nodes` has one row for each graph node. `ordinal` preserves JSON order. The
   other columns are the union of graph node fields, including `id`, `name`,
   `type`, `filePath`, `summary`, `tags`, `complexity`, UI evidence, Delphi
@@ -338,6 +350,8 @@ well. Array order is stored explicitly to make the JSON export deterministic.
 - `glyph_resources` stores the extracted-image manifest. It includes the file,
   format, form, component, property, dimensions, byte counts, offset, and hash.
 - `graph_statistics` reports node, edge, layer, and tour-step counts.
+- `function_annotation_statistics` reports annotation row, source, and distinct
+  address counts.
 - `node_layers` joins node IDs to layer IDs and names.
 - `function_calls` contains the `calls` edge subset.
 - `ui_events` contains the `triggers` edge subset with event and handler names.

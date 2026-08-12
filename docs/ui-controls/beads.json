@@ -332,7 +332,7 @@
   {
     "Order": 34,
     "IssueId": "TIARA-diz.6.7.34",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:6e1a6680e9",
     "Form": "AddCurveDlg",
     "Component": "AddCurveDlg.UpperPl.Panel2.FilterGB.VoltagesCB",
@@ -642,7 +642,7 @@
   {
     "Order": 65,
     "IssueId": "TIARA-diz.6.7.65",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:c619a76cea",
     "Form": "Analog_form1",
     "Component": "Analog_form1.ButtonClose",
@@ -652,7 +652,7 @@
   {
     "Order": 66,
     "IssueId": "TIARA-diz.6.7.66",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:4c571ed0fc",
     "Form": "Analog_form1",
     "Component": "Analog_form1.CheckBitBtn2",
@@ -662,7 +662,7 @@
   {
     "Order": 67,
     "IssueId": "TIARA-diz.6.7.67",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:82d8c17925",
     "Form": "Analog_form1",
     "Component": "Analog_form1.DiagramPopUp.Color1",
@@ -672,7 +672,7 @@
   {
     "Order": 68,
     "IssueId": "TIARA-diz.6.7.68",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:6144e1d122",
     "Form": "Analog_form1",
     "Component": "Analog_form1.GroupBox1.FileLoadButton",
@@ -682,7 +682,7 @@
   {
     "Order": 69,
     "IssueId": "TIARA-diz.6.7.69",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:5ca94991e2",
     "Form": "Analog_form1",
     "Component": "Analog_form1.GroupBox1.SaveBitBtn1",
@@ -692,7 +692,7 @@
   {
     "Order": 70,
     "IssueId": "TIARA-diz.6.7.70",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a0d21aafe3",
     "Form": "Analog_form1",
     "Component": "Analog_form1.GroupBox2.MyRadioGroup1",
@@ -702,7 +702,7 @@
   {
     "Order": 71,
     "IssueId": "TIARA-diz.6.7.71",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:c279ead741",
     "Form": "Analog_form1",
     "Component": "Analog_form1.HelpBitBtn1",
@@ -712,7 +712,7 @@
   {
     "Order": 72,
     "IssueId": "TIARA-diz.6.7.72",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:71d8966476",
     "Form": "Analog_form1",
     "Component": "Analog_form1.MainMenu1.File1.mnExit",
@@ -722,7 +722,7 @@
   {
     "Order": 73,
     "IssueId": "TIARA-diz.6.7.73",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:671293ea8b",
     "Form": "Analog_form1",
     "Component": "Analog_form1.MainMenu1.File1.mnSimplifiedInterface",
@@ -732,7 +732,7 @@
   {
     "Order": 74,
     "IssueId": "TIARA-diz.6.7.74",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:19c37d551e",
     "Form": "Analog_form1",
     "Component": "Analog_form1.NEXTButton1",
@@ -742,7 +742,7 @@
   {
     "Order": 75,
     "IssueId": "TIARA-diz.6.7.75",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:1f7ad5b30f",
     "Form": "Analog_form1",
     "Component": "Analog_form1.OpampTypeGroupBox7.IdealOpampCheckBox",
@@ -752,7 +752,7 @@
   {
     "Order": 76,
     "IssueId": "TIARA-diz.6.7.76",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:afd914cccb",
     "Form": "Analog_form1",
     "Component": "Analog_form1.OpampTypeGroupBox7.SPICEOPAMP",
@@ -762,7 +762,7 @@
   {
     "Order": 77,
     "IssueId": "TIARA-diz.6.7.77",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:480c5d6561",
     "Form": "Analog_form1",
     "Component": "Analog_form1.OpampTypeGroupBox7.StandardOPAMP",
@@ -772,7 +772,7 @@
   {
     "Order": 78,
     "IssueId": "TIARA-diz.6.7.78",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:cefe287841",
     "Form": "Analog_form1",
     "Component": "Analog_form1.OpampTypeGroupBox7.TypeComboBox1",
@@ -782,7 +782,7 @@
   {
     "Order": 79,
     "IssueId": "TIARA-diz.6.7.79",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:173ac433e2",
     "Form": "Analog_form1",
     "Component": "Analog_form1.Panel1.Image1",
@@ -792,7 +792,7 @@
   {
     "Order": 80,
     "IssueId": "TIARA-diz.6.7.80",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:428bc1aab3",
     "Form": "Analog_form1",
     "Component": "Analog_form1.Passive_RadioButton2",
@@ -802,7 +802,7 @@
   {
     "Order": 81,
     "IssueId": "TIARA-diz.6.7.81",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:f0bd3427d1",
     "Form": "Analog_form1",
     "Component": "Analog_form1.SpecificationGroupBox1.Filter_Selectivity_ComboBox",
@@ -812,7 +812,7 @@
   {
     "Order": 82,
     "IssueId": "TIARA-diz.6.7.82",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:b88c1c4fa5",
     "Form": "Analog_form1",
     "Component": "Analog_form1.TargetGroupBox6.SaveMacroCheckBox1",
@@ -822,7 +822,7 @@
   {
     "Order": 83,
     "IssueId": "TIARA-diz.6.7.83",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:1f8ec49770",
     "Form": "Analog_form1",
     "Component": "Analog_form1.TargetGroupBox6.SaveTinaCheckBox1",
@@ -832,7 +832,7 @@
   {
     "Order": 84,
     "IssueId": "TIARA-diz.6.7.84",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a0293d010e",
     "Form": "Analog_form1",
     "Component": "Analog_form1.TargetGroupBox6.SpiceRadioButton1",
@@ -842,7 +842,7 @@
   {
     "Order": 85,
     "IssueId": "TIARA-diz.6.7.85",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:ddef01e9c8",
     "Form": "Analog_form1",
     "Component": "Analog_form1.TesztButton1",
@@ -852,7 +852,7 @@
   {
     "Order": 86,
     "IssueId": "TIARA-diz.6.7.86",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:1a7cc53968",
     "Form": "AnaloptVHDLAdvanced",
     "Component": "AnaloptVHDLAdvanced.bOK",
@@ -862,7 +862,7 @@
   {
     "Order": 87,
     "IssueId": "TIARA-diz.6.7.87",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d373bba0ae",
     "Form": "AnaloptVHDLAdvanced",
     "Component": "AnaloptVHDLAdvanced.rgMCU.sbSelectArduinoPath",
@@ -872,7 +872,7 @@
   {
     "Order": 88,
     "IssueId": "TIARA-diz.6.7.88",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d187526596",
     "Form": "AnaloptVHDLAdvanced",
     "Component": "AnaloptVHDLAdvanced.rgMCU.sbSelectAtmelStudioPath",
@@ -882,7 +882,7 @@
   {
     "Order": 89,
     "IssueId": "TIARA-diz.6.7.89",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:2fdb96dfa7",
     "Form": "AnaloptVHDLAdvanced",
     "Component": "AnaloptVHDLAdvanced.rgRollback.cbUseRollBack",
@@ -892,7 +892,7 @@
   {
     "Order": 90,
     "IssueId": "TIARA-diz.6.7.90",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:abc42041c3",
     "Form": "AnaloptVHDLAdvanced",
     "Component": "AnaloptVHDLAdvanced.rgVhdl.bManageLibraries",
@@ -902,7 +902,7 @@
   {
     "Order": 91,
     "IssueId": "TIARA-diz.6.7.91",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:312c6fff45",
     "Form": "AnalysisOptionDlg",
     "Component": "AnalysisOptionDlg.OKBtn",
@@ -912,7 +912,7 @@
   {
     "Order": 92,
     "IssueId": "TIARA-diz.6.7.92",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:ae2c6c8aa7",
     "Form": "AnalysisOptionDlg",
     "Component": "AnalysisOptionDlg.pcOptions.tshDigital.gbDigital.cbEnableGlitchControl",
@@ -922,7 +922,7 @@
   {
     "Order": 93,
     "IssueId": "TIARA-diz.6.7.93",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:fcd988faf2",
     "Form": "AnalysisOptionDlg",
     "Component": "AnalysisOptionDlg.pcOptions.tshDigital.rgVhdl.bAdvaced",
@@ -932,7 +932,7 @@
   {
     "Order": 94,
     "IssueId": "TIARA-diz.6.7.94",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d25bc51b5f",
     "Form": "AnalysisOptionDlg",
     "Component": "AnalysisOptionDlg.pcOptions.tshERC.btnDefaults",
@@ -942,7 +942,7 @@
   {
     "Order": 95,
     "IssueId": "TIARA-diz.6.7.95",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:761dafb22c",
     "Form": "AnalysisOptionDlg",
     "Component": "AnalysisOptionDlg.pcOptions.tshGeneral.GroupBox1.cbAcceleration",
@@ -952,7 +952,7 @@
   {
     "Order": 96,
     "IssueId": "TIARA-diz.6.7.96",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:15aca8c7b0",
     "Form": "AnalysisOptionDlg",
     "Component": "AnalysisOptionDlg.pcOptions.tshGeneral.Transient.IntegMethodRG",
@@ -962,7 +962,7 @@
   {
     "Order": 97,
     "IssueId": "TIARA-diz.6.7.97",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d294fec367",
     "Form": "ApAddPlaceFrm",
     "Component": "ApAddPlaceFrm.Button1",
@@ -972,7 +972,7 @@
   {
     "Order": 98,
     "IssueId": "TIARA-diz.6.7.98",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a956810360",
     "Form": "ApAddPlaceFrm",
     "Component": "ApAddPlaceFrm.Button2",
@@ -982,7 +982,7 @@
   {
     "Order": 99,
     "IssueId": "TIARA-diz.6.7.99",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:03aefcc774",
     "Form": "ApAddPlaceFrm",
     "Component": "ApAddPlaceFrm.btnBrowseLib",
@@ -992,7 +992,7 @@
   {
     "Order": 100,
     "IssueId": "TIARA-diz.6.7.100",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a1b26412f4",
     "Form": "ApAddPlaceFrm",
     "Component": "ApAddPlaceFrm.btnShowIcons",
@@ -1002,7 +1002,7 @@
   {
     "Order": 101,
     "IssueId": "TIARA-diz.6.7.101",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:913aaaaae4",
     "Form": "ApAddPlaceFrm",
     "Component": "ApAddPlaceFrm.chkAutoCap",
@@ -1012,7 +1012,7 @@
   {
     "Order": 102,
     "IssueId": "TIARA-diz.6.7.102",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a71d03179d",
     "Form": "ApPlacesBarFrm",
     "Component": "ApPlacesBarFrm.pop1.Changeplace1",
@@ -1022,7 +1022,7 @@
   {
     "Order": 103,
     "IssueId": "TIARA-diz.6.7.103",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:79fbbf42e9",
     "Form": "ApPlacesBarFrm",
     "Component": "ApPlacesBarFrm.pop1.Deleteplace1",
@@ -1032,7 +1032,7 @@
   {
     "Order": 104,
     "IssueId": "TIARA-diz.6.7.104",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:aae7ee8aaa",
     "Form": "ArduinoLibrary",
     "Component": "ArduinoLibrary.bOk",
@@ -1042,7 +1042,7 @@
   {
     "Order": 105,
     "IssueId": "TIARA-diz.6.7.105",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:2708b2988a",
     "Form": "ArduinoLibrary",
     "Component": "ArduinoLibrary.sbAddStandard",
@@ -1052,7 +1052,7 @@
   {
     "Order": 106,
     "IssueId": "TIARA-diz.6.7.106",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:561ffe870d",
     "Form": "ArduinoLibrary",
     "Component": "ArduinoLibrary.sbAddUser",
@@ -1062,7 +1062,7 @@
   {
     "Order": 107,
     "IssueId": "TIARA-diz.6.7.107",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d8eee02a8e",
     "Form": "ArduinoLibrary",
     "Component": "ArduinoLibrary.sbDeleteStandard",
@@ -1072,7 +1072,7 @@
   {
     "Order": 108,
     "IssueId": "TIARA-diz.6.7.108",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:32cf94746a",
     "Form": "ArduinoLibrary",
     "Component": "ArduinoLibrary.sbDeleteUser",
@@ -1082,7 +1082,7 @@
   {
     "Order": 109,
     "IssueId": "TIARA-diz.6.7.109",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:69e8448338",
     "Form": "AskVoltagesDlg",
     "Component": "AskVoltagesDlg.BtnPanel.CancelBtn",
@@ -1092,7 +1092,7 @@
   {
     "Order": 110,
     "IssueId": "TIARA-diz.6.7.110",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:369c35b7e2",
     "Form": "AssignElfHex",
     "Component": "AssignElfHex.OK",
@@ -1102,7 +1102,7 @@
   {
     "Order": 111,
     "IssueId": "TIARA-diz.6.7.111",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:2e4b9411ce",
     "Form": "AssignElfHex",
     "Component": "AssignElfHex.sbElf",
@@ -1112,7 +1112,7 @@
   {
     "Order": 112,
     "IssueId": "TIARA-diz.6.7.112",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:0a900b5503",
     "Form": "AssignElfHex",
     "Component": "AssignElfHex.sbHEX",
@@ -1122,7 +1122,7 @@
   {
     "Order": 113,
     "IssueId": "TIARA-diz.6.7.113",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:f17ae815e9",
     "Form": "BatchSimulationDlg",
     "Component": "BatchSimulationDlg.btnOK",
@@ -1132,7 +1132,7 @@
   {
     "Order": 114,
     "IssueId": "TIARA-diz.6.7.114",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:981b09eeaa",
     "Form": "BorderWindow",
     "Component": "BorderWindow.OKBtn",
@@ -1142,7 +1142,7 @@
   {
     "Order": 115,
     "IssueId": "TIARA-diz.6.7.115",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d8357174a2",
     "Form": "BrowserFrm",
     "Component": "BrowserFrm.TopPL.BackBtn",
@@ -1152,7 +1152,7 @@
   {
     "Order": 116,
     "IssueId": "TIARA-diz.6.7.116",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:f63619de8a",
     "Form": "BrowserFrm",
     "Component": "BrowserFrm.TopPL.ForwardBtn",
@@ -1162,7 +1162,7 @@
   {
     "Order": 117,
     "IssueId": "TIARA-diz.6.7.117",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:c4dd1ca4e0",
     "Form": "BrowserFrm",
     "Component": "BrowserFrm.TopPL.GoBtn",
@@ -1172,7 +1172,7 @@
   {
     "Order": 118,
     "IssueId": "TIARA-diz.6.7.118",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:ba91d08cf8",
     "Form": "BrowserFrm",
     "Component": "BrowserFrm.TopPL.OpenBtn",
@@ -1182,7 +1182,7 @@
   {
     "Order": 119,
     "IssueId": "TIARA-diz.6.7.119",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:096961cbf3",
     "Form": "BrowserFrm",
     "Component": "BrowserFrm.TopPL.StopBtn",
@@ -1192,7 +1192,7 @@
   {
     "Order": 120,
     "IssueId": "TIARA-diz.6.7.120",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:ac1d2f2758",
     "Form": "CCompilerSettings",
     "Component": "CCompilerSettings.bOk",
@@ -1202,7 +1202,7 @@
   {
     "Order": 121,
     "IssueId": "TIARA-diz.6.7.121",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:9b75f15268",
     "Form": "CCompilerSettings",
     "Component": "CCompilerSettings.pcOptions.tsAVR.bArduinoLibraries",
@@ -1212,7 +1212,7 @@
   {
     "Order": 122,
     "IssueId": "TIARA-diz.6.7.122",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:51093a9385",
     "Form": "CCompilerSettings",
     "Component": "CCompilerSettings.pcOptions.tsOptions.cbUseArduinoCLI",
@@ -1222,7 +1222,7 @@
   {
     "Order": 123,
     "IssueId": "TIARA-diz.6.7.123",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:4906a2eba7",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.ButtonsNB.TPage.FontBtn",
@@ -1232,7 +1232,7 @@
   {
     "Order": 124,
     "IssueId": "TIARA-diz.6.7.124",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:0088a439f6",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.ButtonsNB.TPage.OKBtn",
@@ -1242,7 +1242,7 @@
   {
     "Order": 125,
     "IssueId": "TIARA-diz.6.7.125",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:30ae3aa2ff",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.ButtonsNB.TPage.TTPopUpBtn",
@@ -1252,7 +1252,7 @@
   {
     "Order": 126,
     "IssueId": "TIARA-diz.6.7.126",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:c765ab8013",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.DeepLinkPopUpMnu.ACAnalysisMnu.ACTransferCharacteristicMnu",
@@ -1262,7 +1262,7 @@
   {
     "Order": 127,
     "IssueId": "TIARA-diz.6.7.127",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:e54b4fca8c",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.DeepLinkPopUpMnu.ACAnalysisMnu.NetworkAnalysisMnu",
@@ -1272,7 +1272,7 @@
   {
     "Order": 128,
     "IssueId": "TIARA-diz.6.7.128",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:db4d80a4c7",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.DeepLinkPopUpMnu.DCAnalysisMnu.DCTransferCharacteristicMnu",
@@ -1282,7 +1282,7 @@
   {
     "Order": 129,
     "IssueId": "TIARA-diz.6.7.129",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:67e54cb915",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.DeepLinkPopUpMnu.DCAnalysisMnu.TemperatureAnalysisMnu",
@@ -1292,7 +1292,7 @@
   {
     "Order": 130,
     "IssueId": "TIARA-diz.6.7.130",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:dfd4637f66",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.DeepLinkPopUpMnu.DigitalMnu",
@@ -1302,7 +1302,7 @@
   {
     "Order": 131,
     "IssueId": "TIARA-diz.6.7.131",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a385756cd4",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.DeepLinkPopUpMnu.FourierSpectrumMnu",
@@ -1312,7 +1312,7 @@
   {
     "Order": 132,
     "IssueId": "TIARA-diz.6.7.132",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:1f0ec7b7cf",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.DeepLinkPopUpMnu.NoiseAnalysisMnu",
@@ -1322,7 +1322,7 @@
   {
     "Order": 133,
     "IssueId": "TIARA-diz.6.7.133",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:873971408c",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.DeepLinkPopUpMnu.SetConfigFileMnu",
@@ -1332,7 +1332,7 @@
   {
     "Order": 134,
     "IssueId": "TIARA-diz.6.7.134",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:adeebb17d0",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.DeepLinkPopUpMnu.SetParameterMnu",
@@ -1342,7 +1342,7 @@
   {
     "Order": 135,
     "IssueId": "TIARA-diz.6.7.135",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:2cb8541955",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.DeepLinkPopUpMnu.TransientMnu",
@@ -1352,7 +1352,7 @@
   {
     "Order": 136,
     "IssueId": "TIARA-diz.6.7.136",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:b56afc9ce0",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.TTPopupMnu.AutoWrapMnu",
@@ -1362,7 +1362,7 @@
   {
     "Order": 137,
     "IssueId": "TIARA-diz.6.7.137",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:271d54517f",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.TTPopupMnu.Background1.OpaqueMnu",
@@ -1372,7 +1372,7 @@
   {
     "Order": 138,
     "IssueId": "TIARA-diz.6.7.138",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:8b6aa88eb7",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.TTPopupMnu.Background1.TransparentMnu",
@@ -1382,7 +1382,7 @@
   {
     "Order": 139,
     "IssueId": "TIARA-diz.6.7.139",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:4a11d082c6",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.TTPopupMnu.Border1.DottedMnu",
@@ -1392,7 +1392,7 @@
   {
     "Order": 140,
     "IssueId": "TIARA-diz.6.7.140",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:5f8ac9c54e",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.TTPopupMnu.Border1.NoneMnu",
@@ -1402,7 +1402,7 @@
   {
     "Order": 141,
     "IssueId": "TIARA-diz.6.7.141",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:c2a1271105",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.TTPopupMnu.Border1.SolidMnu",
@@ -1412,7 +1412,7 @@
   {
     "Order": 142,
     "IssueId": "TIARA-diz.6.7.142",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:f6e10038aa",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.TTPopupMnu.CopyMnu",
@@ -1422,7 +1422,7 @@
   {
     "Order": 143,
     "IssueId": "TIARA-diz.6.7.143",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a34828d309",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.TTPopupMnu.CutMnu",
@@ -1432,7 +1432,7 @@
   {
     "Order": 144,
     "IssueId": "TIARA-diz.6.7.144",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a14bf289fb",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.TTPopupMnu.OpenMnu",
@@ -1442,7 +1442,7 @@
   {
     "Order": 145,
     "IssueId": "TIARA-diz.6.7.145",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:795f34cecc",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.TTPopupMnu.PasteMnu",
@@ -1452,7 +1452,7 @@
   {
     "Order": 146,
     "IssueId": "TIARA-diz.6.7.146",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:4611f2b44e",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.TTPopupMnu.PopupText",
@@ -1462,7 +1462,7 @@
   {
     "Order": 147,
     "IssueId": "TIARA-diz.6.7.147",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:43a89e8944",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.TTPopupMnu.Properties1",
@@ -1472,7 +1472,7 @@
   {
     "Order": 148,
     "IssueId": "TIARA-diz.6.7.148",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d305b979bf",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.TTPopupMnu.SaveAsMnu",
@@ -1482,7 +1482,7 @@
   {
     "Order": 149,
     "IssueId": "TIARA-diz.6.7.149",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:cabce3c1cb",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.TTPopupMnu.SaveMnu",
@@ -1492,7 +1492,7 @@
   {
     "Order": 150,
     "IssueId": "TIARA-diz.6.7.150",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:b4baae5994",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.TTPopupMnu.Selectall1",
@@ -1502,7 +1502,7 @@
   {
     "Order": 151,
     "IssueId": "TIARA-diz.6.7.151",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:5d9d761684",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.ToolsPanel.EditBtn",
@@ -1512,7 +1512,7 @@
   {
     "Order": 152,
     "IssueId": "TIARA-diz.6.7.152",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:8bc6892282",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.ToolsPanel.ToolsNB.Edit.AnchorBtn",
@@ -1522,7 +1522,7 @@
   {
     "Order": 153,
     "IssueId": "TIARA-diz.6.7.153",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:c12ad1c934",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.ToolsPanel.ToolsNB.Edit.DeepLinkBtn",
@@ -1532,7 +1532,7 @@
   {
     "Order": 154,
     "IssueId": "TIARA-diz.6.7.154",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:09e0371235",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.ToolsPanel.ToolsNB.Edit.ExpBtn",
@@ -1542,7 +1542,7 @@
   {
     "Order": 155,
     "IssueId": "TIARA-diz.6.7.155",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:3f7ead4add",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.ToolsPanel.ToolsNB.Edit.FracBtn",
@@ -1552,7 +1552,7 @@
   {
     "Order": 156,
     "IssueId": "TIARA-diz.6.7.156",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a11c61e155",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.ToolsPanel.ToolsNB.Edit.IndxBtn",
@@ -1562,7 +1562,7 @@
   {
     "Order": 157,
     "IssueId": "TIARA-diz.6.7.157",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:cc6ad1469d",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.ToolsPanel.ToolsNB.Edit.SpecBtn",
@@ -1572,7 +1572,7 @@
   {
     "Order": 158,
     "IssueId": "TIARA-diz.6.7.158",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:4aa203e946",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.ToolsPanel.ToolsNB.Edit.SymbolBtn",
@@ -1582,7 +1582,7 @@
   {
     "Order": 159,
     "IssueId": "TIARA-diz.6.7.159",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:f93a99da4b",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.ToolsPanel.ToolsNB.View.TDCopyBtn",
@@ -1592,7 +1592,7 @@
   {
     "Order": 160,
     "IssueId": "TIARA-diz.6.7.160",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:67af40ca3e",
     "Form": "CSysTextDlg",
     "Component": "CSysTextDlg.ToolsPanel.ViewBtn",
@@ -1602,7 +1602,7 @@
   {
     "Order": 161,
     "IssueId": "TIARA-diz.6.7.161",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:4c29325479",
     "Form": "CatalogEditorDlg",
     "Component": "CatalogEditorDlg.ModelCB",
@@ -1612,7 +1612,7 @@
   {
     "Order": 162,
     "IssueId": "TIARA-diz.6.7.162",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:c166246db4",
     "Form": "CatalogEditorDlg",
     "Component": "CatalogEditorDlg.OKBtn",
@@ -1622,7 +1622,7 @@
   {
     "Order": 163,
     "IssueId": "TIARA-diz.6.7.163",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:ffed9bd11d",
     "Form": "CatalogEditorDlg",
     "Component": "CatalogEditorDlg.TypeLB",
@@ -1632,7 +1632,7 @@
   {
     "Order": 164,
     "IssueId": "TIARA-diz.6.7.164",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:033cec613a",
     "Form": "ChessForm",
     "Component": "ChessForm.Panel1.bLoad",
@@ -1642,7 +1642,7 @@
   {
     "Order": 165,
     "IssueId": "TIARA-diz.6.7.165",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:83edc05550",
     "Form": "ChessForm",
     "Component": "ChessForm.Panel1.bSaveGame",
@@ -1652,7 +1652,7 @@
   {
     "Order": 166,
     "IssueId": "TIARA-diz.6.7.166",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:5515b7ca4c",
     "Form": "CipEditorDlg",
     "Component": "CipEditorDlg.btnOK",
@@ -1662,7 +1662,7 @@
   {
     "Order": 167,
     "IssueId": "TIARA-diz.6.7.167",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:c26b9194a2",
     "Form": "CloneTestBench",
     "Component": "CloneTestBench.bCircuitFolder",
@@ -1672,7 +1672,7 @@
   {
     "Order": 168,
     "IssueId": "TIARA-diz.6.7.168",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:e6242c1a48",
     "Form": "CloneTestBench",
     "Component": "CloneTestBench.bCircuitFolders",
@@ -1682,7 +1682,7 @@
   {
     "Order": 169,
     "IssueId": "TIARA-diz.6.7.169",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:cea89a4e85",
     "Form": "CloneTestBench",
     "Component": "CloneTestBench.bOK",
@@ -1692,7 +1692,7 @@
   {
     "Order": 170,
     "IssueId": "TIARA-diz.6.7.170",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:017bf07e6b",
     "Form": "CloneTestBench",
     "Component": "CloneTestBench.bSourceFolder",
@@ -1702,7 +1702,7 @@
   {
     "Order": 171,
     "IssueId": "TIARA-diz.6.7.171",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:e476b48cdb",
     "Form": "CompilePackage",
     "Component": "CompilePackage.AdvancedPanel.gbXilinx.bPrimGen",
@@ -1712,7 +1712,7 @@
   {
     "Order": 172,
     "IssueId": "TIARA-diz.6.7.172",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:75a4c87a8e",
     "Form": "CompilePackage",
     "Component": "CompilePackage.AdvancedPanel.gbXilinx.sbSelectToolHome",
@@ -1722,7 +1722,7 @@
   {
     "Order": 173,
     "IssueId": "TIARA-diz.6.7.173",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:7f179ba127",
     "Form": "CompilePackage",
     "Component": "CompilePackage.PopupMenu.mnClear",
@@ -1732,7 +1732,7 @@
   {
     "Order": 174,
     "IssueId": "TIARA-diz.6.7.174",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:16a892f62b",
     "Form": "CompilePackage",
     "Component": "CompilePackage.SimplePanel.bCompile",
@@ -1742,7 +1742,7 @@
   {
     "Order": 175,
     "IssueId": "TIARA-diz.6.7.175",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:6d8b2ef69e",
     "Form": "CompilePackage",
     "Component": "CompilePackage.SimplePanel.bMore",
@@ -1752,7 +1752,7 @@
   {
     "Order": 176,
     "IssueId": "TIARA-diz.6.7.176",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:906a248442",
     "Form": "CompilePackage",
     "Component": "CompilePackage.SimplePanel.sbAbort",
@@ -1762,7 +1762,7 @@
   {
     "Order": 177,
     "IssueId": "TIARA-diz.6.7.177",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:6e712c78c0",
     "Form": "CompilePackage",
     "Component": "CompilePackage.SimplePanel.sbDeleteLibrary",
@@ -1772,7 +1772,7 @@
   {
     "Order": 178,
     "IssueId": "TIARA-diz.6.7.178",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:8184d85e80",
     "Form": "CompilePackage",
     "Component": "CompilePackage.SimplePanel.sbNewLibrary",
@@ -1782,7 +1782,7 @@
   {
     "Order": 179,
     "IssueId": "TIARA-diz.6.7.179",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a5c590b78f",
     "Form": "ComponentBitmapManager",
     "Component": "ComponentBitmapManager.pnlButtons.btnReset",
@@ -1792,7 +1792,7 @@
   {
     "Order": 180,
     "IssueId": "TIARA-diz.6.7.180",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:966a0c067d",
     "Form": "ComponentBitmapManager",
     "Component": "ComponentBitmapManager.pnlButtons.pnlStdButtons.btnOK",
@@ -1802,7 +1802,7 @@
   {
     "Order": 181,
     "IssueId": "TIARA-diz.6.7.181",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:b46679315b",
     "Form": "ComponentFinder",
     "Component": "ComponentFinder.btnInsert",
@@ -1812,7 +1812,7 @@
   {
     "Order": 182,
     "IssueId": "TIARA-diz.6.7.182",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:179c9ea13c",
     "Form": "ComponentFinder",
     "Component": "ComponentFinder.btnListComponents",
@@ -1822,7 +1822,7 @@
   {
     "Order": 183,
     "IssueId": "TIARA-diz.6.7.183",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:559ab30bcb",
     "Form": "ComponentFinder",
     "Component": "ComponentFinder.btnSearch",
@@ -1832,7 +1832,7 @@
   {
     "Order": 184,
     "IssueId": "TIARA-diz.6.7.184",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:4e0cd95a72",
     "Form": "ComponentFinder",
     "Component": "ComponentFinder.lbParts",
@@ -1842,7 +1842,7 @@
   {
     "Order": 185,
     "IssueId": "TIARA-diz.6.7.185",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:bebbffc97b",
     "Form": "ComponentFinder",
     "Component": "ComponentFinder.rgPatternPos",
@@ -1852,7 +1852,7 @@
   {
     "Order": 186,
     "IssueId": "TIARA-diz.6.7.186",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:0f4f71be9b",
     "Form": "ComponentParamsDlg",
     "Component": "ComponentParamsDlg.CancelBtn",
@@ -1862,7 +1862,7 @@
   {
     "Order": 187,
     "IssueId": "TIARA-diz.6.7.187",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a0b6631a61",
     "Form": "ComponentParamsDlg",
     "Component": "ComponentParamsDlg.ListBox",
@@ -1872,7 +1872,7 @@
   {
     "Order": 188,
     "IssueId": "TIARA-diz.6.7.188",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a2f655e294",
     "Form": "ConvertersDlg",
     "Component": "ConvertersDlg.OKBtn",
@@ -1882,7 +1882,7 @@
   {
     "Order": 189,
     "IssueId": "TIARA-diz.6.7.189",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:37e6352ab0",
     "Form": "ConvertersDlg",
     "Component": "ConvertersDlg.SearchBtn",
@@ -1892,7 +1892,7 @@
   {
     "Order": 190,
     "IssueId": "TIARA-diz.6.7.190",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:c084817670",
     "Form": "CplxForm",
     "Component": "CplxForm.DegRad",
@@ -1902,7 +1902,7 @@
   {
     "Order": 191,
     "IssueId": "TIARA-diz.6.7.191",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:452ef7ec61",
     "Form": "CplxForm",
     "Component": "CplxForm.addnew",
@@ -1912,7 +1912,7 @@
   {
     "Order": 192,
     "IssueId": "TIARA-diz.6.7.192",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:8ff13673e8",
     "Form": "CplxForm",
     "Component": "CplxForm.arrange",
@@ -1922,7 +1922,7 @@
   {
     "Order": 193,
     "IssueId": "TIARA-diz.6.7.193",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:923f8d64a8",
     "Form": "CplxForm",
     "Component": "CplxForm.cancel",
@@ -1932,7 +1932,7 @@
   {
     "Order": 194,
     "IssueId": "TIARA-diz.6.7.194",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:7fa000fc34",
     "Form": "CplxForm",
     "Component": "CplxForm.clearall",
@@ -1942,7 +1942,7 @@
   {
     "Order": 195,
     "IssueId": "TIARA-diz.6.7.195",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:2f3b6d8ecc",
     "Form": "CplxForm",
     "Component": "CplxForm.formofdata",
@@ -1952,7 +1952,7 @@
   {
     "Order": 196,
     "IssueId": "TIARA-diz.6.7.196",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:e50104f193",
     "Form": "CplxForm",
     "Component": "CplxForm.help",
@@ -1962,7 +1962,7 @@
   {
     "Order": 197,
     "IssueId": "TIARA-diz.6.7.197",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:f5e260a113",
     "Form": "CplxForm",
     "Component": "CplxForm.load",
@@ -1972,7 +1972,7 @@
   {
     "Order": 198,
     "IssueId": "TIARA-diz.6.7.198",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:19977a23b8",
     "Form": "CplxForm",
     "Component": "CplxForm.ok",
@@ -1982,7 +1982,7 @@
   {
     "Order": 199,
     "IssueId": "TIARA-diz.6.7.199",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:958d7ad705",
     "Form": "CplxForm",
     "Component": "CplxForm.removelast",
@@ -1992,7 +1992,7 @@
   {
     "Order": 200,
     "IssueId": "TIARA-diz.6.7.200",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:bad78f289f",
     "Form": "CplxForm",
     "Component": "CplxForm.saveas",
@@ -2002,7 +2002,7 @@
   {
     "Order": 201,
     "IssueId": "TIARA-diz.6.7.201",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a5bab9eff4",
     "Form": "CplxForm11",
     "Component": "CplxForm11.Showp",
@@ -2012,7 +2012,7 @@
   {
     "Order": 202,
     "IssueId": "TIARA-diz.6.7.202",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:b2d2859e0f",
     "Form": "CplxForm11",
     "Component": "CplxForm11.addnew",
@@ -2022,7 +2022,7 @@
   {
     "Order": 203,
     "IssueId": "TIARA-diz.6.7.203",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:b78845f630",
     "Form": "CplxForm11",
     "Component": "CplxForm11.arrange",
@@ -2032,7 +2032,7 @@
   {
     "Order": 204,
     "IssueId": "TIARA-diz.6.7.204",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a00f0904f3",
     "Form": "CplxForm11",
     "Component": "CplxForm11.clearall",
@@ -2042,7 +2042,7 @@
   {
     "Order": 205,
     "IssueId": "TIARA-diz.6.7.205",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:1808f88a15",
     "Form": "CplxForm11",
     "Component": "CplxForm11.load",
@@ -2052,7 +2052,7 @@
   {
     "Order": 206,
     "IssueId": "TIARA-diz.6.7.206",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:747c345bc3",
     "Form": "CplxForm11",
     "Component": "CplxForm11.ok",
@@ -2062,7 +2062,7 @@
   {
     "Order": 207,
     "IssueId": "TIARA-diz.6.7.207",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:1abe4c7f10",
     "Form": "CplxForm11",
     "Component": "CplxForm11.removelast",
@@ -2072,7 +2072,7 @@
   {
     "Order": 208,
     "IssueId": "TIARA-diz.6.7.208",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:5aa20e9688",
     "Form": "CplxForm11",
     "Component": "CplxForm11.saveas",
@@ -2082,7 +2082,7 @@
   {
     "Order": 209,
     "IssueId": "TIARA-diz.6.7.209",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:53bf971283",
     "Form": "CspEditorDlg",
     "Component": "CspEditorDlg.pctrlMode.tshPoly.btnAddPoly",
@@ -2092,7 +2092,7 @@
   {
     "Order": 210,
     "IssueId": "TIARA-diz.6.7.210",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:c985fcc808",
     "Form": "CspEditorDlg",
     "Component": "CspEditorDlg.pctrlMode.tshPoly.btnClearPoly",
@@ -2102,7 +2102,7 @@
   {
     "Order": 211,
     "IssueId": "TIARA-diz.6.7.211",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:2417028f44",
     "Form": "CspEditorDlg",
     "Component": "CspEditorDlg.pctrlMode.tshPoly.btnRemovePoly",
@@ -2112,7 +2112,7 @@
   {
     "Order": 212,
     "IssueId": "TIARA-diz.6.7.212",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:c19551912a",
     "Form": "CspEditorDlg",
     "Component": "CspEditorDlg.pctrlMode.tshPoly.lbxCtrlComps",
@@ -2122,7 +2122,7 @@
   {
     "Order": 213,
     "IssueId": "TIARA-diz.6.7.213",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:1b3660610e",
     "Form": "CspEditorDlg",
     "Component": "CspEditorDlg.pctrlMode.tshTable.btnAddTable",
@@ -2132,7 +2132,7 @@
   {
     "Order": 214,
     "IssueId": "TIARA-diz.6.7.214",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:05bd305227",
     "Form": "CspEditorDlg",
     "Component": "CspEditorDlg.pctrlMode.tshTable.btnCheckTable",
@@ -2142,7 +2142,7 @@
   {
     "Order": 215,
     "IssueId": "TIARA-diz.6.7.215",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:e861d17db6",
     "Form": "CspEditorDlg",
     "Component": "CspEditorDlg.pctrlMode.tshTable.btnClearTable",
@@ -2152,7 +2152,7 @@
   {
     "Order": 216,
     "IssueId": "TIARA-diz.6.7.216",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:c1d8fdf5a0",
     "Form": "CspEditorDlg",
     "Component": "CspEditorDlg.pctrlMode.tshTable.btnLoad",
@@ -2162,7 +2162,7 @@
   {
     "Order": 217,
     "IssueId": "TIARA-diz.6.7.217",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:917d596b01",
     "Form": "CspEditorDlg",
     "Component": "CspEditorDlg.pctrlMode.tshTable.btnRemoveTable",
@@ -2172,7 +2172,7 @@
   {
     "Order": 218,
     "IssueId": "TIARA-diz.6.7.218",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:29a727d8bc",
     "Form": "CspEditorDlg",
     "Component": "CspEditorDlg.pctrlMode.tshTable.btnSave",
@@ -2182,7 +2182,7 @@
   {
     "Order": 219,
     "IssueId": "TIARA-diz.6.7.219",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:8649ea5990",
     "Form": "CspEditorDlg",
     "Component": "CspEditorDlg.pctrlMode.tshValue.btnCheckValue",
@@ -2192,7 +2192,7 @@
   {
     "Order": 220,
     "IssueId": "TIARA-diz.6.7.220",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:36b9d2d59b",
     "Form": "CspEditorDlg",
     "Component": "CspEditorDlg.pnlButtons.btnOK",
@@ -2202,7 +2202,7 @@
   {
     "Order": 221,
     "IssueId": "TIARA-diz.6.7.221",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:675678a82b",
     "Form": "CspEditorDlg",
     "Component": "CspEditorDlg.pnlButtons.cbxDiffVoltInput",
@@ -2212,7 +2212,7 @@
   {
     "Order": 222,
     "IssueId": "TIARA-diz.6.7.222",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d258d00f18",
     "Form": "CspEditorDlg",
     "Component": "CspEditorDlg.pnlIO.gbxOutput.rbtnCurrent",
@@ -2222,7 +2222,7 @@
   {
     "Order": 223,
     "IssueId": "TIARA-diz.6.7.223",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:b95bdb8aa8",
     "Form": "CspEditorDlg",
     "Component": "CspEditorDlg.pnlIO.gbxOutput.rbtnVoltage",
@@ -2232,7 +2232,7 @@
   {
     "Order": 224,
     "IssueId": "TIARA-diz.6.7.224",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:438c09529f",
     "Form": "CspEditorDlg",
     "Component": "CspEditorDlg.pnlIO.sbtnBrowseShape",
@@ -2242,7 +2242,7 @@
   {
     "Order": 225,
     "IssueId": "TIARA-diz.6.7.225",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:abe5d26de0",
     "Form": "CursorWindow",
     "Component": "CursorWindow.Notebook1.TPage.FormatRG",
@@ -2252,7 +2252,7 @@
   {
     "Order": 226,
     "IssueId": "TIARA-diz.6.7.226",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:20aa7928e0",
     "Form": "CursorWindow",
     "Component": "CursorWindow.Notebook1.TPage.SmFormatRG",
@@ -2262,7 +2262,7 @@
   {
     "Order": 227,
     "IssueId": "TIARA-diz.6.7.227",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:4a87b5cfd6",
     "Form": "CursorWindow",
     "Component": "CursorWindow.Notebook1.TPage.nBGB.SynchBtn",
@@ -2272,7 +2272,7 @@
   {
     "Order": 228,
     "IssueId": "TIARA-diz.6.7.228",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:b20a6db802",
     "Form": "CurveListFrm",
     "Component": "CurveListFrm.CancelBtn",
@@ -2282,7 +2282,7 @@
   {
     "Order": 229,
     "IssueId": "TIARA-diz.6.7.229",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:00c7935d3f",
     "Form": "CurveListFrm",
     "Component": "CurveListFrm.CheckAllImg",
@@ -2292,7 +2292,7 @@
   {
     "Order": 230,
     "IssueId": "TIARA-diz.6.7.230",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:4c9593f469",
     "Form": "CurveListFrm",
     "Component": "CurveListFrm.CheckFirstImg",
@@ -2302,7 +2302,7 @@
   {
     "Order": 231,
     "IssueId": "TIARA-diz.6.7.231",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:88c40341be",
     "Form": "CurveListFrm",
     "Component": "CurveListFrm.CurvesLB",
@@ -2312,7 +2312,7 @@
   {
     "Order": 232,
     "IssueId": "TIARA-diz.6.7.232",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:1de0ebfcb2",
     "Form": "CurveListFrm",
     "Component": "CurveListFrm.FilterGB.CurrentsCB",
@@ -2322,7 +2322,7 @@
   {
     "Order": 233,
     "IssueId": "TIARA-diz.6.7.233",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:574d067999",
     "Form": "CurveListFrm",
     "Component": "CurveListFrm.FilterGB.CustomCB",
@@ -2332,7 +2332,7 @@
   {
     "Order": 234,
     "IssueId": "TIARA-diz.6.7.234",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:7970d27b80",
     "Form": "CurveListFrm",
     "Component": "CurveListFrm.FilterGB.MeasCB",
@@ -2342,7 +2342,7 @@
   {
     "Order": 235,
     "IssueId": "TIARA-diz.6.7.235",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a14185ea9b",
     "Form": "CurveListFrm",
     "Component": "CurveListFrm.FilterGB.OtherVCB",
@@ -2352,7 +2352,7 @@
   {
     "Order": 236,
     "IssueId": "TIARA-diz.6.7.236",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:b7edf86d9f",
     "Form": "CurveListFrm",
     "Component": "CurveListFrm.FilterGB.OutputsCB",
@@ -2362,7 +2362,7 @@
   {
     "Order": 237,
     "IssueId": "TIARA-diz.6.7.237",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:64c6492b22",
     "Form": "CurveListFrm",
     "Component": "CurveListFrm.FilterGB.VoltagesCB",
@@ -2372,7 +2372,7 @@
   {
     "Order": 238,
     "IssueId": "TIARA-diz.6.7.238",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d27f4abe12",
     "Form": "CurveListFrm",
     "Component": "CurveListFrm.OKBtn",
@@ -2382,7 +2382,7 @@
   {
     "Order": 239,
     "IssueId": "TIARA-diz.6.7.239",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:5da70a96a1",
     "Form": "DCGoalFunctionsDlg",
     "Component": "DCGoalFunctionsDlg.btnOK",
@@ -2392,7 +2392,7 @@
   {
     "Order": 240,
     "IssueId": "TIARA-diz.6.7.240",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a18cc2436e",
     "Form": "DCSupplyGen",
     "Component": "DCSupplyGen.AmpDownBtn",
@@ -2402,7 +2402,7 @@
   {
     "Order": 241,
     "IssueId": "TIARA-diz.6.7.241",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:ee78873cc1",
     "Form": "DCSupplyGen",
     "Component": "DCSupplyGen.AmpUpBtn",
@@ -2412,7 +2412,7 @@
   {
     "Order": 242,
     "IssueId": "TIARA-diz.6.7.242",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:3714b573d9",
     "Form": "DCSupplyGen",
     "Component": "DCSupplyGen.PowerBtn",
@@ -2422,7 +2422,7 @@
   {
     "Order": 243,
     "IssueId": "TIARA-diz.6.7.243",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:8743d5a8f6",
     "Form": "DCSupplyGen",
     "Component": "DCSupplyGen.VBtn",
@@ -2432,7 +2432,7 @@
   {
     "Order": 244,
     "IssueId": "TIARA-diz.6.7.244",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:75fa6d6d7d",
     "Form": "DCTransferDlg",
     "Component": "DCTransferDlg.OKBtn",
@@ -2442,7 +2442,7 @@
   {
     "Order": 245,
     "IssueId": "TIARA-diz.6.7.245",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:323934a2b1",
     "Form": "DC_CharMeasWin",
     "Component": "DC_CharMeasWin.ControlGroupBox.SourceControlSpBtn",
@@ -2452,7 +2452,7 @@
   {
     "Order": 246,
     "IssueId": "TIARA-diz.6.7.246",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:2d33b6150b",
     "Form": "DC_CharMeasWin",
     "Component": "DC_CharMeasWin.ControlGroupBox.StartSweepAmplBtn",
@@ -2462,7 +2462,7 @@
   {
     "Order": 247,
     "IssueId": "TIARA-diz.6.7.247",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:735315e616",
     "Form": "DC_CharMeasWin",
     "Component": "DC_CharMeasWin.ControlGroupBox.StopSweepAmplBtn",
@@ -2472,7 +2472,7 @@
   {
     "Order": 248,
     "IssueId": "TIARA-diz.6.7.248",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:7930f3578c",
     "Form": "DC_CharMeasWin",
     "Component": "DC_CharMeasWin.ControlGroupBox.SweepMeasUnitSpBtn",
@@ -2482,7 +2482,7 @@
   {
     "Order": 249,
     "IssueId": "TIARA-diz.6.7.249",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:050876ddd2",
     "Form": "DC_CharMeasWin",
     "Component": "DC_CharMeasWin.CursorBox.FCursorASelectBtn",
@@ -2492,7 +2492,7 @@
   {
     "Order": 250,
     "IssueId": "TIARA-diz.6.7.250",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:90c89a6a9c",
     "Form": "DC_CharMeasWin",
     "Component": "DC_CharMeasWin.CursorBox.FCursorBSelectBtn",
@@ -2502,7 +2502,7 @@
   {
     "Order": 251,
     "IssueId": "TIARA-diz.6.7.251",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:2b2210ba00",
     "Form": "DC_CharMeasWin",
     "Component": "DC_CharMeasWin.CursorBox.FCursorOnBtn",
@@ -2512,7 +2512,7 @@
   {
     "Order": 252,
     "IssueId": "TIARA-diz.6.7.252",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:83c74ea973",
     "Form": "DC_CharMeasWin",
     "Component": "DC_CharMeasWin.CursorBox.FNextCurveBtn",
@@ -2522,7 +2522,7 @@
   {
     "Order": 253,
     "IssueId": "TIARA-diz.6.7.253",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:8d785d120c",
     "Form": "DC_CharMeasWin",
     "Component": "DC_CharMeasWin.CursorBox.FPrevCurveBtn",
@@ -2532,7 +2532,7 @@
   {
     "Order": 254,
     "IssueId": "TIARA-diz.6.7.254",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:cab7c58e3b",
     "Form": "DC_CharMeasWin",
     "Component": "DC_CharMeasWin.DataBox.FDataLoadBtn",
@@ -2542,7 +2542,7 @@
   {
     "Order": 255,
     "IssueId": "TIARA-diz.6.7.255",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:1152fa6a5c",
     "Form": "DC_CharMeasWin",
     "Component": "DC_CharMeasWin.DataBox.FDataSaveBtn",
@@ -2552,7 +2552,7 @@
   {
     "Order": 256,
     "IssueId": "TIARA-diz.6.7.256",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:4daf1f3033",
     "Form": "DC_CharMeasWin",
     "Component": "DC_CharMeasWin.StorageGroupBox.AutoBtn",
@@ -2562,7 +2562,7 @@
   {
     "Order": 257,
     "IssueId": "TIARA-diz.6.7.257",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:46f0e40277",
     "Form": "DC_CharMeasWin",
     "Component": "DC_CharMeasWin.StorageGroupBox.EraseBtn",
@@ -2572,7 +2572,7 @@
   {
     "Order": 258,
     "IssueId": "TIARA-diz.6.7.258",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:356237e9ae",
     "Form": "DC_CharMeasWin",
     "Component": "DC_CharMeasWin.StorageGroupBox.FStartBtn",
@@ -2582,7 +2582,7 @@
   {
     "Order": 259,
     "IssueId": "TIARA-diz.6.7.259",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:21723940ba",
     "Form": "DC_CharMeasWin",
     "Component": "DC_CharMeasWin.StorageGroupBox.FStopBtn",
@@ -2592,7 +2592,7 @@
   {
     "Order": 260,
     "IssueId": "TIARA-diz.6.7.260",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:2a60c7a213",
     "Form": "DC_CharMeasWin",
     "Component": "DC_CharMeasWin.YChannelGroupBox.FChannelOnBtn",
@@ -2602,7 +2602,7 @@
   {
     "Order": 261,
     "IssueId": "TIARA-diz.6.7.261",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d4bc94d24c",
     "Form": "DFAxisCnf2Dlg",
     "Component": "DFAxisCnf2Dlg.ADFontGB.ADFontBtn",
@@ -2612,7 +2612,7 @@
   {
     "Order": 262,
     "IssueId": "TIARA-diz.6.7.262",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a6d91626de",
     "Form": "DFAxisCnf2Dlg",
     "Component": "DFAxisCnf2Dlg.ADFontGB.BitBtn1",
@@ -2622,7 +2622,7 @@
   {
     "Order": 263,
     "IssueId": "TIARA-diz.6.7.263",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:afbdfe1452",
     "Form": "DFAxisCnfDlg",
     "Component": "DFAxisCnfDlg.ADFontGB.ADFontBtn",
@@ -2632,7 +2632,7 @@
   {
     "Order": 264,
     "IssueId": "TIARA-diz.6.7.264",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:e9f9b18919",
     "Form": "DFAxisCnfDlg",
     "Component": "DFAxisCnfDlg.ADNumGB.ADNumBtn",
@@ -2642,7 +2642,7 @@
   {
     "Order": 265,
     "IssueId": "TIARA-diz.6.7.265",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d04368f4c1",
     "Form": "DFPAxisCnfDlg",
     "Component": "DFPAxisCnfDlg.ADNumGB.ADNumBtn",
@@ -2652,7 +2652,7 @@
   {
     "Order": 266,
     "IssueId": "TIARA-diz.6.7.266",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:85df932d1b",
     "Form": "DFSAxisCnfDlg",
     "Component": "DFSAxisCnfDlg.ADNumGB.ADNumBtn",
@@ -2662,7 +2662,7 @@
   {
     "Order": 267,
     "IssueId": "TIARA-diz.6.7.267",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:c451ad40a0",
     "Form": "DFWindow",
     "Component": "DFWindow.CursorPanel.Notebook1.Normal.NormalPC.SelectedCurves.nBGB.SynchBtn",
@@ -2672,7 +2672,7 @@
   {
     "Order": 268,
     "IssueId": "TIARA-diz.6.7.268",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:1fa48088fc",
     "Form": "DFWindow",
     "Component": "DFWindow.CursorPanel.Notebook1.Nyquist.FormatRG",
@@ -2682,7 +2682,7 @@
   {
     "Order": 269,
     "IssueId": "TIARA-diz.6.7.269",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:000034143b",
     "Form": "DFWindow",
     "Component": "DFWindow.CursorPanel.Notebook1.Smith.SmFormatRG",
@@ -2692,7 +2692,7 @@
   {
     "Order": 270,
     "IssueId": "TIARA-diz.6.7.270",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:acd28845e8",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFEditMnu",
@@ -2702,7 +2702,7 @@
   {
     "Order": 271,
     "IssueId": "TIARA-diz.6.7.271",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:b99ba21aca",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFEditMnu.AddXaxisMnu",
@@ -2712,7 +2712,7 @@
   {
     "Order": 272,
     "IssueId": "TIARA-diz.6.7.272",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:2835b65fa7",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFEditMnu.AddYAxisMnu",
@@ -2722,7 +2722,7 @@
   {
     "Order": 273,
     "IssueId": "TIARA-diz.6.7.273",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:32eb66c525",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFEditMnu.AddmorecurvesMnu",
@@ -2732,7 +2732,7 @@
   {
     "Order": 274,
     "IssueId": "TIARA-diz.6.7.274",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:c333bf53b7",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFEditMnu.DFCopyMnu",
@@ -2742,7 +2742,7 @@
   {
     "Order": 275,
     "IssueId": "TIARA-diz.6.7.275",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d20de14788",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFEditMnu.DFCutMnu",
@@ -2752,7 +2752,7 @@
   {
     "Order": 276,
     "IssueId": "TIARA-diz.6.7.276",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:fc6c74c7ff",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFEditMnu.DFPasteMnu",
@@ -2762,7 +2762,7 @@
   {
     "Order": 277,
     "IssueId": "TIARA-diz.6.7.277",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d3a4dc942a",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFEditMnu.DFSelectAllCurvesMnu",
@@ -2772,7 +2772,7 @@
   {
     "Order": 278,
     "IssueId": "TIARA-diz.6.7.278",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:04b6877afa",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFFileMnu.DFClearAllMnu",
@@ -2782,7 +2782,7 @@
   {
     "Order": 279,
     "IssueId": "TIARA-diz.6.7.279",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:e06238746a",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFFileMnu.DFExportMnu.DFAsTextMnu",
@@ -2792,7 +2792,7 @@
   {
     "Order": 280,
     "IssueId": "TIARA-diz.6.7.280",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:2ee9da8fb6",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFFileMnu.DFExportMnu.DFAutoTestResult",
@@ -2802,7 +2802,7 @@
   {
     "Order": 281,
     "IssueId": "TIARA-diz.6.7.281",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:ba5b482b20",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFFileMnu.DFExportMnu.DFPictureMnu",
@@ -2812,7 +2812,7 @@
   {
     "Order": 282,
     "IssueId": "TIARA-diz.6.7.282",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:502e5d6f1a",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFFileMnu.DFExportMnu.DFWAVMnu",
@@ -2822,7 +2822,7 @@
   {
     "Order": 283,
     "IssueId": "TIARA-diz.6.7.283",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d81202ef00",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFFileMnu.DFImportMnu",
@@ -2832,7 +2832,7 @@
   {
     "Order": 284,
     "IssueId": "TIARA-diz.6.7.284",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:fc379da579",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFFileMnu.DFOpenMnu",
@@ -2842,7 +2842,7 @@
   {
     "Order": 285,
     "IssueId": "TIARA-diz.6.7.285",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:44edd8f753",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFFileMnu.DFPrintMnu",
@@ -2852,7 +2852,7 @@
   {
     "Order": 286,
     "IssueId": "TIARA-diz.6.7.286",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:e90fab9613",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFFileMnu.DFPrintSetupMnu",
@@ -2862,7 +2862,7 @@
   {
     "Order": 287,
     "IssueId": "TIARA-diz.6.7.287",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:0ae484db52",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFFileMnu.DFPrintpreviewMnu",
@@ -2872,7 +2872,7 @@
   {
     "Order": 288,
     "IssueId": "TIARA-diz.6.7.288",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:39133e351b",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFFileMnu.DFSaveAsMnu",
@@ -2882,7 +2882,7 @@
   {
     "Order": 289,
     "IssueId": "TIARA-diz.6.7.289",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:26ab55f139",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFFileMnu.DFSaveMnu",
@@ -2892,7 +2892,7 @@
   {
     "Order": 290,
     "IssueId": "TIARA-diz.6.7.290",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:3a3eb61a6c",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFFileMnu.ForgetdiagramsettingsMnu",
@@ -2902,7 +2902,7 @@
   {
     "Order": 291,
     "IssueId": "TIARA-diz.6.7.291",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:f73de731f7",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFHelpMnu.DFDiagramViewerMnu",
@@ -2912,7 +2912,7 @@
   {
     "Order": 292,
     "IssueId": "TIARA-diz.6.7.292",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:0713f76f21",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFProcessingMnu.DFAveragesMnu",
@@ -2922,7 +2922,7 @@
   {
     "Order": 293,
     "IssueId": "TIARA-diz.6.7.293",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:25f4b985dc",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFProcessingMnu.DFCrossoverFrequencyMnu",
@@ -2932,7 +2932,7 @@
   {
     "Order": 294,
     "IssueId": "TIARA-diz.6.7.294",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:e0cde5c9fa",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFProcessingMnu.DFFilterMnu",
@@ -2942,7 +2942,7 @@
   {
     "Order": 295,
     "IssueId": "TIARA-diz.6.7.295",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:f121bbca0c",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFProcessingMnu.DFFourierSeriesMnu",
@@ -2952,7 +2952,7 @@
   {
     "Order": 296,
     "IssueId": "TIARA-diz.6.7.296",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:75d6e59b50",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFProcessingMnu.DFFourierSpectrumMnu",
@@ -2962,7 +2962,7 @@
   {
     "Order": 297,
     "IssueId": "TIARA-diz.6.7.297",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:68bff0c128",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFProcessingMnu.DFGainMarginMnu",
@@ -2972,7 +2972,7 @@
   {
     "Order": 298,
     "IssueId": "TIARA-diz.6.7.298",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a532b97a2d",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFProcessingMnu.DFPhaseMarginMnu",
@@ -2982,7 +2982,7 @@
   {
     "Order": 299,
     "IssueId": "TIARA-diz.6.7.299",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:82734b56f6",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFProcessingMnu.DFStatisticsMnu",
@@ -2992,7 +2992,7 @@
   {
     "Order": 300,
     "IssueId": "TIARA-diz.6.7.300",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:9e10069917",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFProcessingMnu.MeasResultMnu",
@@ -3002,7 +3002,7 @@
   {
     "Order": 301,
     "IssueId": "TIARA-diz.6.7.301",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:4a63ee1f89",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFProcessingMnu.RippleMnu",
@@ -3012,7 +3012,7 @@
   {
     "Order": 302,
     "IssueId": "TIARA-diz.6.7.302",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:efccbe9f99",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu",
@@ -3022,7 +3022,7 @@
   {
     "Order": 303,
     "IssueId": "TIARA-diz.6.7.303",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:2684405b08",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.CollectCurvesMnu",
@@ -3032,7 +3032,7 @@
   {
     "Order": 304,
     "IssueId": "TIARA-diz.6.7.304",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:4040e8636a",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.CurveAccelMnu",
@@ -3042,7 +3042,7 @@
   {
     "Order": 305,
     "IssueId": "TIARA-diz.6.7.305",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:bd2c97619c",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.DFNormalzoomMnu",
@@ -3052,7 +3052,7 @@
   {
     "Order": 306,
     "IssueId": "TIARA-diz.6.7.306",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d0c3cfdfd7",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.DFSetgridcolorMnu",
@@ -3062,7 +3062,7 @@
   {
     "Order": 307,
     "IssueId": "TIARA-diz.6.7.307",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:2c8daca442",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.DFZoomMnu",
@@ -3072,7 +3072,7 @@
   {
     "Order": 308,
     "IssueId": "TIARA-diz.6.7.308",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:6c198a8de2",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.Defaultcurvewidth1.DFW0Mnu",
@@ -3082,7 +3082,7 @@
   {
     "Order": 309,
     "IssueId": "TIARA-diz.6.7.309",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:beada04d55",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.Defaultcurvewidth1.DFW1Mnu",
@@ -3092,7 +3092,7 @@
   {
     "Order": 310,
     "IssueId": "TIARA-diz.6.7.310",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:31f1730b30",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.Defaultcurvewidth1.DFW2Mnu",
@@ -3102,7 +3102,7 @@
   {
     "Order": 311,
     "IssueId": "TIARA-diz.6.7.311",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:b7662d42b0",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.Defaultcurvewidth1.DFW3Mnu",
@@ -3112,7 +3112,7 @@
   {
     "Order": 312,
     "IssueId": "TIARA-diz.6.7.312",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d2a92e4408",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.Defaultcurvewidth1.DFW4Mnu",
@@ -3122,7 +3122,7 @@
   {
     "Order": 313,
     "IssueId": "TIARA-diz.6.7.313",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:6350779375",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.Defaultcurvewidth1.DFW5Mnu",
@@ -3132,7 +3132,7 @@
   {
     "Order": 314,
     "IssueId": "TIARA-diz.6.7.314",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:3bb43f87e8",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.Defaultcurvewidth1.DFW6Mnu",
@@ -3142,7 +3142,7 @@
   {
     "Order": 315,
     "IssueId": "TIARA-diz.6.7.315",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:089044ff1c",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.DeletepageMnu",
@@ -3152,7 +3152,7 @@
   {
     "Order": 316,
     "IssueId": "TIARA-diz.6.7.316",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:bec111267d",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.DisplayAxesMnu",
@@ -3162,7 +3162,7 @@
   {
     "Order": 317,
     "IssueId": "TIARA-diz.6.7.317",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:b21535d98f",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.FreqandslopeMnu",
@@ -3172,7 +3172,7 @@
   {
     "Order": 318,
     "IssueId": "TIARA-diz.6.7.318",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:0165921419",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.KeepResultsMnu",
@@ -3182,7 +3182,7 @@
   {
     "Order": 319,
     "IssueId": "TIARA-diz.6.7.319",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:5e5625052f",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.PageNameMnu",
@@ -3192,7 +3192,7 @@
   {
     "Order": 320,
     "IssueId": "TIARA-diz.6.7.320",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:24bea0e3e2",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.ScreenResolutionMnu",
@@ -3202,7 +3202,7 @@
   {
     "Order": 321,
     "IssueId": "TIARA-diz.6.7.321",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d0343ef0c9",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.SeparateCurvesMnu",
@@ -3212,7 +3212,7 @@
   {
     "Order": 322,
     "IssueId": "TIARA-diz.6.7.322",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:0b76c44d04",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.SeparateOutputsMnu",
@@ -3222,7 +3222,7 @@
   {
     "Order": 323,
     "IssueId": "TIARA-diz.6.7.323",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:2c12fb1db1",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.ShowHidecurvesMnu",
@@ -3232,7 +3232,7 @@
   {
     "Order": 324,
     "IssueId": "TIARA-diz.6.7.324",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:f826c64b04",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.Vectorlabelstyle1.AmplitudeMnu",
@@ -3242,7 +3242,7 @@
   {
     "Order": 325,
     "IssueId": "TIARA-diz.6.7.325",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:ec25f27a9b",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.Vectorlabelstyle1.AmplitudePhaseMnu",
@@ -3252,7 +3252,7 @@
   {
     "Order": 326,
     "IssueId": "TIARA-diz.6.7.326",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:2030dccfd7",
     "Form": "DFWindow",
     "Component": "DFWindow.DFMainMenu.DFViewMnu.Vectorlabelstyle1.RealImagMnu",
@@ -3262,7 +3262,7 @@
   {
     "Order": 327,
     "IssueId": "TIARA-diz.6.7.327",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:63789e2e8b",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.AddnewXAxisMnu",
@@ -3272,7 +3272,7 @@
   {
     "Order": 328,
     "IssueId": "TIARA-diz.6.7.328",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:1da0f824bf",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.AddnewYAxisMnu",
@@ -3282,7 +3282,7 @@
   {
     "Order": 329,
     "IssueId": "TIARA-diz.6.7.329",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:6d9942c71f",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.CircleMnu",
@@ -3292,7 +3292,7 @@
   {
     "Order": 330,
     "IssueId": "TIARA-diz.6.7.330",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:120279783b",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.DFAnnotatecurvepointMnu",
@@ -3302,7 +3302,7 @@
   {
     "Order": 331,
     "IssueId": "TIARA-diz.6.7.331",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:72defe9171",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.DFTableMnu",
@@ -3312,7 +3312,7 @@
   {
     "Order": 332,
     "IssueId": "TIARA-diz.6.7.332",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:03286191f1",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.DeleteAxisMnu",
@@ -3322,7 +3322,7 @@
   {
     "Order": 333,
     "IssueId": "TIARA-diz.6.7.333",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:c6ff8616fa",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.DeleteCursorMnu",
@@ -3332,7 +3332,7 @@
   {
     "Order": 334,
     "IssueId": "TIARA-diz.6.7.334",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:95fcfddc58",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.DeleteFigureMnu",
@@ -3342,7 +3342,7 @@
   {
     "Order": 335,
     "IssueId": "TIARA-diz.6.7.335",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:9e519e169f",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.DeletecurveMnu",
@@ -3352,7 +3352,7 @@
   {
     "Order": 336,
     "IssueId": "TIARA-diz.6.7.336",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:1e5d84cbcd",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.Deletepage1",
@@ -3362,7 +3362,7 @@
   {
     "Order": 337,
     "IssueId": "TIARA-diz.6.7.337",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a7c6cb238c",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.FourierSpeMnu",
@@ -3372,7 +3372,7 @@
   {
     "Order": 338,
     "IssueId": "TIARA-diz.6.7.338",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:3266041e77",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.FourierTHDMnu",
@@ -3382,7 +3382,7 @@
   {
     "Order": 339,
     "IssueId": "TIARA-diz.6.7.339",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:dceefba24e",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.GainmarginPuMnu",
@@ -3392,7 +3392,7 @@
   {
     "Order": 340,
     "IssueId": "TIARA-diz.6.7.340",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:7b09ded16a",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.LineMnu",
@@ -3402,7 +3402,7 @@
   {
     "Order": 341,
     "IssueId": "TIARA-diz.6.7.341",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:95141395a6",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.N0dBCrossoverFrequencyPuMnu",
@@ -3412,7 +3412,7 @@
   {
     "Order": 342,
     "IssueId": "TIARA-diz.6.7.342",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:9de8fa7727",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.PhasemarginPuMnu",
@@ -3422,7 +3422,7 @@
   {
     "Order": 343,
     "IssueId": "TIARA-diz.6.7.343",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:2c03ef3c71",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.PropertiesMnu",
@@ -3432,7 +3432,7 @@
   {
     "Order": 344,
     "IssueId": "TIARA-diz.6.7.344",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d7a98a6d49",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.SetdefaultsMnu",
@@ -3442,7 +3442,7 @@
   {
     "Order": 345,
     "IssueId": "TIARA-diz.6.7.345",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d6f09d565a",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.Setpagename1",
@@ -3452,7 +3452,7 @@
   {
     "Order": 346,
     "IssueId": "TIARA-diz.6.7.346",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:2cd0f09089",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.SetpositionMnu.DFGlobalmaximumMnu",
@@ -3462,7 +3462,7 @@
   {
     "Order": 347,
     "IssueId": "TIARA-diz.6.7.347",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:aec02e27e4",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.SetpositionMnu.DFGlobalminimumMnu",
@@ -3472,7 +3472,7 @@
   {
     "Order": 348,
     "IssueId": "TIARA-diz.6.7.348",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:ac84be0e72",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.SetpositionMnu.DFLocalmaximumMnu",
@@ -3482,7 +3482,7 @@
   {
     "Order": 349,
     "IssueId": "TIARA-diz.6.7.349",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:981288c5cc",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.SetpositionMnu.DFLocalminimumMnu",
@@ -3492,7 +3492,7 @@
   {
     "Order": 350,
     "IssueId": "TIARA-diz.6.7.350",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:889d307e99",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.StatisticsMnu",
@@ -3502,7 +3502,7 @@
   {
     "Order": 351,
     "IssueId": "TIARA-diz.6.7.351",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:3b0ec5acb6",
     "Form": "DFWindow",
     "Component": "DFWindow.DFPopupMnu.TextMnu",
@@ -3512,7 +3512,7 @@
   {
     "Order": 352,
     "IssueId": "TIARA-diz.6.7.352",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a2b9f60c9c",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.DFOpenBtn",
@@ -3522,7 +3522,7 @@
   {
     "Order": 353,
     "IssueId": "TIARA-diz.6.7.353",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:50055d6a09",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.DFSaveBtn",
@@ -3532,7 +3532,7 @@
   {
     "Order": 354,
     "IssueId": "TIARA-diz.6.7.354",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:df6a662615",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.AddCurvesBtn",
@@ -3542,7 +3542,7 @@
   {
     "Order": 355,
     "IssueId": "TIARA-diz.6.7.355",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:f8e723c182",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.AddCurvesExBtn",
@@ -3552,7 +3552,7 @@
   {
     "Order": 356,
     "IssueId": "TIARA-diz.6.7.356",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:6c84360ec0",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.ArrowBtn",
@@ -3562,7 +3562,7 @@
   {
     "Order": 357,
     "IssueId": "TIARA-diz.6.7.357",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:70006622d3",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.AutoLabelBtn",
@@ -3572,7 +3572,7 @@
   {
     "Order": 358,
     "IssueId": "TIARA-diz.6.7.358",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:f4bb312f27",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.CursorABtn",
@@ -3582,7 +3582,7 @@
   {
     "Order": 359,
     "IssueId": "TIARA-diz.6.7.359",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:991d26d99a",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.CursorBBtn",
@@ -3592,7 +3592,7 @@
   {
     "Order": 360,
     "IssueId": "TIARA-diz.6.7.360",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d16f42266c",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.DFAutoLabelsBtn",
@@ -3602,7 +3602,7 @@
   {
     "Order": 361,
     "IssueId": "TIARA-diz.6.7.361",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a08ff0f35a",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.DFCircleBtn",
@@ -3612,7 +3612,7 @@
   {
     "Order": 362,
     "IssueId": "TIARA-diz.6.7.362",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:f950f643b7",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.DFCopyBtn",
@@ -3622,7 +3622,7 @@
   {
     "Order": 363,
     "IssueId": "TIARA-diz.6.7.363",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:d1b5da0324",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.DFGridBtn",
@@ -3632,7 +3632,7 @@
   {
     "Order": 364,
     "IssueId": "TIARA-diz.6.7.364",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:8485b19442",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.DFLineBtn",
@@ -3642,7 +3642,7 @@
   {
     "Order": 365,
     "IssueId": "TIARA-diz.6.7.365",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:f548637dac",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.DFPasteBtn",
@@ -3652,7 +3652,7 @@
   {
     "Order": 366,
     "IssueId": "TIARA-diz.6.7.366",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:06c7234448",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.DFSelectBtn",
@@ -3662,7 +3662,7 @@
   {
     "Order": 367,
     "IssueId": "TIARA-diz.6.7.367",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:36e5930f87",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.DFTextBtn",
@@ -3672,7 +3672,7 @@
   {
     "Order": 368,
     "IssueId": "TIARA-diz.6.7.368",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:2d1a30c9a4",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.DFZoomBtn",
@@ -3682,7 +3682,7 @@
   {
     "Order": 369,
     "IssueId": "TIARA-diz.6.7.369",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:51f3c26822",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.DFZoomOutBtn",
@@ -3692,7 +3692,7 @@
   {
     "Order": 370,
     "IssueId": "TIARA-diz.6.7.370",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a4c47423e3",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.DownScrollBtn",
@@ -3702,7 +3702,7 @@
   {
     "Order": 371,
     "IssueId": "TIARA-diz.6.7.371",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:b1643dc90a",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.DownScrollCSBtn",
@@ -3712,7 +3712,7 @@
   {
     "Order": 372,
     "IssueId": "TIARA-diz.6.7.372",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:335b6c18ff",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.LeftScrollBtn",
@@ -3722,7 +3722,7 @@
   {
     "Order": 373,
     "IssueId": "TIARA-diz.6.7.373",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:80bd5a2614",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.NormalZoomBtn",
@@ -3732,7 +3732,7 @@
   {
     "Order": 374,
     "IssueId": "TIARA-diz.6.7.374",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:645f5485bb",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.PlaySoundBtn",
@@ -3742,7 +3742,7 @@
   {
     "Order": 375,
     "IssueId": "TIARA-diz.6.7.375",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:e1e157bfc3",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.RightScrollBtn",
@@ -3752,7 +3752,7 @@
   {
     "Order": 376,
     "IssueId": "TIARA-diz.6.7.376",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:ed14fbca75",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.ShowHideCurvesBtn",
@@ -3762,7 +3762,7 @@
   {
     "Order": 377,
     "IssueId": "TIARA-diz.6.7.377",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:a74b11f534",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.UpScrollBtn",
@@ -3772,7 +3772,7 @@
   {
     "Order": 378,
     "IssueId": "TIARA-diz.6.7.378",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:51c02eb031",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Diagram.UpScrollCSBtn",
@@ -3782,7 +3782,7 @@
   {
     "Order": 379,
     "IssueId": "TIARA-diz.6.7.379",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:16dd40e73c",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Print.DFCancelBtn",
@@ -3792,7 +3792,7 @@
   {
     "Order": 380,
     "IssueId": "TIARA-diz.6.7.380",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:f8891639d3",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Print.DFMarginsBtn",
@@ -3802,7 +3802,7 @@
   {
     "Order": 381,
     "IssueId": "TIARA-diz.6.7.381",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:7b46ce1ef5",
     "Form": "DFWindow",
     "Component": "DFWindow.DFToolPanel.ToolNoteBook.Print.DFPrintBtn",
@@ -3812,7 +3812,7 @@
   {
     "Order": 382,
     "IssueId": "TIARA-diz.6.7.382",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:2494935e04",
     "Form": "DSGLoadDlg",
     "Component": "DSGLoadDlg.CancelBtn",
@@ -3822,7 +3822,7 @@
   {
     "Order": 383,
     "IssueId": "TIARA-diz.6.7.383",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:845a682a61",
     "Form": "DSGLoadDlg",
     "Component": "DSGLoadDlg.OKBtn",
@@ -3832,7 +3832,7 @@
   {
     "Order": 384,
     "IssueId": "TIARA-diz.6.7.384",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:0d965c84ce",
     "Form": "DSGSaveDlg",
     "Component": "DSGSaveDlg.CancelBtn",
@@ -3842,7 +3842,7 @@
   {
     "Order": 385,
     "IssueId": "TIARA-diz.6.7.385",
-    "Status": "open",
+    "Status": "closed",
     "ExternalReference": "tiara-ui-control:21eca0a365",
     "Form": "DSGSaveDlg",
     "Component": "DSGSaveDlg.OKBtn",

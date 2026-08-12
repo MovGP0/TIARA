@@ -36,11 +36,27 @@ FROM graph_source;
 
 CREATE TABLE storage_metadata AS
 SELECT
-  1 AS schema_version,
+  2 AS schema_version,
   sha256(content) AS source_sha256,
   size AS source_bytes,
   current_timestamp AS imported_at
 FROM read_blob(getvariable('graph_path'));
+
+CREATE TABLE function_annotations (
+  source_file VARCHAR NOT NULL,
+  bead_id VARCHAR NOT NULL,
+  control_id VARCHAR NOT NULL,
+  address VARCHAR NOT NULL,
+  recovered_role VARCHAR,
+  likely_delphi_name VARCHAR,
+  framework VARCHAR,
+  api_category VARCHAR,
+  ui_role VARCHAR,
+  behavior VARCHAR,
+  evidence VARCHAR,
+  tags VARCHAR[] NOT NULL,
+  PRIMARY KEY (source_file, address)
+);
 
 CREATE TABLE nodes AS
 SELECT
@@ -107,6 +123,13 @@ SELECT
   (SELECT count(*) FROM edges) AS edge_count,
   (SELECT count(*) FROM layers) AS layer_count,
   (SELECT count(*) FROM tour_steps) AS tour_step_count;
+
+CREATE VIEW function_annotation_statistics AS
+SELECT
+  count(*) AS annotation_row_count,
+  count(DISTINCT source_file) AS source_count,
+  count(DISTINCT address) AS address_count
+FROM function_annotations;
 
 CREATE VIEW node_layers AS
 SELECT

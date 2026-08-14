@@ -1,4 +1,14 @@
 #!/usr/bin/env sh
+# --- BEGIN GIT LFS INTEGRATION ---
+command -v git-lfs >/dev/null 2>&1 || {
+  printf >&2 "\n%s\n\n" "This repository uses Git LFS, but 'git-lfs' was not found on PATH."
+  exit 2
+}
+git lfs pre-push "$@"
+_lfs_exit=$?
+if [ $_lfs_exit -ne 0 ]; then exit $_lfs_exit; fi
+# --- END GIT LFS INTEGRATION ---
+
 # --- BEGIN BEADS INTEGRATION v1.1.0 ---
 # This section is managed by beads. Do not remove these markers.
 if command -v bd >/dev/null 2>&1; then

@@ -1,6 +1,6 @@
 ﻿# &Temperature Analysis...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. A zero setup result runs temperature analysis and publishes its available plot result.
 
 ## Control
 
@@ -20,34 +20,42 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches TemperatureAnalysisClick at 01c758f0. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c758f0` calls `FUN_01328250` with the active schematic. A nonzero return stops the handler before analysis and leaves the command string unchanged.
+
+For a zero return, the handler runs `FUN_013d45f0` with the active circuit data and interactive flag `1`. That function creates a numbered Temperature result, registers `Analysis Result 1`, updates the analysis workspace, and refreshes the UI. If the active result object and its data pointer exist, the handler publishes the applicable plot view through `FUN_013c7550`. It then records `TemperatureAnalysisClick`.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Temperature Analysis..."] -->|"OnClick"| handler["TemperatureAnalysisClick (01c758f0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Temperature Analysis"] --> handler["TemperatureAnalysisClick<br/>01c758f0"]
+    handler --> setup["Prepare temperature analysis"]
+    setup --> allowed{"Return = 0?"}
+    allowed -->|No| stop["Stop without analysis"]
+    allowed -->|Yes| calculate["Run temperature analysis"]
+    calculate --> data{"Result object and data exist?"}
+    data -->|Yes| publish["Publish plot view for result type"]
+    data -->|No| skip["Skip plot publication"]
+    publish --> record["Record command name"]
+    skip --> record
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C758F0__FUN_01c758f0.c](../../../DecompiledSources/Tina16/functions/0000000001C758F0__FUN_01c758f0.c)
-- Recovered role: Evidence-blocked TemperatureAnalysisClick command.
+- Recovered role: Runs and publishes temperature analysis after accepted setup.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.DCAnalysis.TemperatureAnalysis1.OnClick.
-- Current graph behavior: The OnClick binding reaches TemperatureAnalysisClick at 01c758f0. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.DCAnalysis.TemperatureAnalysis1 to TemperatureAnalysisClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C758F0__FUN_01c758f0.c and directly references 00414ad0, 01328250, 013c7550, 013d45f0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Stops on a nonzero setup result. Otherwise, runs temperature analysis, publishes an available typed plot result, and records the command.
+- Current graph evidence: `FUN_01c758f0` branches on `FUN_01328250`, calls `FUN_013d45f0` only for zero, checks the active result and its `+8` data pointer, and passes the type byte at `+0x434` to `FUN_013c7550`. The runner creates the recovered Temperature result and refreshes the result UI.
 - Complexity: complex
 - Distinct outgoing calls: 4
 
 ## Direct calls
 
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:01328250` — FUN_01328250
-- `function:013c7550` — FUN_013c7550
-- `function:013d45f0` — FUN_013d45f0
+- `function:00414ad0` — Records the command name
+- `function:01328250` — Prepares temperature analysis and returns a stop-or-continue status
+- `function:013c7550` — Publishes the available typed plot result
+- `function:013d45f0` — Runs temperature analysis and registers its result
 
 ## Resource evidence
 
@@ -66,5 +74,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- A nonzero setup result can include cancellation or setup failure; the wrapper does not distinguish them.
+- The handler has no local exception, retry, or rollback path.

@@ -1,6 +1,6 @@
 ﻿# Reconcile...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Evidence-backed behavior recovered.
 
 ## Control
 
@@ -20,25 +20,26 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnReconciliateClick at 01c93b70. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler creates the Delphi form at class pointer `PTR_FUN_01B9E928`, shows it modally through virtual method `0x2D0`, and frees it. The pointer's published methods match `TfrmSchematicReconciliation`. Its resource is titled “Schematic Reconciliation” and shows lists for blocks in the current and selected circuits. The dialog owns the copy and acceptance operations. This menu handler does not inspect the modal result and does not apply a second state change after the dialog closes.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Reconcile..."] -->|"OnClick"| handler["mnReconciliateClick (01c93b70)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Reconcile"] --> handler["mnReconciliateClick<br/>01c93b70"]
+    handler --> create["Create TfrmSchematicReconciliation"]
+    create --> modal["Show dialog modally"]
+    modal --> dialog["Dialog compares current and selected circuits"]
+    dialog --> destroy["Free dialog after it closes"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C93B70__FUN_01c93b70.c](../../../DecompiledSources/Tina16/functions/0000000001C93B70__FUN_01c93b70.c)
-- Recovered role: Evidence-blocked mnReconciliateClick command.
+- Recovered role: Opens the modal schematic reconciliation dialog.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.Edit.Sharing1.mnReconciliate.OnClick.
-- Current graph behavior: The OnClick binding reaches mnReconciliateClick at 01c93b70. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.Edit.Sharing1.mnReconciliate to mnReconciliateClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C93B70__FUN_01c93b70.c and directly references 00410f20, 007fc180. No accepted end-to-end role was established for this control path.
+- Current graph behavior: The handler creates, shows, and frees `TfrmSchematicReconciliation`; all reconciliation decisions stay in that dialog.
+- Current graph evidence: The constructor uses `PTR_FUN_01B9E928`; the recovered form methods share that class table and the DFM identifies its current-circuit and selected-circuit lists.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -64,5 +65,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The menu handler does not expose which rows the user copies. Those decisions are made inside the modal dialog.
 

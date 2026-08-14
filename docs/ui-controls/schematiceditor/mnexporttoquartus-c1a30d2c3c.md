@@ -1,6 +1,6 @@
 ﻿# Intel Quartus...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,31 +20,42 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnExportToQuartusClick at 01c9b0d0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`mnExportToQuartusClick` calls [`FUN_01c9b4f0`](../../../DecompiledSources/Tina16/functions/0000000001C9B4F0__FUN_01c9b4f0.c) with target selector `2`. The common export routine first runs the recovered schematic processing and ERC path. A failed preflight shows a localized error and stops this export. It then requires the current circuit to convert to VHDL; otherwise, it shows **Can't convert to VHDL!**.
+
+The accepted path builds the VHDL conversion model and prepares generated HDL and package files. [`FUN_01561f80`](../../../DecompiledSources/Tina16/functions/0000000001561F80__FUN_01561f80.c) uses selector `2` to generate Intel Quartus pin constraints in QSF syntax. It checks whether the selected FPGA device family matches the requested vendor and reports a target mismatch, mixed-device pins, missing device data, or constraint-generation errors. The routine selects the `QSF File|*.qsf` save filter. If the user accepts the save dialog, it writes the generated constraint list to the selected path. A canceled save skips that file write.
+
+The export can ask for more than one generated HDL or constraint file. It is not transactional: cancellation or a later error does not roll back files that an earlier accepted save already wrote. The routine releases its conversion objects and restores temporary compiler state before it returns.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Intel Quartus..."] -->|"OnClick"| handler["mnExportToQuartusClick (01c9b0d0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    Control["Click Intel Quartus..."] --> Handler["mnExportToQuartusClick<br/>01c9b0d0"]
+    Handler --> Export["FUN_01c9b4f0<br/>target selector 2"]
+    Export --> Preflight{"Schematic preflight succeeds?"}
+    Preflight -->|No| Error["Show localized error"]
+    Preflight -->|Yes| Convert{"Circuit converts to VHDL?"}
+    Convert -->|No| VhdlError["Show VHDL conversion error"]
+    Convert -->|Yes| Generate["Generate HDL and QSF constraints"]
+    Generate --> Save{"Save dialog accepted?"}
+    Save -->|No| Skip["Skip this file write"]
+    Save -->|Yes| Write["Write selected Intel Quartus file"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C9B0D0__FUN_01c9b0d0.c](../../../DecompiledSources/Tina16/functions/0000000001C9B0D0__FUN_01c9b0d0.c)
-- Recovered role: Evidence-blocked mnExportToQuartusClick command.
+- Recovered role: Convert the current circuit and export Intel Quartus HDL constraints.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTM.DownloadtoFPGACard1.mnExportToQuartus.OnClick.
-- Current graph behavior: The OnClick binding reaches mnExportToQuartusClick at 01c9b0d0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTM.DownloadtoFPGACard1.mnExportToQuartus to mnExportToQuartusClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C9B0D0__FUN_01c9b0d0.c and directly references 01c9b4f0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Passes target selector 2 to the common FPGA export routine, which runs schematic checks, converts to VHDL, generates QSF constraints, and writes accepted save-dialog outputs.
+- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTM.DownloadtoFPGACard1.mnExportToQuartus to mnExportToQuartusClick. The wrapper passes selector 2; FUN_01c9b4f0 selects filter QSF File|*.qsf, and FUN_01561f80 emits Intel Quartus constraint syntax and target-family checks.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
 ## Direct calls
 
-- `function:01c9b4f0` — FUN_01c9b4f0
+- `function:01c9b4f0` — [FUN_01c9b4f0](../../../DecompiledSources/Tina16/functions/0000000001C9B4F0__FUN_01c9b4f0.c), the common VHDL and FPGA constraint export workflow.
+- `function:01561f80` — [FUN_01561f80](../../../DecompiledSources/Tina16/functions/0000000001561F80__FUN_01561f80.c), the target-specific constraint generator.
 
 ## Resource evidence
 
@@ -63,5 +74,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The original Delphi enumeration name for selector `2` is not recovered. Its target is proven by the QSF extension, save filter, emitted syntax, and parallel menu selectors.
+- The recovered path proves local file generation. It does not invoke the external Intel Quartus tool or prove that the generated project builds successfully in that tool.
 

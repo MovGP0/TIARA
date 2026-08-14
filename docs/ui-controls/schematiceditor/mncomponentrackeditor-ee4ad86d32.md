@@ -1,6 +1,6 @@
 ﻿# &Component Bar Editor...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Source, graph, and dialog evidence reviewed.
 
 ## Control
 
@@ -20,25 +20,31 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnComponentRackEditorClick at 01c8f170. The recovered body has 6 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The command creates `frmEditCompRack`, whose caption is `Edit Component Bar`, and shows it modally. If the dialog returns result `1`, the handler refreshes the Schematic Editor client, reloads the shared component registry, clears and rebuilds the current component-bar entries for the active category, and restores the normal application message state. It then frees the dialog.
+
+If the user cancels, the handler skips all editor and component-bar refresh operations and only frees the temporary dialog. Validation and file changes inside the editor belong to `frmEditCompRack`; the outer handler has no additional error message or rollback branch.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Component Bar Editor..."] -->|"OnClick"| handler["mnComponentRackEditorClick (01c8f170)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Component Bar Editor..."] -->|OnClick| handler["mnComponentRackEditorClick (01c8f170)"]
+    handler --> create["Create Edit Component Bar dialog"]
+    create --> modal["Show dialog modally"]
+    modal --> accepted{"Result is 1?"}
+    accepted -->|No| free["Free dialog without editor refresh"]
+    accepted -->|Yes| reload["Reload shared component registry"]
+    reload --> rebuild["Rebuild current component bar"]
+    rebuild --> free
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C8F170__FUN_01c8f170.c](../../../DecompiledSources/Tina16/functions/0000000001C8F170__FUN_01c8f170.c)
-- Recovered role: Evidence-blocked mnComponentRackEditorClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTools.mnComponentRackEditor.OnClick.
-- Current graph behavior: The OnClick binding reaches mnComponentRackEditorClick at 01c8f170. The recovered body has 6 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTools.mnComponentRackEditor to mnComponentRackEditorClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C8F170__FUN_01c8f170.c and directly references 00410f20, 007fc180, 008088b0, 00c82c10, 00c85140, 01c691d0. No accepted end-to-end role was established for this control path.
+- Recovered role: Opens the Component Bar Editor and reloads component bars after acceptance.
+- Current graph summary: Shows `frmEditCompRack` modally and, for result `1`, refreshes the shared registry and rebuilds the active component bar.
+- Current graph behavior: Cancel is a no-refresh path. Both paths free the temporary dialog.
+- Current graph evidence: The class at `PTR_FUN_01b92c88` maps to recovered form `TfrmEditCompRack`, caption `Edit Component Bar`. The handler tests modal virtual slot `+0x2D0` for `1`, calls the registry clear and reload helpers, and calls `FUN_01c691d0`, which clears and repopulates the component-bar controls for the category at editor offset `0x1810`.
 - Complexity: complex
 - Distinct outgoing calls: 6
 
@@ -68,5 +74,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The outer handler does not expose which files or groups the modal dialog changed.
+- The registry reload helpers do not return a status to this handler.
 

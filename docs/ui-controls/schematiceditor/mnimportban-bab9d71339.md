@@ -1,6 +1,6 @@
 ﻿# Backannotate...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Source, graph, file-dialog, and importer evidence reviewed.
 
 ## Control
 
@@ -20,25 +20,31 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnImportBanClick at 01c99820. The recovered body has 6 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The command configures a Schematic Editor Open dialog with the recovered backannotation file name and an application-relative initial path. It then shows the dialog. Cancel causes no model change.
+
+When the user selects a file, the handler passes that path to the shared backannotation importer. The importer reads the `Circuit` name and the `Components` sections, resolves or creates the target circuit context, applies each recovered component record, refreshes the editor client, and marks the current model changed. The outer handler has no local rollback or error message.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Backannotate..."] -->|"OnClick"| handler["mnImportBanClick (01c99820)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Backannotate..."] -->|OnClick| handler["mnImportBanClick (01c99820)"]
+    handler --> configure["Configure initial backannotation file path"]
+    configure --> dialog["Show Open dialog"]
+    dialog --> accepted{"File selected?"}
+    accepted -->|No| stop["Leave model unchanged"]
+    accepted -->|Yes| parse["Read Circuit and Components sections"]
+    parse --> apply["Apply component records to target circuit"]
+    apply --> refresh["Refresh editor and mark model changed"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C99820__FUN_01c99820.c](../../../DecompiledSources/Tina16/functions/0000000001C99820__FUN_01c99820.c)
-- Recovered role: Evidence-blocked mnImportBanClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTools.mnPCBTools.mnImportBan.OnClick.
-- Current graph behavior: The OnClick binding reaches mnImportBanClick at 01c99820. The recovered body has 6 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTools.mnPCBTools.mnImportBan to mnImportBanClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C99820__FUN_01c99820.c and directly references 00414480, 00414ad0, 00416cd0, 00724270, 00724380, 01bb4cc0. No accepted end-to-end role was established for this control path.
+- Recovered role: Opens a backannotation file and applies its circuit component records.
+- Current graph summary: Configures and executes an Open dialog, then runs the shared backannotation importer for the accepted file.
+- Current graph behavior: Cancel is a no-op. An accepted file can change the target circuit, refresh the editor, and mark the model modified.
+- Current graph evidence: `FUN_01c99820` configures the dialog at editor offset `0x1900`, executes it through virtual slot `+0xA8`, retrieves the accepted path, and calls `FUN_01bb4cc0(path,0,0)`. That callee reads `Circuit`/`Name` and `Components`, calls `FUN_01bb4930` for component records, refreshes the current editor client, and calls `FUN_0199e310(model,0,1,0)`.
 - Complexity: complex
 - Distinct outgoing calls: 6
 
@@ -68,5 +74,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The default file-name literal and filter text are not decoded in the recovered C output.
+- The importer does not return a status to the outer handler, and the outer handler has no rollback branch.
 

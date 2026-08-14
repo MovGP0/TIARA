@@ -1,6 +1,6 @@
 ﻿# Real-time
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from recovered source and resource evidence.
 
 ## Control
 
@@ -10,58 +10,34 @@
 | Component path | SchematicEditor.MainMenu.mnTM.SpectrumAnalyzer1.mnSPAReal |
 | Control class | TMenuItem |
 | Caption | Real-time |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | mnSPARealClick |
-| Handler address | 01c905f0 |
+| Handler | mnSPARealClick at `01c905f0` |
 | Graph node | `resource:dfm:SchematicEditor/SchematicEditor.MainMenu.mnTM.SpectrumAnalyzer1.mnSPAReal` |
-| Handler node | `function:01c905f0` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-The OnClick binding reaches mnSPARealClick at 01c905f0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The click opens or reuses a real-time spectrum analyzer. The handler passes mode `1` and type `15` to `01c8f600`. The coordinator stops when no instance is available. Otherwise, it selects an instance when necessary, reuses or creates the indexed window, adds an instance label to a new caption when applicable, shows it, and sends native message `9`.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Real-time"] -->|"OnClick"| handler["mnSPARealClick (01c905f0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Real-time"] -->|"OnClick"| handler["mnSPARealClick 01c905f0"]
+    handler --> coordinator["Select real-time spectrum analyzer type 15"]
+    coordinator --> available{"Instance available?"}
+    available -->|"No"| noOp["Do nothing"]
+    available -->|"Yes"| slot{"Window already exists?"}
+    slot -->|"No"| create["Create and store window"]
+    slot -->|"Yes"| reuse["Reuse window"]
+    create --> show["Show window and send message 9"]
+    reuse --> show
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C905F0__FUN_01c905f0.c](../../../DecompiledSources/Tina16/functions/0000000001C905F0__FUN_01c905f0.c)
-- Recovered role: Evidence-blocked mnSPARealClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTM.SpectrumAnalyzer1.mnSPAReal.OnClick.
-- Current graph behavior: The OnClick binding reaches mnSPARealClick at 01c905f0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTM.SpectrumAnalyzer1.mnSPAReal to mnSPARealClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C905F0__FUN_01c905f0.c and directly references 01c8f600. No accepted end-to-end role was established for this control path.
-- Complexity: simple
-- Distinct outgoing calls: 1
-
-## Direct calls
-
-- `function:01c8f600` — FUN_01c8f600
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- [Handler source](../../../DecompiledSources/Tina16/functions/0000000001C905F0__FUN_01c905f0.c) calls `FUN_01c8f600(form, 1, 15)`.
+- [Coordinator source](../../../DecompiledSources/Tina16/functions/0000000001C8F600__FUN_01c8f600.c) proves the selection, reuse, creation, caption, show, and message paths.
+- The simulated spectrum analyzer controls change only the mode to `0`.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The recovered source does not identify native message `9` or show a separate modal-cancel test.

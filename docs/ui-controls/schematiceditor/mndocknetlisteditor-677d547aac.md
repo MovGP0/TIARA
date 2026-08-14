@@ -1,6 +1,6 @@
 ﻿# D&ock Netlist Editor
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Source, graph, and state-branch review complete.
 
 ## Control
 
@@ -20,25 +20,31 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnDockNetlistEditorClick at 01c94810. The recovered body has 5 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The command toggles its own checked state and applies that state to the docked netlist tools. It gets the active Schematic Editor document and tests whether that document has a circuit object and whether the document's eligibility byte is set. The primary docking helper then docks, undocks, shows, or hides the shared netlist window and changes the main editor client visibility as necessary. A second helper updates the paired auxiliary netlist window.
+
+If the shared netlist windows do not exist, the docking helpers make no window change. The menu check state still changes. When the command is turned on for an ineligible document, the recovered eligibility value prevents the full primary docking transition.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["D&ock Netlist Editor"] -->|"OnClick"| handler["mnDockNetlistEditorClick (01c94810)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Dock Netlist Editor"] -->|OnClick| handler["mnDockNetlistEditorClick (01c94810)"]
+    handler --> toggle["Invert menu checked state"]
+    toggle --> active["Resolve active document"]
+    active --> eligible{"Circuit exists and document is eligible?"}
+    eligible -->|Yes| primary["Apply requested primary docking state"]
+    eligible -->|No| limited["Use limited or no primary transition"]
+    primary --> paired["Update paired netlist window"]
+    limited --> paired
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C94810__FUN_01c94810.c](../../../DecompiledSources/Tina16/functions/0000000001C94810__FUN_01c94810.c)
-- Recovered role: Evidence-blocked mnDockNetlistEditorClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTools.mnDockNetlistEditor.OnClick.
-- Current graph behavior: The OnClick binding reaches mnDockNetlistEditorClick at 01c94810. The recovered body has 5 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTools.mnDockNetlistEditor to mnDockNetlistEditorClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C94810__FUN_01c94810.c and directly references 004aeac0, 006d5120, 007e2d20, 01c8a4d0, 01c8a7e0. No accepted end-to-end role was established for this control path.
+- Recovered role: Toggles the docked netlist-editor windows for the active schematic document.
+- Current graph summary: Inverts the menu check state, derives active-document eligibility, and updates the primary and paired netlist docking windows.
+- Current graph behavior: The menu state always toggles. Window helpers are conditional on existing shared window objects and the active document state.
+- Current graph evidence: `FUN_01c94810` calls the annotated menu checked-state setter with the inverse of offset `0x80`. It gets the active index from the editor collection at `+0x1350`, reads the selected item at `+0x2780`, and requires both object `+0x28` and byte `+0x978` for the full eligibility value. `FUN_01c8a4d0` contains the VCL visibility, reparenting, dock-position, and main-client branches; `FUN_01c8a7e0` updates the paired shared window.
 - Complexity: complex
 - Distinct outgoing calls: 5
 
@@ -67,5 +73,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- Delphi field names for the two shared netlist window pointers are not recovered.
+- The menu item is checked in the resource. The source does not prove that both shared window objects already exist at form creation.
 

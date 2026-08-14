@@ -1,6 +1,6 @@
 ﻿# E&xport Macro...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Source and file-dialog branch review complete.
 
 ## Control
 
@@ -20,25 +20,33 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnExportMacroClick at 01c89df0. The recovered body has 7 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The command exports the payload of the selected macro. It finds the selected model item and requires an attached payload at offset `0x1A8`. If there is no selected item or payload, the command returns without opening a dialog.
+
+For an eligible macro, the handler opens the Schematic Editor temporary Save dialog. Cancel causes no export. On acceptance, the dialog filter index selects one of six payload-writer modes, numbered `0` through `5`. Filter indexes `2` and `3` first prepare an attached subobject when the payload state requires it. The handler then passes the selected file name, the zero-based mode, and the shared export option to the payload's virtual writer. An unexpected filter index outside `1` through `6` performs no writer call.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["E&xport Macro..."] -->|"OnClick"| handler["mnExportMacroClick (01c89df0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Export Macro..."] -->|OnClick| handler["mnExportMacroClick (01c89df0)"]
+    handler --> eligible{"Selected macro has a payload?"}
+    eligible -->|No| stop["Do not open Save dialog"]
+    eligible -->|Yes| save["Open temporary Save dialog"]
+    save --> accepted{"File accepted?"}
+    accepted -->|No| stop
+    accepted -->|Yes| mode{"Filter index is 1 through 6?"}
+    mode -->|No| stop
+    mode -->|Yes| prepare["Prepare payload when mode requires it"]
+    prepare --> write["Write selected export mode to file"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C89DF0__FUN_01c89df0.c](../../../DecompiledSources/Tina16/functions/0000000001C89DF0__FUN_01c89df0.c)
-- Recovered role: Evidence-blocked mnExportMacroClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTools.mnExportMacro.OnClick.
-- Current graph behavior: The OnClick binding reaches mnExportMacroClick at 01c89df0. The recovered body has 7 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTools.mnExportMacro to mnExportMacroClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C89DF0__FUN_01c89df0.c and directly references 00414560, 00724270, 00724300, 01440040, 0176cff0, 01993ec0, 01d04d40. No accepted end-to-end role was established for this control path.
+- Recovered role: Exports the selected macro payload through one of six file-writer modes.
+- Current graph summary: Applies selection and payload guards, opens a Save dialog, maps filter indexes `1` through `6` to writer modes `0` through `5`, and writes the selected file.
+- Current graph behavior: Cancel, a missing selection or payload, and an out-of-range filter index are no-export paths.
+- Current graph evidence: `FUN_01993ec0` resolves the selected item and `FUN_01d04d40` checks payload `+0x1A8`. The handler executes the dialog at editor `+0x1910`, reads its filter index six times, gets the selected file with `FUN_00724270`, and calls the payload virtual method at slot `+0x30` with modes `0` through `5`. Modes `1` and `2` in zero-based form use `FUN_01440040` on the attached subobject when the recovered payload-state checks pass.
 - Complexity: complex
 - Distinct outgoing calls: 7
 
@@ -69,5 +77,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The six filter labels are not present in the extracted DFM evidence, so this article does not invent file-format names.
+- The virtual writer's internal error handling is outside the recovered handler path.
 

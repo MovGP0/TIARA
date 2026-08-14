@@ -1,6 +1,6 @@
 ﻿# Serial monitor
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete.
 
 ## Control
 
@@ -10,59 +10,37 @@
 | Component path | SchematicEditor.MainMenu.mnTools.mnUARTTerminalWindow |
 | Control class | TMenuItem |
 | Caption | Serial monitor |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | mnUARTTerminalWindowClick |
-| Handler address | 01ca4190 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.MainMenu.mnTools.mnUARTTerminalWindow` |
-| Handler node | `function:01ca4190` |
+| Handler | `mnUARTTerminalWindowClick` at `01ca4190` |
+| Graph nodes | `resource:dfm:SchematicEditor/SchematicEditor.MainMenu.mnTools.mnUARTTerminalWindow` → `function:01ca4190` |
 | Graph layer | UI |
 
 ## What happens when clicked
 
-The OnClick binding reaches mnUARTTerminalWindowClick at 01ca4190. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler reads the global `THTerm` serial-monitor form reference. When the reference is null, it creates the form through class VMT `014b90e8`, stores the new object in the global field, and shows or activates it through `TCustomForm.Show`.
+
+When the global reference is already non-null, this handler returns without another call. It does not create a duplicate form and does not explicitly reactivate the existing instance on this path.
+
+The handler has no local message, fallback, or exception block.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Serial monitor"] -->|"OnClick"| handler["mnUARTTerminalWindowClick (01ca4190)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Serial monitor"] --> handler["Handler at 01ca4190"]
+    handler --> exists{"Global THTerm reference is null?"}
+    exists -->|"Yes"| create["Create and store THTerm"]
+    create --> show["Show or activate the serial-monitor form"]
+    exists -->|"No"| noop["Return without creating a duplicate"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001CA4190__FUN_01ca4190.c](../../../DecompiledSources/Tina16/functions/0000000001CA4190__FUN_01ca4190.c)
-- Recovered role: Evidence-blocked mnUARTTerminalWindowClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTools.mnUARTTerminalWindow.OnClick.
-- Current graph behavior: The OnClick binding reaches mnUARTTerminalWindowClick at 01ca4190. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTools.mnUARTTerminalWindow to mnUARTTerminalWindowClick. The recovered source is DecompiledSources/Tina16/functions/0000000001CA4190__FUN_01ca4190.c and directly references 007fc180, 008059a0. No accepted end-to-end role was established for this control path.
-- Complexity: moderate
-- Distinct outgoing calls: 2
-
-## Direct calls
-
-- `function:007fc180` — FUN_007fc180
-- `function:008059a0` — FUN_008059a0
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Handler: [FUN_01ca4190](../../../DecompiledSources/Tina16/functions/0000000001CA4190__FUN_01ca4190.c)
+- VCL show path: [FUN_008059a0](../../../DecompiledSources/Tina16/functions/00000000008059A0__FUN_008059a0.c)
+- Nearby recovered form handlers identify class `THTerm` in the `014ba1a0` to `014ba580` range.
+- Recovered role: Create and show the singleton serial-monitor form.
+- No image or glyph is present for this menu item.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The Delphi name of the global form variable is not recovered.

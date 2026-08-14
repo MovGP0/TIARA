@@ -1,6 +1,6 @@
 ﻿# Real-time
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from recovered source and resource evidence.
 
 ## Control
 
@@ -10,58 +10,36 @@
 | Component path | SchematicEditor.MainMenu.mnTM.Oscilloscope1.mnSCPReal |
 | Control class | TMenuItem |
 | Caption | Real-time |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | mnSCPRealClick |
-| Handler address | 01c904d0 |
+| Handler | mnSCPRealClick at `01c904d0` |
 | Graph node | `resource:dfm:SchematicEditor/SchematicEditor.MainMenu.mnTM.Oscilloscope1.mnSCPReal` |
-| Handler node | `function:01c904d0` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-The OnClick binding reaches mnSCPRealClick at 01c904d0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The click opens or reuses a real-time oscilloscope window. `mnSCPRealClick` passes mode `1` and instrument type `2` to the shared coordinator at `01c8f600`.
+
+The coordinator stops when no oscilloscope instance is available. For multiple instances, it shows a selector and continues only with an in-range index. It reuses the window in that slot or creates and stores a new one. It adds the instance label to a new caption when applicable, shows the window, and sends native message `9`.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Real-time"] -->|"OnClick"| handler["mnSCPRealClick (01c904d0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Real-time"] -->|"OnClick"| handler["mnSCPRealClick 01c904d0"]
+    handler --> coordinator["Select real-time oscilloscope type 2"]
+    coordinator --> available{"Instance available?"}
+    available -->|"No"| noOp["Do nothing"]
+    available -->|"Yes"| slot{"Window already exists?"}
+    slot -->|"No"| create["Create and store window"]
+    slot -->|"Yes"| reuse["Reuse window"]
+    create --> show["Show window and send message 9"]
+    reuse --> show
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C904D0__FUN_01c904d0.c](../../../DecompiledSources/Tina16/functions/0000000001C904D0__FUN_01c904d0.c)
-- Recovered role: Evidence-blocked mnSCPRealClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTM.Oscilloscope1.mnSCPReal.OnClick.
-- Current graph behavior: The OnClick binding reaches mnSCPRealClick at 01c904d0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTM.Oscilloscope1.mnSCPReal to mnSCPRealClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C904D0__FUN_01c904d0.c and directly references 01c8f600. No accepted end-to-end role was established for this control path.
-- Complexity: simple
-- Distinct outgoing calls: 1
-
-## Direct calls
-
-- `function:01c8f600` — FUN_01c8f600
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- [Handler source](../../../DecompiledSources/Tina16/functions/0000000001C904D0__FUN_01c904d0.c) calls `FUN_01c8f600(form, 1, 2)`.
+- [Coordinator source](../../../DecompiledSources/Tina16/functions/0000000001C8F600__FUN_01c8f600.c) proves the availability, selection, reuse, creation, caption, show, and message paths.
+- The parallel Simulated item changes only the mode to `0` and keeps type `2`.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The recovered source does not identify native message `9` or show a separate modal-cancel test.

@@ -1,6 +1,6 @@
 ﻿# Add spice commands...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the command-editor, modal-result, and batch-dispatch paths.
 
 ## Control
 
@@ -20,25 +20,27 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnSpiceCommandsClick at 01c90510. The recovered body has 6 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler saves the current global analysis configuration and opens `SpiceCommandEditor` on the active schematic's command list. The dialog OK path stores nonempty command and value rows. If the dialog returns modal result 6 from Execute, the handler runs each enabled batch analysis in this order: Transient, AC Transfer, DC Transfer, and Noise. Each analysis runs only when its preflight succeeds. After the dialog path finishes, the handler restores the saved global configuration.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Add spice commands..."] -->|"OnClick"| handler["mnSpiceCommandsClick (01c90510)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Add spice commands"] --> save["Save global analysis configuration"]
+    save --> dialog["Open SPICE command editor"]
+    dialog --> execute{"Dialog result is Execute?"}
+    execute -->|"Yes"| analyses["Run enabled analyses after preflight"]
+    execute -->|"No"| restore["Restore saved configuration"]
+    analyses --> restore
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C90510__FUN_01c90510.c](../../../DecompiledSources/Tina16/functions/0000000001C90510__FUN_01c90510.c)
-- Recovered role: Evidence-blocked mnSpiceCommandsClick command.
+- Recovered role: Edit schematic SPICE commands and optionally run enabled analyses.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.mnSpiceCommands.OnClick.
-- Current graph behavior: The OnClick binding reaches mnSpiceCommandsClick at 01c90510. The recovered body has 6 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.mnSpiceCommands to mnSpiceCommandsClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C90510__FUN_01c90510.c and directly references 00410f20, 00417580, 00417740, 00417c40, 014723c0, 01c92e80. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Binds the command editor to the active command list, dispatches enabled analyses only for Execute, and restores the prior global analysis configuration.
+- Current graph evidence: `FUN_01c90510` copies the global configuration before it constructs `SpiceCommandEditor` through `FUN_014723c0`. It passes the active schematic command list at offset `+0x440`, compares the modal result with 6, calls the annotated dispatcher `FUN_01c92e80` only for that result, and copies the saved configuration back before return. The resource gives Execute modal result 6.
 - Complexity: complex
 - Distinct outgoing calls: 6
 
@@ -68,5 +70,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- Analysis-specific errors are handled below `FUN_01c92e80`; this menu handler has no local error branch.
 

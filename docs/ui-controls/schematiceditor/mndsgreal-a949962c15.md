@@ -1,6 +1,6 @@
 ﻿# Real-time
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,31 +20,39 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnDSGRealClick at 01c906f0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`mnDSGRealClick` calls [`FUN_01c8f600`](../../../DecompiledSources/Tina16/functions/0000000001C8F600__FUN_01c8f600.c) with mode `1` and recovered instrument ID `6`. The common launcher queries the real-device inventory for that instrument. If no matching device is available, it returns without opening a window. If more than one device is available, it opens a `TInstrItemDlg`, fills its list with the recovered device names, and continues only when the selected index is valid.
+
+For a valid device, the launcher reuses the existing shared window or creates a `TDigitalSignalGeneratorWin` window from VMT `0150a9d8`. It initializes a new window with the selected device index, real-time mode, and instrument ID. For a multi-device choice, it also updates the window text with the selected device name. It then makes the window visible and activates it. The recovered launcher has no local error message when discovery returns no device or selection does not produce a valid index.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Real-time"] -->|"OnClick"| handler["mnDSGRealClick (01c906f0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    Control["Click Real-time"] --> Handler["mnDSGRealClick<br/>01c906f0"]
+    Handler --> Discover["FUN_01c8f600<br/>discover instrument 6 devices"]
+    Discover --> Available{"Matching device count?"}
+    Available -->|Zero| NoOp["Return without opening a window"]
+    Available -->|One| Open["Create or reuse TDigitalSignalGeneratorWin"]
+    Available -->|Many| Select["Show TInstrItemDlg with device names"]
+    Select --> Valid{"Selected index valid?"}
+    Valid -->|No| NoOp
+    Valid -->|Yes| Open
+    Open --> Show["Show and activate real-time window"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C906F0__FUN_01c906f0.c](../../../DecompiledSources/Tina16/functions/0000000001C906F0__FUN_01c906f0.c)
-- Recovered role: Evidence-blocked mnDSGRealClick command.
+- Recovered role: Discover a real instrument and open or activate its TDigitalSignalGeneratorWin window.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTM.DigitalSignalGenerator1.mnDSGReal.OnClick.
-- Current graph behavior: The OnClick binding reaches mnDSGRealClick at 01c906f0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTM.DigitalSignalGenerator1.mnDSGReal to mnDSGRealClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C906F0__FUN_01c906f0.c and directly references 01c8f600. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Passes real-time mode 1 and instrument ID 6 to the shared instrument launcher. The launcher discovers matching devices, optionally asks the user to select one, then creates or reuses, shows, and activates a TDigitalSignalGeneratorWin window.
+- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTM.DigitalSignalGenerator1.mnDSGReal to mnDSGRealClick. The handler passes constants 1 and 6 to FUN_01c8f600. That callee's instrument switch uses VMT 0150a9d8, which manual read-only VMT inspection identifies as TDigitalSignalGeneratorWin; its device-count, selection-dialog, shared-instance, visibility, and activation branches establish the behavior.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
 ## Direct calls
 
-- `function:01c8f600` — FUN_01c8f600
+- `function:01c8f600` — [FUN_01c8f600](../../../DecompiledSources/Tina16/functions/0000000001C8F600__FUN_01c8f600.c), the shared instrument discovery and window launcher.
 
 ## Resource evidence
 
@@ -63,5 +71,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The recovered numeric instrument ID is used because its original Delphi enumeration name is not available.
+- The launcher proves device discovery and window activation. It does not prove the external hardware connection state after the window opens.
 

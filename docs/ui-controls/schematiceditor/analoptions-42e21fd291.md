@@ -1,6 +1,6 @@
 ﻿# &Options...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The modal result controls whether the edited analysis options replace the global options record.
 
 ## Control
 
@@ -20,33 +20,39 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches AnalOptionsClick at 01c77280. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c77280` creates an analysis-options dialog from the current global options record and shows it modally. If the modal result is `1`, the handler deep-copies the dialog's edited record back to the global record. Any other result keeps the prior options.
+
+The handler destroys the dialog on both branches. It has no local exception handler.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Options..."] -->|"OnClick"| handler["AnalOptionsClick (01c77280)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Analysis Options"] --> handler["AnalOptionsClick<br/>01c77280"]
+    handler --> create["Create dialog from global options"]
+    create --> modal["Show modal dialog"]
+    modal --> accepted{"Modal result = 1?"}
+    accepted -->|Yes| commit["Deep-copy edited options to global record"]
+    accepted -->|No| keep["Keep prior global options"]
+    commit --> destroy["Destroy dialog"]
+    keep --> destroy
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C77280__FUN_01c77280.c](../../../DecompiledSources/Tina16/functions/0000000001C77280__FUN_01c77280.c)
-- Recovered role: Evidence-blocked AnalOptionsClick command.
+- Recovered role: Opens Analysis Options and commits the edited record only for modal result 1.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.AnalOptions.OnClick.
-- Current graph behavior: The OnClick binding reaches AnalOptionsClick at 01c77280. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.AnalOptions to AnalOptionsClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C77280__FUN_01c77280.c and directly references 00410f20, 00417c40, 014f15b0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Creates the options dialog from the global record, shows it modally, copies accepted edits back for result 1, and always destroys the dialog.
+- Current graph evidence: `FUN_01c77280` calls `FUN_014f15b0` with the global options record, dispatches the modal method at VMT offset `+0x2d0`, calls the record-copy helper only when the result is 1, and then calls the nil-safe destructor. `NetlistEditor.MIOptionClick` has the same recovered body.
 - Complexity: complex
 - Distinct outgoing calls: 3
 
 ## Direct calls
 
-- `function:00410f20` — Nil-safe Delphi object destruction helper
-- `function:00417c40` — FUN_00417c40
-- `function:014f15b0` — FUN_014f15b0
+- `function:00410f20` — Destroys the dialog when it is not nil
+- `function:00417c40` — Deep-copies the accepted Delphi record
+- `function:014f15b0` — Constructs the options dialog from the supplied options record
 
 ## Resource evidence
 
@@ -65,5 +71,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The recovered class name of the options dialog is not available.
+- The wrapper does not validate individual option values; that work stays inside the dialog.

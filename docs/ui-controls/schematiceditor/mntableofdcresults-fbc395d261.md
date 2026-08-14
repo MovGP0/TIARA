@@ -1,6 +1,6 @@
 ﻿# Table of DC results
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The handler selects the table result mode of the shared DC analysis path.
 
 ## Control
 
@@ -20,32 +20,37 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnTableofDCresultsClick at 01c984d0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c984d0` passes the active schematic model to `FUN_01320bb0` with the recovered DC selector and result-display mode `1`. The shared routine builds and runs the DC analysis. Its mode-1 result path calls `FUN_012b86e0`, which creates or reuses the shared result form, selects the table caption resource, fills the form from the analysis object, activates the matching editor command, and shows the form.
+
+After the shared routine returns, the handler records `mnTableofDCresultsClick`. It does not inspect the analysis return value.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Table of DC results"] -->|"OnClick"| handler["mnTableofDCresultsClick (01c984d0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Table of DC Results"] --> handler["mnTableofDCresultsClick<br/>01c984d0"]
+    handler --> analyze["Run shared DC analysis<br/>result mode 1"]
+    analyze --> result{"Table result path available?"}
+    result -->|Yes| table["Fill and show shared DC result table"]
+    result -->|No| noShow["No table is shown"]
+    table --> record["Record command name"]
+    noShow --> record
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C984D0__FUN_01c984d0.c](../../../DecompiledSources/Tina16/functions/0000000001C984D0__FUN_01c984d0.c)
-- Recovered role: Evidence-blocked mnTableofDCresultsClick command.
+- Recovered role: Runs the shared DC analysis and requests its table result view.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.DCAnalysis.mnTableofDCresults.OnClick.
-- Current graph behavior: The OnClick binding reaches mnTableofDCresultsClick at 01c984d0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.DCAnalysis.mnTableofDCresults to mnTableofDCresultsClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C984D0__FUN_01c984d0.c and directly references 00414ad0, 01320bb0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Calls the shared DC analysis with result mode 1, lets it fill and show the DC result table when available, and then records the command name.
+- Current graph evidence: `FUN_01c984d0` differs from the operating-point wrapper by passing argument 4 as 1 to `FUN_01320bb0`. The shared routine forwards that mode to `FUN_0131f8d0`; its nonzero branch calls `FUN_012b86e0`, which fills, activates, and shows the shared result form.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
 ## Direct calls
 
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:01320bb0` — FUN_01320bb0
+- `function:00414ad0` — Records the command name
+- `function:01320bb0` — Builds and runs the DC analysis and selects the table result path
 
 ## Resource evidence
 
@@ -64,5 +69,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The handler does not expose the meanings of internal solver return states.
+- Analysis exceptions and cleanup are owned by the shared routine; the wrapper has no local recovery.

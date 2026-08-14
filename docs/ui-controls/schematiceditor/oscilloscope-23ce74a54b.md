@@ -1,6 +1,6 @@
 ﻿# &Oscilloscope
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,31 +20,36 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnSCPVirtualClick at 01c904b0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`mnSCPVirtualClick` calls [`FUN_01c8f600`](../../../DecompiledSources/Tina16/functions/0000000001C8F600__FUN_01c8f600.c) with mode `0` and recovered instrument ID `2`. The common launcher treats this as one simulated instrument choice. It reads the shared window slot for this instrument. If the slot is empty, it creates a `TScopeWin` window from VMT `012a7128`, stores the instance, and initializes it with the simulated mode and instrument ID. It then makes the window visible and activates it. If the window already exists, the launcher reuses and activates it.
+
+No device-selection dialog is needed for this simulated path. The recovered launcher has no local error message or confirmation for this mode. The same handler is bound to the instrument's main menu entry and its **Simulated** submenu entry; both controls therefore run the same path.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Oscilloscope"] -->|"OnClick"| handler["mnSCPVirtualClick (01c904b0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    Control["Click &Oscilloscope"] --> Handler["mnSCPVirtualClick<br/>01c904b0"]
+    Handler --> Launch["FUN_01c8f600<br/>mode 0, instrument 2"]
+    Launch --> Existing{"Shared TScopeWin window exists?"}
+    Existing -->|No| Create["Create and store simulated TScopeWin"]
+    Existing -->|Yes| Reuse["Reuse current window"]
+    Create --> Show["Show and activate window"]
+    Reuse --> Show
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C904B0__FUN_01c904b0.c](../../../DecompiledSources/Tina16/functions/0000000001C904B0__FUN_01c904b0.c)
-- Recovered role: Evidence-blocked mnSCPVirtualClick command.
+- Recovered role: Open or activate the simulated TScopeWin instrument window.
 - Current graph summary: Handles 2 Delphi UI events: SchematicEditor.MainMenu.mnTM.Oscilloscope1.mnSCPVirtual.OnClick, SchematicEditor.MainMenu.mnTM.Oscilloscope.OnClick.
-- Current graph behavior: The OnClick binding reaches mnSCPVirtualClick at 01c904b0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTM.Oscilloscope, SchematicEditor.MainMenu.mnTM.Oscilloscope1.mnSCPVirtual to mnSCPVirtualClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C904B0__FUN_01c904b0.c and directly references 01c8f600. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Passes simulated mode 0 and instrument ID 2 to the shared instrument launcher. The launcher creates or reuses a TScopeWin window, then shows and activates it.
+- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTM.Oscilloscope, SchematicEditor.MainMenu.mnTM.Oscilloscope1.mnSCPVirtual to mnSCPVirtualClick. The handler passes constants 0 and 2 to FUN_01c8f600. That callee's instrument switch uses VMT 012a7128, which manual read-only VMT inspection identifies as TScopeWin; its device-count, selection-dialog, shared-instance, visibility, and activation branches establish the behavior.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
 ## Direct calls
 
-- `function:01c8f600` — FUN_01c8f600
+- `function:01c8f600` — [FUN_01c8f600](../../../DecompiledSources/Tina16/functions/0000000001C8F600__FUN_01c8f600.c), the shared instrument discovery and window launcher.
 
 ## Resource evidence
 
@@ -63,5 +68,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The recovered numeric instrument ID is used because its original Delphi enumeration name is not available.
+- The launcher proves device discovery and window activation. It does not prove the external hardware connection state after the window opens.
 

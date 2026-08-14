@@ -1,6 +1,6 @@
 ﻿# Fast Analytic Solution
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the directive-state, analytic-runner, and redraw paths.
 
 ## Control
 
@@ -20,25 +20,26 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnFastAnalyticSimulationClick at 01ca4be0. The recovered body has 10 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler saves the current `PARAM_CHANGE` and `DRAW_DIAGRAM` directive values. It then enables both directives, creates the analytic runner for the active schematic, runs the analysis, and redraws the editor. Finally, it restores the two saved directive values. This restoration also occurs after the analysis path returns.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Fast Analytic Solution"] -->|"OnClick"| handler["mnFastAnalyticSimulationClick (01ca4be0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Fast Analytic Solution"] --> save["Save two directive values"]
+    save --> enable["Enable parameter change and diagram drawing"]
+    enable --> run["Run analytic solution for active schematic"]
+    run --> redraw["Redraw schematic editor"]
+    redraw --> restore["Restore saved directive values"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001CA4BE0__FUN_01ca4be0.c](../../../DecompiledSources/Tina16/functions/0000000001CA4BE0__FUN_01ca4be0.c)
-- Recovered role: Evidence-blocked mnFastAnalyticSimulationClick command.
+- Recovered role: Run a fast analytic solution with temporary directive overrides.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.mnFastAnalyticSimulation.OnClick.
-- Current graph behavior: The OnClick binding reaches mnFastAnalyticSimulationClick at 01ca4be0. The recovered body has 10 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.mnFastAnalyticSimulation to mnFastAnalyticSimulationClick. The recovered source is DecompiledSources/Tina16/functions/0000000001CA4BE0__FUN_01ca4be0.c and directly references 00410e60, 00410f20, 00414480, 00414560, 01477340, 01477fa0, 01478130, 01478670, and 2 more. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Saves two analysis-directive values, enables them for one analytic run, redraws the editor, and restores the saved values.
+- Current graph evidence: `FUN_01ca4be0` calls `FUN_01477340` first in capture mode and later in restore mode for `PARAM_CHANGE` and `DRAW_DIAGRAM`. Between those calls, it creates and enables the runner through `FUN_01477fa0` and `FUN_01478130`, runs it through `FUN_01478670`, and calls the recovered Redraw handler at `01c76fd0`.
 - Complexity: complex
 - Distinct outgoing calls: 10
 
@@ -72,5 +73,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The recovered source does not expose a Delphi class name for the analytic runner.
+- Errors from the analytic runner are not caught in this handler.
 

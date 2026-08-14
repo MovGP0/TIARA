@@ -1,6 +1,6 @@
 ﻿# &Hide/Reconnect
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Evidence-backed behavior recovered.
 
 ## Control
 
@@ -20,25 +20,29 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnHideReconnectClick at 01c772e0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The click handler delegates to `FUN_01C6D920`. That helper first requires the shared edit guard to return false and the alternate command-mode flag to be zero. It then creates a command object from `PTR_FUN_01362168`, associates it with the Schematic Editor, installs it in the active-command field at decimal offset 7000, and sets the related control at offset `0xBB0` active through `FUN_0082A6C0(..., 1)`.
+
+This enters the Hide/Reconnect interaction mode. It does not hide or reconnect an object until the user performs the next canvas interaction. A blocked edit state makes the click a no-op.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Hide/Reconnect"] -->|"OnClick"| handler["mnHideReconnectClick (01c772e0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Hide or Reconnect"] --> handler["mnHideReconnectClick<br/>01c772e0"]
+    handler --> allowed{"Editing and command mode allowed?"}
+    allowed -->|"No"| noOp["Keep current interaction mode"]
+    allowed -->|"Yes"| command["Create Hide/Reconnect command object"]
+    command --> install["Install as active editor command"]
+    install --> activate["Mark related tool control active"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C772E0__FUN_01c772e0.c](../../../DecompiledSources/Tina16/functions/0000000001C772E0__FUN_01c772e0.c)
-- Recovered role: Evidence-blocked mnHideReconnectClick command.
+- Recovered role: Activates the Schematic Editor Hide/Reconnect interaction mode.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.Edit.mnHideReconnect.OnClick.
-- Current graph behavior: The OnClick binding reaches mnHideReconnectClick at 01c772e0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.Edit.mnHideReconnect to mnHideReconnectClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C772E0__FUN_01c772e0.c and directly references 01c6d920. No accepted end-to-end role was established for this control path.
+- Current graph behavior: The wrapper installs a dedicated editor command object and activates the associated tool control; later canvas input performs the object action.
+- Current graph evidence: `FUN_01C6D920` creates the command object, `FUN_01C6CEE0` replaces the active command at offset 7000, and `FUN_01C6D670` activates control `0xBB0`.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -63,5 +67,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- This click only arms the mode. The later canvas event decides which object is hidden or reconnected.
 

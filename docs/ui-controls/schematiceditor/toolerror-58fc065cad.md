@@ -1,6 +1,6 @@
-﻿# Faults enabled|Faults will show up in the circuit when this button is down
+﻿# Faults enabled
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete.
 
 ## Control
 
@@ -9,60 +9,44 @@
 | Form | SchematicEditor |
 | Component path | SchematicEditor.TopToolBar.EditorTools.ToolError |
 | Control class | TSpeedButton |
-| Caption | Not present in the recovered resource. |
 | Hint | Faults enabled\|Faults will show up in the circuit when this button is down |
-| Text | Not present in the recovered resource. |
-| Handler name | ToolErrorClick |
-| Handler address | 01c77a70 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.TopToolBar.EditorTools.ToolError` |
-| Handler node | `function:01c77a70` |
+| Handler | `ToolErrorClick` at `01c77a70` |
+| Graph nodes | `resource:dfm:SchematicEditor/SchematicEditor.TopToolBar.EditorTools.ToolError` → `function:01c77a70` |
 | Graph layer | UI |
 
 ## What happens when clicked
 
-The OnClick binding reaches ToolErrorClick at 01c77a70. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler reads the toolbar button's Down state and passes it to `FUN_01c779c0`. That helper can reject a change when an editor transition is already active and the requested state conflicts with the pending state.
+
+For an accepted change, disabling always clears the related `Faults enabled` menu check. Enabling sets the menu check only when the active schematic supplies the required fault-analysis object. The helper then copies the menu's actual checked state back to the toolbar button and refreshes the fault display. The toolbar handler repeats the final button synchronization.
+
+Thus, a failed enable request leaves both controls off. The handler shows no message and has no local exception block.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Faults enabled|Faults will show up in the circuit when this button is down"] -->|"OnClick"| handler["ToolErrorClick (01c77a70)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Faults enabled"] --> requested["Read toolbar Down state"]
+    requested --> guard{"State transition is permitted?"}
+    guard -->|"No"| unchanged["Leave the current state unchanged"]
+    guard -->|"Yes"| enable{"Enable requested?"}
+    enable -->|"No"| clear["Clear the menu check"]
+    enable -->|"Yes"| available{"Fault-analysis object exists?"}
+    available -->|"No"| clear
+    available -->|"Yes"| set["Set the menu check"]
+    clear --> sync["Synchronize toolbar and refresh fault display"]
+    set --> sync
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C77A70__FUN_01c77a70.c](../../../DecompiledSources/Tina16/functions/0000000001C77A70__FUN_01c77a70.c)
-- Recovered role: Evidence-blocked ToolErrorClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.TopToolBar.EditorTools.ToolError.OnClick.
-- Current graph behavior: The OnClick binding reaches ToolErrorClick at 01c77a70. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.TopToolBar.EditorTools.ToolError to ToolErrorClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C77A70__FUN_01c77a70.c and directly references 0082a6c0, 01c779c0. No accepted end-to-end role was established for this control path.
-- Complexity: moderate
-- Distinct outgoing calls: 2
-
-## Direct calls
-
-- `function:0082a6c0` — FUN_0082a6c0
-- `function:01c779c0` — FUN_01c779c0
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: [`0333_SchematicEditor_SchematicEditor_TopToolBar_EditorTools_ToolError_Glyph_Data.png`](../../../glyph/0333_SchematicEditor_SchematicEditor_TopToolBar_EditorTools_ToolError_Glyph_Data.png)
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Handler: [FUN_01c77a70](../../../DecompiledSources/Tina16/functions/0000000001C77A70__FUN_01c77a70.c)
+- Shared state helper: [FUN_01c779c0](../../../DecompiledSources/Tina16/functions/0000000001C779C0__FUN_01c779c0.c)
+- Parallel menu handler: [FUN_01c77a40](../../../DecompiledSources/Tina16/functions/0000000001C77A40__FUN_01c77a40.c)
+- Fault-object lookup: [FUN_01c7da00](../../../DecompiledSources/Tina16/functions/0000000001C7DA00__FUN_01c7da00.c)
+- Extracted glyph: [Fault toggle glyph](../../../glyph/0333_SchematicEditor_SchematicEditor_TopToolBar_EditorTools_ToolError_Glyph_Data.png)
+- Recovered role: Toggle fault display when the active schematic supports it and synchronize menu and toolbar state.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The fault-analysis object type and editor transition flag names are not recovered.

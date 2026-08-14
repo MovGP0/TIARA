@@ -1,6 +1,6 @@
 ﻿# &Time Function...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The shared setup and named AC Time Function publisher establish the flow.
 
 ## Control
 
@@ -20,25 +20,27 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches ACTimeFunctionMnuClick at 01c8ef70. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c8ef70` calls the shared AC Time Function setup routine `FUN_01529c10`. Only a zero return continues to `FUN_013d87d0`. That routine creates an `AC Time Function result` container, registers `Analysis Result 1`, publishes it, and refreshes the result UI. The handler then stores `ACTimeFunctionMnuClick` as the last command. A nonzero setup return skips publication and the command-state update.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Time Function..."] -->|"OnClick"| handler["ACTimeFunctionMnuClick (01c8ef70)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click AC Time Function"] --> handler["FUN_01c8ef70"]
+    handler --> setup["FUN_01529c10 setup"]
+    setup --> zero{"Return is zero?"}
+    zero -->|"No"| stop["Skip result publication"]
+    zero -->|"Yes"| publish["Publish AC Time Function result"]
+    publish --> record["Record ACTimeFunctionMnuClick"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C8EF70__FUN_01c8ef70.c](../../../DecompiledSources/Tina16/functions/0000000001C8EF70__FUN_01c8ef70.c)
-- Recovered role: Evidence-blocked ACTimeFunctionMnuClick command.
+- Recovered role: Runs AC Time Function setup and publishes the result on a zero return.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.ACAnalysis.ACTimeFunctionMnu.OnClick.
-- Current graph behavior: The OnClick binding reaches ACTimeFunctionMnuClick at 01c8ef70. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.ACAnalysis.ACTimeFunctionMnu to ACTimeFunctionMnuClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C8EF70__FUN_01c8ef70.c and directly references 00414ad0, 013d87d0, 01529c10. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Runs shared AC Time Function setup, publishes a named result only on a zero return, and records the command name.
+- Current graph evidence: The handler branches on `FUN_01529c10`, calls `FUN_013d87d0` only on zero, and writes `ACTimeFunctionMnuClick`. `FUN_013d87d0` contains `AC Time Function result` and `Analysis Result 1`. The reviewed Netlist Editor command uses the same setup and publisher pair.
 - Complexity: complex
 - Distinct outgoing calls: 3
 
@@ -65,5 +67,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The exact meanings of nonzero setup returns are not recovered.
 

@@ -1,6 +1,6 @@
 ﻿# Set parameter limits...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the parameter-limit dialog and OK handler.
 
 ## Control
 
@@ -20,25 +20,26 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnSetCompValueLimitsClick at 01ca3b10. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler opens `frmSetCompMainValueLimits` for the active schematic and waits for the dialog to close. The dialog displays component, minimum, and maximum columns. When the user selects OK, its recovered handler clears the attached limit list and adds only rows in which all three cells contain text. It does not validate that the minimum and maximum text is numeric. The menu handler destroys the dialog after it closes.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Set parameter limits..."] -->|"OnClick"| handler["mnSetCompValueLimitsClick (01ca3b10)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Set parameter limits"] --> dialog["Open limits dialog for active schematic"]
+    dialog --> accept{"User selects OK?"}
+    accept -->|"No"| close["Close without OK processing"]
+    accept -->|"Yes"| rebuild["Clear list and add complete rows"]
+    rebuild --> close
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001CA3B10__FUN_01ca3b10.c](../../../DecompiledSources/Tina16/functions/0000000001CA3B10__FUN_01ca3b10.c)
-- Recovered role: Evidence-blocked mnSetCompValueLimitsClick command.
+- Recovered role: Open the component main-value limit editor for the active schematic.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.mnSetCompValueLimits.OnClick.
-- Current graph behavior: The OnClick binding reaches mnSetCompValueLimitsClick at 01ca3b10. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.mnSetCompValueLimits to mnSetCompValueLimitsClick. The recovered source is DecompiledSources/Tina16/functions/0000000001CA3B10__FUN_01ca3b10.c and directly references 00410f20, 01c480a0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Shows the component-limit editor for the active schematic. The dialog OK path rebuilds the attached limit list from complete grid rows.
+- Current graph evidence: `FUN_01ca3b10` passes the active schematic field at `+0x2788` to the `frmSetCompMainValueLimits` constructor at `01c480a0`, shows the form modally, and destroys it. The separately recovered `OKBtn` handler at `01c48530` clears the list at nested offset `+0x448`, trims grid columns 0 through 2, and appends a row only when all three values are nonempty.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -64,5 +65,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The menu handler does not inspect the modal result. The dialog's OK handler owns the list update.
+- Numeric range validation is not present in the recovered OK path.
 

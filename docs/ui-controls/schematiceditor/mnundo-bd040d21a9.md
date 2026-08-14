@@ -1,6 +1,6 @@
 ﻿# &Undo
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Evidence-backed behavior recovered.
 
 ## Control
 
@@ -20,25 +20,28 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnUndoClick at 01c8ec70. The recovered body has 6 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The normal branch runs only when the shared edit guard permits it, the model reports that Undo is available, form field `0x17F4` is zero, and byte `0x27C1` is zero. It then calls the model history executor with direction value 1 and repaints the editor. In the alternate command mode, it logs the literal `Undo()` and calls `FUN_0135B680`, which removes the current entry from the Undo queue, moves it to the Redo queue, and applies it to the model. Failed availability or guard checks are a no-op.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Undo"] -->|"OnClick"| handler["mnUndoClick (01c8ec70)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Undo"] --> handler["mnUndoClick<br/>01c8ec70"]
+    handler --> mode{"Alternate command mode?"}
+    mode -->|"Yes"| alternate["Log Undo and move history entry to Redo"]
+    mode -->|"No"| allowed{"Undo available and editing allowed?"}
+    allowed -->|"No"| noOp["Keep model unchanged"]
+    allowed -->|"Yes"| execute["Apply model Undo"]
+    execute --> repaint["Repaint editor"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C8EC70__FUN_01c8ec70.c](../../../DecompiledSources/Tina16/functions/0000000001C8EC70__FUN_01c8ec70.c)
-- Recovered role: Evidence-blocked mnUndoClick command.
+- Recovered role: Applies one Undo operation through the active history implementation.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.Edit.mnUndo.OnClick.
-- Current graph behavior: The OnClick binding reaches mnUndoClick at 01c8ec70. The recovered body has 6 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.Edit.mnUndo to mnUndoClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C8EC70__FUN_01c8ec70.c and directly references 0064e770, 0135b680, 017fe450, 019a4e30, 019a4ec0, 01c8cee0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: The normal path tests model Undo availability and executes direction 1; the alternate path logs `Undo()` and transfers a history entry to the Redo queue.
+- Current graph evidence: `FUN_019A4E30` checks the Undo index and global guards. `FUN_019A4EC0(..., 1)` executes the history entry. `FUN_0135B680` removes from one queue, inserts into the other, and applies the entry.
 - Complexity: complex
 - Distinct outgoing calls: 6
 
@@ -68,5 +71,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The semantic content of a history entry depends on the preceding edit and is not fixed by this command.
 

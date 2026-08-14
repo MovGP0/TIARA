@@ -1,6 +1,6 @@
 ﻿# Fourier S&pectrum...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. A zero preflight result builds Fourier data, publishes the base result, and creates selected spectrum views.
 
 ## Control
 
@@ -20,35 +20,44 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches FourierSpectrumClick at 01c92850. The recovered body has 5 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c92850` runs `FUN_01349310` with analysis selector `2`. A nonzero return stops the handler before Fourier data or result publication.
+
+For a zero return, the handler builds Fourier data with `FUN_0114dc00` from the active circuit result and recovered global window settings. It stores that object in the shared result pointer, publishes the source Transient result through `FUN_013d2f60`, and, when the Fourier object is not null, passes it with the recovered display mask and settings to `FUN_013d99f0`. That routine creates the selected real, imaginary, power, or amplitude spectrum views. The handler then records `FourierSpectrumClick`.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Fourier S&pectrum..."] -->|"OnClick"| handler["FourierSpectrumClick (01c92850)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Fourier Spectrum"] --> handler["FourierSpectrumClick<br/>01c92850"]
+    handler --> preflight["Run analysis preflight selector 2"]
+    preflight --> allowed{"Return = 0?"}
+    allowed -->|No| stop["Stop without result publication"]
+    allowed -->|Yes| build["Build Fourier data"]
+    build --> transient["Publish source Transient result"]
+    transient --> object{"Fourier object exists?"}
+    object -->|Yes| spectrum["Create selected spectrum views"]
+    object -->|No| skip["Skip spectrum views"]
+    spectrum --> record["Record command name"]
+    skip --> record
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C92850__FUN_01c92850.c](../../../DecompiledSources/Tina16/functions/0000000001C92850__FUN_01c92850.c)
-- Recovered role: Evidence-blocked FourierSpectrumClick command.
+- Recovered role: Builds and publishes Fourier spectrum results after a successful preflight.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.FourierAnalysis.FourierSpectrum.OnClick.
-- Current graph behavior: The OnClick binding reaches FourierSpectrumClick at 01c92850. The recovered body has 5 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.FourierAnalysis.FourierSpectrum to FourierSpectrumClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C92850__FUN_01c92850.c and directly references 00414ad0, 0114dc00, 01349310, 013d2f60, 013d99f0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Stops on a nonzero preflight result. Otherwise, builds Fourier data, publishes the source Transient result, creates selected spectrum views when the Fourier object exists, and records the command.
+- Current graph evidence: The handler branches on `FUN_01349310(0,2,active,0)`, calls `FUN_0114dc00` only for zero, stores its result in `PTR_DAT_02001288`, calls the annotated Transient publisher, and conditionally calls `FUN_013d99f0`. The NetlistEditor and text-command paths use the same selector and publisher sequence.
 - Complexity: complex
 - Distinct outgoing calls: 5
 
 ## Direct calls
 
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:0114dc00` — FUN_0114dc00
-- `function:01349310` — FUN_01349310
-- `function:013d2f60` — FUN_013d2f60
-- `function:013d99f0` — FUN_013d99f0
+- `function:00414ad0` — Records the command name
+- `function:0114dc00` — Builds Fourier data from the active result and global settings
+- `function:01349310` — Prepares analysis selector 2 and returns a stop-or-continue status
+- `function:013d2f60` — Publishes the source Transient result
+- `function:013d99f0` — Creates the selected Fourier spectrum views
 
 ## Resource evidence
 
@@ -67,5 +76,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The exact meanings of nonzero preflight results are not recovered.
+- A null Fourier object still permits the source Transient publication; only the spectrum-view call is skipped.
+- The handler has no local exception or rollback path.

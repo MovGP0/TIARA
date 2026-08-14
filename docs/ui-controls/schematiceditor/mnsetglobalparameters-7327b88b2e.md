@@ -1,6 +1,6 @@
 ﻿# Define global parameters...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the global-parameter editor and commit handler.
 
 ## Control
 
@@ -20,25 +20,26 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnSetGlobalParametersClick at 01ca3b60. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler creates `frmParamEditor` with the active schematic's global parameter and configuration data. It then shows the dialog modally and destroys it. The dialog OK handler validates all editable rows. A validation failure keeps the dialog open. A successful OK rebuilds the parameter assignments and configuration block, updates the attached parameter objects, transfers the edited list to runtime state, and recalculates derived global values.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Define global parameters..."] -->|"OnClick"| handler["mnSetGlobalParametersClick (01ca3b60)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Define global parameters"] --> dialog["Open global parameter editor"]
+    dialog --> valid{"Edited rows valid?"}
+    valid -->|"No"| remain["Keep dialog open"]
+    valid -->|"Yes"| commit["Rebuild parameters and configuration"]
+    commit --> runtime["Update runtime parameter state"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001CA3B60__FUN_01ca3b60.c](../../../DecompiledSources/Tina16/functions/0000000001CA3B60__FUN_01ca3b60.c)
-- Recovered role: Evidence-blocked mnSetGlobalParametersClick command.
+- Recovered role: Open the global parameter editor for the active schematic.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.mnSetGlobalParameters.OnClick.
-- Current graph behavior: The OnClick binding reaches mnSetGlobalParametersClick at 01ca3b60. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.mnSetGlobalParameters to mnSetGlobalParametersClick. The recovered source is DecompiledSources/Tina16/functions/0000000001CA3B60__FUN_01ca3b60.c and directly references 00410f20, 0143a6e0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Shows the global parameter editor with active schematic data. The dialog OK path validates and commits the edited parameter set to runtime state.
+- Current graph evidence: `FUN_01ca3b60` takes lists from active-document fields `+0x27a8` and `+0x2788`, passes them to the `frmParamEditor` constructor at `0143a6e0`, shows the dialog, and destroys it. The annotated `btnOK` handler at `0143b640` validates rows, rebuilds assignments and the configuration block, replaces the runtime list, and recalculates derived state.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -64,5 +65,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The menu handler does not inspect the modal result. The dialog's OK handler owns validation and commit.
 

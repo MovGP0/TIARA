@@ -1,6 +1,6 @@
 ﻿# &Interpreter
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Source, graph, and form evidence reviewed.
 
 ## Control
 
@@ -20,25 +20,30 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnInterpreterClick at 01c80630. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The command opens the singleton `I_Class` Interpreter form. If the shared interpreter pointer is empty, it constructs the form and stores it. If the form already exists, it activates that instance. The handler then gets the native window handle and requests native show-state value `9` so that the Interpreter returns to its displayed state.
+
+The command does not load, clear, or run an interpreter file. It preserves the current Interpreter editor state on reuse.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Interpreter"] -->|"OnClick"| handler["mnInterpreterClick (01c80630)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Interpreter"] -->|OnClick| handler["mnInterpreterClick (01c80630)"]
+    handler --> exists{"Interpreter exists?"}
+    exists -->|No| create["Create I_Class Interpreter form"]
+    exists -->|Yes| activate["Activate existing form"]
+    create --> native["Get native window handle"]
+    activate --> native
+    native --> restore["Request native show state 9"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C80630__FUN_01c80630.c](../../../DecompiledSources/Tina16/functions/0000000001C80630__FUN_01c80630.c)
-- Recovered role: Evidence-blocked mnInterpreterClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTools.mnInterpreter.OnClick.
-- Current graph behavior: The OnClick binding reaches mnInterpreterClick at 01c80630. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTools.mnInterpreter to mnInterpreterClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C80630__FUN_01c80630.c and directly references 0064e1d0, 0065b870, 01aebb40. No accepted end-to-end role was established for this control path.
+- Recovered role: Creates or restores the singleton Interpreter form.
+- Current graph summary: Opens `I_Class`, reuses an existing instance, and requests native show state `9`.
+- Current graph behavior: Existing source text and form state remain intact. This command does not run the interpreter.
+- Current graph evidence: The class at `PTR_FUN_017ec3a8` maps to recovered form `TI_Class`, caption `Interpreter-<%s>`, with its file, edit, and run controls. `FUN_01c80630` constructs it into `PTR_DAT_02002d20` only when null, otherwise calls the form activation path, then gets its native handle and dispatches value `9`.
 - Complexity: complex
 - Distinct outgoing calls: 3
 
@@ -65,5 +70,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The imported native function name behind the final thunk is not present in the graph.
+- File loading and execution are separate Interpreter form events.
 

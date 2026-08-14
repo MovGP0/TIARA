@@ -1,69 +1,37 @@
 ﻿# &Output
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed with recovered validation and insertion-state evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | SchematicEditor |
-| Component path | SchematicEditor.MainMenu.Insert.mnOutput |
-| Control class | TMenuItem |
-| Caption | &Output |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | mnOutputClick |
-| Handler address | 01c77410 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.MainMenu.Insert.mnOutput` |
-| Handler node | `function:01c77410` |
-| Graph layer | UI |
+| Component path | `SchematicEditor.MainMenu.Insert.mnOutput` |
+| Control class | `TMenuItem` |
+| Handler | `mnOutputClick` at `01c77410` |
 
 ## What happens when clicked
 
-The OnClick binding reaches mnOutputClick at 01c77410. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The command does nothing when the editor blocks insertion or the global edit lock is active. Otherwise, it constructs and validates the output placement object. A negative validation result leaves the active insertion object unchanged. A valid result replaces the previous active insertion object and stages output placement.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Output"] -->|"OnClick"| handler["mnOutputClick (01c77410)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Output menu item"] --> handler["mnOutputClick"]
+    handler --> allowed{"Insertion allowed and editor unlocked?"}
+    allowed -->|"No"| noOp["Make no change"]
+    allowed -->|"Yes"| create["Create and validate output object"]
+    create --> valid{"Validation result is nonnegative?"}
+    valid -->|"No"| noOp
+    valid -->|"Yes"| active["Set active output placement object"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C77410__FUN_01c77410.c](../../../DecompiledSources/Tina16/functions/0000000001C77410__FUN_01c77410.c)
-- Recovered role: Evidence-blocked mnOutputClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.Insert.mnOutput.OnClick.
-- Current graph behavior: The OnClick binding reaches mnOutputClick at 01c77410. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.Insert.mnOutput to mnOutputClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C77410__FUN_01c77410.c and directly references 013699b0, 01c6cee0, 01c8cee0. No accepted end-to-end role was established for this control path.
-- Complexity: complex
-- Distinct outgoing calls: 3
-
-## Direct calls
-
-- `function:013699b0` — FUN_013699b0
-- `function:01c6cee0` — FUN_01c6cee0
-- `function:01c8cee0` — FUN_01c8cee0
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- [Handler source](../../../DecompiledSources/Tina16/functions/0000000001C77410__FUN_01c77410.c) checks both guards and the constructor's validation field before it stores the object.
+- [Placement-object constructor](../../../DecompiledSources/Tina16/functions/00000000013699B0__FUN_013699b0.c) calls object validation and stores its result at offset `0x2c`.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The recovered validation result does not identify each possible failure reason.

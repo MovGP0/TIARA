@@ -1,6 +1,6 @@
 ﻿# Temperature...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The handler prepares interactive temperature optimization mode 4 and honors modal cancellation.
 
 ## Control
 
@@ -20,32 +20,40 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches TemperatureOptimizationClick at 01c99010. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c99010` calls `FUN_01374440` with the active schematic and interactive selector `0`. The shared routine verifies that two required schematic collections are not empty and that optimization mode `4` is available. It prepares a temperature optimization job and opens the specialized modal settings dialog.
+
+Modal result `2` cancels the job and takes the cancellation cleanup path. Any other result configures mode `4`, runs and finalizes the job, and destroys it. The handler records `TemperatureOptimizationClick` after the shared routine returns, including after Cancel.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Temperature..."] -->|"OnClick"| handler["TemperatureOptimizationClick (01c99010)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Temperature Optimization"] --> handler["TemperatureOptimizationClick<br/>01c99010"]
+    handler --> validate["Validate schematic and mode 4"]
+    validate --> prepare["Prepare temperature job"]
+    prepare --> modal["Show specialized settings dialog"]
+    modal --> accepted{"Modal result = 2?"}
+    accepted -->|Yes| cancel["Cancel prepared job"]
+    accepted -->|No| run["Configure and run mode 4"]
+    run --> cleanup["Finalize and destroy job"]
+    cancel --> cleanup
+    cleanup --> record["Record command name"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C99010__FUN_01c99010.c](../../../DecompiledSources/Tina16/functions/0000000001C99010__FUN_01c99010.c)
-- Recovered role: Evidence-blocked TemperatureOptimizationClick command.
+- Recovered role: Runs the interactive temperature optimization mode-4 path.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.Optimization.TemperatureOptimization.OnClick.
-- Current graph behavior: The OnClick binding reaches TemperatureOptimizationClick at 01c99010. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.Optimization.TemperatureOptimization to TemperatureOptimizationClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C99010__FUN_01c99010.c and directly references 00414ad0, 01374440. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Validates the schematic, prepares and prompts for temperature optimization, cancels for modal result 2, or configures and runs mode 4, then cleans up and records the command.
+- Current graph evidence: `FUN_01c99010` calls `FUN_01374440` with selector 0. That callee checks the two required collections and capability mode 4, prepares the specialized job, shows the modal class at `PTR_FUN_0136f2b8`, treats result 2 as Cancel, and otherwise calls the mode-4 configure, run, finalize, and destruction path.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
 ## Direct calls
 
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:01374440` — FUN_01374440
+- `function:00414ad0` — Records the command name
+- `function:01374440` — Validates, prompts, and runs temperature optimization mode 4
 
 ## Resource evidence
 
@@ -64,5 +72,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- Localized validation errors are owned by the shared routine.
+- The handler records its command name after both acceptance and cancellation.
+- Internal optimizer convergence and failure codes are not returned to the wrapper.

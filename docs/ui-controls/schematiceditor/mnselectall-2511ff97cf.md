@@ -1,6 +1,6 @@
 ﻿# Select A&ll
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Evidence-backed behavior recovered.
 
 ## Control
 
@@ -20,25 +20,27 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnSelectAllClick at 01c76f20. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler selects all content in one of two target modes. For an active embedded text editor with mode value 3 or 4, it calls the recovered SynEdit Select All helper. Otherwise, it reads the schematic object count at model offset `0x10`, enumerates every object, and calls `FUN_01993F30(..., object, 1, 0)` through `FUN_01C76EF0` to select it. An empty model produces no calls and no state change.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Select A&ll"] -->|"OnClick"| handler["mnSelectAllClick (01c76f20)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Select All"] --> handler["mnSelectAllClick<br/>01c76f20"]
+    handler --> target{"Embedded text editor active?"}
+    target -->|"Yes"| text["Select complete text document"]
+    target -->|"No"| objects{"Any schematic objects?"}
+    objects -->|"No"| noOp["Keep empty selection"]
+    objects -->|"Yes"| loop["Mark every schematic object selected"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C76F20__FUN_01c76f20.c](../../../DecompiledSources/Tina16/functions/0000000001C76F20__FUN_01c76f20.c)
-- Recovered role: Evidence-blocked mnSelectAllClick command.
+- Recovered role: Selects all text or all schematic objects for the active editor mode.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.Edit.mnSelectAll.OnClick.
-- Current graph behavior: The OnClick binding reaches mnSelectAllClick at 01c76f20. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.Edit.mnSelectAll to mnSelectAllClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C76F20__FUN_01c76f20.c and directly references 00b94e60, 00bfa390, 01c76ef0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: The text branch selects the complete SynEdit document; the schematic branch enumerates and selects every model object.
+- Current graph evidence: `FUN_00BFA390` is the annotated SynEdit Select All helper. `FUN_01C76EF0` forwards each nonnull model object to `FUN_01993F30` with the select flag set to 1.
 - Complexity: complex
 - Distinct outgoing calls: 3
 
@@ -65,5 +67,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The handler does not filter object classes. It passes every enumerated model object to the common selection setter.
 

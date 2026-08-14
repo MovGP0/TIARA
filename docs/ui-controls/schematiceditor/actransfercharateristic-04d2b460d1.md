@@ -1,6 +1,6 @@
 ﻿# &AC Transfer Characteristic...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The shared AC transfer setup and result publishers establish the flow.
 
 ## Control
 
@@ -20,25 +20,28 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches ACTransferCharateristicClick at 01c75a80. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c75a80` calls `FUN_01394040` with the active schematic circuit. This is the same setup routine used by the reviewed Netlist Editor AC Transfer Characteristic command. Only a zero return continues. The handler calls `FUN_013d4bc0` to build and register AC result views, optionally calls `FUN_013c7550` to publish the applicable plot when a result manager exists, and stores `ACTransferCharateristicClick` as the last command. A nonzero return skips these steps.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&AC Transfer Characteristic..."] -->|"OnClick"| handler["ACTransferCharateristicClick (01c75a80)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click AC Transfer Characteristic"] --> handler["FUN_01c75a80"]
+    handler --> setup["FUN_01394040 setup"]
+    setup --> zero{"Return is zero?"}
+    zero -->|"No"| stop["Skip result publication"]
+    zero -->|"Yes"| result["Build and register AC result views"]
+    result --> plot["Publish applicable result plot"]
+    plot --> record["Record ACTransferCharateristicClick"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C75A80__FUN_01c75a80.c](../../../DecompiledSources/Tina16/functions/0000000001C75A80__FUN_01c75a80.c)
-- Recovered role: Evidence-blocked ACTransferCharateristicClick command.
+- Recovered role: Runs AC Transfer Characteristic setup and publishes its AC result on a zero return.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.ACAnalysis.ACTransferCharateristic.OnClick.
-- Current graph behavior: The OnClick binding reaches ACTransferCharateristicClick at 01c75a80. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.ACAnalysis.ACTransferCharateristic to ACTransferCharateristicClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C75A80__FUN_01c75a80.c and directly references 00414ad0, 01394040, 013c7550, 013d4bc0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Runs shared AC transfer setup, publishes AC results only on a zero return, and records the command name.
+- Current graph evidence: The handler branches on `FUN_01394040`, calls `FUN_013d4bc0`, optionally calls reviewed publisher `FUN_013c7550`, and writes `ACTransferCharateristicClick`. The reviewed Netlist Editor transfer command uses the same setup and result builder.
 - Complexity: complex
 - Distinct outgoing calls: 4
 
@@ -66,5 +69,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The exact meanings of nonzero setup returns and the recovered global output-mode field are not known.
 

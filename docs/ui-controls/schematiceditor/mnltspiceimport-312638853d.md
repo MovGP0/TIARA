@@ -1,6 +1,6 @@
 ﻿# LTSpice File (*.asc)...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the LTspice import dialog and OK-button conversion path.
 
 ## Control
 
@@ -20,25 +20,29 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnLTSpiceImportClick at 01c937f0. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler opens `LTSpiceImportDlg` and destroys it after the modal dialog closes. The dialog owns the actual import. Its OK button checks that the selected path exists and raises `File not found` for a missing path. For a valid path, it stores the LTspice import directory and file name, creates a new schematic, converts the selected ASC file, derives a `.tsc` document path, makes the imported document active, and invalidates the schematic view.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["LTSpice File (*.asc)..."] -->|"OnClick"| handler["mnLTSpiceImportClick (01c937f0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click LTSpice import"] --> dialog["Open LTSpice import dialog"]
+    dialog --> ok["Click OK"]
+    ok --> exists{"Selected path exists?"}
+    exists -->|"No"| error["Raise File not found"]
+    exists -->|"Yes"| settings["Store import folder and file name"]
+    settings --> convert["Create schematic and convert ASC file"]
+    convert --> activate["Set TSC path and activate document"]
+    activate --> redraw["Invalidate schematic view"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C937F0__FUN_01c937f0.c](../../../DecompiledSources/Tina16/functions/0000000001C937F0__FUN_01c937f0.c)
-- Recovered role: Evidence-blocked mnLTSpiceImportClick command.
+- Recovered role: Open the LTspice schematic import dialog.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.Import.mnLTSpiceImport.OnClick.
-- Current graph behavior: The OnClick binding reaches mnLTSpiceImportClick at 01c937f0. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.Import.mnLTSpiceImport to mnLTSpiceImportClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C937F0__FUN_01c937f0.c and directly references 00410f20, 00414480, 00414560, 007fc180. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Shows the LTspice import dialog. The dialog OK path validates the file, converts it into a new active TINA schematic, and refreshes the view.
+- Current graph evidence: `FUN_01c937f0` constructs the class identified by the DFM as `LTSpiceImportDlg`, shows it modally, and destroys it. The separately annotated `bOK` handler at `01b90000` checks file existence, writes `LT_ImportDir` and `LT_ImportFileName`, creates a new schematic, runs the LTspice conversion, replaces the extension with `.tsc`, updates the active document, and calls `FUN_01ca2aa0`, which invalidates the view control at dialog offset `+0xa10`.
 - Complexity: complex
 - Distinct outgoing calls: 4
 
@@ -66,5 +70,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The menu handler does not inspect the modal result because the dialog OK handler performs the import before the dialog closes.
+- Converter-internal diagnostics appear in the dialog messages control and are below this menu handler.
 

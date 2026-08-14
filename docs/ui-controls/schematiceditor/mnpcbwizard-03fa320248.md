@@ -1,6 +1,6 @@
 ﻿# PCB Design...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Source, graph, wizard, export, and launch evidence reviewed.
 
 ## Control
 
@@ -20,25 +20,32 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnPCBWizardClick at 01c99740. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The command enters the shared PCB Design path. If the Schematic Editor is busy, it clears the pressed tool state and schedules the same command to run again after 100 ms. When the editor is ready, it stops the active analysis and opens `TPCBWizard` modally.
+
+If the wizard is accepted, the handler exports the current circuit as a `.NET` netlist, builds the PCB command arguments and `.HID` path from the wizard selections, and starts `pcb.exe` in the application directory. Cancel closes the wizard without an export or process launch.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["PCB Design..."] -->|"OnClick"| handler["mnPCBWizardClick (01c99740)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["PCB Design..."] -->|OnClick| handler["mnPCBWizardClick (01c99740)"]
+    handler --> ready{"Editor ready?"}
+    ready -->|No| retry["Schedule retry after 100 ms"]
+    ready -->|Yes| stop["Stop active analysis"]
+    stop --> wizard["Show TPCBWizard modally"]
+    wizard --> accepted{"Accepted?"}
+    accepted -->|No| done["Close without export"]
+    accepted -->|Yes| export["Export current circuit as .NET"]
+    export --> launch["Build arguments and start pcb.exe"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C99740__FUN_01c99740.c](../../../DecompiledSources/Tina16/functions/0000000001C99740__FUN_01c99740.c)
-- Recovered role: Evidence-blocked mnPCBWizardClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTools.mnPCBTools.mnPCBWizard.OnClick.
-- Current graph behavior: The OnClick binding reaches mnPCBWizardClick at 01c99740. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTools.mnPCBTools.mnPCBWizard to mnPCBWizardClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C99740__FUN_01c99740.c and directly references 01c99370. No accepted end-to-end role was established for this control path.
+- Recovered role: Opens PCB Design and launches the external PCB application for an accepted wizard configuration.
+- Current graph summary: Delegates to the PCB toolbar's shared command path.
+- Current graph behavior: Defers while the editor is busy, stops analysis, collects PCB options, exports a netlist, and launches `pcb.exe` only after acceptance.
+- Current graph evidence: `FUN_01c99740` calls shared handler `FUN_01c99370`. That handler uses `FUN_01c87d20` for readiness, schedules itself with delay `100` when not ready, calls the analysis-stop path, shows `TPCBWizard`, tests modal result `1`, calls `FUN_01b41bc0` for the `.NET` export, constructs the `.HID` and command strings, and passes `pcb.exe` to `FUN_01d44af0` with the application directory.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -63,5 +70,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The recovered source does not assign names to all PCB wizard command switches.
+- The handler starts the external process but does not wait for or check its exit result.
 

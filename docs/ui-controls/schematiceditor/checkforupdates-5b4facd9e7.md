@@ -1,6 +1,6 @@
 ﻿# Check for Updates...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Evidence-backed no-op recovered.
 
 ## Control
 
@@ -20,25 +20,25 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches CheckforUpdatesClick at 01c9c210. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler initializes a local UnicodeString slot to zero, calls the Delphi `@UStrClr` runtime helper on that empty slot, and returns. It has no network, process, file, dialog, browser, or application call. Therefore, this recovered build performs no update check and produces no visible output for this click.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Check for Updates..."] -->|"OnClick"| handler["CheckforUpdatesClick (01c9c210)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Check for Updates"] --> handler["CheckforUpdatesClick<br/>01c9c210"]
+    handler --> initialize["Initialize empty local UnicodeString"]
+    initialize --> clear["Clear empty string through Delphi runtime"]
+    clear --> noOp["Return without update request or UI output"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C9C210__FUN_01c9c210.c](../../../DecompiledSources/Tina16/functions/0000000001C9C210__FUN_01c9c210.c)
-- Recovered role: Evidence-blocked CheckforUpdatesClick command.
+- Recovered role: No-op update-check handler in the recovered build.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.Help.CheckforUpdates.OnClick.
-- Current graph behavior: The OnClick binding reaches CheckforUpdatesClick at 01c9c210. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.Help.CheckforUpdates to CheckforUpdatesClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C9C210__FUN_01c9c210.c and directly references 00414480. No accepted end-to-end role was established for this control path.
+- Current graph behavior: The handler clears an empty local string and returns without application work.
+- Current graph evidence: The recovered body contains only local zero initialization and `FUN_00414480`, the annotated Delphi UnicodeString clear helper. The graph has no other outgoing call.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -63,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The no-op result applies to this recovered runtime. No inactive update implementation is reachable from this handler.
 

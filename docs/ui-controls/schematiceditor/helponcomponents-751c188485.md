@@ -1,6 +1,6 @@
 ﻿# C&omponent Help
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Evidence-backed behavior recovered.
 
 ## Control
 
@@ -20,25 +20,25 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches HelpOnComponentsClick at 01c90710. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler builds a path to `TCH.CHM`, passes it to `FUN_01B1DEF0` to select an existing language-specific variant, and calls the application help-system method at virtual offset `0x30` with keyword `index`. It does not inspect a selected schematic component and does not change the model. Missing-file behavior is not present in this handler.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["C&omponent Help"] -->|"OnClick"| handler["HelpOnComponentsClick (01c90710)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Component Help"] --> handler["HelpOnComponentsClick<br/>01c90710"]
+    handler --> path["Build TCH.CHM path"]
+    path --> locale["Select existing localized help file"]
+    locale --> help["Open keyword index"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C90710__FUN_01c90710.c](../../../DecompiledSources/Tina16/functions/0000000001C90710__FUN_01c90710.c)
-- Recovered role: Evidence-blocked HelpOnComponentsClick command.
+- Recovered role: Opens the component-help index in localized TCH.CHM.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.Help.HelpOnComponents.OnClick.
-- Current graph behavior: The OnClick binding reaches HelpOnComponentsClick at 01c90710. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.Help.HelpOnComponents to HelpOnComponentsClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C90710__FUN_01c90710.c and directly references 00414480, 00416cd0, 01b1def0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: The handler resolves localized `TCH.CHM` and opens the keyword `index` through the help system.
+- Current graph evidence: The file and keyword literals, localization helper, and virtual keyword-help call are direct recovered source values.
 - Complexity: complex
 - Distinct outgoing calls: 3
 
@@ -65,5 +65,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- Despite the menu caption, the handler opens the general component-help index; it does not pass a selected component identifier.
 

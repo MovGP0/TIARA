@@ -1,6 +1,6 @@
 ﻿# Pro&tect Circuit...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Source, graph, dialog-resource, validation, and circuit-state evidence reviewed.
 
 ## Control
 
@@ -20,25 +20,33 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnProtectClick at 01c97d70. The recovered body has 11 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The command does nothing if there is no current circuit or if that circuit is already protected. Otherwise, it opens `TProtectCircDlg`. The dialog asks for the password twice and includes the `Allow switching between good && faulty` option.
+
+Cancel leaves the circuit unchanged. On OK, an empty password or two different passwords produces `The passwords do not match. Please try again.` under the `Protect Circuit` title and opens the dialog again. A valid matching password is stored in the circuit, and the option state is stored with the protection data.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Pro&tect Circuit..."] -->|"OnClick"| handler["mnProtectClick (01c97d70)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Protect Circuit..."] -->|OnClick| handler["mnProtectClick (01c97d70)"]
+    handler --> eligible{"Current unprotected circuit?"}
+    eligible -->|No| done["Return without a change"]
+    eligible -->|Yes| dialog["Show protection dialog"]
+    dialog --> accepted{"OK selected?"}
+    accepted -->|No| done
+    accepted -->|Yes| valid{"Passwords match and are not empty?"}
+    valid -->|No| error["Show mismatch message"]
+    error --> dialog
+    valid -->|Yes| store["Store password and switch option"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C97D70__FUN_01c97d70.c](../../../DecompiledSources/Tina16/functions/0000000001C97D70__FUN_01c97d70.c)
-- Recovered role: Evidence-blocked mnProtectClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTools.mnProtect.OnClick.
-- Current graph behavior: The OnClick binding reaches mnProtectClick at 01c97d70. The recovered body has 11 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTools.mnProtect to mnProtectClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C97D70__FUN_01c97d70.c and directly references 00410f20, 00414480, 00414560, 00416db0, 0043ea00, 0064dd90, 007fc180, 0080d2f0, and 3 more. No accepted end-to-end role was established for this control path.
+- Recovered role: Validates and stores protection settings for the current circuit.
+- Current graph summary: Skips missing or already protected circuits, then loops the modal protection dialog until cancel or valid input.
+- Current graph behavior: Stores a matching non-empty password and the allow-switch option. Cancel and ineligible circuit states do not change protection data.
+- Current graph evidence: `FUN_019ac250` tests existing protection. The DFM for `TProtectCircDlg` identifies the two password fields and the allow-switch check box. `FUN_01c97d70` compares the two Unicode strings and rejects both mismatch and empty input with the recovered message. A valid result calls `FUN_019ac180` with the password and `FUN_019ac120` with the check-box state.
 - Complexity: complex
 - Distinct outgoing calls: 11
 
@@ -73,5 +81,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The recovered handler does not send a separate model-change notification after it stores protection data.
+- The internal circuit field names remain unresolved.
 

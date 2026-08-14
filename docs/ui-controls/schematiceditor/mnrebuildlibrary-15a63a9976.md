@@ -1,6 +1,6 @@
 ﻿# Re-&build Library
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Source, graph, library-enumeration, index-rebuild, and progress-dialog evidence reviewed.
 
 ## Control
 
@@ -20,25 +20,30 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnReBuildLibraryClick at 01c9c2c0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The command starts the shared library rebuild in full-library mode. It opens `TMessageBoxDlg` with the caption `Calculating`, enumerates every valid library category and entry, and rebuilds each entry's `SPMACROS.IND` data through the per-entry rebuild path.
+
+After the enumeration, it clears 18 cached library collections and rebuilds the library indexes. It then closes the progress dialog. The handler does not return a completion count or a separate error status.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Re-&build Library"] -->|"OnClick"| handler["mnReBuildLibraryClick (01c9c2c0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Re-build Library"] -->|OnClick| handler["mnReBuildLibraryClick (01c9c2c0)"]
+    handler --> progress["Show Calculating dialog"]
+    progress --> enumerate["Enumerate valid library entries"]
+    enumerate --> rebuild["Rebuild each SPMACROS.IND"]
+    rebuild --> clear["Clear cached library collections"]
+    clear --> indexes["Rebuild library indexes"]
+    indexes --> done["Close progress dialog"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C9C2C0__FUN_01c9c2c0.c](../../../DecompiledSources/Tina16/functions/0000000001C9C2C0__FUN_01c9c2c0.c)
-- Recovered role: Evidence-blocked mnReBuildLibraryClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTools.mnReBuildLibrary.OnClick.
-- Current graph behavior: The OnClick binding reaches mnReBuildLibraryClick at 01c9c2c0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTools.mnReBuildLibrary to mnReBuildLibraryClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C9C2C0__FUN_01c9c2c0.c and directly references 01716680. No accepted end-to-end role was established for this control path.
+- Recovered role: Rebuilds all schematic component library entries and their indexes.
+- Current graph summary: Calls the shared library operation in mode `3` with progress enabled.
+- Current graph behavior: Rebuilds each valid entry, clears cached collections, and reconstructs the library indexes before the progress dialog closes.
+- Current graph evidence: `FUN_01c9c2c0` calls `FUN_01716680(editor+0x2520,1,3)`. In mode `3`, that callee constructs `TMessageBoxDlg`, enumerates the library categories and entries, and calls `FUN_017115e0(entry,1)`. The per-entry function replaces the `SPMACROS.IND` data and refreshes the item. The caller then invokes `FUN_01719a40` to clear 18 collections and `FUN_01719d10` to rebuild their indexes.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -63,5 +68,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The recovered operation does not return per-entry success details to this menu handler.
+- The Delphi names of the 18 cached collections are not recovered.
 

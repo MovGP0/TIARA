@@ -1,6 +1,6 @@
 ﻿# Re-c&ompile Library
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete.
 
 ## Control
 
@@ -10,58 +10,39 @@
 | Component path | SchematicEditor.MainMenu.mnTools.mnReCompileLibrary |
 | Control class | TMenuItem |
 | Caption | Re-c&ompile Library |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | mnReCompileLibraryClick |
-| Handler address | 01c9c310 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.MainMenu.mnTools.mnReCompileLibrary` |
-| Handler node | `function:01c9c310` |
+| Handler | `mnReCompileLibraryClick` at `01c9c310` |
+| Graph nodes | `resource:dfm:SchematicEditor/SchematicEditor.MainMenu.mnTools.mnReCompileLibrary` → `function:01c9c310` |
 | Graph layer | UI |
 
 ## What happens when clicked
 
-The OnClick binding reaches mnReCompileLibraryClick at 01c9c310. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler passes the Schematic Editor library manager at form offset `+0x2520` to `FUN_01716680`. It supplies operation selector `3` and rebuild flag `0`.
+
+`FUN_01716680` creates and shows the library progress form, enumerates every entry selected by operation `3`, and calls `FUN_017115e0` for each entry. That callee rebuilds the entry's `SPMACROS.IND` file from its source and destination directories, reloads the index, and releases temporary objects. The shared helper then refreshes its library views and destroys the progress form. The parallel Re-build Library handler uses the same path with flag `1`; this control uses flag `0` for the recompile variant.
+
+The click has no local validation, retry, message, or exception handler. An empty enumeration still opens and closes the progress form and runs the final library refresh.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Re-c&ompile Library"] -->|"OnClick"| handler["mnReCompileLibraryClick (01c9c310)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Re-compile Library"] --> handler["mnReCompileLibraryClick at 01c9c310"]
+    handler --> progress["Create and show the library progress form"]
+    progress --> entries["Enumerate all library entries for selector 3"]
+    entries --> compile["Recompile each entry with flag 0"]
+    compile --> index["Replace and reload SPMACROS.IND"]
+    index --> refresh["Refresh library views and close progress form"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C9C310__FUN_01c9c310.c](../../../DecompiledSources/Tina16/functions/0000000001C9C310__FUN_01c9c310.c)
-- Recovered role: Evidence-blocked mnReCompileLibraryClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTools.mnReCompileLibrary.OnClick.
-- Current graph behavior: The OnClick binding reaches mnReCompileLibraryClick at 01c9c310. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTools.mnReCompileLibrary to mnReCompileLibraryClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C9C310__FUN_01c9c310.c and directly references 01716680. No accepted end-to-end role was established for this control path.
-- Complexity: simple
-- Distinct outgoing calls: 1
-
-## Direct calls
-
-- `function:01716680` — FUN_01716680
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Handler: [FUN_01c9c310](../../../DecompiledSources/Tina16/functions/0000000001C9C310__FUN_01c9c310.c)
+- Library operation: [FUN_01716680](../../../DecompiledSources/Tina16/functions/0000000001716680__FUN_01716680.c)
+- Entry compiler: [FUN_017115e0](../../../DecompiledSources/Tina16/functions/00000000017115E0__FUN_017115e0.c)
+- Parallel Re-build handler: [FUN_01c9c2c0](../../../DecompiledSources/Tina16/functions/0000000001C9C2C0__FUN_01c9c2c0.c)
+- Recovered role: Recompile all library entries and refresh the library indexes.
+- No image or glyph is present for this menu item.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The recovered field names for the library manager and progress-form global are not available. Their enumeration, index-file, refresh, and parallel-control data flow establishes their roles.

@@ -1,71 +1,39 @@
 ﻿# &Macro...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed with recovered source-selection and placement evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | SchematicEditor |
-| Component path | SchematicEditor.MainMenu.Insert.mnMacro |
-| Control class | TMenuItem |
-| Caption | &Macro... |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | mnMacroClick |
-| Handler address | 01c89ba0 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.MainMenu.Insert.mnMacro` |
-| Handler node | `function:01c89ba0` |
-| Graph layer | UI |
+| Component path | `SchematicEditor.MainMenu.Insert.mnMacro` |
+| Control class | `TMenuItem` |
+| Handler | `mnMacroClick` at `01c89ba0` |
 
 ## What happens when clicked
 
-The OnClick binding reaches mnMacroClick at 01c89ba0. The recovered body has 5 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The command stops when the editor blocks insertion or when the macro source is not accepted. After acceptance, it copies the selected source path into editor state and starts the common insertion path with object type `0x39`. That path loads and validates the macro data. A failed load destroys the temporary object and makes no schematic change. A valid macro gets undo data, is added at the current insertion coordinates, becomes selected, and activates placement state.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Macro..."] -->|"OnClick"| handler["mnMacroClick (01c89ba0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Macro menu item"] --> handler["mnMacroClick"]
+    handler --> allowed{"Insertion allowed?"}
+    allowed -->|"No"| noOp["Make no change"]
+    allowed -->|"Yes"| source{"Macro source accepted?"}
+    source -->|"No"| noOp
+    source -->|"Yes"| load["Load and validate macro data"]
+    load --> valid{"Macro valid?"}
+    valid -->|"No"| noOp
+    valid -->|"Yes"| place["Record undo, add, select, and place macro"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C89BA0__FUN_01c89ba0.c](../../../DecompiledSources/Tina16/functions/0000000001C89BA0__FUN_01c89ba0.c)
-- Recovered role: Evidence-blocked mnMacroClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.Insert.mnMacro.OnClick.
-- Current graph behavior: The OnClick binding reaches mnMacroClick at 01c89ba0. The recovered body has 5 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.Insert.mnMacro to mnMacroClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C89BA0__FUN_01c89ba0.c and directly references 00414480, 00414ad0, 00724270, 01c6ec30, 01c8cee0. No accepted end-to-end role was established for this control path.
-- Complexity: complex
-- Distinct outgoing calls: 5
-
-## Direct calls
-
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:00724270` — FUN_00724270
-- `function:01c6ec30` — FUN_01c6ec30
-- `function:01c8cee0` — FUN_01c8cee0
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- [Handler source](../../../DecompiledSources/Tina16/functions/0000000001C89BA0__FUN_01c89ba0.c) accepts the source, stores its path, and selects insertion type `0x39`.
+- [Common insertion path](../../../DecompiledSources/Tina16/functions/0000000001C6EC30__FUN_01c6ec30.c) contains the type-`0x39` load, validation, undo, add, coordinate, selection, and failure paths.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The recovered code does not expose the user-facing validation messages.

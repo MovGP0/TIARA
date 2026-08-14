@@ -1,6 +1,6 @@
 ﻿# &Tool Bar
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The shared Tool Bar command and VCL visibility state establish the toggle.
 
 ## Control
 
@@ -20,25 +20,25 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnToolBarClick at 01c77320. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c77320` delegates to `FUN_01c67dc0`. The helper reads the Visible byte of the main toolbar at form offset `0x6C8`, inverts it, and applies the result with the VCL visibility setter. `SchematicEditor.ToolsPopup.ToolBar` uses the same helper. Thus, the View menu item and popup item are two entry points that show or hide the main toolbar.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Tool Bar"] -->|"OnClick"| handler["mnToolBarClick (01c77320)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Tool Bar"] --> handler["FUN_01c77320"]
+    handler --> shared["FUN_01c67dc0 shared command"]
+    shared --> read["Read toolbar visibility"]
+    read --> apply["Apply the opposite visibility"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C77320__FUN_01c77320.c](../../../DecompiledSources/Tina16/functions/0000000001C77320__FUN_01c77320.c)
-- Recovered role: Evidence-blocked mnToolBarClick command.
+- Recovered role: Toggles visibility of the main schematic-editor toolbar.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.View.mnToolBar.OnClick.
-- Current graph behavior: The OnClick binding reaches mnToolBarClick at 01c77320. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.View.mnToolBar to mnToolBarClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C77320__FUN_01c77320.c and directly references 01c67dc0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Calls the shared Tool Bar command, which inverts the main toolbar's Visible state.
+- Current graph evidence: The wrapper calls `FUN_01c67dc0`. The helper reads Visible byte `0xA9` from form field `0x6C8` and passes its inverse to `FUN_0064dbe0`. The `ToolsPopup.ToolBar` control uses the same helper and has the same caption.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -63,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The toolbar field at offset `0x6C8` has no recovered Delphi name.
 

@@ -1,6 +1,6 @@
 ﻿# Import TINA Libraries and Designs...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the folder-selector, file-inventory, copy, rebuild, and log paths.
 
 ## Control
 
@@ -20,25 +20,31 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches ImportUserLibsClick at 01ca2ac0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler opens `frmSelectTinaFolder`. The dialog selects an earlier TINA installation and can include its examples and designs. Its Go button inventories supported catalog, footprint, 3D, macro, and SPICE library files. It optionally adds user-example designs. It compares these sources with the current TINA destinations and copies only missing entries. It logs each copy, requests a library rebuild when it copies a LIB file, saves `Library Import.log`, and reports either success or that there was nothing to copy. After success, it offers to open the log in Notepad.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Import TINA Libraries and Designs..."] -->|"OnClick"| handler["ImportUserLibsClick (01ca2ac0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Import TINA Libraries and Designs"] --> dialog["Select earlier TINA folder"]
+    dialog --> inventory["Inventory supported source and destination files"]
+    inventory --> missing{"Missing source entries found?"}
+    missing -->|"No"| none["Report nothing to copy"]
+    missing -->|"Yes"| copy["Copy missing files and log each copy"]
+    copy --> library{"LIB file copied?"}
+    library -->|"Yes"| rebuild["Request library rebuild"]
+    library -->|"No"| log["Save import log"]
+    rebuild --> log
+    log --> offer["Report success and offer to open log"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001CA2AC0__FUN_01ca2ac0.c](../../../DecompiledSources/Tina16/functions/0000000001CA2AC0__FUN_01ca2ac0.c)
-- Recovered role: Evidence-blocked ImportUserLibsClick command.
+- Recovered role: Open the earlier-version TINA library and design migration dialog.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.Import.ImportUserLibs.OnClick.
-- Current graph behavior: The OnClick binding reaches ImportUserLibsClick at 01ca2ac0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.Import.ImportUserLibs to ImportUserLibsClick. The recovered source is DecompiledSources/Tina16/functions/0000000001CA2AC0__FUN_01ca2ac0.c and directly references 00410f20, 007fc180. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Shows the TINA-folder selector. Its Go path imports missing library and optional example files, writes a log, and requests a rebuild when required.
+- Current graph evidence: `FUN_01ca2ac0` constructs the class that the resource and event map identify as `frmSelectTinaFolder`, shows it modally, and destroys it. The annotated `btnOK` handler at `01c454f0` inventories supported extensions, compares source and destination lists, copies absent entries, logs copies, writes `ForceReBuildLibrary` after a LIB copy, saves `Library Import.log`, and opens it through `notepad.exe` only when the user answers Yes.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -64,5 +70,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- Copy failures are handled below the recovered stream-copy calls; this menu handler has no local error branch.
 

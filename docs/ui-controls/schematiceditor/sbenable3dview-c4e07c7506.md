@@ -1,6 +1,6 @@
 ﻿# 2D/3D View
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete.
 
 ## Control
 
@@ -9,65 +9,40 @@
 | Form | SchematicEditor |
 | Component path | SchematicEditor.TopToolBar.EditorTools.sbEnable3DView |
 | Control class | TSpeedButton |
-| Caption | Not present in the recovered resource. |
 | Hint | 2D/3D View |
-| Text | Not present in the recovered resource. |
-| Handler name | sbEnable3DViewClick |
-| Handler address | 01c99100 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.TopToolBar.EditorTools.sbEnable3DView` |
-| Handler node | `function:01c99100` |
+| Handler | `sbEnable3DViewClick` at `01c99100` |
+| Graph nodes | `resource:dfm:SchematicEditor/SchematicEditor.TopToolBar.EditorTools.sbEnable3DView` → `function:01c99100` |
 | Graph layer | UI |
 
 ## What happens when clicked
 
-The OnClick binding reaches sbEnable3DViewClick at 01c99100. The recovered body has 7 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler copies the button's Down state to a global 3D-view byte. If Down is false, it shows the view at `+0x1270`, hides the view at `+0x1278`, moves the second view's width to the first view, and sets the hidden view width to zero. If Down is true, it performs the inverse swap.
+
+It then opens `TINA.INI`, writes the same Boolean value to section `Schematic Editor`, key `Enable3DShapes`, destroys the INI object, and invalidates the editor client at `+0xa10`. Thus, the display changes immediately and the selection persists for the next session.
+
+The handler has no retry, message, rollback, or local exception block. A write or object-construction failure is not handled locally.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["2D/3D View"] -->|"OnClick"| handler["sbEnable3DViewClick (01c99100)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Toggle 2D/3D View"] --> state["Copy button Down to global 3D state"]
+    state --> selected{"Down is true?"}
+    selected -->|"No"| twoD["Show first view, hide second, and transfer width"]
+    selected -->|"Yes"| threeD["Show second view, hide first, and transfer width"]
+    twoD --> persist["Write Enable3DShapes to TINA.INI"]
+    threeD --> persist
+    persist --> redraw["Invalidate the editor client"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C99100__FUN_01c99100.c](../../../DecompiledSources/Tina16/functions/0000000001C99100__FUN_01c99100.c)
-- Recovered role: Evidence-blocked sbEnable3DViewClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.TopToolBar.EditorTools.sbEnable3DView.OnClick.
-- Current graph behavior: The OnClick binding reaches sbEnable3DViewClick at 01c99100. The recovered body has 7 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.TopToolBar.EditorTools.sbEnable3DView to sbEnable3DViewClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C99100__FUN_01c99100.c and directly references 00410f20, 00414480, 00416cd0, 005da0f0, 0064e770, 007e2f50, 007e2f80. No accepted end-to-end role was established for this control path.
-- Complexity: complex
-- Distinct outgoing calls: 7
-
-## Direct calls
-
-- `function:00410f20` — Nil-safe Delphi object destruction helper
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00416cd0` — FUN_00416cd0
-- `function:005da0f0` — FUN_005da0f0
-- `function:0064e770` — FUN_0064e770
-- `function:007e2f50` — FUN_007e2f50
-- `function:007e2f80` — FUN_007e2f80
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: [`0346_SchematicEditor_SchematicEditor_TopToolBar_EditorTools_sbEnable3DView_Glyph_Data.png`](../../../glyph/0346_SchematicEditor_SchematicEditor_TopToolBar_EditorTools_sbEnable3DView_Glyph_Data.png)
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Handler: [FUN_01c99100](../../../DecompiledSources/Tina16/functions/0000000001C99100__FUN_01c99100.c)
+- Visibility setter: [FUN_007e2f80](../../../DecompiledSources/Tina16/functions/00000000007E2F80__FUN_007e2f80.c)
+- Width setter: [FUN_007e2f50](../../../DecompiledSources/Tina16/functions/00000000007E2F50__FUN_007e2f50.c)
+- Extracted glyph: [2D/3D view glyph](../../../glyph/0346_SchematicEditor_SchematicEditor_TopToolBar_EditorTools_sbEnable3DView_Glyph_Data.png)
+- Recovered role: Switch the editor between its two display controls and persist `Enable3DShapes`.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The original Delphi names of the two view fields at `+0x1270` and `+0x1278` are not recovered.

@@ -1,6 +1,6 @@
 ﻿# AC Optimization (&Transfer)...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The handler selects AC optimization mode 8 with the transfer selector.
 
 ## Control
 
@@ -20,32 +20,39 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches ACOptimizationTransferClick at 01c97190. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c97190` calls `FUN_013748b0` with the active schematic, selector `1`, and interactive-dialog flag `0`. The shared routine verifies that the required schematic collections are not empty and that optimization mode `8` is available. It prepares an optimization job and opens its modal settings dialog.
+
+Cancel result `2` cleans the prepared job without running it. An accepted result configures mode `8` with selector `1`, runs and finalizes the job, and destroys it. After the shared routine returns, the handler records `ACOptimizationTransferClick`; this record is also written after Cancel.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["AC Optimization (&Transfer)..."] -->|"OnClick"| handler["ACOptimizationTransferClick (01c97190)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click AC Optimization Transfer"] --> handler["ACOptimizationTransferClick<br/>01c97190"]
+    handler --> validate["Validate schematic and mode 8"]
+    validate --> dialog["Prepare job and show settings dialog"]
+    dialog --> accepted{"Modal result = 2?"}
+    accepted -->|Yes| cancel["Cancel prepared job"]
+    accepted -->|No| run["Configure mode 8 selector 1 and run"]
+    cancel --> record["Record command name"]
+    run --> cleanup["Finalize and destroy job"]
+    cleanup --> record
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C97190__FUN_01c97190.c](../../../DecompiledSources/Tina16/functions/0000000001C97190__FUN_01c97190.c)
-- Recovered role: Evidence-blocked ACOptimizationTransferClick command.
+- Recovered role: Runs interactive AC optimization with the transfer selector.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.Optimization.ACOptimizationTransfer.OnClick.
-- Current graph behavior: The OnClick binding reaches ACOptimizationTransferClick at 01c97190. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.Optimization.ACOptimizationTransfer to ACOptimizationTransferClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C97190__FUN_01c97190.c and directly references 00414ad0, 013748b0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Validates the schematic, opens AC optimization settings, cancels cleanly for modal result 2, or configures and runs mode 8 with selector 1, then records the command.
+- Current graph evidence: `FUN_01c97190` differs from the single-output wrapper only by passing selector 1 to `FUN_013748b0`. That callee checks the required collections and capability mode 8, shows the settings dialog, treats result 2 as Cancel, and otherwise runs the mode-8 job.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
 ## Direct calls
 
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:013748b0` — FUN_013748b0
+- `function:00414ad0` — Records the command name
+- `function:013748b0` — Validates, configures, and runs interactive AC optimization
 
 ## Resource evidence
 
@@ -64,5 +71,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- Localized validation errors are raised inside the shared optimization routine.
+- The handler records its command name after both acceptance and cancellation.
+- The internal optimizer's convergence and failure codes are not returned to this wrapper.

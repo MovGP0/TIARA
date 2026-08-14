@@ -1,6 +1,6 @@
 ﻿# Edit Macro &Properties...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Source, graph, and dialog evidence reviewed.
 
 ## Control
 
@@ -20,25 +20,32 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnEditMacroPropertiesClick at 01c89d40. The recovered body has 7 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The command opens `MacroPropertiesForm` only for an eligible selected macro. It first rejects disallowed editor modes. It then finds the selected component in the current model and requires all of these conditions: the selection exists, the application is not in the recovered global lock state, the selected component has macro type `4`, and it has an attached macro payload at offset `0x1A8`.
+
+For an eligible macro, the handler constructs `MacroPropertiesForm` with the selected component and payload and shows it modally. If the result is `1`, it marks the current model changed and notifies dependent editor windows. Cancel, an ineligible selection, or a missing payload causes no model update.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Edit Macro &Properties..."] -->|"OnClick"| handler["mnEditMacroPropertiesClick (01c89d40)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Edit Macro Properties..."] -->|OnClick| handler["mnEditMacroPropertiesClick (01c89d40)"]
+    handler --> guard{"Editor mode permits command?"}
+    guard -->|No| stop["Leave model unchanged"]
+    guard -->|Yes| selected{"Eligible macro with payload selected?"}
+    selected -->|No| stop
+    selected -->|Yes| modal["Show Macro Properties modally"]
+    modal --> accepted{"Result is 1?"}
+    accepted -->|No| stop
+    accepted -->|Yes| notify["Mark model changed and notify editors"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C89D40__FUN_01c89d40.c](../../../DecompiledSources/Tina16/functions/0000000001C89D40__FUN_01c89d40.c)
-- Recovered role: Evidence-blocked mnEditMacroPropertiesClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTools.mnEditMacroProperties.OnClick.
-- Current graph behavior: The OnClick binding reaches mnEditMacroPropertiesClick at 01c89d40. The recovered body has 7 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTools.mnEditMacroProperties to mnEditMacroPropertiesClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C89D40__FUN_01c89d40.c and directly references 00410f20, 0198a580, 01993ec0, 0199e310, 01b921c0, 01c8cee0, 01d04d40. No accepted end-to-end role was established for this control path.
+- Recovered role: Edits the selected macro payload and notifies the model after acceptance.
+- Current graph summary: Applies selection and mode guards, shows `MacroPropertiesForm`, and sends a model-change notification only for modal result `1`.
+- Current graph behavior: Cancel and every failed eligibility check are no-op paths for the model.
+- Current graph evidence: `FUN_01993ec0` finds the selected model item. `FUN_0198a580` must return type `4`, and `FUN_01d04d40` requires payload offset `0x1A8`. `FUN_01b921c0` stores the selected component and payload in the recovered `TMacroPropertiesForm`. The accepted branch calls `FUN_0199e310(model,0,1,0)`.
 - Complexity: complex
 - Distinct outgoing calls: 7
 
@@ -69,5 +76,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The global lock byte and the editor-mode fields do not have recovered Delphi names.
+- The modal form owns validation of individual macro fields. The outer handler receives only the modal result.
 

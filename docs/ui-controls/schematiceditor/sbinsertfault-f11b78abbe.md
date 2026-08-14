@@ -1,69 +1,39 @@
-﻿# Insert Fault|Select the component you want to insert fault into
+﻿# Insert Fault
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from recovered source, shared handlers, resource text, and glyph evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | SchematicEditor |
 | Component path | SchematicEditor.EditorPanel.FaultManager.GroupBox4.FaultPanel.sbInsertFault |
 | Control class | TSpeedButton |
-| Caption | Not present in the recovered resource. |
 | Hint | Insert Fault\|Select the component you want to insert fault into |
-| Text | Not present in the recovered resource. |
-| Handler name | sbInsertFaultClick |
-| Handler address | 01c7daa0 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.EditorPanel.FaultManager.GroupBox4.FaultPanel.sbInsertFault` |
-| Handler node | `function:01c7daa0` |
-| Graph layer | UI |
+| Handler | sbInsertFaultClick at 01c7daa0 |
 
 ## What happens when clicked
 
-The OnClick binding reaches sbInsertFaultClick at 01c7daa0. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler clears any prior editor selection helper, creates a fault-management helper with mode byte `1`, and installs it as the active helper. It then waits for the user to select a component. The button click does not insert a fault by itself.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Insert Fault|Select the component you want to insert fault into"] -->|"OnClick"| handler["sbInsertFaultClick (01c7daa0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Insert Fault"] --> handler["sbInsertFaultClick (01c7daa0)"]
+    handler --> clear["Clear prior selection helper"]
+    clear --> create["Create fault helper with mode 1"]
+    create --> install["Install active helper"]
+    install --> wait["Wait for component selection"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C7DAA0__FUN_01c7daa0.c](../../../DecompiledSources/Tina16/functions/0000000001C7DAA0__FUN_01c7daa0.c)
-- Recovered role: Evidence-blocked sbInsertFaultClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.EditorPanel.FaultManager.GroupBox4.FaultPanel.sbInsertFault.OnClick.
-- Current graph behavior: The OnClick binding reaches sbInsertFaultClick at 01c7daa0. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.EditorPanel.FaultManager.GroupBox4.FaultPanel.sbInsertFault to sbInsertFaultClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C7DAA0__FUN_01c7daa0.c and directly references 0136c440, 01c6cee0, 01c6cf20. No accepted end-to-end role was established for this control path.
-- Complexity: complex
-- Distinct outgoing calls: 3
+- Source: [FUN_01c7daa0](../../../DecompiledSources/Tina16/functions/0000000001C7DAA0__FUN_01c7daa0.c)
+- [FUN_0136c440](../../../DecompiledSources/Tina16/functions/000000000136C440__FUN_0136c440.c) constructs the helper and stores the supplied mode byte.
+- `FUN_01c6cf20` clears the previous helper and `FUN_01c6cee0` installs the new one.
+- Extracted glyph: [Insert Fault glyph](../../../glyph/0366_SchematicEditor_SchematicEditor_EditorPanel_FaultManager_GroupBox4_FaultPanel_sbInsertFault_Glyph_Data.png)
 
-## Direct calls
+## No-op and error behavior
 
-- `function:0136c440` — FUN_0136c440
-- `function:01c6cee0` — FUN_01c6cee0
-- `function:01c6cf20` — FUN_01c6cf20
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: [`0366_SchematicEditor_SchematicEditor_EditorPanel_FaultManager_GroupBox4_FaultPanel_sbInsertFault_Glyph_Data.png`](../../../glyph/0366_SchematicEditor_SchematicEditor_EditorPanel_FaultManager_GroupBox4_FaultPanel_sbInsertFault_Glyph_Data.png)
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
-
-## Analysis limits
-
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- No circuit fault changes until a later component-selection event.
+- The recovered handler has no separate failure dialog.

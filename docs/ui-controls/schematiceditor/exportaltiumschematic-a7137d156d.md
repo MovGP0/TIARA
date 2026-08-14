@@ -1,6 +1,6 @@
 ﻿# Altium schematic...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the export guard, save-dialog, serializer, and Altium plug-in paths.
 
 ## Control
 
@@ -20,25 +20,32 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches ExportAltiumSchematicClick at 01c968d0. The recovered body has 20 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler first checks an export guard. A nonzero guard result stops the command before the Save dialog. Otherwise, it configures the shared Save dialog for an Altium `*.schdoc` file and proposes a name from the current schematic. Cancel produces no file. After acceptance, the handler finds `altium.dll`, serializes the active schematic and its settings, and passes the serialized data and selected path to the Altium plug-in. Plug-in error codes 1 through 10 select mapped error messages. The handler restores the Save dialog's previous filter before it returns.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Altium schematic..."] -->|"OnClick"| handler["ExportAltiumSchematicClick (01c968d0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Altium schematic"] --> guard{"Export guard allows command?"}
+    guard -->|"No"| stop["Return without Save dialog"]
+    guard -->|"Yes"| save["Select SCHDOC output path"]
+    save --> accepted{"Path accepted?"}
+    accepted -->|"No"| restore["Restore Save dialog filter"]
+    accepted -->|"Yes"| serialize["Serialize active schematic"]
+    serialize --> plugin["Call altium.dll exporter"]
+    plugin --> result{"Plug-in error code?"}
+    result -->|"Error"| message["Show mapped error message"]
+    result -->|"Success"| restore
+    message --> restore
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C968D0__FUN_01c968d0.c](../../../DecompiledSources/Tina16/functions/0000000001C968D0__FUN_01c968d0.c)
-- Recovered role: Evidence-blocked ExportAltiumSchematicClick command.
+- Recovered role: Export the active schematic through the Altium SCHDOC plug-in.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.Export.ExportAltiumSchematic.OnClick.
-- Current graph behavior: The OnClick binding reaches ExportAltiumSchematicClick at 01c968d0. The recovered body has 20 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.Export.ExportAltiumSchematic to ExportAltiumSchematicClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C968D0__FUN_01c968d0.c and directly references 00414480, 00414560, 00414ad0, 00414b50, 00416740, 00416ad0, 00416ba0, 00416cd0, and 12 more. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Guards the command, collects an SCHDOC path, serializes the current schematic, calls the Altium exporter, reports mapped plug-in errors, and restores shared dialog state.
+- Current graph evidence: `FUN_01c968d0` returns on a nonzero `FUN_01b23030` result, configures the dialog at editor offset `+0xb40` with extension `schdoc`, and branches on its execute result. It locates `altium.dll` through `FUN_01bc47d0`, serializes the active schematic through `FUN_0128ee00`, invokes the loaded plug-in entry, maps return codes 1 through 10 to message entries, and calls `FUN_016fd940` for an error. It copies the original dialog filter back before return.
 - Complexity: complex
 - Distinct outgoing calls: 20
 
@@ -82,5 +89,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The recovered source does not name the condition tested by `FUN_01b23030`; this article describes it only as an export guard.
+- Plug-in behavior after the dynamic call is outside the recovered executable source.
 

@@ -1,6 +1,6 @@
 ﻿# Cancel &Mode
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete.
 
 ## Control
 
@@ -10,58 +10,34 @@
 | Component path | SchematicEditor.SchPopup.pmCancel |
 | Control class | TMenuItem |
 | Caption | Cancel &Mode |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | pmCancelClick |
-| Handler address | 01c835a0 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.SchPopup.pmCancel` |
-| Handler node | `function:01c835a0` |
+| Handler | `pmCancelClick` at `01c835a0` |
+| Graph nodes | `resource:dfm:SchematicEditor/SchematicEditor.SchPopup.pmCancel` → `function:01c835a0` |
 | Graph layer | UI |
 
 ## What happens when clicked
 
-The OnClick binding reaches pmCancelClick at 01c835a0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler delegates directly to `FUN_01c6cf20`. If the Schematic Editor owns a current interactive command at offset `+0x1b58`, that helper calls the command's virtual destructor and clears the field. It then enables the editor control at offset `+0xbd0`.
+
+If no command exists, the click still enables the editor control. It does not show a message, retry, or run a replacement command. Neither function has a local exception block.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Cancel &Mode"] -->|"OnClick"| handler["pmCancelClick (01c835a0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Cancel Mode"] --> handler["pmCancelClick at 01c835a0"]
+    handler --> active{"Current command exists at +0x1b58?"}
+    active -->|"Yes"| destroy["Destroy command and clear owner field"]
+    active -->|"No"| enable["Enable the editor control"]
+    destroy --> enable
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C835A0__FUN_01c835a0.c](../../../DecompiledSources/Tina16/functions/0000000001C835A0__FUN_01c835a0.c)
-- Recovered role: Evidence-blocked pmCancelClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.SchPopup.pmCancel.OnClick.
-- Current graph behavior: The OnClick binding reaches pmCancelClick at 01c835a0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.SchPopup.pmCancel to pmCancelClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C835A0__FUN_01c835a0.c and directly references 01c6cf20. No accepted end-to-end role was established for this control path.
-- Complexity: simple
-- Distinct outgoing calls: 1
-
-## Direct calls
-
-- `function:01c6cf20` — FUN_01c6cf20
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Handler: [FUN_01c835a0](../../../DecompiledSources/Tina16/functions/0000000001C835A0__FUN_01c835a0.c)
+- Command shutdown: [FUN_01c6cf20](../../../DecompiledSources/Tina16/functions/0000000001C6CF20__FUN_01c6cf20.c)
+- Recovered role: End the current Schematic Editor command and enable the editor.
+- No image or glyph is present for this pop-up item.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The current-command field name is not recovered. Its destructor, clear, and editor-enable data flow establishes its role.

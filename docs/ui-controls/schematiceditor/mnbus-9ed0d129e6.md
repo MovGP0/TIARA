@@ -1,70 +1,36 @@
 ﻿# &Bus
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed with recovered insertion-state evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | SchematicEditor |
-| Component path | SchematicEditor.MainMenu.Insert.mnBus |
-| Control class | TMenuItem |
-| Caption | &Bus |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | mnBusClick |
-| Handler address | 01c92b00 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.MainMenu.Insert.mnBus` |
-| Handler node | `function:01c92b00` |
-| Graph layer | UI |
+| Component path | `SchematicEditor.MainMenu.Insert.mnBus` |
+| Control class | `TMenuItem` |
+| Handler | `mnBusClick` at `01c92b00` |
 
 ## What happens when clicked
 
-The OnClick binding reaches mnBusClick at 01c92b00. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The command does nothing when the editor blocks insertion or the global edit lock is active. Otherwise, it constructs the bus placement object, replaces any previous active insertion object with it, and enables the related placement state. The click stages bus placement. It does not add a bus to the schematic until the user completes placement.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Bus"] -->|"OnClick"| handler["mnBusClick (01c92b00)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Bus menu item"] --> handler["mnBusClick"]
+    handler --> allowed{"Insertion allowed and editor unlocked?"}
+    allowed -->|"No"| noOp["Make no change"]
+    allowed -->|"Yes"| create["Create bus placement object"]
+    create --> active["Set active insertion object"]
+    active --> mode["Enable bus placement state"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C92B00__FUN_01c92b00.c](../../../DecompiledSources/Tina16/functions/0000000001C92B00__FUN_01c92b00.c)
-- Recovered role: Evidence-blocked mnBusClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.Insert.mnBus.OnClick.
-- Current graph behavior: The OnClick binding reaches mnBusClick at 01c92b00. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.Insert.mnBus to mnBusClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C92B00__FUN_01c92b00.c and directly references 01367900, 01c6cee0, 01c6d670, 01c8cee0. No accepted end-to-end role was established for this control path.
-- Complexity: complex
-- Distinct outgoing calls: 4
-
-## Direct calls
-
-- `function:01367900` — FUN_01367900
-- `function:01c6cee0` — FUN_01c6cee0
-- `function:01c6d670` — FUN_01c6d670
-- `function:01c8cee0` — FUN_01c8cee0
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- [Handler source](../../../DecompiledSources/Tina16/functions/0000000001C92B00__FUN_01c92b00.c) applies both guards, uses the bus-specific constructor, stores the active object, and enables its placement state.
+- [Active-object setter](../../../DecompiledSources/Tina16/functions/0000000001C6CEE0__FUN_01c6cee0.c) disposes the previous insertion object before it stores the new object.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The recovered constructor symbol does not expose the Delphi bus class name.

@@ -1,6 +1,6 @@
-﻿# &Steady State Solver...
+﻿# Steady State Solver
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from recovered source and graph evidence.
 
 ## Control
 
@@ -10,8 +10,6 @@
 | Component path | SchematicEditor.MainMenu.mnAnalysis.SteadyStateSolver |
 | Control class | TMenuItem |
 | Caption | &Steady State Solver... |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | SteadyStateSolverClick |
 | Handler address | 01c997b0 |
 | Graph node | `resource:dfm:SchematicEditor/SchematicEditor.MainMenu.mnAnalysis.SteadyStateSolver` |
@@ -20,49 +18,35 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches SteadyStateSolverClick at 01c997b0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+Runs the steady-state solver dialog and solver path. It records SteadyStateSolverClick as the last analysis command only when the solver returns zero for successful completion.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
     control["&Steady State Solver..."] -->|"OnClick"| handler["SteadyStateSolverClick (01c997b0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    handler --> solver["Open and run the steady-state solver"]
+    solver --> success{"Solver returned zero?"}
+    success -->|"Yes"| remember["Record this as the last analysis command"]
+    success -->|"No"| keep["Do not replace the last command"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C997B0__FUN_01c997b0.c](../../../DecompiledSources/Tina16/functions/0000000001C997B0__FUN_01c997b0.c)
-- Recovered role: Evidence-blocked SteadyStateSolverClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.SteadyStateSolver.OnClick.
-- Current graph behavior: The OnClick binding reaches SteadyStateSolverClick at 01c997b0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.SteadyStateSolver to SteadyStateSolverClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C997B0__FUN_01c997b0.c and directly references 00414ad0, 0134d990. No accepted end-to-end role was established for this control path.
-- Complexity: moderate
-- Distinct outgoing calls: 2
+- Recovered role: Run the steady-state solver.
+- Evidence: The handler calls FUN_0134d990 and tests its return. FUN_0134d990 creates and configures the solver and modal parameter dialog, treats modal result 2 as cancel or failure, runs the solver only on the accepted path, and returns a status. The handler writes SteadyStateSolverClick to SchematicEditor +0x27e8 only for return zero.
 
-## Direct calls
+## Application-relevant calls
 
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:0134d990` — FUN_0134d990
+- FUN_0134d990 owns the solver dialog, execution, and cleanup.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- The DFM binds this menu item to `SteadyStateSolverClick`.
+- The recovered caption is `&Steady State Solver...`.
+- No extracted glyph is associated with this control.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The recovered names of some form fields and global state bytes are not available. This article identifies them by stable offsets and proven readers or writers where necessary.

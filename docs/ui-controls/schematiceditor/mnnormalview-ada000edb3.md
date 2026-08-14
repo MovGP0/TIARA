@@ -1,6 +1,6 @@
 ﻿# Normal View
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The shared view-mode helper establishes the Normal View transition.
 
 ## Control
 
@@ -20,25 +20,25 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnNormalViewClick at 01c83db0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c83db0` calls `FUN_01c83de0` with mode 0. The helper checks Normal View, clears Page Layout View, enables the normal-view controls, stores mode 0 in the active schematic model and the shared view-mode byte, refreshes the editor layout, and updates related controls. The handler then invalidates the schematic surface so that it is redrawn in Normal View.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Normal View"] -->|"OnClick"| handler["mnNormalViewClick (01c83db0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Normal View"] --> handler["FUN_01c83db0"]
+    handler --> mode["FUN_01c83de0 mode 0"]
+    mode --> state["Select Normal View and update model state"]
+    state --> repaint["Invalidate schematic surface"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C83DB0__FUN_01c83db0.c](../../../DecompiledSources/Tina16/functions/0000000001C83DB0__FUN_01c83db0.c)
-- Recovered role: Evidence-blocked mnNormalViewClick command.
+- Recovered role: Switches the schematic editor to Normal View and repaints it.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.View.mnNormalView.OnClick.
-- Current graph behavior: The OnClick binding reaches mnNormalViewClick at 01c83db0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.View.mnNormalView to mnNormalViewClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C83DB0__FUN_01c83db0.c and directly references 0064e770, 01c83de0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Applies shared view mode 0, updates menu and model state, refreshes layout state, and invalidates the schematic surface.
+- Current graph evidence: The wrapper passes 0 to `FUN_01c83de0`. That helper checks Normal View, clears Page Layout View, writes mode 0 to the model and shared byte, and calls `FUN_0199e510` and `FUN_01c74860`. The wrapper then calls the invalidate helper for field `0xA10`.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -64,5 +64,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- Two list adjustments inside `FUN_01c83de0` have no recovered Delphi field names; they do not change the proven mode transition.
 

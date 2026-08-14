@@ -1,6 +1,6 @@
 ﻿# Page Layout View
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The shared view-mode helper establishes the Page Layout View transition.
 
 ## Control
 
@@ -20,25 +20,25 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnPageLayoutViewClick at 01c83d80. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c83d80` calls `FUN_01c83de0` with mode 1. The helper checks Page Layout View, clears Normal View, disables controls that are not available in page-layout mode, stores mode 1 in the active schematic model and the shared view-mode byte, refreshes the editor layout, and updates related controls. The handler then invalidates the schematic surface so that it is redrawn in Page Layout View.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Page Layout View"] -->|"OnClick"| handler["mnPageLayoutViewClick (01c83d80)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Page Layout View"] --> handler["FUN_01c83d80"]
+    handler --> mode["FUN_01c83de0 mode 1"]
+    mode --> state["Select Page Layout View and update model state"]
+    state --> repaint["Invalidate schematic surface"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C83D80__FUN_01c83d80.c](../../../DecompiledSources/Tina16/functions/0000000001C83D80__FUN_01c83d80.c)
-- Recovered role: Evidence-blocked mnPageLayoutViewClick command.
+- Recovered role: Switches the schematic editor to Page Layout View and repaints it.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.View.mnPageLayoutView.OnClick.
-- Current graph behavior: The OnClick binding reaches mnPageLayoutViewClick at 01c83d80. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.View.mnPageLayoutView to mnPageLayoutViewClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C83D80__FUN_01c83d80.c and directly references 0064e770, 01c83de0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Applies shared view mode 1, updates menu and model state, refreshes layout state, and invalidates the schematic surface.
+- Current graph evidence: The wrapper passes 1 to `FUN_01c83de0`. That helper checks Page Layout View, clears Normal View, writes mode 1 to the model and shared byte, and calls `FUN_0199e510` and `FUN_01c74860`. The wrapper then calls the invalidate helper for field `0xA10`.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -64,5 +64,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- List-management fields inside `FUN_01c83de0` have no recovered Delphi names; they do not change the proven mode transition.
 

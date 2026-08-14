@@ -1,6 +1,6 @@
 ﻿# Enable HDL Debugger
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The handler toggles the shared HDL-debugger flag and synchronizes the menu check.
 
 ## Control
 
@@ -20,31 +20,33 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches EnableHDLDebuggerClick at 01ca3bd0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01ca3bd0` reads the shared byte at `PTR_DAT_020030c0 + 1`, writes its logical inverse, and passes the new value to `FUN_007e2d20` for the `EnableHDLDebugger` menu item at form offset `+0x1610`.
+
+The VCL helper updates the menu only when the checked state changed. This click does not start, stop, or attach an HDL debugger. It only changes the enable flag and visible menu check.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Enable HDL Debugger"] -->|"OnClick"| handler["EnableHDLDebuggerClick (01ca3bd0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Enable HDL Debugger"] --> handler["EnableHDLDebuggerClick<br/>01ca3bd0"]
+    handler --> read["Read shared HDL-debugger byte"]
+    read --> toggle["Store logical inverse"]
+    toggle --> menu["Set menu Checked to new value"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001CA3BD0__FUN_01ca3bd0.c](../../../DecompiledSources/Tina16/functions/0000000001CA3BD0__FUN_01ca3bd0.c)
-- Recovered role: Evidence-blocked EnableHDLDebuggerClick command.
+- Recovered role: Toggles the shared HDL-debugger enable flag and menu check.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.EnableHDLDebugger.OnClick.
-- Current graph behavior: The OnClick binding reaches EnableHDLDebuggerClick at 01ca3bd0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.EnableHDLDebugger to EnableHDLDebuggerClick. The recovered source is DecompiledSources/Tina16/functions/0000000001CA3BD0__FUN_01ca3bd0.c and directly references 007e2d20. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Inverts the shared HDL-debugger byte and synchronizes the Enable HDL Debugger menu item's checked state.
+- Current graph evidence: `FUN_01ca3bd0` reads and writes `PTR_DAT_020030c0[1]` and passes the same inverted value to the recovered VCL menu checked-state helper for the menu item at `+0x1610`.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
 ## Direct calls
 
-- `function:007e2d20` — FUN_007e2d20
+- `function:007e2d20` — Updates the VCL menu item's checked state when needed
 
 ## Resource evidence
 
@@ -63,5 +65,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- No debugger session is created, stopped, or attached in this handler.
+- The persistence owner for the shared enable byte is not part of this click path.

@@ -1,6 +1,6 @@
 ﻿# Open SMPS Converter...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the converter dialog, example-loader, and analytic-runner paths.
 
 ## Control
 
@@ -20,25 +20,30 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches ConvertersMnuClick at 01c76610. The recovered body has 12 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler opens `ConvertersDlg`. The dialog validates the selected converter examples under the TINA Examples directory. If the converter add-on is absent, it can offer to open the converter add-on download URL. After an accepted selection, the handler opens each selected converter schematic. It builds `V_in`, `V_out`, `I_out`, and `F_sw` parameter assignments from the dialog values, gives them to the analytic runner, and runs the solution when the parameter list is not empty. It redraws the editor after it processes the selected converters.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Open SMPS Converter..."] -->|"OnClick"| handler["ConvertersMnuClick (01c76610)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Open SMPS Converter"] --> dialog["Open converter selector"]
+    dialog --> accepted{"Selection accepted?"}
+    accepted -->|"No"| stop["Return without loading a converter"]
+    accepted -->|"Yes"| load["Open each selected converter schematic"]
+    load --> parameters["Build four converter parameters"]
+    parameters --> run{"Parameter list empty?"}
+    run -->|"No"| analyze["Run analytic solution"]
+    run -->|"Yes"| redraw["Redraw editor"]
+    analyze --> redraw
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C76610__FUN_01c76610.c](../../../DecompiledSources/Tina16/functions/0000000001C76610__FUN_01c76610.c)
-- Recovered role: Evidence-blocked ConvertersMnuClick command.
+- Recovered role: Open selected SMPS converter examples and run their parameterized analytic solutions.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.ConvertersMnu.OnClick.
-- Current graph behavior: The OnClick binding reaches ConvertersMnuClick at 01c76610. The recovered body has 12 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.ConvertersMnu to ConvertersMnuClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C76610__FUN_01c76610.c and directly references 00410e60, 00410f20, 00414480, 004b6930, 007fc180, 01477fa0, 01478670, 01479a90, and 4 more. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Shows the converter selector, loads selected examples, injects converter parameter values, runs the analytic solution, and redraws the editor.
+- Current graph evidence: `FUN_01c76610` creates `ConvertersDlg`, loops its selected paths after modal acceptance, opens each through `FUN_01c681b0`, and calls `FUN_01c4c580`. That helper formats `V_in=`, `V_out=`, `I_out=`, and `F_sw=` values. The handler creates the runner through `FUN_01477fa0`, passes the list through `FUN_01479a90`, runs `FUN_01478670` for a nonempty list, and calls the recovered Redraw handler at `01c76fd0`.
 - Complexity: complex
 - Distinct outgoing calls: 12
 
@@ -74,5 +79,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The recovered source does not expose a Delphi class name for the analytic runner.
+- The add-on download opens only from the dialog's validation path, not directly from this menu handler.
 

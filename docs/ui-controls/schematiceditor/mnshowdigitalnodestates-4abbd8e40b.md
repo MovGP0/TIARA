@@ -1,6 +1,6 @@
 ﻿# Show Digital Node States
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The VHDL setting, menu check, and state consumers establish the toggle.
 
 ## Control
 
@@ -20,25 +20,25 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnShowDigitalNodeStatesClick at 01ca3ae0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01ca3ae0` inverts `PTR_DAT_020030c0[5]` and applies the new value to the checked state of `mnShowDigitalNodeStates`. The settings writer stores the same byte as `Vhdl/Display digital node states`, and analysis-context builders copy it into their digital-display state. The handler does not invalidate the schematic surface directly; later digital-state processing consumes the new setting.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Show Digital Node States"] -->|"OnClick"| handler["mnShowDigitalNodeStatesClick (01ca3ae0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Show Digital Node States"] --> handler["FUN_01ca3ae0"]
+    handler --> toggle["Invert VHDL digital-state display setting"]
+    toggle --> check["Update menu checked state"]
+    check --> consume["Digital processing uses the new setting"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001CA3AE0__FUN_01ca3ae0.c](../../../DecompiledSources/Tina16/functions/0000000001CA3AE0__FUN_01ca3ae0.c)
-- Recovered role: Evidence-blocked mnShowDigitalNodeStatesClick command.
+- Recovered role: Toggles the VHDL digital-node-state display setting and menu check.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.View.mnShowDigitalNodeStates.OnClick.
-- Current graph behavior: The OnClick binding reaches mnShowDigitalNodeStatesClick at 01ca3ae0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.View.mnShowDigitalNodeStates to mnShowDigitalNodeStatesClick. The recovered source is DecompiledSources/Tina16/functions/0000000001CA3AE0__FUN_01ca3ae0.c and directly references 007e2d20. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Inverts the recovered VHDL digital-state display byte and updates this menu item's checked state.
+- Current graph evidence: The handler toggles `PTR_DAT_020030c0[5]` and passes it to `TMenuItem.SetChecked` for form field `0x15F8`. `FUN_01c85f70` stores the byte under `Vhdl/Display digital node states`; `FUN_00f85050`, `FUN_010828f0`, `FUN_014f1700`, and `FUN_01b06050` consume it.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -63,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The handler does not request an immediate repaint. The exact time at which each consumer redraws a node state is outside this click wrapper.
 

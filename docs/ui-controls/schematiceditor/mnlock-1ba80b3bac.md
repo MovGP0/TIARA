@@ -1,6 +1,6 @@
 ﻿# Lock...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Evidence-backed behavior recovered.
 
 ## Control
 
@@ -20,25 +20,29 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnLockClick at 01c93610. The recovered body has 7 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler gets the current selection from the schematic model at form offset `0x27A8`. It continues only when the selected object exists, has recovered type value 4, passes the edit predicate, has its lock-capable flag set, and has no stored password. It opens an input dialog titled “Lock password.” If the user accepts and enters a nonempty password, the handler stores that string on the selected block and refreshes the model. Cancel, empty input, failed guards, or an existing password makes no change.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Lock..."] -->|"OnClick"| handler["mnLockClick (01c93610)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Lock"] --> handler["mnLockClick<br/>01c93610"]
+    handler --> eligible{"Selected unlocked block is eligible?"}
+    eligible -->|"No"| noOp["Keep lock unchanged"]
+    eligible -->|"Yes"| input["Request lock password"]
+    input --> accepted{"Accepted and nonempty?"}
+    accepted -->|"No"| noOp
+    accepted -->|"Yes"| store["Store password on selected block"]
+    store --> refresh["Refresh schematic model"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C93610__FUN_01c93610.c](../../../DecompiledSources/Tina16/functions/0000000001C93610__FUN_01c93610.c)
-- Recovered role: Evidence-blocked mnLockClick command.
+- Recovered role: Adds a password lock to the selected eligible block.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.Edit.Sharing1.mnLock.OnClick.
-- Current graph behavior: The OnClick binding reaches mnLockClick at 01c93610. The recovered body has 7 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.Edit.Sharing1.mnLock to mnLockClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C93610__FUN_01c93610.c and directly references 00414480, 0043ea00, 0072f4e0, 0198a580, 01993ec0, 0199e310, 01d04d40. No accepted end-to-end role was established for this control path.
+- Current graph behavior: The handler requests a nonempty password, stores it on an eligible unlocked block, and refreshes the model.
+- Current graph evidence: The source contains the password prompt, tests the converted string for nonzero length, calls the selected object's virtual setter with that string, and then calls `FUN_0199E310`.
 - Complexity: complex
 - Distinct outgoing calls: 7
 
@@ -69,5 +73,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The source proves the stored password input. It does not expose encryption or persistent storage details.
 

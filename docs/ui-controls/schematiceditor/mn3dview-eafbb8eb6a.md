@@ -1,68 +1,39 @@
 ﻿# 3D View
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed with recovered view-state and persistence evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | SchematicEditor |
-| Component path | SchematicEditor.MainMenu.View.mn3DView |
-| Control class | TMenuItem |
-| Caption | 3D View |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | mn3DViewClick |
-| Handler address | 01c9b010 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.MainMenu.View.mn3DView` |
-| Handler node | `function:01c9b010` |
-| Graph layer | UI |
+| Component path | `SchematicEditor.MainMenu.View.mn3DView` |
+| Control class | `TMenuItem` |
+| Handler | `mn3DViewClick` at `01c9b010` |
 
 ## What happens when clicked
 
-The OnClick binding reaches mn3DViewClick at 01c9b010. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The command requests the enabled state for 3D shapes on the active view. A view that does not support this state forces the result back to 2D. The common synchronization path reads the actual result, updates the 2D and 3D toggles, writes that result to `Enable3DShapes` in the `Schematic Editor` section of `TINA.INI`, and repaints the schematic.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["3D View"] -->|"OnClick"| handler["mn3DViewClick (01c9b010)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["3D View menu item"] --> handler["mn3DViewClick"]
+    handler --> request["Request 3D-shape view state"]
+    request --> supported{"View supports 3D state?"}
+    supported -->|"No"| actual2D["Keep 2D state"]
+    supported -->|"Yes"| actual3D["Enable 3D state"]
+    actual2D --> sync["Synchronize toggles and INI value"]
+    actual3D --> sync
+    sync --> repaint["Repaint schematic"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C9B010__FUN_01c9b010.c](../../../DecompiledSources/Tina16/functions/0000000001C9B010__FUN_01c9b010.c)
-- Recovered role: Evidence-blocked mn3DViewClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.View.mn3DView.OnClick.
-- Current graph behavior: The OnClick binding reaches mn3DViewClick at 01c9b010. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.View.mn3DView to mn3DViewClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C9B010__FUN_01c9b010.c and directly references 0082a6c0, 01c99100. No accepted end-to-end role was established for this control path.
-- Complexity: moderate
-- Distinct outgoing calls: 2
-
-## Direct calls
-
-- `function:0082a6c0` — FUN_0082a6c0
-- `function:01c99100` — Handles 1 Delphi UI event: SchematicEditor.TopToolBar.EditorTools.sbEnable3DView.OnClick.
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- [Handler source](../../../DecompiledSources/Tina16/functions/0000000001C9B010__FUN_01c9b010.c) requests state `1` and calls the common synchronization path.
+- [View-state setter](../../../DecompiledSources/Tina16/functions/000000000082A6C0__FUN_0082a6c0.c) rejects the enabled state when the view does not support it.
+- [Synchronization path](../../../DecompiledSources/Tina16/functions/0000000001C99100__FUN_01c99100.c) updates both toggles, persists the actual state, and repaints.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The recovered code does not identify the renderer implementation behind the view state.

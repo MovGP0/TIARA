@@ -1,6 +1,6 @@
 ﻿# Open Examples...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the example roots, multi-select dialog, and schematic-loader path.
 
 ## Control
 
@@ -20,25 +20,26 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches OpenExamplesClick at 01c9c3b0. The recovered body has 13 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler creates `OpenExamplesDlg` with the initial TINA Examples path, the title `Open Schematic`, and a filter for `*.TSC` and `*.SCH`. It adds User Examples, Infineon, TI, and TINA Examples as navigation roots and enables multiple selection. Cancel opens nothing. After acceptance, the handler loops through all selected paths and opens each schematic. It stores the directory of the first selected file in the editor for later use.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Open Examples..."] -->|"OnClick"| handler["OpenExamplesClick (01c9c3b0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Open Examples"] --> dialog["Open multi-select example dialog"]
+    dialog --> selected{"Selection accepted?"}
+    selected -->|"No"| stop["Open no files"]
+    selected -->|"Yes"| loop["Open each selected TSC or SCH file"]
+    loop --> remember["Store first selected directory"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C9C3B0__FUN_01c9c3b0.c](../../../DecompiledSources/Tina16/functions/0000000001C9C3B0__FUN_01c9c3b0.c)
-- Recovered role: Evidence-blocked OpenExamplesClick command.
+- Recovered role: Select and open one or more example schematics.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.OpenExamples.OnClick.
-- Current graph behavior: The OnClick binding reaches OpenExamplesClick at 01c9c3b0. The recovered body has 13 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.OpenExamples to OpenExamplesClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C9C3B0__FUN_01c9c3b0.c and directly references 00410f20, 00414480, 00414560, 00414ad0, 00416ba0, 00416cd0, 00441640, 007241d0, and 5 more. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Configures an example-aware multi-select dialog, opens every accepted schematic path, and remembers the first selected directory.
+- Current graph evidence: `FUN_01c9c3b0` initializes the dialog with `<install>\Examples`, the TSC/SCH filter, and four named roots. It sets multiselect flags, branches on dialog acceptance, iterates every selected path, and calls `FUN_01c681b0` for each. It derives the first path's directory and stores it at editor offset `+0x18f0`.
 - Complexity: complex
 - Distinct outgoing calls: 13
 
@@ -75,5 +76,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- A failure while opening one selected file is handled below `FUN_01c681b0`; this handler has no local per-file error branch.
 

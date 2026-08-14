@@ -1,6 +1,6 @@
 ﻿# &Export
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the PCB-format state and menu-caption update path.
 
 ## Control
 
@@ -20,25 +20,24 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches ExportClick at 01c96d70. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+This parent Export item does not write a file. When the menu opens or the item receives its click event, the handler updates the caption of the PCB export child item. If the configured PCB format is exactly `ALTIUM`, it sets the caption to `PCB Project (ALTIUM)...`. For all other format strings, it sets the caption to `PCB Netlist (<format>)...`.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Export"] -->|"OnClick"| handler["ExportClick (01c96d70)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Open Export menu"] --> format{"PCB format is ALTIUM?"}
+    format -->|"Yes"| project["Set PCB Project ALTIUM caption"]
+    format -->|"No"| netlist["Set PCB Netlist format caption"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C96D70__FUN_01c96d70.c](../../../DecompiledSources/Tina16/functions/0000000001C96D70__FUN_01c96d70.c)
-- Recovered role: Evidence-blocked ExportClick command.
+- Recovered role: Update the PCB export child caption from the configured PCB format.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.Export.OnClick.
-- Current graph behavior: The OnClick binding reaches ExportClick at 01c96d70. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.Export to ExportClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C96D70__FUN_01c96d70.c and directly references 00414560, 00416cd0, 0043e420, 007e2c60. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Chooses one of two PCB export captions and applies it to the PCB export child item.
+- Current graph evidence: `FUN_01c96d70` compares the configured PCB format string with `ALTIUM`. The equal branch builds `PCB Project (ALTIUM)...`; the other branch formats `PCB Netlist (%s)...`. Both branches call the VCL menu-caption setter `FUN_007e2c60` on the child menu field at editor offset `+0x1028`.
 - Complexity: complex
 - Distinct outgoing calls: 4
 
@@ -66,5 +65,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- File export occurs only when the user selects a child export command.
 

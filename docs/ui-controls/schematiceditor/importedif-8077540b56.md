@@ -1,6 +1,6 @@
 ﻿# EDIF (*.EDF)...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed as a recovered no-op handler.
 
 ## Control
 
@@ -20,25 +20,24 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches ImportEDIFClick at 01c834c0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The click has no application effect in the recovered executable. The handler initializes and finalizes local managed variables, then returns. It does not open a file dialog, call an EDIF parser, write editor state, or create an output. The EDIF caption states intended UI purpose, but the recovered implementation is a no-op.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["EDIF (*.EDF)..."] -->|"OnClick"| handler["ImportEDIFClick (01c834c0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click EDIF import"] --> handler["Initialize local managed variables"]
+    handler --> cleanup["Finalize local variables"]
+    cleanup --> stop["Return without import or state change"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C834C0__FUN_01c834c0.c](../../../DecompiledSources/Tina16/functions/0000000001C834C0__FUN_01c834c0.c)
-- Recovered role: Evidence-blocked ImportEDIFClick command.
+- Recovered role: No-op EDIF import menu handler.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.Import.ImportEDIF.OnClick.
-- Current graph behavior: The OnClick binding reaches ImportEDIFClick at 01c834c0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.Import.ImportEDIF to ImportEDIFClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C834C0__FUN_01c834c0.c and directly references 00414560, 0041b800. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Performs only managed-local initialization and cleanup, then returns without an EDIF import.
+- Current graph evidence: `FUN_01c834c0` contains calls only to `FUN_0041b800` and `FUN_00414560`, which initialize and finalize local managed values. The recovered body has no dialog, parser, document, file-write, or state-consumer call.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -64,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- This conclusion applies to the recovered TINA executable. The resource caption does not prove that another build implements EDIF import.
 

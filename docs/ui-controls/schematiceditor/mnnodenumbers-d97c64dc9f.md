@@ -1,6 +1,6 @@
 ﻿# No&de Numbers
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The display flag, renderer branch, and repaint call establish the toggle.
 
 ## Control
 
@@ -20,25 +20,25 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnNodeNumbersClick at 01c98660. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c98660` inverts the global byte at `PTR_DAT_02003f60` and invalidates the schematic surface at form offset `0xA10`. The menu-update routine uses this byte as the checked state of `mnNodeNumbers`. The schematic renderer `FUN_0198da60` reads the same byte before its additional drawing path. Thus, the click turns node-number display on or off and schedules a repaint.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["No&de Numbers"] -->|"OnClick"| handler["mnNodeNumbersClick (01c98660)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Node Numbers"] --> handler["FUN_01c98660"]
+    handler --> toggle["Invert node-number display flag"]
+    toggle --> repaint["Invalidate schematic surface"]
+    repaint --> render["Renderer uses the new flag"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C98660__FUN_01c98660.c](../../../DecompiledSources/Tina16/functions/0000000001C98660__FUN_01c98660.c)
-- Recovered role: Evidence-blocked mnNodeNumbersClick command.
+- Recovered role: Toggles node-number display and repaints the schematic surface.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.View.mnNodeNumbers.OnClick.
-- Current graph behavior: The OnClick binding reaches mnNodeNumbersClick at 01c98660. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.View.mnNodeNumbers to mnNodeNumbersClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C98660__FUN_01c98660.c and directly references 0064e770. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Inverts the shared node-number display byte and invalidates the schematic surface.
+- Current graph evidence: `FUN_01c98660` toggles `PTR_DAT_02003f60` and calls the recovered invalidate helper for field `0xA10`. `FUN_01c7ec30` copies the byte to this menu item's checked state, and renderer `FUN_0198da60` branches on the same byte.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -63,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The global display byte has no recovered Delphi field name.
 

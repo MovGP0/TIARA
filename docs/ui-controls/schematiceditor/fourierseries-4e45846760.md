@@ -1,6 +1,6 @@
 ﻿# Fourier &Series...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The handler selects the Fourier interval, prepares series data, opens the modal result dialog, and records the command.
 
 ## Control
 
@@ -20,32 +20,39 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches FourierSeriesClick at 01c927e0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c927e0` passes the active schematic to `FUN_01143a60`. That routine chooses a recovered time interval from global Fourier settings. If the stored start or frequency is invalid, it uses the recovered default interval inputs. Otherwise, it derives the interval from the start time and reciprocal frequency.
+
+The routine calculates Fourier-series data, prepares the series range, creates the Fourier result dialog, shows it modally, ignores the modal result, and destroys it. After the routine returns, the handler records `FourierSeriesClick`.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Fourier &Series..."] -->|"OnClick"| handler["FourierSeriesClick (01c927e0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Fourier Series"] --> handler["FourierSeriesClick<br/>01c927e0"]
+    handler --> interval{"Stored start and frequency valid?"}
+    interval -->|Yes| derived["Derive interval from reciprocal frequency"]
+    interval -->|No| defaults["Use recovered default interval inputs"]
+    derived --> calculate["Calculate Fourier series data"]
+    defaults --> calculate
+    calculate --> dialog["Show modal Fourier result dialog"]
+    dialog --> destroy["Destroy dialog"]
+    destroy --> record["Record command name"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C927E0__FUN_01c927e0.c](../../../DecompiledSources/Tina16/functions/0000000001C927E0__FUN_01c927e0.c)
-- Recovered role: Evidence-blocked FourierSeriesClick command.
+- Recovered role: Calculates Fourier-series data and opens its modal result dialog.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.FourierAnalysis.FourierSeries.OnClick.
-- Current graph behavior: The OnClick binding reaches FourierSeriesClick at 01c927e0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.FourierAnalysis.FourierSeries to FourierSeriesClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C927E0__FUN_01c927e0.c and directly references 00414ad0, 01143a60. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Selects a Fourier interval from global settings or defaults, calculates series data, shows and destroys the modal result dialog, and records the command.
+- Current graph evidence: `FUN_01c927e0` calls `FUN_01143a60` with the active schematic. That callee branches on the stored start and frequency, calls the Fourier data builders, constructs the class at `PTR_FUN_0113f968`, dispatches `ShowModal`, and destroys it. The NetlistEditor Fourier Series command uses the same callee.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
 ## Direct calls
 
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:01143a60` — FUN_01143a60
+- `function:00414ad0` — Records the command name
+- `function:01143a60` — Selects the interval, calculates Fourier-series data, and owns the modal result dialog
 
 ## Resource evidence
 
@@ -64,5 +71,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The modal result is ignored by the wrapper.
+- The recovered source does not name the dialog class or expose each displayed series field.

@@ -1,6 +1,6 @@
 ﻿# Login ...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from recovered login-dialog and HTTP request construction.
 
 ## Control
 
@@ -20,25 +20,29 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnLoginToCloudClick at 01c937a0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler gets the shared cloud-service object and calls its login operation. The operation creates the recovered login dialog. If the dialog does not return result 1, it sends no request. If the user accepts it, the operation reads the dialog name and password, builds `name=` and `password=` form fields, and posts them to `ajaxfuncsgwt.php?func=login` under the configured service base URL.
+
+The click wrapper does not inspect a return value and has no local error branch. Network and authentication results are handled inside the cloud-service request path.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Login ..."] -->|"OnClick"| handler["mnLoginToCloudClick (01c937a0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Login"] --> service["Get shared cloud service"]
+    service --> dialog["Show login dialog"]
+    dialog --> accepted{"Dialog result is 1?"}
+    accepted -->|"No"| stop["Return without a request"]
+    accepted -->|"Yes"| fields["Read name and password"]
+    fields --> post["POST login fields to ajaxfuncsgwt.php?func=login"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C937A0__FUN_01c937a0.c](../../../DecompiledSources/Tina16/functions/0000000001C937A0__FUN_01c937a0.c)
-- Recovered role: Evidence-blocked mnLoginToCloudClick command.
+- Recovered role: Open the cloud login dialog and submit accepted credentials.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.mnCloud.mnLoginToCloud.OnClick.
-- Current graph behavior: The OnClick binding reaches mnLoginToCloudClick at 01c937a0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.mnCloud.mnLoginToCloud to mnLoginToCloudClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C937A0__FUN_01c937a0.c and directly references 014c0b50, 014c3f60. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Gets the singleton cloud object and runs its dialog-gated login request.
+- Current graph evidence: `FUN_01c937a0` calls `FUN_014c0b50` and `FUN_014c3f60`. The latter checks dialog result 1, reads two dialog values, builds the exact endpoint and field prefixes, and calls the shared HTTP request worker.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -64,5 +68,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The recovered function does not expose how the server response maps to the final authenticated-session fields or the exact error text.
 

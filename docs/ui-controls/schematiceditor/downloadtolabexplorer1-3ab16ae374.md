@@ -1,6 +1,6 @@
 ﻿# Download to LabExplorer...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,31 +20,41 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches DownloadtoLabExplorer1Click at 01ca3ac0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`DownloadtoLabExplorer1Click` calls [`FUN_016012b0`](../../../DecompiledSources/Tina16/functions/00000000016012B0__FUN_016012b0.c) for the current schematic. That routine recursively searches the circuit for a compatible component with recovered type selector `8`. If no current schematic exists, it returns without a change. If no compatible PIC18 component is found, it shows the localized `HDLStrings.Msg_NoPic18` message.
+
+For a compatible component, [`FUN_01600b60`](../../../DecompiledSources/Tina16/functions/0000000001600B60__FUN_01600b60.c) requires a recovered clock value of `48000000.0`. A different value shows `HDLStrings.Msg_No48MHzPic18`. The accepted path builds `Temp\flash_rom.hex`, runs the recovered simulator or compiler preparation when required, and sends the generated program image through the selected download backend. An unsupported backend shows `HDLStrings.Msg_CannotDownload`. The method also writes the required Intel HEX trailer records, clears temporary compiler state, and reports the final operation status.
+
+The click has no confirmation step and no local rollback. Its success result is returned to the wrapper, but the click handler does not use that value.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Download to LabExplorer..."] -->|"OnClick"| handler["DownloadtoLabExplorer1Click (01ca3ac0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    Control["Click Download to LabExplorer"] --> Handler["DownloadtoLabExplorer1Click<br/>01ca3ac0"]
+    Handler --> Search["Find compatible PIC18 component"]
+    Search --> Found{"Component found?"}
+    Found -->|No| Missing["Show No PIC18 message"]
+    Found -->|Yes| Clock{"Clock is 48 MHz?"}
+    Clock -->|No| ClockError["Show 48 MHz requirement"]
+    Clock -->|Yes| Build["Build Temp flash_rom.hex"]
+    Build --> Download["Send image through selected backend"]
+    Download --> Status["Report operation status"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001CA3AC0__FUN_01ca3ac0.c](../../../DecompiledSources/Tina16/functions/0000000001CA3AC0__FUN_01ca3ac0.c)
-- Recovered role: Evidence-blocked DownloadtoLabExplorer1Click command.
+- Recovered role: Build and download the current circuit's compatible PIC18 program image.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTM.DownloadtoLabExplorer1.OnClick.
-- Current graph behavior: The OnClick binding reaches DownloadtoLabExplorer1Click at 01ca3ac0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTM.DownloadtoLabExplorer1 to DownloadtoLabExplorer1Click. The recovered source is DecompiledSources/Tina16/functions/0000000001CA3AC0__FUN_01ca3ac0.c and directly references 016012b0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Searches the current circuit for a compatible PIC18 component, requires a 48 MHz clock, builds an Intel HEX image, and sends it through the selected download backend.
+- Current graph evidence: The wrapper passes control to `FUN_016012b0`. Its source contains `HDLStrings.Msg_NoPic18`; the accepted callee contains the 48 MHz comparison, `flash_rom.hex`, Intel HEX trailer records, backend calls, and the `Msg_No48MHzPic18` and `Msg_CannotDownload` error paths.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
 ## Direct calls
 
-- `function:016012b0` — FUN_016012b0
+- `function:016012b0` — [FUN_016012b0](../../../DecompiledSources/Tina16/functions/00000000016012B0__FUN_016012b0.c), finds the compatible circuit component and reports a missing PIC18.
+- `function:01600b60` — [FUN_01600b60](../../../DecompiledSources/Tina16/functions/0000000001600B60__FUN_01600b60.c), builds and downloads the program image.
 
 ## Resource evidence
 
@@ -63,5 +73,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The original Delphi enumeration names for component selector `8` and the backend mode values are not recovered.
+- The path proves image generation and backend dispatch. It does not prove that external hardware accepts or runs the image.
 

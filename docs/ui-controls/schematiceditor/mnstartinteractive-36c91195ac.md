@@ -1,6 +1,6 @@
 ﻿# Start
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from recovered state assignment and the shared interactive-mode handler.
 
 ## Control
 
@@ -20,25 +20,32 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnStartInteractiveClick at 01c99750. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler sets the shared interactive control state to true and then calls the same worker as `SchematicEditor.TopToolBar.EditorTools.ToolInteractive`. The shared worker reads that state, prepares each item in the active document for interactive operation when the global interactive subsystem is not already active, sets the global interactive flag, disables the Start menu item, enables the Stop item, and starts or schedules the interactive engine when the editor is not already running it.
+
+It finishes by running the editor idle-state refresh. If the shared state setter rejects an unavailable or unchanged transition, its setter can be a no-op; the common worker still evaluates the resulting state.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Start"] -->|"OnClick"| handler["mnStartInteractiveClick (01c99750)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Start"] --> state["Set interactive control state to true"]
+    state --> shared["Run shared ToolInteractive handler"]
+    shared --> active{"Interactive state is active?"}
+    active -->|"Yes"| prepare["Prepare active-document items"]
+    prepare --> flags["Set global mode; disable Start; enable Stop"]
+    flags --> engine["Start or schedule interactive engine if needed"]
+    active -->|"No"| stopPath["Run common stop path for resulting state"]
+    engine --> refresh["Refresh editor idle state"]
+    stopPath --> refresh
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C99750__FUN_01c99750.c](../../../DecompiledSources/Tina16/functions/0000000001C99750__FUN_01c99750.c)
-- Recovered role: Evidence-blocked mnStartInteractiveClick command.
+- Recovered role: Select and start the Schematic Editor interactive mode.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnInteractive.mnStartInteractive.OnClick.
-- Current graph behavior: The OnClick binding reaches mnStartInteractiveClick at 01c99750. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnInteractive.mnStartInteractive to mnStartInteractiveClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C99750__FUN_01c99750.c and directly references 0082a6c0, 01c87e40. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Forces the shared interactive state on and invokes the toolbar's recovered interaction transition path.
+- Current graph evidence: `FUN_01c99750` passes 1 to `FUN_0082a6c0` for field `+0xd08` and then calls `FUN_01c87e40`. The latter tests that field at `+0x328`, prepares document items, writes the global mode flag, and updates the Start and Stop menu enabled states.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -64,5 +71,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The original Delphi class and property name for the control at form offset `+0xd08` are not recovered.
+- The engine start can be deferred through a callback; this handler does not expose its scheduling policy.
 

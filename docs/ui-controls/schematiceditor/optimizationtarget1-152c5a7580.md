@@ -1,6 +1,6 @@
 ﻿# Select &Control Object
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The menu delegates to the recovered control-object selector command.
 
 ## Control
 
@@ -20,31 +20,34 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches OptimizationTarget1Click at 01c77b20. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c77b20` delegates directly to `FUN_01c74820`, the handler also bound to `TopToolBar.EditorTools.ToolSelectObj`. That handler constructs the selector class at `PTR_FUN_01362680`, closes the current editor command where required, replaces the editor's command pointer at offset `+7000`, and activates the `ToolSelectObj` toolbar button.
+
+This menu command selects the object used for parameter stepping or optimization. It does not select an optimization target or run an optimization.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Select &Control Object"] -->|"OnClick"| handler["OptimizationTarget1Click (01c77b20)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Select Control Object"] --> wrapper["OptimizationTarget1Click<br/>01c77b20"]
+    wrapper --> handler["ToolSelectObjClick<br/>01c74820"]
+    handler --> create["Construct control-object selector"]
+    create --> replace["Replace current editor command"]
+    replace --> activate["Activate ToolSelectObj button"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C77B20__FUN_01c77b20.c](../../../DecompiledSources/Tina16/functions/0000000001C77B20__FUN_01c77b20.c)
-- Recovered role: Evidence-blocked OptimizationTarget1Click command.
+- Recovered role: Delegates to the control-object selection command.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.OptimizationTarget1.OnClick.
-- Current graph behavior: The OnClick binding reaches OptimizationTarget1Click at 01c77b20. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.OptimizationTarget1 to OptimizationTarget1Click. The recovered source is DecompiledSources/Tina16/functions/0000000001C77B20__FUN_01c77b20.c and directly references 01c74820. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Calls the toolbar control-object handler, which constructs its selector, replaces the current editor command, and activates ToolSelectObj.
+- Current graph evidence: `FUN_01c77b20` contains only the call to `FUN_01c74820`. The delegated function constructs the class at `PTR_FUN_01362680`, passes it to `FUN_01c6cee0`, and calls `FUN_01c6d670` for the toolbar object at form offset `+0xb68`. The toolbar hint identifies control-object selection for stepping or optimization.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
 ## Direct calls
 
-- `function:01c74820` — Handles 1 Delphi UI event: SchematicEditor.TopToolBar.EditorTools.ToolSelectObj.OnClick.
+- `function:01c74820` — Constructs and activates the control-object selector command
 
 ## Resource evidence
 
@@ -63,5 +66,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The Delphi class name of the selector object is not recovered.
+- Actual object selection occurs in the constructed command after this click.

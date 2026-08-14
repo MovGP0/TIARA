@@ -1,6 +1,6 @@
 ﻿# &Network Analysis...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The setup branch and named network-result publisher establish the flow.
 
 ## Control
 
@@ -20,25 +20,28 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches NetworkAnalysisMnuClick at 01c92dd0. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c92dd0` calls the shared network-analysis setup routine `FUN_01537800` with the active schematic circuit. Only a zero return continues. The handler derives the result option with `FUN_01536240`, then calls `FUN_013d6a00` to build and register network-analysis views. The publisher contains recovered outputs such as amplitude, phase, Bode, group delay, loss, VSWR, Smith, and polar results. The handler then stores `NetworkAnalysisMnuClick` as the last command. A nonzero setup return skips publication and the state write.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Network Analysis..."] -->|"OnClick"| handler["NetworkAnalysisMnuClick (01c92dd0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Network Analysis"] --> handler["FUN_01c92dd0"]
+    handler --> setup["FUN_01537800 setup"]
+    setup --> zero{"Return is zero?"}
+    zero -->|"No"| stop["Skip result publication"]
+    zero -->|"Yes"| option["Select recovered result option"]
+    option --> publish["Build and register network results"]
+    publish --> record["Record NetworkAnalysisMnuClick"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C92DD0__FUN_01c92dd0.c](../../../DecompiledSources/Tina16/functions/0000000001C92DD0__FUN_01c92dd0.c)
-- Recovered role: Evidence-blocked NetworkAnalysisMnuClick command.
+- Recovered role: Runs network-analysis setup and publishes network results on a zero return.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.ACAnalysis.NetworkAnalysisMnu.OnClick.
-- Current graph behavior: The OnClick binding reaches NetworkAnalysisMnuClick at 01c92dd0. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.ACAnalysis.NetworkAnalysisMnu to NetworkAnalysisMnuClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C92DD0__FUN_01c92dd0.c and directly references 00414ad0, 013d6a00, 01536240, 01537800. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Runs network setup, builds the selected network result views only on a zero return, and records the command name.
+- Current graph evidence: The handler branches on `FUN_01537800`, passes a value from `FUN_01536240` to `FUN_013d6a00`, and writes `NetworkAnalysisMnuClick`. The result builder contains named network outputs including Bode, group delay, VSWR, Smith, and polar views.
 - Complexity: complex
 - Distinct outgoing calls: 4
 
@@ -66,5 +69,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The exact meanings of nonzero setup returns and the numeric result option are not recovered.
 

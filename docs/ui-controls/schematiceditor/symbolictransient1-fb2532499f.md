@@ -1,6 +1,6 @@
 ﻿# Semi-symbolic Transient
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from recovered source and graph evidence.
 
 ## Control
 
@@ -10,8 +10,6 @@
 | Component path | SchematicEditor.MainMenu.mnAnalysis.Symbolic1.SymbolicTransient1 |
 | Control class | TMenuItem |
 | Caption | Semi-symbolic Transient |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | SymbolicTransient1Click |
 | Handler address | 01c76110 |
 | Graph node | `resource:dfm:SchematicEditor/SchematicEditor.MainMenu.mnAnalysis.Symbolic1.SymbolicTransient1` |
@@ -20,49 +18,37 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches SymbolicTransient1Click at 01c76110. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+Runs the semi-symbolic transient calculation for the current circuit and registers this command as the last analysis command after the calculation returns.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
     control["Semi-symbolic Transient"] -->|"OnClick"| handler["SymbolicTransient1Click (01c76110)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    handler --> calculate["Run semi-symbolic transient analysis"]
+    calculate --> result{"Calculation produced a result?"}
+    result -->|"Yes"| show["Show the titled result text"]
+    result -->|"No"| skip["Skip result presentation"]
+    show --> remember["Record this as the last analysis command"]
+    skip --> remember
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C76110__FUN_01c76110.c](../../../DecompiledSources/Tina16/functions/0000000001C76110__FUN_01c76110.c)
-- Recovered role: Evidence-blocked SymbolicTransient1Click command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.Symbolic1.SymbolicTransient1.OnClick.
-- Current graph behavior: The OnClick binding reaches SymbolicTransient1Click at 01c76110. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.Symbolic1.SymbolicTransient1 to SymbolicTransient1Click. The recovered source is DecompiledSources/Tina16/functions/0000000001C76110__FUN_01c76110.c and directly references 00414ad0, 0145f1a0. No accepted end-to-end role was established for this control path.
-- Complexity: moderate
-- Distinct outgoing calls: 2
+- Recovered role: Run semi-symbolic transient analysis.
+- Evidence: The handler calls FUN_0145f1a0 with the title TR Result and SchematicEditor +0x2788. The callee initializes transient mode, iterates the calculation, and presents the titled result when it is not aborted. The handler then writes SymbolicTransient1Click to +0x27e8.
 
-## Direct calls
+## Application-relevant calls
 
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:0145f1a0` — FUN_0145f1a0
+- FUN_0145f1a0 calculates and presents the transient result.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- The DFM binds this menu item to `SymbolicTransient1Click`.
+- The recovered caption is `Semi-symbolic Transient`.
+- No extracted glyph is associated with this control.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The recovered names of some form fields and global state bytes are not available. This article identifies them by stable offsets and proven readers or writers where necessary.

@@ -1,6 +1,6 @@
-﻿# Batch Simulation...
+﻿# Batch Simulation
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from recovered source and graph evidence.
 
 ## Control
 
@@ -10,8 +10,6 @@
 | Component path | SchematicEditor.MainMenu.mnAnalysis.mnBatchSimulation |
 | Control class | TMenuItem |
 | Caption | Batch Simulation... |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | mnBatchSimulationClick |
 | Handler address | 01c93120 |
 | Graph node | `resource:dfm:SchematicEditor/SchematicEditor.MainMenu.mnAnalysis.mnBatchSimulation` |
@@ -20,50 +18,36 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnBatchSimulationClick at 01c93120. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+Creates the Batch Simulation dialog with the application as owner, shows it modally, captures the result, destroys the dialog, and invokes the batch dispatcher only when the result is 1.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
     control["Batch Simulation..."] -->|"OnClick"| handler["mnBatchSimulationClick (01c93120)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    handler --> modal["Show the Batch Simulation dialog"]
+    modal --> accepted{"Modal result is 1?"}
+    accepted -->|"No"| stop["Do not run a batch"]
+    accepted -->|"Yes"| dispatch["Test four include flags in fixed order"]
+    dispatch --> run["Run each enabled analysis after its preflight"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C93120__FUN_01c93120.c](../../../DecompiledSources/Tina16/functions/0000000001C93120__FUN_01c93120.c)
-- Recovered role: Evidence-blocked mnBatchSimulationClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.mnBatchSimulation.OnClick.
-- Current graph behavior: The OnClick binding reaches mnBatchSimulationClick at 01c93120. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.mnBatchSimulation to mnBatchSimulationClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C93120__FUN_01c93120.c and directly references 00410f20, 007fc180, 01c92e80. No accepted end-to-end role was established for this control path.
-- Complexity: complex
-- Distinct outgoing calls: 3
+- Recovered role: Own the Batch Simulation dialog and start an accepted batch.
+- Evidence: The SchematicEditor DFM binds the Batch Simulation... menu item to 01c93120. The handler constructs the class at PTR_FUN_01c48e98 with the application owner, calls virtual ShowModal, calls FUN_00410f20 on the dialog, and gates FUN_01c92e80 on result 1.
 
-## Direct calls
+## Application-relevant calls
 
-- `function:00410f20` — Nil-safe Delphi object destruction helper
-- `function:007fc180` — FUN_007fc180
-- `function:01c92e80` — FUN_01c92e80
+- FUN_01c92e80 dispatches enabled Transient, AC Transfer, DC Transfer, and Noise analyses. The dialog resources identify those four include controls, and the dispatcher tests their flags in that order.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- The DFM binds this menu item to `mnBatchSimulationClick`.
+- The recovered caption is `Batch Simulation...`.
+- No extracted glyph is associated with this control.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The recovered names of some form fields and global state bytes are not available. This article identifies them by stable offsets and proven readers or writers where necessary.

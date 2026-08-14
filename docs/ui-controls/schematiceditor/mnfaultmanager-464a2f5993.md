@@ -1,6 +1,6 @@
 ﻿# &Exam Manager
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The handler state change and VCL setters establish the visibility toggle.
 
 ## Control
 
@@ -20,25 +20,25 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnFaultManagerClick at 01c7cef0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c7cef0` reads the checked state of the Exam Manager menu item and passes the opposite value to `TMenuItem.SetChecked`. It then passes the new checked value to the VCL visibility setter for the form field at offset `0xA60`. Thus, one click shows the Exam Manager pane or window, and the next click hides it. Both VCL setters do nothing when the requested value already matches the control state.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Exam Manager"] -->|"OnClick"| handler["mnFaultManagerClick (01c7cef0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Exam Manager"] --> handler["FUN_01c7cef0"]
+    handler --> read["Read current menu check"]
+    read --> invert["Set the opposite check state"]
+    invert --> visible["Set Exam Manager visibility to the new state"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C7CEF0__FUN_01c7cef0.c](../../../DecompiledSources/Tina16/functions/0000000001C7CEF0__FUN_01c7cef0.c)
-- Recovered role: Evidence-blocked mnFaultManagerClick command.
+- Recovered role: Toggles the checked state and visibility of the Exam Manager view.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.View.mnFaultManager.OnClick.
-- Current graph behavior: The OnClick binding reaches mnFaultManagerClick at 01c7cef0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.View.mnFaultManager to mnFaultManagerClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C7CEF0__FUN_01c7cef0.c and directly references 0064dbe0, 007e2d20. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Inverts the Exam Manager menu check and applies the new value to the paired view's Visible property.
+- Current graph evidence: The DFM binds this menu item to `FUN_01c7cef0`. The body passes the inverse of field `0xA58` checked state to `FUN_007e2d20`, then passes its new checked byte to `FUN_0064dbe0` for field `0xA60`. Recovered VCL bodies identify these calls as checked-state and visibility setters.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -64,5 +64,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The recovered field at offset `0xA60` has no Delphi name. Its pairing with `mnFaultManager`, its visibility setter, and the `Exam Manager` caption establish its UI role.
 

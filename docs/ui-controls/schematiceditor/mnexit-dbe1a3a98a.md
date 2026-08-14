@@ -1,6 +1,6 @@
 ﻿# E&xit
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the recovered VCL form-close pipeline.
 
 ## Control
 
@@ -20,25 +20,30 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnExitClick at 01c76b90. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The click wrapper calls the VCL form `Close` routine and does no other work. For this modeless main form, VCL first runs the form's close-query method. A rejected close query leaves the application open. An accepted query dispatches the form close event and follows its requested action. If the action is the default action for the application main form, VCL starts application termination.
+
+Unsaved-document prompts and shutdown cleanup therefore belong to the form's close-query and close-event paths, not to this menu handler. A modal form would receive `mrCancel`, but this Schematic Editor command operates on the main form.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["E&xit"] -->|"OnClick"| handler["mnExitClick (01c76b90)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Exit"] --> close["Call TCustomForm.Close"]
+    close --> query{"Close query accepts?"}
+    query -->|"No"| remain["Keep the application open"]
+    query -->|"Yes"| event["Dispatch form close event"]
+    event --> action{"Requested close action"}
+    action -->|"Default main-form action"| terminate["Start application termination"]
+    action -->|"None, hide, minimize, or release"| apply["Apply that VCL action"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C76B90__FUN_01c76b90.c](../../../DecompiledSources/Tina16/functions/0000000001C76B90__FUN_01c76b90.c)
-- Recovered role: Evidence-blocked mnExitClick command.
+- Recovered role: Request closure of the Schematic Editor main form.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.mnExit.OnClick.
-- Current graph behavior: The OnClick binding reaches mnExitClick at 01c76b90. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.mnExit to mnExitClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C76B90__FUN_01c76b90.c and directly references 00805200. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Delegates the request to the standard VCL close-query and close-action pipeline.
+- Current graph evidence: `FUN_01c76b90` calls only `FUN_00805200`. The accepted annotation for that shared VCL routine identifies it as `TCustomForm.Close` and documents its close-query, event, and action dispatch.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -63,5 +68,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- This wrapper does not identify which document can reject shutdown or which shutdown prompt text is shown. Those details are in the form lifecycle handlers.
 

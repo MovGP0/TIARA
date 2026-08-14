@@ -1,67 +1,37 @@
 ﻿# &Values
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed with recovered display-state and dependent-flag evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | SchematicEditor |
-| Component path | SchematicEditor.MainMenu.View.mnAppendValueToLabel |
-| Control class | TMenuItem |
-| Caption | &Values |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | mnAppendValueToLabelClick |
-| Handler address | 01c8e8b0 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.MainMenu.View.mnAppendValueToLabel` |
-| Handler node | `function:01c8e8b0` |
-| Graph layer | UI |
+| Component path | `SchematicEditor.MainMenu.View.mnAppendValueToLabel` |
+| Control class | `TMenuItem` |
+| Recovered checked state | `true` |
+| Handler | `mnAppendValueToLabelClick` at `01c8e8b0` |
 
 ## What happens when clicked
 
-The OnClick binding reaches mnAppendValueToLabelClick at 01c8e8b0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The command reverses the global flag that controls whether component-label text includes values. When the click switches values off, the handler also switches units and tolerances off. When the click switches values on, it does not force either dependent flag on. The handler then invalidates the schematic view so that the labels are drawn again.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Values"] -->|"OnClick"| handler["mnAppendValueToLabelClick (01c8e8b0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Values menu item"] --> handler["mnAppendValueToLabelClick"]
+    handler --> toggle["Reverse value-label flag"]
+    toggle --> enabled{"Values now enabled?"}
+    enabled -->|"Yes"| repaint["Invalidate and redraw labels"]
+    enabled -->|"No"| dependents["Disable units and tolerances"]
+    dependents --> repaint
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C8E8B0__FUN_01c8e8b0.c](../../../DecompiledSources/Tina16/functions/0000000001C8E8B0__FUN_01c8e8b0.c)
-- Recovered role: Evidence-blocked mnAppendValueToLabelClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.View.mnAppendValueToLabel.OnClick.
-- Current graph behavior: The OnClick binding reaches mnAppendValueToLabelClick at 01c8e8b0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.View.mnAppendValueToLabel to mnAppendValueToLabelClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C8E8B0__FUN_01c8e8b0.c and directly references 0064e770. No accepted end-to-end role was established for this control path.
-- Complexity: simple
-- Distinct outgoing calls: 1
-
-## Direct calls
-
-- `function:0064e770` — FUN_0064e770
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: true
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- [Handler source](../../../DecompiledSources/Tina16/functions/0000000001C8E8B0__FUN_01c8e8b0.c) reverses byte `0x814`, clears byte `0x815` and the tolerance flag only on the off transition, and invalidates the view.
+- [Common macro-insertion path](../../../DecompiledSources/Tina16/functions/0000000001C6EC30__FUN_01c6ec30.c) reads all three label flags when it transfers schematic content.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The recovered state block has no Delphi field name.

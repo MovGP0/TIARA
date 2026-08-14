@@ -1,6 +1,6 @@
 ﻿# &Re-read symbol database
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete.
 
 ## Control
 
@@ -10,61 +10,38 @@
 | Component path | SchematicEditor.MainMenu.mnTools.mnReReadSymbolDatabase |
 | Control class | TMenuItem |
 | Caption | &Re-read symbol database |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | mnReReadSymbolDatabaseClick |
-| Handler address | 01c8f290 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.MainMenu.mnTools.mnReReadSymbolDatabase` |
-| Handler node | `function:01c8f290` |
+| Handler | `mnReReadSymbolDatabaseClick` at `01c8f290` |
+| Graph nodes | `resource:dfm:SchematicEditor/SchematicEditor.MainMenu.mnTools.mnReReadSymbolDatabase` → `function:01c8f290` |
 | Graph layer | UI |
 
 ## What happens when clicked
 
-The OnClick binding reaches mnReReadSymbolDatabaseClick at 01c8f290. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler puts the application object into temporary state `-11`. It then calls `FUN_00c40390` on the global symbol manager. That callee runs the manager reset method and processes every current entry. Next, `FUN_00c40160` walks every source group, copies its name, and adds each child symbol to the manager again.
+
+After the rebuild, the handler restores application state `0` and invalidates the Schematic Editor client control at `+0xa10`. Thus, the visible editor redraws against the rebuilt symbol collection.
+
+The recovered path has no user-choice branch, retry, or local exception handler. It does not show a message when the source collection is empty.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Re-read symbol database"] -->|"OnClick"| handler["mnReReadSymbolDatabaseClick (01c8f290)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Re-read symbol database"] --> handler["Handler at 01c8f290"]
+    handler --> busy["Set temporary application state -11"]
+    busy --> reset["Reset and process current symbol entries"]
+    reset --> rebuild["Enumerate source groups and add each child symbol"]
+    rebuild --> ready["Restore application state 0"]
+    ready --> redraw["Invalidate the Schematic Editor client"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C8F290__FUN_01c8f290.c](../../../DecompiledSources/Tina16/functions/0000000001C8F290__FUN_01c8f290.c)
-- Recovered role: Evidence-blocked mnReReadSymbolDatabaseClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTools.mnReReadSymbolDatabase.OnClick.
-- Current graph behavior: The OnClick binding reaches mnReReadSymbolDatabaseClick at 01c8f290. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTools.mnReReadSymbolDatabase to mnReReadSymbolDatabaseClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C8F290__FUN_01c8f290.c and directly references 0064e770, 008088b0, 00c40160, 00c40390. No accepted end-to-end role was established for this control path.
-- Complexity: complex
-- Distinct outgoing calls: 4
-
-## Direct calls
-
-- `function:0064e770` — FUN_0064e770
-- `function:008088b0` — FUN_008088b0
-- `function:00c40160` — FUN_00c40160
-- `function:00c40390` — FUN_00c40390
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Handler: [FUN_01c8f290](../../../DecompiledSources/Tina16/functions/0000000001C8F290__FUN_01c8f290.c)
+- Current-entry reset: [FUN_00c40390](../../../DecompiledSources/Tina16/functions/0000000000C40390__FUN_00c40390.c)
+- Collection rebuild: [FUN_00c40160](../../../DecompiledSources/Tina16/functions/0000000000C40160__FUN_00c40160.c)
+- Recovered role: Rebuild the global symbol collection and redraw the editor.
+- No image or glyph is present for this menu item.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The recovered code does not name the external storage used by the source collection. This article does not claim a file format or database engine.

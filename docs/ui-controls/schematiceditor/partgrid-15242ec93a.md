@@ -1,6 +1,6 @@
-﻿# Component Rack|Select the component you want to place
+﻿# Component Rack
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from recovered source and resource evidence.
 
 ## Control
 
@@ -9,59 +9,33 @@
 | Form | SchematicEditor |
 | Component path | SchematicEditor.ComponentPanel.PartGrid |
 | Control class | TPartGrid |
-| Caption | Not present in the recovered resource. |
 | Hint | Component Rack\|Select the component you want to place |
-| Text | Not present in the recovered resource. |
 | Handler name | PartGridClick |
 | Handler address | 01c9ce90 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.ComponentPanel.PartGrid` |
-| Handler node | `function:01c9ce90` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-The OnClick binding reaches PartGridClick at 01c9ce90. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler reads the active editor selection helper at form offset `0x1b58`. If no helper is active, the click has no effect. If the helper has the expected recovered class and its byte at offset `0x24` is set, the handler sets the helper byte at offset `0x21` to `1`. This signals that the active rack-selection step is complete. The handler does not place or change a component directly.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Component Rack|Select the component you want to place"] -->|"OnClick"| handler["PartGridClick (01c9ce90)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Component Rack click"] --> handler["PartGridClick (01c9ce90)"]
+    handler --> active{"Active selection helper?"}
+    active -->|"No"| noop["No change"]
+    active -->|"Yes"| expected{"Expected helper class and enabled?"}
+    expected -->|"No"| noop
+    expected -->|"Yes"| signal["Set helper completion flag"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C9CE90__FUN_01c9ce90.c](../../../DecompiledSources/Tina16/functions/0000000001C9CE90__FUN_01c9ce90.c)
-- Recovered role: Evidence-blocked PartGridClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.ComponentPanel.PartGrid.OnClick.
-- Current graph behavior: The OnClick binding reaches PartGridClick at 01c9ce90. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.ComponentPanel.PartGrid to PartGridClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C9CE90__FUN_01c9ce90.c and directly references 004113d0. No accepted end-to-end role was established for this control path.
-- Complexity: simple
-- Distinct outgoing calls: 1
-
-## Direct calls
-
-- `function:004113d0` — FUN_004113d0
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Source: [FUN_01c9ce90](../../../DecompiledSources/Tina16/functions/0000000001C9CE90__FUN_01c9ce90.c)
+- The recovered source tests the active helper with the Delphi run-time type helper `FUN_004113d0`.
+- It requires a nonzero byte at helper offset `0x24` before it sets helper offset `0x21` to `1`.
+- The resource hint identifies this grid as the component rack. The hint does not prove what a later consumer does with the completion flag.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The recovered class name and the semantic names of helper offsets `0x21` and `0x24` are not available. The source proves the guard and state transition, but not the final component-placement operation.

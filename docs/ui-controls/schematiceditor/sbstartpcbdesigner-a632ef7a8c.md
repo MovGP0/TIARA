@@ -1,6 +1,6 @@
 ﻿# PCB Design
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete.
 
 ## Control
 
@@ -9,73 +9,48 @@
 | Form | SchematicEditor |
 | Component path | SchematicEditor.TopToolBar.EditorTools.sbStartPCBDesigner |
 | Control class | TSpeedButton |
-| Caption | Not present in the recovered resource. |
 | Hint | PCB Design |
-| Text | Not present in the recovered resource. |
-| Handler name | sbStartPCBDesignerClick |
-| Handler address | 01c99370 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.TopToolBar.EditorTools.sbStartPCBDesigner` |
-| Handler node | `function:01c99370` |
+| Handler | `sbStartPCBDesignerClick` at `01c99370` |
+| Graph nodes | `resource:dfm:SchematicEditor/SchematicEditor.TopToolBar.EditorTools.sbStartPCBDesigner` → `function:01c99370` |
 | Graph layer | UI |
 
 ## What happens when clicked
 
-The OnClick binding reaches sbStartPCBDesignerClick at 01c99370. The recovered body has 15 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler first checks `FUN_01b1ee00`. A nonzero result stops the command. Otherwise, it asks `FUN_01c87d20` to leave interactive mode. If interactive shutdown is not complete, it queues this same handler and returns so the action can retry later.
+
+After shutdown, the handler sends DDE message `StopAnalysis()`, creates the PCB export-options dialog, and runs it modally. Only result `1` continues. The accepted path builds the `.NET` input name and calls `FUN_01b41bc0` for the active schematic with type `7`. When that export succeeds, it builds the `pcb.exe` executable path and the generated `.HID` argument path, then calls `FUN_01d44af0` to start the PCB program.
+
+A failed initial check, a canceled dialog, or a failed export causes no launch. The dialog is destroyed on every normal exit. The handler has no local exception block.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["PCB Design"] -->|"OnClick"| handler["sbStartPCBDesignerClick (01c99370)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click PCB Design"] --> allowed{"Initial PCB check passes?"}
+    allowed -->|"No"| noop["Return without a launch"]
+    allowed -->|"Yes"| interactive{"Interactive shutdown complete?"}
+    interactive -->|"No"| retry["Queue this handler for a later retry"]
+    interactive -->|"Yes"| stop["Send StopAnalysis through DDE"]
+    stop --> dialog["Show PCB export-options dialog"]
+    dialog --> accept{"Modal result is 1?"}
+    accept -->|"No"| cleanup["Destroy dialog and return"]
+    accept -->|"Yes"| export["Export the active schematic as type 7"]
+    export --> success{"Export succeeds?"}
+    success -->|"No"| cleanup
+    success -->|"Yes"| launch["Start pcb.exe with the generated HID path"]
+    launch --> cleanup
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C99370__FUN_01c99370.c](../../../DecompiledSources/Tina16/functions/0000000001C99370__FUN_01c99370.c)
-- Recovered role: Evidence-blocked sbStartPCBDesignerClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.TopToolBar.EditorTools.sbStartPCBDesigner.OnClick.
-- Current graph behavior: The OnClick binding reaches sbStartPCBDesignerClick at 01c99370. The recovered body has 15 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.TopToolBar.EditorTools.sbStartPCBDesigner to sbStartPCBDesignerClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C99370__FUN_01c99370.c and directly references 00410f20, 00414560, 00416ad0, 00416cd0, 0043f780, 004414c0, 00441920, 007fc180, and 7 more. No accepted end-to-end role was established for this control path.
-- Complexity: complex
-- Distinct outgoing calls: 15
-
-## Direct calls
-
-- `function:00410f20` — Nil-safe Delphi object destruction helper
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00416ad0` — FUN_00416ad0
-- `function:00416cd0` — FUN_00416cd0
-- `function:0043f780` — FUN_0043f780
-- `function:004414c0` — FUN_004414c0
-- `function:00441920` — FUN_00441920
-- `function:007fc180` — FUN_007fc180
-- `function:00f836b0` — FUN_00f836b0
-- `function:010e33a0` — FUN_010e33a0
-- `function:017fe450` — FUN_017fe450
-- `function:01b1ee00` — FUN_01b1ee00
-- `function:01b41bc0` — FUN_01b41bc0
-- `function:01c87d20` — FUN_01c87d20
-- `function:01d44af0` — FUN_01d44af0
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: [`0347_SchematicEditor_SchematicEditor_TopToolBar_EditorTools_sbStartPCBDesigner_Glyph_Data.png`](../../../glyph/0347_SchematicEditor_SchematicEditor_TopToolBar_EditorTools_sbStartPCBDesigner_Glyph_Data.png)
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Handler: [FUN_01c99370](../../../DecompiledSources/Tina16/functions/0000000001C99370__FUN_01c99370.c)
+- Interactive shutdown: [FUN_01c87d20](../../../DecompiledSources/Tina16/functions/0000000001C87D20__FUN_01c87d20.c)
+- DDE dispatch: [FUN_017fe450](../../../DecompiledSources/Tina16/functions/00000000017FE450__FUN_017fe450.c)
+- Export path: [FUN_01b41bc0](../../../DecompiledSources/Tina16/functions/0000000001B41BC0__FUN_01b41bc0.c)
+- Process start: [FUN_01d44af0](../../../DecompiledSources/Tina16/functions/0000000001D44AF0__FUN_01d44af0.c)
+- Extracted glyph: [PCB Design glyph](../../../glyph/0347_SchematicEditor_SchematicEditor_TopToolBar_EditorTools_sbStartPCBDesigner_Glyph_Data.png)
+- Recovered role: Export the active schematic and start the PCB designer after interactive analysis stops.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The initial `FUN_01b1ee00` predicate does not have a recovered Delphi name. This article keeps that gate explicit.

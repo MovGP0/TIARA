@@ -1,6 +1,6 @@
 ﻿# ORCAD
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the recovered PCB profile, directory, settings, cache, and menu-state path.
 
 ## Control
 
@@ -20,25 +20,29 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches ORCADPCB1Click at 01c94cb0. The recovered body has 10 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler selects the ORCAD PCB profile. It clears the prior PCB-directory cache, sets the profile file to `\ORCAD.PCB` and the profile key to `ORCAD`, creates the profile directory when absent, and checks this menu item. It writes `PCBRootDir=ORCAD` in the `Schematic Editor` settings section, clears two dependent caches, and reloads the ORCAD `.PCB` definition data. It does not export a board here.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["ORCAD"] -->|"OnClick"| handler["ORCADPCB1Click (01c94cb0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click ORCAD"] --> profile["Set ORCAD and \\ORCAD.PCB paths"]
+    profile --> exists{"Profile directory exists?"}
+    exists -->|"No"| create["Create profile directory"]
+    exists -->|"Yes"| check["Check ORCAD menu item"]
+    create --> check
+    check --> persist["Write PCBRootDir=ORCAD"]
+    persist --> reset["Clear dependent PCB caches"]
+    reset --> load["Load ORCAD.PCB definitions"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C94CB0__FUN_01c94cb0.c](../../../DecompiledSources/Tina16/functions/0000000001C94CB0__FUN_01c94cb0.c)
-- Recovered role: Evidence-blocked ORCADPCB1Click command.
+- Recovered role: Select and load the ORCAD PCB profile.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.pcbdirectory1.ORCADPCB1.OnClick.
-- Current graph behavior: The OnClick binding reaches ORCADPCB1Click at 01c94cb0. The recovered body has 10 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.pcbdirectory1.ORCADPCB1 to ORCADPCB1Click. The recovered source is DecompiledSources/Tina16/functions/0000000001C94CB0__FUN_01c94cb0.c and directly references 00414560, 00414ad0, 00416ba0, 00442400, 007e2d20, 00b96de0, 00eadc90, 00eae050, and 2 more. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Selects, persists, and reloads the ORCAD PCB definition profile.
+- Current graph evidence: `FUN_01c94cb0` contains the exact path, profile, settings section, and key; calls the checked-state setter; clears caches; and passes ORCAD to the recovered `.PCB` loader.
 - Complexity: complex
 - Distinct outgoing calls: 10
 
@@ -72,5 +76,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The settings object's storage backend is called through a virtual method and is not named here. Directory or load errors are not caught locally.
 

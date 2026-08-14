@@ -1,6 +1,6 @@
 ﻿# Component Explorer...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Source, graph, and form evidence reviewed.
 
 ## Control
 
@@ -20,25 +20,30 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnComponentExplorerClick at 01c9bf30. The recovered body has 5 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The command opens the singleton `frmComponentExplorer`. On the first click, it creates the form and initializes its circuit tree from the current Schematic Editor model. The selected circuit is the current circuit when one exists. Otherwise, the handler searches the editor's document items and uses the first item that has no attached child object. It also passes the editor's current model field to the explorer setup path.
+
+After initialization, the handler shows and activates the Component Explorer. Later clicks reuse the existing explorer and do not rebuild its tree through this handler.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Component Explorer..."] -->|"OnClick"| handler["mnComponentExplorerClick (01c9bf30)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Component Explorer..."] -->|OnClick| handler["mnComponentExplorerClick (01c9bf30)"]
+    handler --> singleton{"Explorer exists?"}
+    singleton -->|No| select["Resolve current or first eligible circuit"]
+    select --> initialize["Create explorer and build circuit tree"]
+    singleton -->|Yes| show["Reuse explorer state"]
+    initialize --> show
+    show --> activate["Show and activate Component Explorer"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C9BF30__FUN_01c9bf30.c](../../../DecompiledSources/Tina16/functions/0000000001C9BF30__FUN_01c9bf30.c)
-- Recovered role: Evidence-blocked mnComponentExplorerClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTools.mnComponentExplorer.OnClick.
-- Current graph behavior: The OnClick binding reaches mnComponentExplorerClick at 01c9bf30. The recovered body has 5 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTools.mnComponentExplorer to mnComponentExplorerClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C9BF30__FUN_01c9bf30.c and directly references 0064e1d0, 007fc180, 008059a0, 013ab910, 01c8a450. No accepted end-to-end role was established for this control path.
+- Recovered role: Creates, initializes, and opens the singleton Component Explorer.
+- Current graph summary: Opens `frmComponentExplorer` and supplies the current circuit and Schematic Editor model on first creation.
+- Current graph behavior: Initializes only a new instance. An existing explorer is shown and activated without a new tree build.
+- Current graph evidence: The created class range contains the recovered `TfrmComponentExplorer` events. `FUN_01c8a450` returns `SchematicEditor +0x2788` or the first eligible item from the collection at `+0x2780`. `FUN_013ab910` clears and populates the explorer tree, and the outer handler calls VCL show and activation functions.
 - Complexity: complex
 - Distinct outgoing calls: 5
 
@@ -67,5 +72,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The recovered source does not give a user-facing label for the fallback document item.
+- This handler does not refresh the tree of an explorer that already exists.
 

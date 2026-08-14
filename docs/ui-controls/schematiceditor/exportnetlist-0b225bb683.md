@@ -1,6 +1,6 @@
 ﻿# Netlist...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the SPICE export dialog and Export-button path.
 
 ## Control
 
@@ -20,25 +20,28 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches ExportNetlistClick at 01c81430. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler gets the active schematic and opens `frmSpiceExportDlg` with the current schematic and export context. The dialog lets the user select a target, macro mode, and Transient, DC Transfer, or AC Transfer options. Its Export button prepares a target-specific file name and initial directory, then opens a Save dialog. Cancel stops the export. After path acceptance, the button encodes the selected analysis options and calls the SPICE exporter with the selected target, path, active graph, and analysis state. The menu handler destroys the dialog after it closes.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Netlist..."] -->|"OnClick"| handler["ExportNetlistClick (01c81430)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Netlist"] --> dialog["Open SPICE export dialog"]
+    dialog --> export["Click Export"]
+    export --> save["Select target output path"]
+    save --> accepted{"Path accepted?"}
+    accepted -->|"No"| stop["Return without export"]
+    accepted -->|"Yes"| options["Encode target and analysis options"]
+    options --> write["Run SPICE netlist exporter"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C81430__FUN_01c81430.c](../../../DecompiledSources/Tina16/functions/0000000001C81430__FUN_01c81430.c)
-- Recovered role: Evidence-blocked ExportNetlistClick command.
+- Recovered role: Open the target-specific SPICE netlist export dialog.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.Export.ExportNetlist.OnClick.
-- Current graph behavior: The OnClick binding reaches ExportNetlistClick at 01c81430. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.Export.ExportNetlist to ExportNetlistClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C81430__FUN_01c81430.c and directly references 00410f20, 00414480, 01badfb0, 01c8a3c0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Shows the SPICE export dialog for the active schematic. The dialog Export path writes only after its Save dialog succeeds.
+- Current graph evidence: `FUN_01c81430` gets the active schematic through `FUN_01c8a3c0`, constructs `frmSpiceExportDlg`, passes current schematic and export pointers, shows it modally, and destroys it. The separately annotated Export-button handler at `01bae230` reads the target and options, opens the Save dialog, constructs the exporter, and calls it only after the dialog accepts a path.
 - Complexity: complex
 - Distinct outgoing calls: 4
 
@@ -66,5 +69,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The selected target controls the final file suffix and exporter behavior in the dialog path.
+- Exporter-internal error handling is below the recovered button handler.
 

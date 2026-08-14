@@ -1,6 +1,6 @@
 ﻿# &Diagram Window
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Source and call-path review complete.
 
 ## Control
 
@@ -20,25 +20,33 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnAnalysisResultsClick at 01c805c0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The command opens the shared Diagram Window. The setup helper searches the application's open forms for the diagram-window class. It creates one only when no instance exists. It shows the form when it is hidden and updates the two shared diagram-window counters. The outer handler then obtains the native window handle and sends native show-state value `9`, which requests the existing window to return to its active display state.
+
+The command does not calculate a new analysis. It opens or restores the window that displays analysis results.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Diagram Window"] -->|"OnClick"| handler["mnAnalysisResultsClick (01c805c0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Diagram Window"] -->|OnClick| handler["mnAnalysisResultsClick (01c805c0)"]
+    handler --> scan["Search application forms for Diagram Window"]
+    scan --> found{"Window exists?"}
+    found -->|No| create["Create and show window"]
+    found -->|Yes| hidden{"Window is hidden?"}
+    hidden -->|Yes| show["Show window"]
+    hidden -->|No| restore["Keep current instance"]
+    create --> restore
+    show --> restore
+    restore --> native["Request native show state 9"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C805C0__FUN_01c805c0.c](../../../DecompiledSources/Tina16/functions/0000000001C805C0__FUN_01c805c0.c)
-- Recovered role: Evidence-blocked mnAnalysisResultsClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTools.mnAnalysisResults.OnClick.
-- Current graph behavior: The OnClick binding reaches mnAnalysisResultsClick at 01c805c0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTools.mnAnalysisResults to mnAnalysisResultsClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C805C0__FUN_01c805c0.c and directly references 0065b870, 013d2e70. No accepted end-to-end role was established for this control path.
+- Recovered role: Opens or restores the shared Diagram Window.
+- Current graph summary: Ensures that one diagram-result window exists, shows it when necessary, and requests native show state `9`.
+- Current graph behavior: Reuses an existing window instance. It does not start an analysis or replace the displayed result.
+- Current graph evidence: `FUN_013d2e70` scans the application form list for class `PTR_FUN_01a69da8`, creates `PTR_DAT_02001e00` only when absent, tests its VCL visible byte, and shows it. `FUN_01c805c0` gets the native handle with `FUN_0065b870` and dispatches value `9`. The menu caption is `Diagram Window`.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -64,5 +72,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The imported native function name behind the recovered thunk is not present in the graph. The handle-plus-value-`9` call is explicit, but this article does not assign a Win32 API name to the thunk.
+- The two shared counters changed by the setup helper do not have recovered Delphi names.
 

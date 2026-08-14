@@ -1,6 +1,6 @@
 ﻿# PCB Component Wizard...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Source, graph, wizard, and library-refresh evidence reviewed.
 
 ## Control
 
@@ -20,25 +20,30 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnPCBOnlyCompWizardClick at 01c9aec0. The recovered body has 6 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The command creates `frmPCBOnlyCompWizard`, whose caption is `PCB Component Wizard`, and shows it modally. The wizard collects the component name, group, shape, icon, and target library. Its OK path opens a Save dialog for a `.tsm` macro, creates a type-`0x39` component payload, writes the macro, and updates the selected library entry.
+
+If the modal result is `1`, the outer handler refreshes the Schematic Editor client, reloads the shared component registry, and rebuilds the current component bar. Cancel or a wizard path that does not complete the save skips these refresh operations. The outer handler then frees the wizard.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["PCB Component Wizard..."] -->|"OnClick"| handler["mnPCBOnlyCompWizardClick (01c9aec0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["PCB Component Wizard..."] -->|OnClick| handler["mnPCBOnlyCompWizardClick (01c9aec0)"]
+    handler --> modal["Show frmPCBOnlyCompWizard modally"]
+    modal --> saved{"Wizard saved component and returned 1?"}
+    saved -->|No| free["Free wizard without editor refresh"]
+    saved -->|Yes| reload["Reload shared component registry"]
+    reload --> rebuild["Rebuild current component bar"]
+    rebuild --> free
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C9AEC0__FUN_01c9aec0.c](../../../DecompiledSources/Tina16/functions/0000000001C9AEC0__FUN_01c9aec0.c)
-- Recovered role: Evidence-blocked mnPCBOnlyCompWizardClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTools.mnPCBTools.mnPCBOnlyCompWizard.OnClick.
-- Current graph behavior: The OnClick binding reaches mnPCBOnlyCompWizardClick at 01c9aec0. The recovered body has 6 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTools.mnPCBTools.mnPCBOnlyCompWizard to mnPCBOnlyCompWizardClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C9AEC0__FUN_01c9aec0.c and directly references 00410f20, 007fc180, 008088b0, 00c82c10, 00c85140, 01c691d0. No accepted end-to-end role was established for this control path.
+- Recovered role: Runs the PCB Component Wizard and reloads component bars after a saved component.
+- Current graph summary: Shows `frmPCBOnlyCompWizard` modally and, for result `1`, reloads the shared registry and active component bar.
+- Current graph behavior: Cancel and incomplete save paths do not refresh the editor. Both outer paths free the temporary wizard.
+- Current graph evidence: The class at `PTR_FUN_01bc1898` maps to `TfrmPCBOnlyCompWizard`. Its `btnOKClick` builds a `.tsm` path, executes its Save dialog, creates component type `0x39`, writes the macro payload, and sets form field `+0x508` to `1`. The outer handler tests modal result `1`, calls the registry refresh helpers, and calls `FUN_01c691d0` to rebuild the active component bar.
 - Complexity: complex
 - Distinct outgoing calls: 6
 
@@ -68,5 +73,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- File-write errors inside the macro writer do not return a separate status to the outer handler.
+- The current category code at editor offset `0x1810` does not have a recovered Delphi field name.
 

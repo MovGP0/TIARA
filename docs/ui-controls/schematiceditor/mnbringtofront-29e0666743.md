@@ -1,6 +1,6 @@
 ﻿# &Bring To Front
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Evidence-backed behavior recovered.
 
 ## Control
 
@@ -20,25 +20,29 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnBringToFrontClick at 01c97710. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler first calls the shared edit guard. If the guard blocks the operation, the click is a no-op. Otherwise, it calls `FUN_019965A0` for the schematic object list at form offset `0x27A8`. That helper locates the front endpoint, iterates the list from the end, and applies its reorder callback to selected movable objects. The handler then refreshes the model with `(0, 1, 0)` and invalidates the editor control at offset `0xA10`.
+
+This moves the selected schematic objects to the front endpoint while it preserves their internal order. An empty selection, an ineligible selection, or a blocked edit state makes no z-order change.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Bring To Front"] -->|"OnClick"| handler["mnBringToFrontClick (01c97710)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Bring To Front"] --> handler["mnBringToFrontClick<br/>01c97710"]
+    handler --> guard{"Shared edit guard blocks?"}
+    guard -->|"Yes"| noOp["Keep z-order unchanged"]
+    guard -->|"No"| endpoint["Find front endpoint"]
+    endpoint --> reorder["Move selected objects to front"]
+    reorder --> refresh["Refresh model and repaint editor"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C97710__FUN_01c97710.c](../../../DecompiledSources/Tina16/functions/0000000001C97710__FUN_01c97710.c)
-- Recovered role: Evidence-blocked mnBringToFrontClick command.
+- Recovered role: Moves selected schematic objects to the front z-order endpoint.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.Edit.mnArrange.mnBringToFront.OnClick.
-- Current graph behavior: The OnClick binding reaches mnBringToFrontClick at 01c97710. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.Edit.mnArrange.mnBringToFront to mnBringToFrontClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C97710__FUN_01c97710.c and directly references 0064e770, 019965a0, 0199e310, 01c8cee0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: The handler applies the front-endpoint list reorder, then refreshes the schematic model and repaints the editor.
+- Current graph evidence: `FUN_019965A0` selects the front endpoint and iterates selected movable objects in reverse list order. The one-step forward handler instead uses `FUN_01996820`.
 - Complexity: complex
 - Distinct outgoing calls: 4
 
@@ -66,5 +70,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The recovered source does not expose the displayed z-order number. It does prove the endpoint move and no-op guards.
 

@@ -1,69 +1,39 @@
-﻿# Revert to Original|Click on the faulty component you want to be reverted to the original
+﻿# Revert to Original
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from recovered source, shared handlers, resource text, and glyph evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | SchematicEditor |
 | Component path | SchematicEditor.EditorPanel.FaultManager.GroupBox4.FaultPanel.sbRevert |
 | Control class | TSpeedButton |
-| Caption | Not present in the recovered resource. |
 | Hint | Revert to Original\|Click on the faulty component you want to be reverted to the original |
-| Text | Not present in the recovered resource. |
-| Handler name | sbRevertClick |
-| Handler address | 01c7db50 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.EditorPanel.FaultManager.GroupBox4.FaultPanel.sbRevert` |
-| Handler node | `function:01c7db50` |
-| Graph layer | UI |
+| Handler | sbRevertClick at 01c7db50 |
 
 ## What happens when clicked
 
-The OnClick binding reaches sbRevertClick at 01c7db50. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler clears any prior editor selection helper, creates the same fault-management helper used by Insert Fault with mode byte `0`, and installs it as the active helper. It then waits for a faulty-component click. The button does not revert a component by itself.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Revert to Original|Click on the faulty component you want to be reverted to the original"] -->|"OnClick"| handler["sbRevertClick (01c7db50)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Revert to Original"] --> handler["sbRevertClick (01c7db50)"]
+    handler --> clear["Clear prior selection helper"]
+    clear --> create["Create fault helper with mode 0"]
+    create --> install["Install active helper"]
+    install --> wait["Wait for faulty-component selection"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C7DB50__FUN_01c7db50.c](../../../DecompiledSources/Tina16/functions/0000000001C7DB50__FUN_01c7db50.c)
-- Recovered role: Evidence-blocked sbRevertClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.EditorPanel.FaultManager.GroupBox4.FaultPanel.sbRevert.OnClick.
-- Current graph behavior: The OnClick binding reaches sbRevertClick at 01c7db50. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.EditorPanel.FaultManager.GroupBox4.FaultPanel.sbRevert to sbRevertClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C7DB50__FUN_01c7db50.c and directly references 0136c440, 01c6cee0, 01c6cf20. No accepted end-to-end role was established for this control path.
-- Complexity: complex
-- Distinct outgoing calls: 3
+- Source: [FUN_01c7db50](../../../DecompiledSources/Tina16/functions/0000000001C7DB50__FUN_01c7db50.c)
+- [FUN_0136c440](../../../DecompiledSources/Tina16/functions/000000000136C440__FUN_0136c440.c) constructs the helper. Its mode byte distinguishes this path from Insert Fault.
+- `FUN_01c6cf20` clears the previous helper and `FUN_01c6cee0` installs the new one.
+- Extracted glyph: [Revert glyph](../../../glyph/0367_SchematicEditor_SchematicEditor_EditorPanel_FaultManager_GroupBox4_FaultPanel_sbRevert_Glyph_Data.png)
 
-## Direct calls
+## No-op and error behavior
 
-- `function:0136c440` — FUN_0136c440
-- `function:01c6cee0` — FUN_01c6cee0
-- `function:01c6cf20` — FUN_01c6cf20
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: [`0367_SchematicEditor_SchematicEditor_EditorPanel_FaultManager_GroupBox4_FaultPanel_sbRevert_Glyph_Data.png`](../../../glyph/0367_SchematicEditor_SchematicEditor_EditorPanel_FaultManager_GroupBox4_FaultPanel_sbRevert_Glyph_Data.png)
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
-
-## Analysis limits
-
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- No component changes until a later component-selection event.
+- The recovered handler has no separate failure dialog.

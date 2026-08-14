@@ -1,4 +1,4 @@
-﻿# &Transient...
+﻿# Transient
 
 > Analysis status: Blocked by an exact evidence gap.
 
@@ -10,8 +10,6 @@
 | Component path | SchematicEditor.MainMenu.mnAnalysis.Transient |
 | Control class | TMenuItem |
 | Caption | &Transient... |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | TransientClick |
 | Handler address | 01c75d80 |
 | Graph node | `resource:dfm:SchematicEditor/SchematicEditor.MainMenu.mnAnalysis.Transient` |
@@ -20,48 +18,27 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches TransientClick at 01c75d80. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The click reaches `TransientClick` at 01c75d80. That handler calls `FUN_01c75bb0` with a recovered zero mode value. The recovered wrapper ignores its visible parameters and calls `FUN_0423e06b`. No recovered source, graph node, call edges, or accepted annotation identifies `FUN_0423e06b`, so the application effect is not proven.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Transient..."] -->|"OnClick"| handler["TransientClick (01c75d80)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Transient"] -->|"OnClick"| handler["TransientClick (01c75d80)"]
+    handler --> wrapper["FUN_01c75bb0"]
+    wrapper --> missing["FUN_0423e06b"]
+    missing --> gap{"Recovered target evidence available?"}
+    gap -->|"No"| blocked["Keep the transient action unknown"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C75D80__FUN_01c75d80.c](../../../DecompiledSources/Tina16/functions/0000000001C75D80__FUN_01c75d80.c)
-- Recovered role: Evidence-blocked TransientClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.Transient.OnClick.
-- Current graph behavior: The OnClick binding reaches TransientClick at 01c75d80. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.Transient to TransientClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C75D80__FUN_01c75d80.c and directly references 01c75bb0. No accepted end-to-end role was established for this control path.
-- Complexity: simple
-- Distinct outgoing calls: 1
-
-## Direct calls
-
-- `function:01c75bb0` — FUN_01c75bb0
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Wrapper source: [DecompiledSources/Tina16/functions/0000000001C75BB0__FUN_01c75bb0.c](../../../DecompiledSources/Tina16/functions/0000000001C75BB0__FUN_01c75bb0.c)
+- The DFM caption indicates a Transient command, but the caption alone does not prove the implementation.
+- No extracted glyph is associated with this control.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- Exact gap: recover or identify `FUN_0423e06b` and its application-relevant path. The current function graph has no node, source body, edges, or annotation for that target.
+- No annotation fragment is created for this bead.

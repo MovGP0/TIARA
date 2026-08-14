@@ -1,75 +1,44 @@
 ﻿# &Next
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from recovered source, call paths, and glyph evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | SchematicEditor |
 | Component path | SchematicEditor.EditorPanel.ExamPanel.ExamMainPages.tsAdvisor.GroupBox3.btNextAdvice |
 | Control class | TBitBtn |
-| Caption | &Next |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | btNextAdviceClick |
-| Handler address | 01c7cb00 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.EditorPanel.ExamPanel.ExamMainPages.tsAdvisor.GroupBox3.btNextAdvice` |
-| Handler node | `function:01c7cb00` |
-| Graph layer | UI |
+| Handler | btNextAdviceClick at 01c7cb00 |
 
 ## What happens when clicked
 
-The OnClick binding reaches btNextAdviceClick at 01c7cb00. The recovered body has 9 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler moves to the next exam advice only when another advice exists. For newly reached advice with a positive penalty, it calculates the remaining score from the accumulated advice penalties and shows a localized confirmation dialog. A result other than `1` cancels the move. An accepted move increments the current advice index and refreshes the advice text and Previous/Next enabled states.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Next"] -->|"OnClick"| handler["btNextAdviceClick (01c7cb00)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Next advice"] --> handler["btNextAdviceClick (01c7cb00)"]
+    handler --> available{"Another advice exists?"}
+    available -->|"No"| noop["Keep current advice"]
+    available -->|"Yes"| charge{"New penalized advice?"}
+    charge -->|"Yes"| confirm{"User accepts penalty dialog?"}
+    confirm -->|"No"| noop
+    charge -->|"No"| advance["Increment advice index"]
+    confirm -->|"Yes"| advance
+    advance --> refresh["Refresh advice text and navigation"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C7CB00__FUN_01c7cb00.c](../../../DecompiledSources/Tina16/functions/0000000001C7CB00__FUN_01c7cb00.c)
-- Recovered role: Evidence-blocked btNextAdviceClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.EditorPanel.ExamPanel.ExamMainPages.tsAdvisor.GroupBox3.btNextAdvice.OnClick.
-- Current graph behavior: The OnClick binding reaches btNextAdviceClick at 01c7cb00. The recovered body has 9 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.EditorPanel.ExamPanel.ExamMainPages.tsAdvisor.GroupBox3.btNextAdvice to btNextAdviceClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C7CB00__FUN_01c7cb00.c and directly references 00414480, 004aeac0, 0072d440, 00b89270, 00b8e520, 00b91700, 012bec10, 01c7c9a0, and 1 more. No accepted end-to-end role was established for this control path.
-- Complexity: complex
-- Distinct outgoing calls: 9
+- Source: [FUN_01c7cb00](../../../DecompiledSources/Tina16/functions/0000000001C7CB00__FUN_01c7cb00.c)
+- The handler compares index offset `0x17f8` with the current advice-list count and tracks the furthest viewed index at `0x17fc`.
+- `FUN_012bec10` totals advice penalties. The handler uses the next record's penalty field at offset `0x08` in its confirmation path.
+- [FUN_01c7c9a0](../../../DecompiledSources/Tina16/functions/0000000001C7C9A0__FUN_01c7c9a0.c) loads the selected advice text and updates both navigation controls.
+- Extracted glyph: [Next glyph](../../../glyph/0365_SchematicEditor_SchematicEditor_EditorPanel_ExamPanel_ExamMainPages_tsAdvisor_GroupBox3_btNextAdvice_Glyph_Data.png)
 
-## Direct calls
+## No-op and error behavior
 
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:004aeac0` — FUN_004aeac0
-- `function:0072d440` — FUN_0072d440
-- `function:00b89270` — FUN_00b89270
-- `function:00b8e520` — FUN_00b8e520
-- `function:00b91700` — FUN_00b91700
-- `function:012bec10` — FUN_012bec10
-- `function:01c7c9a0` — FUN_01c7c9a0
-- `function:01c7d9d0` — FUN_01c7d9d0
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: [`0365_SchematicEditor_SchematicEditor_EditorPanel_ExamPanel_ExamMainPages_tsAdvisor_GroupBox3_btNextAdvice_Glyph_Data.png`](../../../glyph/0365_SchematicEditor_SchematicEditor_EditorPanel_ExamPanel_ExamMainPages_tsAdvisor_GroupBox3_btNextAdvice_Glyph_Data.png)
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
-
-## Analysis limits
-
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- No next record: no state change.
+- Rejected penalty dialog: no state change.
+- The recovered path has no separate exception or error branch.

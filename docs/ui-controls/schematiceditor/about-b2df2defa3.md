@@ -1,6 +1,6 @@
 ﻿# &About
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Evidence-backed behavior recovered.
 
 ## Control
 
@@ -20,25 +20,26 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches AboutClick at 01c806b0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler creates the Delphi form at class pointer `PTR_FUN_016FB878`, stores the instance in global `PTR_DAT_02002318`, shows it modally through virtual method `0x2D0`, and frees it. The pointer's published methods match the recovered `TAboutBox` resource. The menu handler has no branch and does not change the schematic model.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&About"] -->|"OnClick"| handler["AboutClick (01c806b0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["About"] --> handler["AboutClick<br/>01c806b0"]
+    handler --> create["Create TAboutBox"]
+    create --> global["Store dialog instance in global field"]
+    global --> modal["Show About dialog modally"]
+    modal --> destroy["Free dialog after it closes"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C806B0__FUN_01c806b0.c](../../../DecompiledSources/Tina16/functions/0000000001C806B0__FUN_01c806b0.c)
-- Recovered role: Evidence-blocked AboutClick command.
+- Recovered role: Opens the modal application About dialog.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.Help.About.OnClick.
-- Current graph behavior: The OnClick binding reaches AboutClick at 01c806b0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.Help.About to AboutClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C806B0__FUN_01c806b0.c and directly references 00410f20, 007fc180. No accepted end-to-end role was established for this control path.
+- Current graph behavior: The handler creates, shows, and frees `TAboutBox`; it makes no schematic edit.
+- Current graph evidence: The constructor uses `PTR_FUN_016FB878`. The DFM and published event methods at the same class table identify `TAboutBox`.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -64,5 +65,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- Content population is handled by `TAboutBox` lifecycle methods, not by this menu click handler.
 

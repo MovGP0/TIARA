@@ -1,6 +1,6 @@
 ﻿# Wire IDs
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The display flag reader, menu synchronization, and repaint call establish the toggle.
 
 ## Control
 
@@ -20,25 +20,25 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnShowWireIDsClick at 01c976e0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c976e0` inverts the global wire-ID display byte at `PTR_DAT_02001ca0` and invalidates the schematic surface at form offset `0xA10`. The menu-update routine copies the byte to this menu item's checked state. Drawing routine `FUN_017c1520` also reads the byte in the branch that emits wire-related text. Thus, the click turns wire IDs on or off and schedules a repaint.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Wire IDs"] -->|"OnClick"| handler["mnShowWireIDsClick (01c976e0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Wire IDs"] --> handler["FUN_01c976e0"]
+    handler --> toggle["Invert wire-ID display flag"]
+    toggle --> repaint["Invalidate schematic surface"]
+    repaint --> render["Drawing path uses the new flag"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C976E0__FUN_01c976e0.c](../../../DecompiledSources/Tina16/functions/0000000001C976E0__FUN_01c976e0.c)
-- Recovered role: Evidence-blocked mnShowWireIDsClick command.
+- Recovered role: Toggles wire-ID display and repaints the schematic surface.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.View.mnShowWireIDs.OnClick.
-- Current graph behavior: The OnClick binding reaches mnShowWireIDsClick at 01c976e0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.View.mnShowWireIDs to mnShowWireIDsClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C976E0__FUN_01c976e0.c and directly references 0064e770. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Inverts the shared wire-ID display byte and invalidates the schematic surface.
+- Current graph evidence: The handler toggles `PTR_DAT_02001ca0` and calls the invalidate helper. `FUN_01c7ec30` uses the byte as this menu item's checked state, and `FUN_017c1520` reads it in a wire-text drawing branch.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -63,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The global display byte has no recovered Delphi field name.
 

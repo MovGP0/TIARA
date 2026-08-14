@@ -1,67 +1,36 @@
 ﻿# Page Wi&dth
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed with recovered zoom-rectangle evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | SchematicEditor |
-| Component path | SchematicEditor.MainMenu.View.Zoom.PageWidth |
-| Control class | TMenuItem |
-| Caption | Page Wi&dth |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | PageWidthClick |
-| Handler address | 01c83ef0 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.MainMenu.View.Zoom.PageWidth` |
-| Handler node | `function:01c83ef0` |
-| Graph layer | UI |
+| Component path | `SchematicEditor.MainMenu.View.Zoom.PageWidth` |
+| Control class | `TMenuItem` |
+| Handler | `PageWidthClick` at `01c83ef0` |
 
 ## What happens when clicked
 
-The OnClick binding reaches PageWidthClick at 01c83ef0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The command runs only when an active schematic and its page view are available. It builds a rectangle across the full recovered page width. The common zoom helper expands a dimension that is less than 40 coordinate units, transforms the rectangle for the active view, calculates the zoom, and repaints the editor. This makes the page width fit the available view.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Page Wi&dth"] -->|"OnClick"| handler["PageWidthClick (01c83ef0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Page Width menu item"] --> handler["PageWidthClick"]
+    handler --> available{"Active page view available?"}
+    available -->|"No"| noOp["Make no change"]
+    available -->|"Yes"| rectangle["Build full-width page rectangle"]
+    rectangle --> normalize["Enforce minimum rectangle size"]
+    normalize --> zoom["Calculate zoom and repaint"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C83EF0__FUN_01c83ef0.c](../../../DecompiledSources/Tina16/functions/0000000001C83EF0__FUN_01c83ef0.c)
-- Recovered role: Evidence-blocked PageWidthClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.View.Zoom.PageWidth.OnClick.
-- Current graph behavior: The OnClick binding reaches PageWidthClick at 01c83ef0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.View.Zoom.PageWidth to PageWidthClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C83EF0__FUN_01c83ef0.c and directly references 01c750d0. No accepted end-to-end role was established for this control path.
-- Complexity: simple
-- Distinct outgoing calls: 1
-
-## Direct calls
-
-- `function:01c750d0` — FUN_01c750d0
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- [Handler source](../../../DecompiledSources/Tina16/functions/0000000001C83EF0__FUN_01c83ef0.c) supplies the page origin and full page width to the common zoom helper.
+- [Zoom helper](../../../DecompiledSources/Tina16/functions/0000000001C750D0__FUN_01c750d0.c) normalizes, transforms, fits, and repaints the supplied rectangle.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The recovered code does not expose the final numeric zoom percentage.

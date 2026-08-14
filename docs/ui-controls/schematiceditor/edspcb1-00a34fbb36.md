@@ -1,6 +1,6 @@
 ﻿# EDS
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the recovered PCB profile, directory, settings, cache, and menu-state path.
 
 ## Control
 
@@ -20,25 +20,31 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches EDSPCB1Click at 01c95610. The recovered body has 10 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler selects the EDS PCB profile. It clears the previous PCB-directory cache, sets the profile file to `\EDS.PCB`, and uses the same recovered EDS key for settings and reload. It makes the profile directory when it is absent and checks this menu item.
+
+It writes the selected EDS key to `PCBRootDir` in the `Schematic Editor` settings section, clears two dependent caches, and reloads the EDS `.PCB` definition data. The EDS key is referenced through a recovered static data address rather than rendered as a string literal, but the file name, menu resource, and identical data flow establish the selected profile.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["EDS"] -->|"OnClick"| handler["EDSPCB1Click (01c95610)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click EDS"] --> profile["Set EDS and \\EDS.PCB paths"]
+    profile --> exists{"Profile directory exists?"}
+    exists -->|"No"| create["Create profile directory"]
+    exists -->|"Yes"| check["Check EDS menu item"]
+    create --> check
+    check --> persist["Write EDS PCBRootDir setting"]
+    persist --> reset["Clear dependent PCB caches"]
+    reset --> load["Load EDS.PCB definitions"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C95610__FUN_01c95610.c](../../../DecompiledSources/Tina16/functions/0000000001C95610__FUN_01c95610.c)
-- Recovered role: Evidence-blocked EDSPCB1Click command.
+- Recovered role: Select and load the EDS PCB profile.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.pcbdirectory1.EDSPCB1.OnClick.
-- Current graph behavior: The OnClick binding reaches EDSPCB1Click at 01c95610. The recovered body has 10 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.pcbdirectory1.EDSPCB1 to EDSPCB1Click. The recovered source is DecompiledSources/Tina16/functions/0000000001C95610__FUN_01c95610.c and directly references 00414560, 00414ad0, 00416ba0, 00442400, 007e2d20, 00b96de0, 00eadc90, 00eae050, and 2 more. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Selects, persists, and reloads the EDS PCB definition profile.
+- Current graph evidence: `FUN_01c95610` contains `\EDS.PCB`, uses one static key for the selected path, settings value, and reload call, checks the EDS menu field, and follows the same recovered sequence as the literal ALTIUM, ORCAD, PCAD, PROTEL, REDAC, TANGO, and TINA handlers.
 - Complexity: complex
 - Distinct outgoing calls: 10
 
@@ -72,5 +78,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The decompiler represents the EDS key as `DAT_01c95788`; it does not render the literal bytes in this C file.
+- Directory or definition-load errors are not caught locally.
 

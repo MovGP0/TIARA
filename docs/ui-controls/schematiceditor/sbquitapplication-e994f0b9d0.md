@@ -1,6 +1,6 @@
 ﻿# Exit
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete.
 
 ## Control
 
@@ -10,58 +10,35 @@
 | Component path | SchematicEditor.StatusPanel.ButtonPanel.ExitPanel.sbQuitApplication |
 | Control class | TSpeedButton |
 | Caption | Exit |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | sbQuitApplicationClick |
-| Handler address | 01ca0ce0 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.StatusPanel.ButtonPanel.ExitPanel.sbQuitApplication` |
-| Handler node | `function:01ca0ce0` |
+| Handler | `sbQuitApplicationClick` at `01ca0ce0` |
+| Graph nodes | `resource:dfm:SchematicEditor/SchematicEditor.StatusPanel.ButtonPanel.ExitPanel.sbQuitApplication` → `function:01ca0ce0` |
 | Graph layer | UI |
 
 ## What happens when clicked
 
-The OnClick binding reaches sbQuitApplicationClick at 01ca0ce0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler calls the VCL `TCustomForm.Close` pipeline for the Schematic Editor form. For a modeless form, VCL first runs the close query. A rejected query stops closure. Otherwise, VCL dispatches the form close event and applies its selected action, which can hide, minimize, release, or terminate the main form.
+
+For a modal form, the same helper sets modal result `2`. The click handler itself has no separate confirmation, retry, fallback, or exception block. Any save or confirmation behavior comes from the form close-query and close-event handlers, not from this button handler.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Exit"] -->|"OnClick"| handler["sbQuitApplicationClick (01ca0ce0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Exit"] --> handler["sbQuitApplicationClick at 01ca0ce0"]
+    handler --> close["Run TCustomForm.Close"]
+    close --> query{"Close query accepts?"}
+    query -->|"No"| remain["Keep the form open"]
+    query -->|"Yes"| event["Dispatch the form close event"]
+    event --> action["Apply hide, minimize, release, or termination action"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001CA0CE0__FUN_01ca0ce0.c](../../../DecompiledSources/Tina16/functions/0000000001CA0CE0__FUN_01ca0ce0.c)
-- Recovered role: Evidence-blocked sbQuitApplicationClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.StatusPanel.ButtonPanel.ExitPanel.sbQuitApplication.OnClick.
-- Current graph behavior: The OnClick binding reaches sbQuitApplicationClick at 01ca0ce0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.StatusPanel.ButtonPanel.ExitPanel.sbQuitApplication to sbQuitApplicationClick. The recovered source is DecompiledSources/Tina16/functions/0000000001CA0CE0__FUN_01ca0ce0.c and directly references 00805200. No accepted end-to-end role was established for this control path.
-- Complexity: simple
-- Distinct outgoing calls: 1
-
-## Direct calls
-
-- `function:00805200` — FUN_00805200
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Handler: [FUN_01ca0ce0](../../../DecompiledSources/Tina16/functions/0000000001CA0CE0__FUN_01ca0ce0.c)
+- VCL close pipeline: [FUN_00805200](../../../DecompiledSources/Tina16/functions/0000000000805200__FUN_00805200.c)
+- Recovered role: Request closure of the Schematic Editor through the VCL close pipeline.
+- No extracted glyph is associated with this control.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The button handler does not itself identify which close action the Schematic Editor event selects.

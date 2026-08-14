@@ -1,68 +1,39 @@
 ﻿# B&lock...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed with recovered selection and placement evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | SchematicEditor |
-| Component path | SchematicEditor.MainMenu.Insert.mnBlock |
-| Control class | TMenuItem |
-| Caption | B&lock... |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | mnBlockClick |
-| Handler address | 01c93170 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.MainMenu.Insert.mnBlock` |
-| Handler node | `function:01c93170` |
-| Graph layer | UI |
+| Component path | `SchematicEditor.MainMenu.Insert.mnBlock` |
+| Control class | `TMenuItem` |
+| Handler | `mnBlockClick` at `01c93170` |
 
 ## What happens when clicked
 
-The OnClick binding reaches mnBlockClick at 01c93170. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The command first tests whether the editor permits an insertion command. If it does, the block path opens the recovered selection dialog. Cancel or a missing selection makes no schematic change. After acceptance, the path copies the selected block data into a new placement object, assigns an unused identity, stores the object as the active insertion object, and enters placement mode.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["B&lock..."] -->|"OnClick"| handler["mnBlockClick (01c93170)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Block menu item"] --> handler["mnBlockClick"]
+    handler --> allowed{"Editor permits insertion?"}
+    allowed -->|"No"| noOp["Make no change"]
+    allowed -->|"Yes"| chooser["Open block selection dialog"]
+    chooser --> accepted{"Selection accepted?"}
+    accepted -->|"No"| noOp
+    accepted -->|"Yes"| prepare["Prepare selected block and unique identity"]
+    prepare --> place["Enter block placement mode"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C93170__FUN_01c93170.c](../../../DecompiledSources/Tina16/functions/0000000001C93170__FUN_01c93170.c)
-- Recovered role: Evidence-blocked mnBlockClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.Insert.mnBlock.OnClick.
-- Current graph behavior: The OnClick binding reaches mnBlockClick at 01c93170. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.Insert.mnBlock to mnBlockClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C93170__FUN_01c93170.c and directly references 01c8cee0, 01c92ba0. No accepted end-to-end role was established for this control path.
-- Complexity: moderate
-- Distinct outgoing calls: 2
-
-## Direct calls
-
-- `function:01c8cee0` — FUN_01c8cee0
-- `function:01c92ba0` — FUN_01c92ba0
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- [Menu handler](../../../DecompiledSources/Tina16/functions/0000000001C93170__FUN_01c93170.c) applies the editor guard and calls the block path.
+- [Block path](../../../DecompiledSources/Tina16/functions/0000000001C92BA0__FUN_01c92ba0.c) handles selection, object preparation, identity allocation, and placement-mode activation.
+- [Selection helper](../../../DecompiledSources/Tina16/functions/000000000179CBE0__FUN_0179cbe0.c) returns success only after the modal dialog accepts a selected object.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The recovered symbols do not give a Delphi class name for the prepared block object.

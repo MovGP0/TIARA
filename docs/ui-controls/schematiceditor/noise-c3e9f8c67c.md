@@ -1,6 +1,6 @@
 ﻿# &Noise Analysis...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. A zero setup result runs noise analysis and publishes its selected result and plot views.
 
 ## Control
 
@@ -20,34 +20,42 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches NoiseClick at 01c75d90. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c75d90` calls `FUN_014f6590` with the active schematic. A nonzero return stops the handler without result publication or command recording.
+
+For a zero return, the handler calls `FUN_013d8d70` with the active circuit result, the recovered global result-mask byte, and interactive flag `1`. That routine can create Output noise, Input noise, Total noise, and Signal to Noise result sets according to the mask. If the active result object and its data pointer exist, the handler publishes the applicable typed plot view through `FUN_013c7550`. It then records `NoiseClick`.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Noise Analysis..."] -->|"OnClick"| handler["NoiseClick (01c75d90)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Noise Analysis"] --> handler["NoiseClick<br/>01c75d90"]
+    handler --> setup["Run noise setup"]
+    setup --> allowed{"Return = 0?"}
+    allowed -->|No| stop["Stop without result publication"]
+    allowed -->|Yes| results["Create mask-selected noise results"]
+    results --> data{"Result object and data exist?"}
+    data -->|Yes| publish["Publish typed plot view"]
+    data -->|No| skip["Skip plot publication"]
+    publish --> record["Record command name"]
+    skip --> record
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C75D90__FUN_01c75d90.c](../../../DecompiledSources/Tina16/functions/0000000001C75D90__FUN_01c75d90.c)
-- Recovered role: Evidence-blocked NoiseClick command.
+- Recovered role: Runs and publishes mask-selected noise analysis after accepted setup.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.Noise.OnClick.
-- Current graph behavior: The OnClick binding reaches NoiseClick at 01c75d90. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.Noise to NoiseClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C75D90__FUN_01c75d90.c and directly references 00414ad0, 013c7550, 013d8d70, 014f6590. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Stops on a nonzero setup result. Otherwise, creates the selected noise result sets, publishes an available typed plot view, and records the command.
+- Current graph evidence: `FUN_01c75d90` branches on `FUN_014f6590`, calls `FUN_013d8d70` only for zero with global mask byte `PTR_DAT_02004010[0x3ba]`, then conditionally calls the annotated plot publisher for the active result type. The NetlistEditor Noise Analysis path confirms the same setup and result-builder roles.
 - Complexity: complex
 - Distinct outgoing calls: 4
 
 ## Direct calls
 
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:013c7550` — FUN_013c7550
-- `function:013d8d70` — FUN_013d8d70
-- `function:014f6590` — FUN_014f6590
+- `function:00414ad0` — Records the command name
+- `function:013c7550` — Publishes the available typed plot result
+- `function:013d8d70` — Creates result sets selected by the recovered noise mask
+- `function:014f6590` — Owns noise setup and returns a stop-or-continue status
 
 ## Resource evidence
 
@@ -66,5 +74,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The wrapper does not distinguish cancellation from other nonzero setup results.
+- The handler has no local exception, retry, or rollback path.

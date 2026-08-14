@@ -1,6 +1,6 @@
 ﻿# Upload
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from recovered modified-state, save gate, and cloud-upload paths.
 
 ## Control
 
@@ -20,25 +20,32 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnUploadToCloudClick at 01c98460. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler tests the active schematic with `FUN_01c8cf20`. If it is not modified, it passes the current document path from the global document state directly to the cloud upload routine. If it is modified, it first calls the common save routine. It uploads only when that routine reports success. A canceled or failed save therefore prevents the upload.
+
+The cloud routine first verifies that the cloud session is usable. It then uploads the selected schematic to the recovered `ultsc.php?` endpoint with a maximum request size of `0x2800` bytes and invokes the registered completion callback when present. The click wrapper has no local progress, completion, or error message.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Upload"] -->|"OnClick"| handler["mnUploadToCloudClick (01c98460)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Upload"] --> dirty{"Active schematic modified?"}
+    dirty -->|"No"| upload["Upload current document path"]
+    dirty -->|"Yes"| save{"Save succeeds?"}
+    save -->|"No"| stop["Return without upload"]
+    save -->|"Yes"| upload
+    upload --> session{"Cloud session usable?"}
+    session -->|"No"| finish["Cloud worker returns"]
+    session -->|"Yes"| post["Upload to ultsc.php?"]
+    post --> callback["Invoke registered completion callback if present"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C98460__FUN_01c98460.c](../../../DecompiledSources/Tina16/functions/0000000001C98460__FUN_01c98460.c)
-- Recovered role: Evidence-blocked mnUploadToCloudClick command.
+- Recovered role: Save when necessary and upload the active schematic to the cloud service.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.mnCloud.mnUploadToCloud.OnClick.
-- Current graph behavior: The OnClick binding reaches mnUploadToCloudClick at 01c98460. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.mnCloud.mnUploadToCloud to mnUploadToCloudClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C98460__FUN_01c98460.c and directly references 014a1f90, 014c0b50, 014c4290, 01c8cf20. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Gates upload on document modified state and save success, then calls the shared cloud upload worker with the active path.
+- Current graph evidence: `FUN_01c98460` branches on `FUN_01c8cf20`; its dirty branch requires a nonzero result from `FUN_014a1f90`. Both successful branches call `FUN_014c4290`, whose source contains `ultsc.php?`, the request-size argument, and the optional callback.
 - Complexity: complex
 - Distinct outgoing calls: 4
 
@@ -66,5 +73,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The recovered source does not expose the server response text or the callback's final UI behavior.
+- The common save routine owns Save As and file-error details.
 

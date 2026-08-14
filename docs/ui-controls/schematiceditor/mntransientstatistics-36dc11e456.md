@@ -1,6 +1,6 @@
 ﻿# Transient &Statistics
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The file-selection branches and ShellExecute wrapper establish the command.
 
 ## Control
 
@@ -20,25 +20,26 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnTransientStatisticsClick at 01c9ced0. The recovered body has 8 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c9ced0` selects a transient-statistics file. It first uses a stored statistics path when one is available. Otherwise, it derives a `.STA` path from the active circuit name or uses `Transient Statistics.STA`. It tests the selected path with `FUN_00440a20`. If the file is accessible, `FUN_01d44af0` opens `Notepad.exe` with that file through the recovered ShellExecute path. If the path test fails, the handler does not start Notepad and shows no error in this wrapper.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Transient &Statistics"] -->|"OnClick"| handler["mnTransientStatisticsClick (01c9ced0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Transient Statistics"] --> handler["FUN_01c9ced0"]
+    handler --> path["Select stored, circuit STA, or default STA path"]
+    path --> exists{"File is accessible?"}
+    exists -->|"No"| noop["Do not start a viewer"]
+    exists -->|"Yes"| open["Open the STA file in Notepad"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C9CED0__FUN_01c9ced0.c](../../../DecompiledSources/Tina16/functions/0000000001C9CED0__FUN_01c9ced0.c)
-- Recovered role: Evidence-blocked mnTransientStatisticsClick command.
+- Recovered role: Selects the transient-statistics file and opens it in Notepad when accessible.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.View.mnTransientStatistics.OnClick.
-- Current graph behavior: The OnClick binding reaches mnTransientStatisticsClick at 01c9ced0. The recovered body has 8 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.View.mnTransientStatistics to mnTransientStatisticsClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C9CED0__FUN_01c9ced0.c and directly references 00414480, 00414560, 00414b50, 00416cd0, 00440a20, 004414c0, 00441920, 01d44af0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Builds or retrieves a `.STA` statistics path, checks access, and opens the file with Notepad only when the check succeeds.
+- Current graph evidence: The recovered handler contains the literal `Transient Statistics.STA`, derives a `.STA` extension from active-circuit state, calls `FUN_00440a20(path, 1)`, and calls `FUN_01d44af0(L"Notepad.exe", path, 1)` only on a true result. `FUN_01d44af0` reaches the ShellExecute import with verb `open`.
 - Complexity: complex
 - Distinct outgoing calls: 8
 
@@ -70,5 +71,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The global stored-path fields have no recovered Delphi names. The wrapper does not explain why a file-access check fails.
 

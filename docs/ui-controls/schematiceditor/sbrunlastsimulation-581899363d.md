@@ -1,6 +1,6 @@
 ﻿# Run last simulation
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete.
 
 ## Control
 
@@ -9,66 +9,42 @@
 | Form | SchematicEditor |
 | Component path | SchematicEditor.TopToolBar.EditorTools.sbRunLastSimulation |
 | Control class | TSpeedButton |
-| Caption | Not present in the recovered resource. |
 | Hint | Run last simulation |
-| Text | Not present in the recovered resource. |
-| Handler name | sbRunLastSimulationClick |
-| Handler address | 01c7db90 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.TopToolBar.EditorTools.sbRunLastSimulation` |
-| Handler node | `function:01c7db90` |
+| Handler | `sbRunLastSimulationClick` at `01c7db90` |
+| Graph nodes | `resource:dfm:SchematicEditor/SchematicEditor.TopToolBar.EditorTools.sbRunLastSimulation` → `function:01c7db90` |
 | Graph layer | UI |
 
 ## What happens when clicked
 
-The OnClick binding reaches sbRunLastSimulationClick at 01c7db90. The recovered body has 8 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler asks the application registry for all objects of provider class VMT `01c4d9f0`. It reads each provider's name through virtual method `+0x10` and compares it with the last-simulation name stored in the Schematic Editor at `+0x27e8`.
+
+When a provider name matches, the handler initializes an empty simulation-parameter record and calls the provider's virtual execution path through `FUN_00557c30`, passing the Schematic Editor and mode `0`. It then continues through the provider list, so duplicate provider names would each run.
+
+If the stored name is null, the provider list is empty, or no provider name matches, the click is a no-op. The recovered handler does not show an error or fall back to another simulation. It has no local exception block.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Run last simulation"] -->|"OnClick"| handler["sbRunLastSimulationClick (01c7db90)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Run last simulation"] --> providers["Get registered simulation providers"]
+    providers --> next["Read next provider name"]
+    next --> match{"Name matches +0x27e8?"}
+    match -->|"No"| more{"More providers?"}
+    match -->|"Yes"| parameters["Initialize simulation parameters"]
+    parameters --> run["Invoke the provider execution path with mode 0"]
+    run --> more
+    more -->|"Yes"| next
+    more -->|"No"| done["Release temporary arrays and return"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C7DB90__FUN_01c7db90.c](../../../DecompiledSources/Tina16/functions/0000000001C7DB90__FUN_01c7db90.c)
-- Recovered role: Evidence-blocked sbRunLastSimulationClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.TopToolBar.EditorTools.sbRunLastSimulation.OnClick.
-- Current graph behavior: The OnClick binding reaches sbRunLastSimulationClick at 01c7db90. The recovered body has 8 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.TopToolBar.EditorTools.sbRunLastSimulation to sbRunLastSimulationClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C7DB90__FUN_01c7db90.c and directly references 00414480, 00416db0, 00417580, 00417740, 00419430, 00536640, 00545db0, 00557c30. No accepted end-to-end role was established for this control path.
-- Complexity: complex
-- Distinct outgoing calls: 8
-
-## Direct calls
-
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00416db0` — FUN_00416db0
-- `function:00417580` — FUN_00417580
-- `function:00417740` — FUN_00417740
-- `function:00419430` — FUN_00419430
-- `function:00536640` — FUN_00536640
-- `function:00545db0` — FUN_00545db0
-- `function:00557c30` — FUN_00557c30
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: [`0352_SchematicEditor_SchematicEditor_TopToolBar_EditorTools_sbRunLastSimulation_Glyph_Data.png`](../../../glyph/0352_SchematicEditor_SchematicEditor_TopToolBar_EditorTools_sbRunLastSimulation_Glyph_Data.png)
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Handler: [FUN_01c7db90](../../../DecompiledSources/Tina16/functions/0000000001C7DB90__FUN_01c7db90.c)
+- Provider registry lookup: [FUN_00545db0](../../../DecompiledSources/Tina16/functions/0000000000545DB0__FUN_00545db0.c)
+- Provider execution wrapper: [FUN_00557c30](../../../DecompiledSources/Tina16/functions/0000000000557C30__FUN_00557c30.c)
+- Extracted glyph: [Run-last-simulation glyph](../../../glyph/0352_SchematicEditor_SchematicEditor_TopToolBar_EditorTools_sbRunLastSimulation_Glyph_Data.png)
+- Recovered role: Find the stored last-simulation provider and run it with the current Schematic Editor context.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The provider class and stored-name field do not have recovered Delphi names. Their registry enumeration, name comparison, and execution data flow establish their roles.

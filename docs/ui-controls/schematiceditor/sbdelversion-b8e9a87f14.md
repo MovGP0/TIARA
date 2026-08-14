@@ -1,68 +1,40 @@
-﻿# Delete Version|Deletes the current version of the circuit
+﻿# Delete Version
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from recovered source, model helper, resource text, and glyph evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | SchematicEditor |
 | Component path | SchematicEditor.EditorPanel.FaultManager.GroupBox4.FaultPanel.sbDelVersion |
 | Control class | TSpeedButton |
-| Caption | Not present in the recovered resource. |
 | Hint | Delete Version\|Deletes the current version of the circuit |
-| Text | Not present in the recovered resource. |
-| Handler name | sbDelVersionClick |
-| Handler address | 01c7da60 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.EditorPanel.FaultManager.GroupBox4.FaultPanel.sbDelVersion` |
-| Handler node | `function:01c7da60` |
-| Graph layer | UI |
+| Handler | sbDelVersionClick at 01c7da60 |
 
 ## What happens when clicked
 
-The OnClick binding reaches sbDelVersionClick at 01c7da60. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler protects version `0`. For any other selected version, it removes and destroys the matching version record, compacts the version list, selects version `0`, and refreshes the fault-manager controls and schematic state.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Delete Version|Deletes the current version of the circuit"] -->|"OnClick"| handler["sbDelVersionClick (01c7da60)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Delete Version"] --> handler["sbDelVersionClick (01c7da60)"]
+    handler --> protected{"Selected version is 0?"}
+    protected -->|"Yes"| noop["Keep version list"]
+    protected -->|"No"| remove["Remove and destroy selected version"]
+    remove --> base["Select version 0"]
+    base --> refresh["Refresh fault manager and schematic"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C7DA60__FUN_01c7da60.c](../../../DecompiledSources/Tina16/functions/0000000001C7DA60__FUN_01c7da60.c)
-- Recovered role: Evidence-blocked sbDelVersionClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.EditorPanel.FaultManager.GroupBox4.FaultPanel.sbDelVersion.OnClick.
-- Current graph behavior: The OnClick binding reaches sbDelVersionClick at 01c7da60. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.EditorPanel.FaultManager.GroupBox4.FaultPanel.sbDelVersion to sbDelVersionClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C7DA60__FUN_01c7da60.c and directly references 012bee60, 01c7d780. No accepted end-to-end role was established for this control path.
-- Complexity: moderate
-- Distinct outgoing calls: 2
+- Source: [FUN_01c7da60](../../../DecompiledSources/Tina16/functions/0000000001C7DA60__FUN_01c7da60.c)
+- [FUN_012bee60](../../../DecompiledSources/Tina16/functions/00000000012BEE60__FUN_012bee60.c) finds the version by its stored number, destroys it, removes it, and compacts the list.
+- [FUN_01c7d780](../../../DecompiledSources/Tina16/functions/0000000001C7D780__FUN_01c7d780.c) selects the requested version and performs the dependent UI and model refresh.
+- Extracted glyph: [Delete Version glyph](../../../glyph/0369_SchematicEditor_SchematicEditor_EditorPanel_FaultManager_GroupBox4_FaultPanel_sbDelVersion_Glyph_Data.png)
 
-## Direct calls
+## No-op and error behavior
 
-- `function:012bee60` — FUN_012bee60
-- `function:01c7d780` — FUN_01c7d780
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: [`0369_SchematicEditor_SchematicEditor_EditorPanel_FaultManager_GroupBox4_FaultPanel_sbDelVersion_Glyph_Data.png`](../../../glyph/0369_SchematicEditor_SchematicEditor_EditorPanel_FaultManager_GroupBox4_FaultPanel_sbDelVersion_Glyph_Data.png)
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
-
-## Analysis limits
-
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- Version `0`: no deletion and no refresh call from this handler.
+- The recovered handler does not ask for confirmation.

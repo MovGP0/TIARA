@@ -1,6 +1,6 @@
 ﻿# &Phasor Diagram
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The shared setup and named phasor publisher establish the flow.
 
 ## Control
 
@@ -20,25 +20,27 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches ACVectorDiagramClick at 01c97cf0. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c97cf0` calls the shared phasor setup routine `FUN_0152b4a0`. Only a zero return continues to `FUN_013e0570`. That routine builds and publishes a result identified by the recovered strings `Phasor` and `Analysis Result 1`. The handler then stores `ACVectorDiagramClick` as the last command. A nonzero setup return skips publication and the command-state update.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Phasor Diagram"] -->|"OnClick"| handler["ACVectorDiagramClick (01c97cf0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Phasor Diagram"] --> handler["FUN_01c97cf0"]
+    handler --> setup["FUN_0152b4a0 setup"]
+    setup --> zero{"Return is zero?"}
+    zero -->|"No"| stop["Skip result publication"]
+    zero -->|"Yes"| publish["Publish Phasor result"]
+    publish --> record["Record ACVectorDiagramClick"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C97CF0__FUN_01c97cf0.c](../../../DecompiledSources/Tina16/functions/0000000001C97CF0__FUN_01c97cf0.c)
-- Recovered role: Evidence-blocked ACVectorDiagramClick command.
+- Recovered role: Runs phasor setup and publishes the result on a zero return.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.ACAnalysis.ACVectorDiagram.OnClick.
-- Current graph behavior: The OnClick binding reaches ACVectorDiagramClick at 01c97cf0. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.ACAnalysis.ACVectorDiagram to ACVectorDiagramClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C97CF0__FUN_01c97cf0.c and directly references 00414ad0, 013e0570, 0152b4a0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Runs shared phasor setup, publishes a named Phasor result only on a zero return, and records the command name.
+- Current graph evidence: The handler branches on `FUN_0152b4a0`, calls `FUN_013e0570` only on zero, and writes `ACVectorDiagramClick`. `FUN_013e0570` contains `Phasor` and `Analysis Result 1`. The reviewed Netlist Editor command uses the same setup and publisher pair.
 - Complexity: complex
 - Distinct outgoing calls: 3
 
@@ -65,5 +67,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The exact meanings of nonzero setup returns are not recovered.
 

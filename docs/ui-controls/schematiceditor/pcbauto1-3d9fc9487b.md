@@ -1,6 +1,6 @@
 ﻿# PCB...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the enabled-exporter, dialog, serialization-mode, and Altium plug-in paths.
 
 ## Control
 
@@ -20,25 +20,34 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches PCBAuto1Click at 01c95bb0. The recovered body has 23 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler scans the configured PCB exporters and uses the first enabled entry. Most entries open a Save dialog and call the common PCB serializer with a fixed export mode. The recovered mapping is exporter index 0 to mode 7, 2 to mode 1, 3 to mode 4, 4 to mode 5, 6 to mode 2, and 7 to mode 6. Index 1 creates an Altium PCB project ZIP through `altium.dll` and reports mapped plug-in errors. Index 5 collects two output paths and calls the common serializer in mode 3 only when both dialogs succeed. If no supported exporter is enabled, or a required dialog is canceled, the handler writes no output.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["PCB..."] -->|"OnClick"| handler["PCBAuto1Click (01c95bb0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click PCB export"] --> find["Find first enabled PCB exporter"]
+    find --> available{"Supported exporter found?"}
+    available -->|"No"| stop["Return without output"]
+    available -->|"Yes"| target{"Exporter type"}
+    target -->|"Common"| save["Select output path"]
+    target -->|"Altium"| plugin["Serialize and call altium.dll"]
+    target -->|"Two-file"| two["Accept both output paths"]
+    save --> common["Run fixed serialization mode"]
+    two --> common
+    plugin --> result{"Plug-in error?"}
+    result -->|"Yes"| message["Show mapped error message"]
+    result -->|"No"| done["Export complete"]
+    common --> done
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C95BB0__FUN_01c95bb0.c](../../../DecompiledSources/Tina16/functions/0000000001C95BB0__FUN_01c95bb0.c)
-- Recovered role: Evidence-blocked PCBAuto1Click command.
+- Recovered role: Dispatch the selected PCB exporter and its required output dialogs.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.Export.PCBAuto1.OnClick.
-- Current graph behavior: The OnClick binding reaches PCBAuto1Click at 01c95bb0. The recovered body has 23 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.Export.PCBAuto1 to PCBAuto1Click. The recovered source is DecompiledSources/Tina16/functions/0000000001C95BB0__FUN_01c95bb0.c and directly references 00414480, 00414560, 00414ad0, 00414b50, 00416740, 00416ad0, 00416ba0, 00416cd0, and 15 more. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Selects the first enabled PCB exporter, obtains its required paths, and dispatches a fixed serializer mode or the Altium PCB plug-in.
+- Current graph evidence: `FUN_01c95bb0` scans the exporter list at editor offset `+0xff0`, branches on the first enabled index, and calls `FUN_01b41bc0` with modes 7, 1, 4, 5, 2, or 6 for six branches. Its index-1 branch locates `altium.dll`, serializes the active circuit, invokes the plug-in, and maps error codes. Its index-5 branch calls mode 3 only after two Save dialogs accept paths.
 - Complexity: complex
 - Distinct outgoing calls: 23
 
@@ -85,5 +94,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The recovered exporter-list entries do not expose stable user-facing names for every index.
+- Plug-in behavior after the dynamic Altium call is outside the recovered executable source.
 

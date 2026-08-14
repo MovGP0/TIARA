@@ -1,6 +1,6 @@
 ﻿# Simulated
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from recovered source and resource evidence.
 
 ## Control
 
@@ -10,58 +10,34 @@
 | Component path | SchematicEditor.MainMenu.mnTM.SignalAnalyzer1.mnSAVirtual |
 | Control class | TMenuItem |
 | Caption | Simulated |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | mnSAVirtualClick |
-| Handler address | 01c90610 |
+| Handler | mnSAVirtualClick at `01c90610` |
 | Graph node | `resource:dfm:SchematicEditor/SchematicEditor.MainMenu.mnTM.SignalAnalyzer1.mnSAVirtual` |
-| Handler node | `function:01c90610` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-The OnClick binding reaches mnSAVirtualClick at 01c90610. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The click opens or reuses a simulated signal analyzer. The shared handler passes mode `0` and type `4` to `01c8f600`. That coordinator stops when no instance is available. Otherwise, it selects an instance when necessary, reuses or creates the indexed window, adds an instance label to a new caption when applicable, shows the window, and sends native message `9`.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Simulated"] -->|"OnClick"| handler["mnSAVirtualClick (01c90610)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Simulated"] -->|"OnClick"| handler["mnSAVirtualClick 01c90610"]
+    handler --> coordinator["Select simulated signal analyzer type 4"]
+    coordinator --> available{"Instance available?"}
+    available -->|"No"| noOp["Do nothing"]
+    available -->|"Yes"| slot{"Window already exists?"}
+    slot -->|"No"| create["Create and store window"]
+    slot -->|"Yes"| reuse["Reuse window"]
+    create --> show["Show window and send message 9"]
+    reuse --> show
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C90610__FUN_01c90610.c](../../../DecompiledSources/Tina16/functions/0000000001C90610__FUN_01c90610.c)
-- Recovered role: Evidence-blocked mnSAVirtualClick command.
-- Current graph summary: Handles 2 Delphi UI events: SchematicEditor.MainMenu.mnTM.SignalAnalyzer1.mnSAVirtual.OnClick, SchematicEditor.MainMenu.mnTM.SignalAnalyzer.OnClick.
-- Current graph behavior: The OnClick binding reaches mnSAVirtualClick at 01c90610. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTM.SignalAnalyzer, SchematicEditor.MainMenu.mnTM.SignalAnalyzer1.mnSAVirtual to mnSAVirtualClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C90610__FUN_01c90610.c and directly references 01c8f600. No accepted end-to-end role was established for this control path.
-- Complexity: simple
-- Distinct outgoing calls: 1
-
-## Direct calls
-
-- `function:01c8f600` — FUN_01c8f600
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- [Handler source](../../../DecompiledSources/Tina16/functions/0000000001C90610__FUN_01c90610.c) calls `FUN_01c8f600(form, 0, 4)`.
+- [Coordinator source](../../../DecompiledSources/Tina16/functions/0000000001C8F600__FUN_01c8f600.c) proves the selection, reuse, creation, caption, show, and message paths.
+- The parent Signal Analyzer item shares this handler. The Real-time item changes only the mode to `1`.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The recovered source does not identify native message `9` or show a separate modal-cancel test.

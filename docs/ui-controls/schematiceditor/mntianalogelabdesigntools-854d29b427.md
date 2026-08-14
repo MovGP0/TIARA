@@ -1,6 +1,6 @@
 ﻿# TI Analog eLab Design Center
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the recovered URL and Windows shell invocation.
 
 ## Control
 
@@ -20,25 +20,27 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnTIAnalogeLabDesignToolsClick at 01c9d240. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler constructs the exact legacy HTTP URL `http://focus.ti.com/adc/docs/portal.tsp?sectionId=121&contentId=23493&DCMP=hpa_design_center&HQS=Tools+OT+analogdesigncenter`. It passes that URL to the Windows shell with the verb `open` and show mode 1. Windows opens it through the registered URL handler, normally the default browser. The handler then releases its temporary string.
+
+It does not inspect the shell return value and does not show a local browser-launch error.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["TI Analog eLab Design Center"] -->|"OnClick"| handler["mnTIAnalogeLabDesignToolsClick (01c9d240)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click TI Analog eLab Design Center"] --> url["Build recovered TI design-center HTTP URL"]
+    url --> shell["Call Windows shell with verb open"]
+    shell --> browser["Registered URL handler receives the address"]
+    browser --> finish["Release temporary string"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C9D240__FUN_01c9d240.c](../../../DecompiledSources/Tina16/functions/0000000001C9D240__FUN_01c9d240.c)
-- Recovered role: Evidence-blocked mnTIAnalogeLabDesignToolsClick command.
+- Recovered role: Open the TI Analog eLab Design Center URL through the Windows shell.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTIUtilities.mnTIAnalogeLabDesignTools.OnClick.
-- Current graph behavior: The OnClick binding reaches mnTIAnalogeLabDesignToolsClick at 01c9d240. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTIUtilities.mnTIAnalogeLabDesignTools to mnTIAnalogeLabDesignToolsClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C9D240__FUN_01c9d240.c and directly references 00414480, 00414b50, 00416740. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Opens the literal TI Analog eLab URL with the registered Windows URL handler.
+- Current graph evidence: `FUN_01c9d240` contains the complete HTTP URL and calls the recovered `ShellExecuteW` thunk with `open`, no parameters, no working directory, and show mode 1.
 - Complexity: complex
 - Distinct outgoing calls: 3
 
@@ -65,5 +67,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- This legacy URL can redirect or stop working outside the recovered program. The static source proves only the address passed to Windows.
+- The handler ignores the `ShellExecuteW` result.
 

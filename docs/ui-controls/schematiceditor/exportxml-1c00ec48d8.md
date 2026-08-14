@@ -1,6 +1,6 @@
 ﻿# XML...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the Save-dialog, serializer, and XML writer paths.
 
 ## Control
 
@@ -20,25 +20,27 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches ExportXMLClick at 01ca30f0. The recovered body has 15 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler configures the shared Save dialog for an XML file and proposes a path from the active schematic. Cancel produces no file. After acceptance, it creates a serializer, copies the active schematic settings into the export document, serializes the schematic, and writes the XML to the selected path in mode 2. It restores the Save dialog's previous filter before it returns.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["XML..."] -->|"OnClick"| handler["ExportXMLClick (01ca30f0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click XML export"] --> save["Select XML output path"]
+    save --> accepted{"Path accepted?"}
+    accepted -->|"No"| restore["Restore Save dialog filter"]
+    accepted -->|"Yes"| serialize["Serialize active schematic and settings"]
+    serialize --> write["Write XML in mode 2"]
+    write --> restore
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001CA30F0__FUN_01ca30f0.c](../../../DecompiledSources/Tina16/functions/0000000001CA30F0__FUN_01ca30f0.c)
-- Recovered role: Evidence-blocked ExportXMLClick command.
+- Recovered role: Serialize the active schematic to a selected XML file.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.Export.ExportXML.OnClick.
-- Current graph behavior: The OnClick binding reaches ExportXMLClick at 01ca30f0. The recovered body has 15 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.Export.ExportXML to ExportXMLClick. The recovered source is DecompiledSources/Tina16/functions/0000000001CA30F0__FUN_01ca30f0.c and directly references 00414480, 00414560, 00414ad0, 00414b50, 00416ad0, 00416ba0, 00417c40, 0041b800, and 7 more. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Collects an XML path, serializes the current schematic and its settings, writes the XML, and restores shared dialog state.
+- Current graph evidence: `FUN_01ca30f0` configures the dialog at editor offset `+0xb40` for `XML File|*.XML` and branches on its execute result. The accepted branch constructs a document and serializer, copies the active settings, calls `FUN_0128ee00`, and invokes virtual slot `+0x180` with the selected path and mode 2. The original filter is copied back before return.
 - Complexity: complex
 - Distinct outgoing calls: 15
 
@@ -77,5 +79,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The XML writer's virtual method does not have a recovered Delphi name.
+- This handler has no local file-write error branch.
 

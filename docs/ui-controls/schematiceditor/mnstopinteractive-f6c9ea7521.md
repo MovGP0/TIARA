@@ -1,6 +1,6 @@
 ﻿# Stop
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from recovered state assignment and the shared interactive-mode handler.
 
 ## Control
 
@@ -20,25 +20,30 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnStopInteractiveClick at 01c99780. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler sets the shared interactive control state to false and then calls the same worker as `SchematicEditor.TopToolBar.EditorTools.ToolInteractive`. On the stop branch, the shared worker can ask the active interactive path to finish. If that step refuses, it restores the control state to true and returns, so interactive mode stays active.
+
+When the stop succeeds, the worker ends the current interactive command, updates the active document and global interactive subsystem, clears the global interactive flag, enables Start, disables Stop, and runs the editor idle-state refresh. If interactive mode is already off, the state setter can make no change and the common worker keeps the off-state controls synchronized.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Stop"] -->|"OnClick"| handler["mnStopInteractiveClick (01c99780)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Stop"] --> state["Set interactive control state to false"]
+    state --> shared["Run shared ToolInteractive handler"]
+    shared --> finish{"Active interactive path can finish?"}
+    finish -->|"No"| restore["Restore true state; keep mode active"]
+    finish -->|"Yes or already idle"| end["End current interactive command"]
+    end --> flags["Clear global mode; enable Start; disable Stop"]
+    flags --> refresh["Refresh editor idle state"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C99780__FUN_01c99780.c](../../../DecompiledSources/Tina16/functions/0000000001C99780__FUN_01c99780.c)
-- Recovered role: Evidence-blocked mnStopInteractiveClick command.
+- Recovered role: Stop the Schematic Editor interactive mode when its active path permits closure.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnInteractive.mnStopInteractive.OnClick.
-- Current graph behavior: The OnClick binding reaches mnStopInteractiveClick at 01c99780. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnInteractive.mnStopInteractive to mnStopInteractiveClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C99780__FUN_01c99780.c and directly references 0082a6c0, 01c87e40. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Forces the shared interactive state off and invokes the toolbar's recovered stop transition.
+- Current graph evidence: `FUN_01c99780` passes 0 to `FUN_0082a6c0` and calls `FUN_01c87e40`. The shared worker restores state 1 on a rejected finish, otherwise calls the recovered current-command cleanup path, clears the global flag, and updates the Start and Stop menu items.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -64,5 +69,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The condition that makes `FUN_01c88130(Self, 1)` refuse the stop is not named in recovered source.
+- The original Delphi class and property name for the state field are not recovered.
 

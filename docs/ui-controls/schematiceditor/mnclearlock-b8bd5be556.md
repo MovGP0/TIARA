@@ -1,6 +1,6 @@
 ﻿# Clear lock
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Evidence-backed behavior recovered.
 
 ## Control
 
@@ -20,25 +20,28 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnClearLockClick at 01c93bf0. The recovered body has 5 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler gets the current selection from the schematic model at form offset `0x27A8`. It continues only when the selected object exists, has recovered type value 4, passes the edit predicate, has its lock-capable flag set, and has a stored password. It then asks, “Are you sure you want to clear the lock on the selected block?” Only the Yes result, value 6, calls the selected block's password setter with zero and refreshes the model. All failed guards and other responses make no change.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Clear lock"] -->|"OnClick"| handler["mnClearLockClick (01c93bf0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Clear lock"] --> handler["mnClearLockClick<br/>01c93bf0"]
+    handler --> eligible{"Selected locked block is eligible?"}
+    eligible -->|"No"| noOp["Keep lock unchanged"]
+    eligible -->|"Yes"| confirm{"User confirms clear?"}
+    confirm -->|"No"| noOp
+    confirm -->|"Yes"| clear["Set stored password to zero"]
+    clear --> refresh["Refresh schematic model"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C93BF0__FUN_01c93bf0.c](../../../DecompiledSources/Tina16/functions/0000000001C93BF0__FUN_01c93bf0.c)
-- Recovered role: Evidence-blocked mnClearLockClick command.
+- Recovered role: Clears the selected block lock after confirmation.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.Edit.Sharing1.mnClearLock.OnClick.
-- Current graph behavior: The OnClick binding reaches mnClearLockClick at 01c93bf0. The recovered body has 5 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.Edit.Sharing1.mnClearLock to mnClearLockClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C93BF0__FUN_01c93bf0.c and directly references 0072d440, 0198a580, 01993ec0, 0199e310, 01d04d40. No accepted end-to-end role was established for this control path.
+- Current graph behavior: The handler validates the selected locked block, requests confirmation, clears its stored password only for Yes, and refreshes the model.
+- Current graph evidence: The source contains the exact confirmation text, tests result 6, calls the selected object's virtual setter with zero, and then calls `FUN_0199E310`.
 - Complexity: complex
 - Distinct outgoing calls: 5
 
@@ -67,5 +70,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The source proves the password-field reset. It does not expose the persistent file format used for that field.
 

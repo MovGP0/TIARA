@@ -1,6 +1,6 @@
-﻿# Close (Ctrl+F4)
+﻿# Close
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete.
 
 ## Control
 
@@ -9,59 +9,43 @@
 | Form | SchematicEditor |
 | Component path | SchematicEditor.TopToolBar.GeneralTools.ToolClose |
 | Control class | TSpeedButton |
-| Caption | Not present in the recovered resource. |
 | Hint | Close (Ctrl+F4) |
-| Text | Not present in the recovered resource. |
-| Handler name | ToolCloseClick |
-| Handler address | 01c98960 |
-| Graph node | `resource:dfm:SchematicEditor/SchematicEditor.TopToolBar.GeneralTools.ToolClose` |
-| Handler node | `function:01c98960` |
+| Handler | `ToolCloseClick` at `01c98960` |
+| Graph nodes | `resource:dfm:SchematicEditor/SchematicEditor.TopToolBar.GeneralTools.ToolClose` → `function:01c98960` |
 | Graph layer | UI |
 
 ## What happens when clicked
 
-The OnClick binding reaches ToolCloseClick at 01c98960. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler first checks an optional external editor object. When it is active, ready, and the current document type is `2`, it copies the external object's current selection or state into the active document's subordinate object through a virtual method.
+
+It then delegates to `FUN_01c94450`, the same close path used by `MainMenu.mnFile.mnClose`. That helper locates the active document entry, prepares its schematic collection, finds the matching document index, and calls `FUN_01c94060`. The close helper can prompt for an unsaved or externally changed document. Cancel keeps the document open. An accepted close saves when required, removes the document entry, and switches the editor to its empty-document state when the document list becomes empty.
+
+The toolbar handler has no independent retry or local exception block. All save and cancel decisions are in the shared close path.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Close (Ctrl+F4)"] -->|"OnClick"| handler["ToolCloseClick (01c98960)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Close"] --> external{"Active external editor state must be copied?"}
+    external -->|"Yes"| copy["Copy external state into the active document"]
+    external -->|"No"| shared["Call the shared File Close handler"]
+    copy --> shared
+    shared --> prompt{"Close helper accepts save or close decision?"}
+    prompt -->|"No"| remain["Keep the document open"]
+    prompt -->|"Yes"| remove["Save when required and remove the document entry"]
+    remove --> empty{"No documents remain?"}
+    empty -->|"Yes"| reset["Switch to the empty-document editor state"]
+    empty -->|"No"| done["Keep the remaining document active"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C98960__FUN_01c98960.c](../../../DecompiledSources/Tina16/functions/0000000001C98960__FUN_01c98960.c)
-- Recovered role: Evidence-blocked ToolCloseClick command.
-- Current graph summary: Handles 1 Delphi UI event: SchematicEditor.TopToolBar.GeneralTools.ToolClose.OnClick.
-- Current graph behavior: The OnClick binding reaches ToolCloseClick at 01c98960. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.TopToolBar.GeneralTools.ToolClose to ToolCloseClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C98960__FUN_01c98960.c and directly references 01c94450. No accepted end-to-end role was established for this control path.
-- Complexity: simple
-- Distinct outgoing calls: 1
-
-## Direct calls
-
-- `function:01c94450` — Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.mnClose.OnClick.
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: [`0358_SchematicEditor_SchematicEditor_TopToolBar_GeneralTools_ToolClose_Glyph_Data.png`](../../../glyph/0358_SchematicEditor_SchematicEditor_TopToolBar_GeneralTools_ToolClose_Glyph_Data.png)
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Toolbar handler: [FUN_01c98960](../../../DecompiledSources/Tina16/functions/0000000001C98960__FUN_01c98960.c)
+- Shared File Close handler: [FUN_01c94450](../../../DecompiledSources/Tina16/functions/0000000001C94450__FUN_01c94450.c)
+- Document close and prompt path: [FUN_01c94060](../../../DecompiledSources/Tina16/functions/0000000001C94060__FUN_01c94060.c)
+- Extracted glyph: [Close glyph](../../../glyph/0358_SchematicEditor_SchematicEditor_TopToolBar_GeneralTools_ToolClose_Glyph_Data.png)
+- Recovered role: Synchronize optional external state and close the active Schematic Editor document through the shared File Close path.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The external editor object and document-type enumeration names are not recovered.

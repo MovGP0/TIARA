@@ -1,6 +1,6 @@
 ﻿# &DC Optimization...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The handler prepares interactive DC optimization mode 1 and honors modal cancellation.
 
 ## Control
 
@@ -20,32 +20,42 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches DCOptimizationClick at 01c96f20. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c96f20` calls `FUN_01373b60` with the active schematic and interactive selector `0`. The shared routine verifies that two required schematic collections are not empty and that optimization mode `1` is available. It creates the DC optimization job and prepares mode `1`.
+
+When interactive dialogs are enabled by the recovered global flag, the routine shows the shared optimization dialog. Modal result `2` skips job configuration and execution. Otherwise, it configures the mode-1 job, runs its finalization path, releases associated result state, and destroys the job. The handler records `DCOptimizationClick` after the shared routine returns, including after Cancel.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&DC Optimization..."] -->|"OnClick"| handler["DCOptimizationClick (01c96f20)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click DC Optimization"] --> handler["DCOptimizationClick<br/>01c96f20"]
+    handler --> validate["Validate schematic and mode 1"]
+    validate --> prepare["Create and prepare DC job"]
+    prepare --> dialog{"Interactive dialog enabled?"}
+    dialog -->|Yes| modal["Show optimization dialog"]
+    dialog -->|No| run["Configure and run mode 1"]
+    modal --> accepted{"Modal result = 2?"}
+    accepted -->|Yes| cancel["Skip job execution"]
+    accepted -->|No| run
+    run --> cleanup["Finalize and destroy job"]
+    cancel --> cleanup
+    cleanup --> record["Record command name"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C96F20__FUN_01c96f20.c](../../../DecompiledSources/Tina16/functions/0000000001C96F20__FUN_01c96f20.c)
-- Recovered role: Evidence-blocked DCOptimizationClick command.
+- Recovered role: Runs the interactive DC optimization mode-1 path.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.Optimization.DCOptimization.OnClick.
-- Current graph behavior: The OnClick binding reaches DCOptimizationClick at 01c96f20. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.Optimization.DCOptimization to DCOptimizationClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C96F20__FUN_01c96f20.c and directly references 00414ad0, 01373b60. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Validates the schematic, prepares a DC optimization job, honors modal cancellation, otherwise configures and runs mode 1, then cleans up and records the command.
+- Current graph evidence: `FUN_01c96f20` passes the active model and selector 0 to `FUN_01373b60`. That callee checks the required collections and capability mode 1, prepares the job, conditionally shows the shared modal dialog, tests result 2, and only then calls the mode-1 configure and finalize sequence before cleanup.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
 ## Direct calls
 
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:01373b60` — FUN_01373b60
+- `function:00414ad0` — Records the command name
+- `function:01373b60` — Validates, prepares, optionally prompts, and runs DC optimization mode 1
 
 ## Resource evidence
 
@@ -64,5 +74,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
-
+- The semantic name of the global dialog-suppression byte is not recovered.
+- The handler records its command name after both acceptance and cancellation.
+- Internal optimizer convergence and failure codes are not returned to the wrapper.

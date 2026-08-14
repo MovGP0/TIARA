@@ -1,6 +1,6 @@
 ﻿# PCAD
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the recovered PCB profile, directory, settings, cache, and menu-state path.
 
 ## Control
 
@@ -20,25 +20,29 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches PCADPCB1Click at 01c94e90. The recovered body has 10 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler selects the PCAD PCB profile. It clears the prior PCB-directory cache, sets `\PCAD.PCB` and `PCAD`, creates the profile directory when absent, checks this item, writes `PCBRootDir=PCAD` in the `Schematic Editor` settings section, clears two dependent caches, and reloads the PCAD `.PCB` definition data. It does not export a board in this handler.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["PCAD"] -->|"OnClick"| handler["PCADPCB1Click (01c94e90)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click PCAD"] --> profile["Set PCAD and \\PCAD.PCB paths"]
+    profile --> exists{"Profile directory exists?"}
+    exists -->|"No"| create["Create profile directory"]
+    exists -->|"Yes"| check["Check PCAD menu item"]
+    create --> check
+    check --> persist["Write PCBRootDir=PCAD"]
+    persist --> reset["Clear dependent PCB caches"]
+    reset --> load["Load PCAD.PCB definitions"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C94E90__FUN_01c94e90.c](../../../DecompiledSources/Tina16/functions/0000000001C94E90__FUN_01c94e90.c)
-- Recovered role: Evidence-blocked PCADPCB1Click command.
+- Recovered role: Select and load the PCAD PCB profile.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.pcbdirectory1.PCADPCB1.OnClick.
-- Current graph behavior: The OnClick binding reaches PCADPCB1Click at 01c94e90. The recovered body has 10 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.pcbdirectory1.PCADPCB1 to PCADPCB1Click. The recovered source is DecompiledSources/Tina16/functions/0000000001C94E90__FUN_01c94e90.c and directly references 00414560, 00414ad0, 00416ba0, 00442400, 007e2d20, 00b96de0, 00eadc90, 00eae050, and 2 more. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Selects, persists, and reloads the PCAD PCB definition profile.
+- Current graph evidence: `FUN_01c94e90` contains `\PCAD.PCB`, `PCAD`, `Schematic Editor`, and `PCBRootDir`; then checks the menu item, clears caches, and invokes the recovered `.PCB` loader.
 - Complexity: complex
 - Distinct outgoing calls: 10
 
@@ -72,5 +76,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- Directory, settings, and definition-load errors are not caught in this handler.
 

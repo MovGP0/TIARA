@@ -1,6 +1,6 @@
 ﻿# &Schematic Editor
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Evidence-backed behavior recovered.
 
 ## Control
 
@@ -20,25 +20,25 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches HelponSchematicEditor1Click at 01c81350. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler builds a path to `TINA.CHM` from the application help base, passes it to `FUN_01B1DEF0` to select an existing language-specific help-file variant, and calls the application help-system method at virtual offset `0x20` with context ID 1000. It does not pass the current selection and does not change the schematic model. Missing-file behavior is not present in this handler.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Schematic Editor"] -->|"OnClick"| handler["HelponSchematicEditor1Click (01c81350)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Schematic Editor Help"] --> handler["HelponSchematicEditor1Click<br/>01c81350"]
+    handler --> path["Build TINA.CHM path"]
+    path --> locale["Select existing localized help file"]
+    locale --> help["Open help context 1000"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C81350__FUN_01c81350.c](../../../DecompiledSources/Tina16/functions/0000000001C81350__FUN_01c81350.c)
-- Recovered role: Evidence-blocked HelponSchematicEditor1Click command.
+- Recovered role: Opens TINA help context 1000 from the localized help file.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.Help.HelponSchematicEditor1.OnClick.
-- Current graph behavior: The OnClick binding reaches HelponSchematicEditor1Click at 01c81350. The recovered body has 3 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.Help.HelponSchematicEditor1 to HelponSchematicEditor1Click. The recovered source is DecompiledSources/Tina16/functions/0000000001C81350__FUN_01c81350.c and directly references 00414560, 00416cd0, 01b1def0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: The handler resolves localized `TINA.CHM` and invokes the help system with numeric context 1000.
+- Current graph evidence: The file literal, localization helper, virtual help call, and context ID are direct recovered source values.
 - Complexity: complex
 - Distinct outgoing calls: 3
 
@@ -65,5 +65,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- This handler and Contents use the same recovered file and context ID. Any different presentation comes from the help file or menu placement, not from this code path.
 

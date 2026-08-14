@@ -1,6 +1,6 @@
 ﻿# &Close
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the active-record, modified-state, save-prompt, close, and blank-document paths.
 
 ## Control
 
@@ -20,25 +20,34 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnCloseClick at 01c94450. The recovered body has 7 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler synchronizes the active document record with the live editor state. If its saved settings differ from the live settings, it marks the document as modified before it copies the live settings into the record. It finds the active document's open-list index and calls the common close helper. For unsaved changes, that helper offers Yes, No, and Cancel. Yes saves and then closes, No closes without saving, and Cancel keeps the document open. If the close leaves no open documents, the handler creates a new blank document.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Close"] -->|"OnClick"| handler["mnCloseClick (01c94450)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Close"] --> sync["Synchronize active document record"]
+    sync --> changed{"Live settings differ?"}
+    changed -->|"Yes"| mark["Mark document modified"]
+    changed -->|"No"| locate["Find active document index"]
+    mark --> locate
+    locate --> prompt{"Unsaved-change choice"}
+    prompt -->|"Yes"| save["Save and close document"]
+    prompt -->|"No"| close["Close without saving"]
+    prompt -->|"Cancel"| keep["Keep document open"]
+    save --> empty{"No documents remain?"}
+    close --> empty
+    empty -->|"Yes"| blank["Create new blank document"]
+    empty -->|"No"| done["Keep remaining documents"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C94450__FUN_01c94450.c](../../../DecompiledSources/Tina16/functions/0000000001C94450__FUN_01c94450.c)
-- Recovered role: Evidence-blocked mnCloseClick command.
+- Recovered role: Close the active schematic document with unsaved-change handling.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.mnClose.OnClick.
-- Current graph behavior: The OnClick binding reaches mnCloseClick at 01c94450. The recovered body has 7 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.mnClose to mnCloseClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C94450__FUN_01c94450.c and directly references 00417c40, 0199e310, 01c77470, 01c8a290, 01c8a3c0, 01c94060, 01d0fb00. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Synchronizes and closes the active document, permits save, discard, or cancel for unsaved work, and creates a blank document when none remain.
+- Current graph evidence: `FUN_01c94450` compares the active document snapshot through `FUN_01d0fb00`, calls `FUN_0199e310` when it differs, copies the live settings, locates the record through `FUN_01c8a290`, and calls `FUN_01c94060`. The close helper shows the three-result prompt, saves on result 6, stops on result 2, and removes the document only on a permitted close. The handler calls `FUN_01c77470` when the final list count is zero.
 - Complexity: complex
 - Distinct outgoing calls: 7
 
@@ -69,5 +78,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The localized prompt text is resource-backed; the recovered source proves the Yes, No, and Cancel branches but not every build's final wording.
+- Save and close errors are handled below the common helper.
 

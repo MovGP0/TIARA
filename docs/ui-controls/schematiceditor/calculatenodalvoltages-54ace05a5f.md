@@ -1,6 +1,6 @@
 ﻿# &Calculate nodal voltages
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The shared solver mode and command-state write establish the action.
 
 ## Control
 
@@ -20,25 +20,24 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches CalculateNodalVoltagesClick at 01c759b0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c759b0` calls the central circuit-analysis routine `FUN_013911a0` with the active schematic circuit and mode 0. The reviewed Netlist Editor `Calculate nodal voltages` command calls the same routine with mode 0. After the call, this handler stores `CalculateNodalVoltagesClick` as the last command. It does not test the solver return and does not call the result-form wrapper directly.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Calculate nodal voltages"] -->|"OnClick"| handler["CalculateNodalVoltagesClick (01c759b0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Calculate nodal voltages"] --> handler["FUN_01c759b0"]
+    handler --> solve["FUN_013911a0 mode 0"]
+    solve --> record["Record CalculateNodalVoltagesClick"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C759B0__FUN_01c759b0.c](../../../DecompiledSources/Tina16/functions/0000000001C759B0__FUN_01c759b0.c)
-- Recovered role: Evidence-blocked CalculateNodalVoltagesClick command.
+- Recovered role: Runs the central nodal-voltage calculation in mode 0 and records the command.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.ACAnalysis.CalculateNodalVoltages.OnClick.
-- Current graph behavior: The OnClick binding reaches CalculateNodalVoltagesClick at 01c759b0. The recovered body has 2 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.ACAnalysis.CalculateNodalVoltages to CalculateNodalVoltagesClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C759B0__FUN_01c759b0.c and directly references 00414ad0, 013911a0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Invokes the central analysis routine in nodal-voltage mode and stores the recovered command name.
+- Current graph evidence: The handler passes mode 0 and the active circuit to `FUN_013911a0`, then assigns `CalculateNodalVoltagesClick` to form field `0x27E8`. The reviewed Netlist Editor nodal-voltage handler uses the same solver routine and mode.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -64,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- This wrapper ignores the solver return. The exact error reporting and result presentation occur inside the central analysis path or its consumers.
 

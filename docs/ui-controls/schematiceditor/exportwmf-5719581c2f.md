@@ -1,6 +1,6 @@
 ﻿# &Picture (*.EMF;*.BMP;*.JPG;*.GIF;*PNG)...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the format-selection, render, and image-encoder paths.
 
 ## Control
 
@@ -20,25 +20,29 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches ExportWMFClick at 01c81940. The recovered body has 10 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler opens a Save dialog for the active schematic picture. The selected filter chooses EMF, BMP, JPG, GIF, or PNG and the handler adds the matching extension. Cancel produces no file. After acceptance, the export helper writes EMF from the active schematic drawing bounds. For the raster formats, it renders the active schematic to a bitmap. It saves BMP directly or wraps the bitmap in the selected JPEG, GIF, or PNG encoder before it writes the file.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Picture (*.EMF;*.BMP;*.JPG;*.GIF;*PNG)..."] -->|"OnClick"| handler["ExportWMFClick (01c81940)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Picture export"] --> format["Choose EMF BMP JPG GIF or PNG"]
+    format --> save["Select output path"]
+    save --> accepted{"Path accepted?"}
+    accepted -->|"No"| stop["Return without output"]
+    accepted -->|"Yes"| kind{"EMF selected?"}
+    kind -->|"Yes"| emf["Write schematic as metafile"]
+    kind -->|"No"| bitmap["Render schematic to bitmap"]
+    bitmap --> encode["Save or encode selected raster format"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C81940__FUN_01c81940.c](../../../DecompiledSources/Tina16/functions/0000000001C81940__FUN_01c81940.c)
-- Recovered role: Evidence-blocked ExportWMFClick command.
+- Recovered role: Export the active schematic as an EMF or raster image.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.Export.ExportWMF.OnClick.
-- Current graph behavior: The OnClick binding reaches ExportWMFClick at 01c81940. The recovered body has 10 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.Export.ExportWMF to ExportWMFClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C81940__FUN_01c81940.c and directly references 00414480, 00414560, 00416ad0, 004414c0, 00441640, 00441920, 00724270, 00724300, and 2 more. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Selects an image format, collects a path, and writes the active schematic as EMF, BMP, JPG, GIF, or PNG.
+- Current graph evidence: `FUN_01c81940` maps filter indexes 1 through 5 to the five extensions and calls `FUN_01c814e0` only after the Save dialog accepts. `FUN_01c814e0` uses the active schematic bounds and drawing path for EMF. For other formats it renders a bitmap, saves BMP directly, or constructs the matching JPEG, GIF, or PNG encoder before saving.
 - Complexity: complex
 - Distinct outgoing calls: 10
 
@@ -72,5 +76,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The menu caption lists `*PNG` without a dot, but the recovered handler appends the `.PNG` extension.
+- This handler has no local file-write error branch.
 

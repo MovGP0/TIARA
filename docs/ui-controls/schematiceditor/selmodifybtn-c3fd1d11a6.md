@@ -1,6 +1,6 @@
 ﻿# Edit...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Evidence-backed behavior recovered.
 
 ## Control
 
@@ -20,25 +20,31 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches SelModifyBtnClick at 01c7d0f0. The recovered body has 8 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler reads the selected row index from the selection control at form offset `0x1468`. A negative index or an index outside the current fault-mapping list is a no-op. For a valid row, it creates `TMapFaultDlg`, whose resource caption is “Map Fault to Hardware,” and loads the current row data into the dialog.
+
+If the dialog returns modal result 1, the handler reads the dialog's switch choice, updates the selected mapping through `FUN_012BEAE0`, writes the edited text back through the list interface, and calls `FUN_01C7CF40` to rebuild the selection controls. Cancel frees the dialog without changing the list.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Edit..."] -->|"OnClick"| handler["SelModifyBtnClick (01c7d0f0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Edit selected fault mapping"] --> handler["SelModifyBtnClick<br/>01c7d0f0"]
+    handler --> valid{"Selected row is valid?"}
+    valid -->|"No"| noOp["Keep mapping unchanged"]
+    valid -->|"Yes"| dialog["Load row into Map Fault to Hardware dialog"]
+    dialog --> accepted{"Dialog returns OK?"}
+    accepted -->|"No"| noOp
+    accepted -->|"Yes"| update["Store switch choice and edited row text"]
+    update --> refresh["Rebuild selection controls"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C7D0F0__FUN_01c7d0f0.c](../../../DecompiledSources/Tina16/functions/0000000001C7D0F0__FUN_01c7d0f0.c)
-- Recovered role: Evidence-blocked SelModifyBtnClick command.
+- Recovered role: Edits the selected external fault-to-hardware mapping.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.EditorPanel.FaultManager.nbExMan.tsExManSelection.GroupBox5.SelModifyBtn.OnClick.
-- Current graph behavior: The OnClick binding reaches SelModifyBtnClick at 01c7d0f0. The recovered body has 8 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.EditorPanel.FaultManager.nbExMan.tsExManSelection.GroupBox5.SelModifyBtn to SelModifyBtnClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C7D0F0__FUN_01c7d0f0.c and directly references 00410f20, 00414480, 0064dd90, 0064de00, 007fc180, 012beae0, 01c7cf40, 01c7d9d0. No accepted end-to-end role was established for this control path.
+- Current graph behavior: The handler opens `TMapFaultDlg` for a valid selected row and commits its switch and text data only for modal result 1.
+- Current graph evidence: The constructor pointer matches the `TMapFaultDlg` class table. The DFM supplies the Map Fault to Hardware caption and `SwitchGrid`; `FUN_012BEAE0` updates the selected mapping and `FUN_01C7CF40` rebuilds the row controls.
 - Complexity: complex
 - Distinct outgoing calls: 8
 
@@ -70,5 +76,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The recovered virtual list interface does not expose a Delphi field name for each stored row value. The selected-row checks and commit boundary are proven.
 

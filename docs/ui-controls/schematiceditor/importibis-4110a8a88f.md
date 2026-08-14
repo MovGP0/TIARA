@@ -1,6 +1,6 @@
 ﻿# IBIS File (*.IBS)...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the IBIS file, selection-dialog, circuit-generation, and placement paths.
 
 ## Control
 
@@ -20,25 +20,30 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches ImportIbisClick at 01ca4a80. The recovered body has 6 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler configures the Open dialog for an IBIS `*.IBS` file. Cancel produces no change. After file selection, it parses the file and opens `IbisImport` so that the user can select a component, signal, model, and Typ, Min, or Max data. A result other than acceptance stops the import. On acceptance, the dialog generates `temp.cir`. The follow-up path parses that circuit, builds a macro with recovered pins and model metadata, writes `temp.tsm` in the temporary directory, and passes the macro to the schematic insertion path.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["IBIS File (*.IBS)..."] -->|"OnClick"| handler["ImportIbisClick (01ca4a80)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click IBIS import"] --> open["Select IBS file"]
+    open --> selected{"File selected?"}
+    selected -->|"No"| stop["Return without import"]
+    selected -->|"Yes"| choose["Parse file and choose model data"]
+    choose --> accepted{"Selection accepted?"}
+    accepted -->|"No"| stop
+    accepted -->|"Yes"| circuit["Generate and parse temp.cir"]
+    circuit --> macro["Build temp.tsm macro"]
+    macro --> place["Insert macro into schematic"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001CA4A80__FUN_01ca4a80.c](../../../DecompiledSources/Tina16/functions/0000000001CA4A80__FUN_01ca4a80.c)
-- Recovered role: Evidence-blocked ImportIbisClick command.
+- Recovered role: Import a selected IBIS model as a placeable TINA macro.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.Import.ImportIbis.OnClick.
-- Current graph behavior: The OnClick binding reaches ImportIbisClick at 01ca4a80. The recovered body has 6 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.Import.ImportIbis to ImportIbisClick. The recovered source is DecompiledSources/Tina16/functions/0000000001CA4A80__FUN_01ca4a80.c and directly references 00414480, 00414560, 00414ad0, 00724270, 01ca4350, 01ca4640. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Gets an IBS path, parses and stages the chosen model, generates a temporary circuit and macro, and sends the macro to schematic placement.
+- Current graph evidence: `FUN_01ca4a80` configures the Open dialog for `IBIS File|*.IBS`, calls annotated controller `FUN_01ca4350`, and proceeds only when it returns true. That controller parses the input, opens `IbisImport`, and generates `temp.cir` for an accepted selection. `FUN_01ca4640` parses the generated circuit, collects pins, writes `temp.tsm`, and calls the recovered schematic insertion path `FUN_01c6ec30`.
 - Complexity: complex
 - Distinct outgoing calls: 6
 
@@ -68,5 +73,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- Parser and generator failures below these recovered functions do not have a separate error branch in the menu handler.
 

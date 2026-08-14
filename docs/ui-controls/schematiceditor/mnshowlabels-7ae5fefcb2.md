@@ -1,6 +1,6 @@
 ﻿# &Labels
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Complete. The stored display setting, menu synchronization, and renderer readers establish the toggle.
 
 ## Control
 
@@ -20,25 +20,25 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnShowLabelsClick at 01c976a0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+`FUN_01c976a0` inverts the label-display byte at `PTR_DAT_02004010[0x816]` and invalidates the schematic surface at form offset `0xA10`. The settings writer stores this state as `Schematic Editor/ShowLabels`. The menu-update routine uses the inverse byte value for the `mnShowLabels` check, and multiple render and model routines read the same byte. Thus, the click changes label visibility and schedules a repaint.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["&Labels"] -->|"OnClick"| handler["mnShowLabelsClick (01c976a0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Labels"] --> handler["FUN_01c976a0"]
+    handler --> toggle["Invert stored label-display byte"]
+    toggle --> repaint["Invalidate schematic surface"]
+    repaint --> render["Renderers use the new label state"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C976A0__FUN_01c976a0.c](../../../DecompiledSources/Tina16/functions/0000000001C976A0__FUN_01c976a0.c)
-- Recovered role: Evidence-blocked mnShowLabelsClick command.
+- Recovered role: Toggles schematic label visibility and repaints the surface.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.View.mnShowLabels.OnClick.
-- Current graph behavior: The OnClick binding reaches mnShowLabelsClick at 01c976a0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.View.mnShowLabels to mnShowLabelsClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C976A0__FUN_01c976a0.c and directly references 0064e770. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Inverts the stored label-display state and invalidates the schematic surface.
+- Current graph evidence: The handler toggles `PTR_DAT_02004010[0x816]` and calls the invalidate helper. `FUN_01c85f70` stores the state as `ShowLabels`; `FUN_01c7ec30` synchronizes the menu check; renderer entry `FUN_0198e380` and other model routines read the same byte.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -63,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The recovered byte uses inverse logic for the menu check, so its internal true/false name is unknown.
 

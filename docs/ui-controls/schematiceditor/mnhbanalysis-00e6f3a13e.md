@@ -1,6 +1,6 @@
 ﻿# Harmonic Balance Analysis...
 
-> Analysis status: Blocked by an exact evidence gap.
+> Analysis status: Reviewed from the harmonic-balance controller and dialog paths.
 
 ## Control
 
@@ -20,25 +20,25 @@
 
 ## What happens when clicked
 
-The OnClick binding reaches mnHarmonicBalanceDiscreteClick at 01ca4df0. The recovered body has 7 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+The handler creates a harmonic-balance controller for the active schematic. The controller prepares a `temp.cir` input and uses the Xyce simulator path to load the harmonic-balance data. The handler then opens `HBAnalysisDlgDiscrete`, gives it the controller and result list, and waits for the dialog. The dialog lets the user set the base frequency, harmonic count, and output before calculation or drawing. The handler destroys the dialog and controller after it closes.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Harmonic Balance Analysis..."] -->|"OnClick"| handler["mnHarmonicBalanceDiscreteClick (01ca4df0)"]
-    handler --> recovered["Recovered direct call path"]
-    recovered --> gap{"Application responsibility proven?"}
-    gap -->|"No"| blocked["Keep exact behavior unknown"]
+    control["Click Harmonic Balance Analysis"] --> controller["Create controller for active schematic"]
+    controller --> prepare["Prepare temp.cir and load Xyce data"]
+    prepare --> dialog["Open harmonic-balance dialog"]
+    dialog --> close["Destroy dialog and controller"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001CA4DF0__FUN_01ca4df0.c](../../../DecompiledSources/Tina16/functions/0000000001CA4DF0__FUN_01ca4df0.c)
-- Recovered role: Evidence-blocked mnHarmonicBalanceDiscreteClick command.
+- Recovered role: Prepare and show the discrete harmonic-balance analysis dialog.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.mnHBAnalysis.OnClick.
-- Current graph behavior: The OnClick binding reaches mnHarmonicBalanceDiscreteClick at 01ca4df0. The recovered body has 7 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
-- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.mnHBAnalysis to mnHarmonicBalanceDiscreteClick. The recovered source is DecompiledSources/Tina16/functions/0000000001CA4DF0__FUN_01ca4df0.c and directly references 00410f20, 007fc180, 019a4600, 01b4c3a0, 01b4e970, 01b53190, 01b53570. No accepted end-to-end role was established for this control path.
+- Current graph behavior: Builds harmonic-balance input for the active schematic, loads simulation data, and opens the result and setup dialog.
+- Current graph evidence: `FUN_01ca4df0` gets the active schematic through `FUN_019a4600`, constructs the controller through `FUN_01b4c3a0`, and prepares it through `FUN_01b4e970`. It constructs the resource-backed `HBAnalysisDlgDiscrete`, passes the controller and result list through `FUN_01b53190` and `FUN_01b53570`, shows the form modally, and destroys both objects.
 - Complexity: complex
 - Distinct outgoing calls: 7
 
@@ -69,5 +69,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+- The recovered source proves the Xyce setup and dialog data handoff. It does not expose the final simulator process exit handling in this handler.
 

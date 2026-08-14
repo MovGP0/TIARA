@@ -1,0 +1,181 @@
+@ Digital Signal Generator file
+
+.# Period
+20m
+.# Length
+5
+
+#01
+Default
+Low
+
+20m
+High
+
+60m
+Low
+
+.# end of psg
+#02
+Default
+Low
+
+40m
+High
+
+.# end of psg
+#03
+Default
+Low
+
+20m
+High
+
+60m
+Low
+
+.# end of psg
+#04
+Default
+Low
+
+20m
+High
+
+60m
+Low
+
+.# end of psg
+#05
+Default
+Low
+
+20m
+High
+
+60m
+Low
+
+.# end of psg
+#06
+Default
+Low
+
+20m
+High
+
+60m
+Low
+
+.# end of psg
+#07
+Default
+Low
+
+20m
+High
+
+60m
+Low
+
+.# end of psg
+#08
+Default
+Low
+
+20m
+High
+
+60m
+Low
+
+.# end of psg
+#09
+Default
+Low
+
+20m
+High
+
+60m
+Low
+
+.# end of psg
+#10
+Default
+Low
+
+20m
+High
+
+60m
+Low
+
+.# end of psg
+#11
+Default
+Low
+
+20m
+High
+
+60m
+Low
+
+.# end of psg
+#12
+Default
+Low
+
+20m
+High
+
+60m
+Low
+
+.# end of psg
+#13
+Default
+Low
+
+20m
+High
+
+60m
+Low
+
+.# end of psg
+#14
+Default
+Low
+
+20m
+High
+
+60m
+Low
+
+.# end of psg
+#15
+Default
+Low
+
+20m
+High
+
+60m
+Low
+
+.# end of psg
+#16
+Default
+Low
+
+20m
+High
+
+60m
+Low
+
+.# end of psg
+.@ end of file

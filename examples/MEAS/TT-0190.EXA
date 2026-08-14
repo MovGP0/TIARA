@@ -1,0 +1,20 @@
+Full-wave rectifier /FR
+EXAMPLES\MEAS\TC-0190.SCH
+ER 1 1 0 7 7 1 0
+
+Full-wave rectifier /F2
+EXAMPLES\MEAS\TC-0190.SCH
+ER 1 1 2 7 7 1 0
+
+Full-wave rectifier /F3
+EXAMPLES\MEAS\TC-0190.SCH
+ER 1 1 3 7 7 1 0
+
+Full-wave rectifier /F4
+EXAMPLES\MEAS\TC-0190.SCH
+ER 1 1 4 7 7 1 0
+
+Full-wave rectifier /F5
+EXAMPLES\MEAS\TC-0190.SCH
+ER 1 1 5 7 7 1 0
+

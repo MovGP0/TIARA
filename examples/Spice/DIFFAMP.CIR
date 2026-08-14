@@ -1,0 +1,34 @@
+Created by TINA
+*************************************
+**  This file was created by TINA  **
+*************************************
+
+VUin  12   0 SIN(0 1M 1K 0 0 0.0)
+QT11    4   3   2 Q2N1893
+QT12    5   1   2 Q2N1893
+R11     6   3 10.0K
+R12     6   1 10.0K
+R21     6   4 5.0K
+R22     6   5 5.0K
+QT13    3   8   7 Q2N1893
+QT14    1   9   7 Q2N1893
+QT21    7  10  11 Q2N1893
+R31     9   0 20.0K
+R32    12   8 20.0K
+R23     2   0 5.0K
+QT22   10  10  13 Q2N1893
+R24     0  10 5.0K
+R41    13  14 1.0K
+R61    14  15 1.0
+R62     6  16 1.0
+V_Ucc 15   0 -6.0
+VUcc  16   0 6.0
+R51    11  14 2.0K
+.TRAN 10N 3M 
+.AC DEC 10 10 1MEG
+.DC LIN VUin -300M 300M 20M
+.PLOT AC V(4,5)
+.MODEL Q2N1893 NPN (BF=80 BR=1 IS=1e-15 RB=10 RC=0 CJC=3.611e-11 VJC=0.75
++ MJC=0.33 TR=1.0e-8 CJE=1.006e-10 VJE=0.75 MJE=0.33 TF=3.149e-9 EG=1.11
++ VAF=100 XTB=2e-3 KF=0 AF=1.0)
+.END

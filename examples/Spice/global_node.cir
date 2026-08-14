@@ -1,0 +1,23 @@
+Created by TINA
+*************************************
+**  This file was created by TINA  **
+**    (c) 1996 DesignSoft, Inc.    **
+*************************************
+
+X1 0 MACRO1
+X2 0 MACRO2
+.TRAN 3U 3M
+.PROBE V(X2.PWR)
+
+.SUBCKT MACRO1 AGND OPTIONAL: PWR=$G_PWR
+V1 PWR AGND SIN(0, 1, 1K)
+.ENDS
+
+.SUBCKT MACRO2 AGND OPTIONAL: PWR=$G_PWR
+R1 PWR AGND 1K
+.ENDS
+
+.END
+
+
+

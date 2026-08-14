@@ -1,0 +1,2273 @@
+********************************************
+**  TINA device library                   **
+**  (c) 2008 DesignSoft, Inc.             **
+********************************************
+*
+.SUBCKT PotMeter A B C PARAMS: Res=1, Percent=1
+R1 A C {Res * Percent}
+R2 B C {Res * (1-Percent)}
+.ENDS
+*
+****  Microstrip Model
+.SUBCKT	Microstrip  1  2  Params: W=100u L=1m H=100u ER=1
+.Param  c = 3e8
+.Param  wdbh = {W/H}
+.Param  hdbw = {H/W}
+.Param  eeff = {(ER + 1)/2 + (ER - 1)/(2 * sqrt(1 + 10 * hdbw))}
+.Param  z01 =  {if (wdbh <= 1, 60*log(8*hdbw + 0.25*wdbh), 120*pi/(wdbh + 2.42 - 0.44*hdbw + pwr((1 - hdbw), 6)))}
+.Param  WaveImp = {z01/sqrt(eeff)}
+.Param  Delay = {L * sqrt(eeff)/c}
+TL1   1 0 2 0  Z0={WaveImp} TD={Delay}       
+.ENDS
+
+****  Microstrip Open End Model
+.SUBCKT	Microstrip_Open  1  Params: W=100u L=1m H=100u ER=1
+X1   1 2  Microstrip  Params: W={W} L={L} H={H} ER={ER} 
+R2   2 0 1T   
+.ENDS
+
+****  Microstrip Shorted Model
+.SUBCKT	Microstrip_Shorted  1  Params: W=100u L=1m H=100u ER=1
+X1   1 0  Microstrip  Params: W={W} L={L} H={H} ER={ER} 
+R2   2 0 1T   
+.ENDS
+*
+* TTL/CMOS power supply
+*
+.subckt DIGIFPWR  AGND
++	optional: DPWR=$G_DPWR DGND=$G_DGND
++	params:   VOLTAGE=5.0v REFERENCE=0v
+*
+VDPWR  DPWR0 DGND0  {VOLTAGE}
+RDPWR  DPWR0 DPWR  1m
+CDPWR  DPWR0 DPWR  100
+R1     DPWR AGND  1MEG
+VDGND  DGND0 AGND  {REFERENCE}
+RDGND  DGND0 DGND  1m
+*CDGND  DGND0 DGND  100
+CDGND  AGND DGND  100
+*RDGND  DGND0 DGND  100u
+R2     DGND AGND  1MEG
+.ends
+
+*
+* CD4000 CMOS power supply
+*
+.param CD4000_VDD 5.0V
+.param CD4000_VSS 0.0V
+
+.subckt CD4000_PWR  AGND
++	optional: VDD=$G_CD4000_VDD VSS=$G_CD4000_VSS
++	params:   VOLTAGE={CD4000_VDD} REFERENCE={CD4000_VSS}
+*
+VVDD  VDD VSS   {VOLTAGE}
+R1    VDD AGND  1MEG
+VVSS  VSS AGND  {REFERENCE}
+R2    VSS AGND  1MEG
+.ends
+*$
+
+* 7400 I/O Models
+
+*$
+.model IO_STD_o uio (
++	drvh=96.4	drvl=104
++	AtoD1="AtoD_STD"	AtoD2="AtoD_STD_NX"
++	AtoD3="AtoD_STD"	AtoD4="AtoD_STD_NX"
++	DtoA1="DtoA_STD"	DtoA2="DtoA_STD"
++	DtoA3="DtoA_STD"	DtoA4="DtoA_STD"
++       tswhl1=1.511ns		tswlh1=3.517ns
++       tswhl2=1.487ns		tswlh2=3.564ns
++       tswhl3=1.511ns		tswlh3=3.517ns
++       tswhl4=1.487ns		tswlh4=3.564ns
++	DIGPOWER="DIGIFPWR"
++	)
+*$
+.model IO_STD uio (
++	drvh=100	drvl=100
++	AtoD1="AtoD_STD"	AtoD2="AtoD_STD_NX"
++	AtoD3="AtoD_STD"	AtoD4="AtoD_STD_NX"
++	DtoA1="DtoA_STD"	DtoA2="DtoA_STD"
++	DtoA3="DtoA_STD"	DtoA4="DtoA_STD"
++       tswhl1=1.5ns		tswlh1=1.5ns
++       tswhl2=1.5ns		tswlh2=1.5ns
++       tswhl3=1.5ns		tswlh3=1.5ns
++       tswhl4=1.5ns		tswlh4=1.5ns
++	DIGPOWER="DIGIFPWR"
++	)
+*$
+.model IO_STD_ST uio (
++	drvh=96.4	drvl=104
++	AtoD1="AtoD_STD_ST"	AtoD2="AtoD_STD_ST"
++	AtoD3="AtoD_STD_ST"	AtoD4="AtoD_STD_ST"
++	DtoA1="DtoA_STD"	DtoA2="DtoA_STD"
++	DtoA3="DtoA_STD"	DtoA4="DtoA_STD"
++       tswhl1=1.511ns		tswlh1=3.517ns
++       tswhl2=1.487ns		tswlh2=3.564ns
++       tswhl3=1.511ns		tswlh3=3.517ns
++       tswhl4=1.487ns		tswlh4=3.564ns
++	DIGPOWER="DIGIFPWR"
++	)
+*$
+.model IO_STD_OC uio (
++	drvh=1MEG	drvl=100
++	AtoD1="AtoD_STD"	AtoD2="AtoD_STD_NX"
++	AtoD3="AtoD_STD"	AtoD4="AtoD_STD_NX"
++	DtoA1="DtoA_STD_OC"	DtoA2="DtoA_STD_OC"
++	DtoA3="DtoA_STD_OC"	DtoA4="DtoA_STD_OC"
++       tswhl1=1.5ns		tswlh1=1.5ns
++       tswhl2=1.5ns		tswlh2=1.5ns
++       tswhl3=1.5ns		tswlh3=1.5ns
++       tswhl4=1.5ns		tswlh4=1.5ns
++	DIGPOWER="DIGIFPWR"
++	)
+*$
+
+*-------------------------------------------------
+* 7400 Standard AtoD Subcircuits
+
+.subckt AtoD_STD  A D  DPWR DGND
++	params: CAPACITANCE=0
+*
+O0  A DGND DO74 DGTLNET=D IO_STD
+*C1  A DGND {CAPACITANCE+0.1pF}
+C1  A DGND {CAPACITANCE+1.0pF}
+*D0	DGND	a	D74CLMP
+*D1	1	2	D74
+*D2      2       DGND	D74
+*R1	DPWR	3	4k
+*Q1      1       3       A       0	Q74 ; substrate should be DGND
+.ends
+*$
+
+.subckt AtoD_STD_NX  A D  DPWR DGND
++	params: CAPACITANCE=0
+*
+O0  A DGND DO74_NX DGTLNET=D IO_STD
+C1  A DGND {CAPACITANCE+0.1pF}
+*D0	DGND	a	D74CLMP
+*D1	1	2	D74
+*D2      2       DGND	D74
+*R1	DPWR	3	4k
+*Q1      1       3       A       0	Q74 ; substrate should be DGND
+.ends
+*$
+
+*-------------------------------------------------
+* 7400 Schmitt-trigger AtoD Subcircuits
+
+.subckt AtoD_STD_ST  A D  DPWR DGND
++	params: CAPACITANCE=0
+*
+O0  A DGND DO74_ST DGTLNET=D IO_STD
+C1  A DGND {CAPACITANCE+0.1pF}
+*D0	DGND	a	D74CLMP
+*D1	1	2	D74
+*D2      2       DGND	D74
+*R1	DPWR	3	4k
+*Q1      1       3       A       0	Q74
+.ends
+*$
+
+*-------------------------------------------------
+* 7400 standard DtoA Subcircuit
+
+.subckt DtoA_STD  D A  DPWR DGND
++	params: DRVL=0 DRVH=0 CAPACITANCE=0
+*
+N1  A DGND DPWR DIN74 DGTLNET=D IO_STD
+*C1  A DGND {CAPACITANCE+0.1pF}
+C1  A DGND {CAPACITANCE+0.2e-10}
+.ends
+*$
+*-------------------------------------------------
+* 7400 Digital Input/Output Models
+
+.model DIN74_o dinput (
++	s0name="0"	s0tsw=3.5ns	s0rlo=7.13	s0rhi=389 ; 7ohm,    0.09v
++	s1name="1"	s1tsw=5.5ns	s1rlo=467	s1rhi=200 ; 140ohm,  3.5v
++	s2name="X"	s2tsw=3.5ns	s2rlo=42.9	s2rhi=116 ; 31.3ohm, 1.35v
++	s3name="R"	s3tsw=3.5ns	s3rlo=42.9	s3rhi=116 ; 31.3ohm, 1.35v
++	s4name="F"	s4tsw=3.5ns	s4rlo=42.9	s4rhi=116 ; 31.3ohm, 1.35v
++	s5name="Z"	s5tsw=3.5ns	s5rlo=200K	s5rhi=200K
++	)
+*$
+.model DIN74 dinput (
++	s0name="0"	s0tsw=1.0ns	s0rlo=7.13	s0rhi=389 ; 7ohm,    0.09v
++	s1name="1"	s1tsw=1.0ns	s1rlo=467	s1rhi=200 ; 140ohm,  3.5v
++	s2name="X"	s2tsw=1.0ns	s2rlo=42.9	s2rhi=116 ; 31.3ohm, 1.35v
++	s3name="R"	s3tsw=1.0ns	s3rlo=42.9	s3rhi=116 ; 31.3ohm, 1.35v
++	s4name="F"	s4tsw=1.0ns	s4rlo=42.9	s4rhi=116 ; 31.3ohm, 1.35v
++	s5name="Z"	s5tsw=1.0ns	s5rlo=200K	s5rhi=200K
++	)
+*$
+
+.model DIN74_OC_o dinput (
++	s0name="0"	s0tsw=3.5ns	s0rlo=7.13	s0rhi=389 ; 7ohm,    0.09v
++	s1name="1"	s1tsw=5.5ns	s1rlo=200K	s1rhi=200K
++	s2name="X"	s2tsw=3.5ns	s2rlo=42.9	s2rhi=116 ; 31.3ohm, 1.35v
++	s3name="R"	s3tsw=3.5ns	s3rlo=42.9	s3rhi=116 ; 31.3ohm, 1.35v
++	s4name="F"	s4tsw=3.5ns	s4rlo=42.9	s4rhi=116 ; 31.3ohm, 1.35v
++	s5name="Z"	s5tsw=5.5ns	s5rlo=200K	s5rhi=200K
++	)
+*$
+.model DIN74_OC dinput (
++	s0name="0"	s0tsw=1.0ns	s0rlo=7.13	s0rhi=389 ; 7ohm,    0.09v
++	s1name="1"	s1tsw=1.0ns	s1rlo=200K	s1rhi=200K
++	s2name="X"	s2tsw=1.0ns	s2rlo=42.9	s2rhi=116 ; 31.3ohm, 1.35v
++	s3name="R"	s3tsw=1.0ns	s3rlo=42.9	s3rhi=116 ; 31.3ohm, 1.35v
++	s4name="F"	s4tsw=1.0ns	s4rlo=42.9	s4rhi=116 ; 31.3ohm, 1.35v
++	s5name="Z"	s5tsw=1.0ns	s5rlo=200K	s5rhi=200K
++	)
+*$
+.model DO74 doutput (
++	s0name="X"	s0vlo=0.8	s0vhi=2.0
++	s1name="0"	s1vlo=-1.5	s1vhi=0.8
++	s2name="R"	s2vlo=0.8	s2vhi=1.4
++	s3name="R"	s3vlo=1.3	s3vhi=2.0
++	s4name="X"	s4vlo=0.8	s4vhi=2.0
++	s5name="1"	s5vlo=2.0	s5vhi=7.0
++	s6name="F"	s6vlo=1.3	s6vhi=2.0
++	s7name="F"	s7vlo=0.8	s7vhi=1.4
+*+	sXname="X"
++	)
+*$
+.model DO74_NX doutput (
++	s0name="0"	s0vlo=-1.5	s0vhi=1.35
++	s2name="1"	s2vlo=1.35	s2vhi=7.0
+*+	sXname="X"
++	)
+*$
+.model DO74_ST doutput (
++	s0name="0"	s0vlo=-1.5	s0vhi=1.7
++	s1name="1"	s1vlo=0.9	s1vhi=7.0
++	)
+*$
+*-------------------------------------------------
+* 74S I/O Models
+
+*$
+.model IO_S uio (
++	drvh=72.7	drvl=60.6
++	AtoD1="AtoD_S"		AtoD2="AtoD_S_NX"
++	AtoD3="AtoD_S"		AtoD4="AtoD_S_NX"
++	DtoA1="DtoA_S"		DtoA2="DtoA_S"
++	DtoA3="DtoA_S"		DtoA4="DtoA_S"
++       tswhl1=1.5ns		tswlh1=1.5ns
++       tswhl2=1.5ns		tswlh2=1.5ns
++       tswhl3=1.5ns		tswlh3=1.5ns
++       tswhl4=1.5ns		tswlh4=1.5ns
++	DIGPOWER="DIGIFPWR"
++	)
+*$
+.model IO_S_50 uio (
++	drvh=72.7	drvl=60.6
++	AtoD1="AtoD_S"		AtoD2="AtoD_S_NX"
++	AtoD3="AtoD_S"		AtoD4="AtoD_S_NX"
++	DtoA1="DtoA_S_50"	DtoA2="DtoA_S_50"
++	DtoA3="DtoA_S_50"	DtoA4="DtoA_S_50"
++       tswhl1=0.788ns		tswlh1=0.889ns
++       tswhl2=0.795ns		tswlh2=0.887ns
++       tswhl3=0.788ns		tswlh3=0.889ns
++       tswhl4=0.795ns		tswlh4=0.887ns
++	DIGPOWER="DIGIFPWR"
++	)
+*$
+.model IO_S_OC uio (
++	drvh=1MEG	drvl=60.6
++	AtoD1="AtoD_S"		AtoD2="AtoD_S_NX"
++	AtoD3="AtoD_S"		AtoD4="AtoD_S_NX"
++	DtoA1="DtoA_S_OC"	DtoA2="DtoA_S_OC"
++	DtoA3="DtoA_S_OC"	DtoA4="DtoA_S_OC"
++       tswhl1=1.305ns		tswlh1=0.483ns
++       tswhl2=1.306ns		tswlh2=0.471ns
++       tswhl3=1.305ns		tswlh3=0.483ns
++       tswhl4=1.306ns		tswlh4=0.471ns
++	DIGPOWER="DIGIFPWR"
++	)
+*$
+.model IO_S_ST uio (
++	drvh=72.7	drvl=60.6
++	AtoD1="AtoD_S_ST"	AtoD2="AtoD_S_ST"
++	AtoD3="AtoD_S_ST"	AtoD4="AtoD_S_ST"
++	DtoA1="DtoA_S"		DtoA2="DtoA_S"
++	DtoA3="DtoA_S"		DtoA4="DtoA_S"
++       tswhl1=0.788ns		tswlh1=0.889ns
++       tswhl2=0.795ns		tswlh2=0.887ns
++       tswhl3=0.788ns		tswlh3=0.889ns
++       tswhl4=0.795ns		tswlh4=0.887ns
++	DIGPOWER="DIGIFPWR"
++	)
+*$
+.model IO_S_OC_ST uio (
++	drvh=1MEG	drvl=60.6
++	AtoD1="AtoD_S_ST"	AtoD2="AtoD_S_ST"
++	AtoD3="AtoD_S_ST"	AtoD4="AtoD_S_ST"
++	DtoA1="DtoA_S_OC"	DtoA2="DtoA_S_OC"
++	DtoA3="DtoA_S_OC"	DtoA4="DtoA_S_OC"
++       tswhl1=1.305ns		tswlh1=0.483ns
++       tswhl2=1.306ns		tswlh2=0.471ns
++       tswhl3=1.305ns		tswlh3=0.483ns
++       tswhl4=1.306ns		tswlh4=0.471ns
++	DIGPOWER="DIGIFPWR"
++	)
+*$
+
+*-------------------------------------------------
+* 74S00 Standard AtoD Subcircuits
+
+.subckt AtoD_S_o  A D  DPWR DGND
++	params: CAPACITANCE=0
+*
+O0  A DGND DO74S DGTLNET=D IO_S
+C1  A DGND {CAPACITANCE+0.1pF}
+D0	DGND	a	D74SCLMP
+D1	1	2	D74
+D2      2       DGND	D74
+R1	DPWR	3	2.8k
+Q1      1       3       A       0	Q74S
+D3      3       1       D74S
+.ends
+
+.subckt AtoD_S  A D  DPWR DGND
++	params: CAPACITANCE=0
+*
+O0  A DGND DO74S DGTLNET=D IO_S
+*C1  A DGND {CAPACITANCE+0.1pF}
+C1  A DGND {CAPACITANCE+1.0pF}
+*D0	DGND	a	D74SCLMP
+*D1	1	2	D74
+*D2      2       DGND	D74
+*R1	DPWR	3	2.8k
+*Q1      1       3       A       0	Q74S
+*D3      3       1       D74S
+.ends
+
+*$
+.subckt AtoD_S_NX  A D  DPWR DGND
++	params: CAPACITANCE=0
+*
+O0  A DGND DO74S_NX DGTLNET=D IO_S
+C1  A DGND {CAPACITANCE+0.1pF}
+D0	DGND	a	D74SCLMP
+D1	1	2	D74
+D2      2       DGND	D74
+R1	DPWR	3	2.8k
+Q1      1       3       A       0	Q74S
+D3      3       1       D74S
+.ends
+
+*$
+*-------------------------------------------------
+* 74S Schmitt-trigger AtoD Subcircuits
+
+.subckt AtoD_S_ST  A D  DPWR DGND
++	params: CAPACITANCE=0
+*
+O0  A DGND DO74S_ST DGTLNET=D IO_S
+C1  A DGND {CAPACITANCE+0.1pF}
+D0	DGND	a	D74SCLMP
+D1	1	2	D74
+D2      2       DGND	D74
+R1	DPWR	3	2.8k
+Q1      1       3       A       0	Q74S
+D3      3       1       D74S
+.ends
+
+*$
+*-------------------------------------------------
+* 74S Standard DtoA Subcircuit
+
+.subckt DtoA_S_o  D A  DPWR DGND
++	params: DRVL=0 DRVH=0 CAPACITANCE=0
+*
+N1  A DGND DPWR DIN74S DGTLNET=D IO_S
+C1  A DGND {CAPACITANCE+0.1pF}
+.ends
+
+.subckt DtoA_S  D A  DPWR DGND
++	params: DRVL=0 DRVH=0 CAPACITANCE=0
+*
+N1  A DGND DPWR DIN74S DGTLNET=D IO_S
+C1  A DGND {CAPACITANCE+0.2e-10}
+.ends
+
+*$
+*-------------------------------------------------
+* 74S 50-Ohm Driver DtoA Subcircuit
+
+.subckt DtoA_S_50  D A  DPWR DGND
++	params: DRVL=0 DRVH=0 CAPACITANCE=0
+*
+N1  A DGND DPWR DIN74S_50 DGTLNET=D IO_S_50
+C1  A DGND {CAPACITANCE+0.1pF}
+.ends
+
+*$
+*-------------------------------------------------
+* 74S Open Collector DtoA Subcircuit
+
+.subckt DtoA_S_OC  D A  DPWR DGND
++	params: DRVL=0 DRVH=0 CAPACITANCE=0
+*
+N1  A DGND DPWR DIN74S_OC DGTLNET=D IO_S_OC
+C1  A DGND {CAPACITANCE+0.1pF}
+.ends
+
+*$
+*-------------------------------------------------
+* 74S Digital Input/Output Models
+
+.model DIN74S_o dinput (
++	s0name="0"	s0tsw=1.5ns	s0rlo=12.0	s0rhi=389 ; 11.7ohm, 0.15v
++	s1name="1"	s1tsw=1.5ns	s1rlo=224	s1rhi=74.7 ; 56.0ohm, 3.75v
++	s2name="X"	s2tsw=1.5ns	s2rlo=34.6	s2rhi=98.4 ; 25.6ohm, 1.30v
++	s3name="R"	s3tsw=1.5ns	s3rlo=34.6	s3rhi=98.4 ; 25.6ohm, 1.30v
++	s4name="F"	s4tsw=1.5ns	s4rlo=34.6	s4rhi=98.4 ; 25.6ohm, 1.30v
++	s5name="Z"	s5tsw=1.5ns	s5rlo=200K	s5rhi=200K
++	)
+*$
+.model DIN74S_n dinput (
++	s0name="0"	s0tsw=1.0ns	s0rlo=12.0	s0rhi=389 ; 11.7ohm, 0.15v
++	s1name="1"	s1tsw=1.0ns	s1rlo=224	s1rhi=74.7 ; 56.0ohm, 3.75v
++	s2name="X"	s2tsw=1.0ns	s2rlo=34.6	s2rhi=98.4 ; 25.6ohm, 1.30v
++	s3name="R"	s3tsw=1.0ns	s3rlo=34.6	s3rhi=98.4 ; 25.6ohm, 1.30v
++	s4name="F"	s4tsw=1.0ns	s4rlo=34.6	s4rhi=98.4 ; 25.6ohm, 1.30v
++	s5name="Z"	s5tsw=1.0ns	s5rlo=200K	s5rhi=200K
++	)
+*$
+.model DIN74S dinput (
++	s0name="0"	s0tsw=1.0ns	s0rlo=7.13	s0rhi=389 ; 7ohm,    0.09v
++	s1name="1"	s1tsw=1.0ns	s1rlo=467	s1rhi=200 ; 140ohm,  3.5v
++	s2name="X"	s2tsw=1.0ns	s2rlo=42.9	s2rhi=116 ; 31.3ohm, 1.35v
++	s3name="R"	s3tsw=1.0ns	s3rlo=42.9	s3rhi=116 ; 31.3ohm, 1.35v
++	s4name="F"	s4tsw=1.0ns	s4rlo=42.9	s4rhi=116 ; 31.3ohm, 1.35v
++	s5name="Z"	s5tsw=1.0ns	s5rlo=200K	s5rhi=200K
++	)
+*$
+
+
+.model DIN74S_50 dinput (
++	s0name="0"	s0tsw=1.5ns	s0rlo=12.0	s0rhi=389 ; 11.7ohm, 0.15v
++	s1name="1"	s1tsw=1.5ns	s1rlo=145.3	s1rhi=51.2 ; 37.9ohm, 3.75v
++	s2name="X"	s2tsw=1.5ns	s2rlo=34.6	s2rhi=98.4 ; 25.6ohm, 1.30v
++	s3name="R"	s3tsw=1.5ns	s3rlo=34.6	s3rhi=98.4 ; 25.6ohm, 1.30v
++	s4name="F"	s4tsw=1.5ns	s4rlo=34.6	s4rhi=98.4 ; 25.6ohm, 1.30v
++	s5name="Z"	s5tsw=1.5ns	s5rlo=200K	s5rhi=200K
++	)
+*$
+.model DIN74S_OC dinput (
++	s0name="0"	s0tsw=1.5ns	s0rlo=12.0	s0rhi=389 ; 11.7ohm, 0.15v
++	s1name="1"	s1tsw=1.5ns	s1rlo=200K	s1rhi=200K
++	s2name="X"	s2tsw=1.5ns	s2rlo=34.6	s2rhi=98.4 ; 25.6ohm, 1.30v
++	s3name="R"	s3tsw=1.5ns	s3rlo=34.6	s3rhi=98.4 ; 25.6ohm, 1.30v
++	s4name="F"	s4tsw=1.5ns	s4rlo=34.6	s4rhi=98.4 ; 25.6ohm, 1.30v
++	s5name="Z"	s5tsw=1.5ns	s5rlo=200K	s5rhi=200K
++	)
+*$
+.model DO74S doutput (
++	s0name="X"	s0vlo=0.8	s0vhi=2.0
++	s1name="0"	s1vlo=-1.5	s1vhi=0.8
++	s2name="R"	s2vlo=0.8	s2vhi=1.35
++	s3name="R"	s3vlo=1.25	s3vhi=2.0
++	s4name="X"	s4vlo=0.8	s4vhi=2.0
++	s5name="1"	s5vlo=2.0	s5vhi=7.0
++	s6name="F"	s6vlo=1.25	s6vhi=2.0
++	s7name="F"	s7vlo=0.8	s7vhi=1.35
++	)
+*$
+.model DO74S_NX doutput (
++	s0name="0"	s0vlo=-1.5	s0vhi=1.3
++	s2name="1"	s2vlo=1.3	s2vhi=7.0
++	)
+*$
+.model DO74S_ST doutput (
++	s0name="0"	s0vlo=-1.5	s0vhi=1.7
++	s1name="1"	s1vlo=0.9	s1vhi=7.0
++	)
+*$
+*-------------------------------------------------
+* 74LS I/O Models
+
+.model IO_LS uio (
++	drvh=108.		drvl=157.
++	AtoD1="AtoD_LS"		AtoD2="AtoD_LS_NX"
++	AtoD3="AtoD_LS"		AtoD4="AtoD_LS_NX"
++	DtoA1="DtoA_LS"		DtoA2="DtoA_LS"
++	DtoA3="DtoA_LS"		DtoA4="DtoA_LS"
++	tswhl1=2.724ns		tswlh1=2.104ns
++	tswhl2=2.724ns		tswlh2=2.104ns
++	tswhl3=2.724ns		tswlh3=2.104ns
++	tswhl4=2.724ns		tswlh4=2.104ns
++	DIGPOWER="DIGIFPWR"
++	)
+
+*$
+.model IO_LS_OC uio (
++	drvh=1MEG		drvl=157.
++	AtoD1="AtoD_LS"		AtoD2="AtoD_LS_NX"
++	AtoD3="AtoD_LS"		AtoD4="AtoD_LS_NX"
++	DtoA1="DtoA_LS_OC"	DtoA2="DtoA_LS_OC"
++	DtoA3="DtoA_LS_OC"	DtoA4="DtoA_LS_OC"
+* Open collector Tsw measured with 1K pullup
++	tswhl1=2.800ns		tswlh1=2.052ns
++	tswhl2=2.800ns		tswlh2=2.052ns
++	tswhl3=2.800ns		tswlh3=2.052ns
++	tswhl4=2.800ns		tswlh4=2.052ns
++	DIGPOWER="DIGIFPWR"
++	)
+*$
+.model IO_LS_ST uio (
++	drvh=108.		drvl=157.
++	AtoD1="AtoD_LS_ST"	AtoD2="AtoD_LS_ST"
++	AtoD3="AtoD_LS_ST"	AtoD4="AtoD_LS_ST"
++	DtoA1="DtoA_LS"		DtoA2="DtoA_LS"
++	DtoA3="DtoA_LS"		DtoA4="DtoA_LS"
++	tswhl1=2.724ns		tswlh1=2.104ns
++	tswhl2=2.724ns		tswlh2=2.104ns
++	tswhl3=2.724ns		tswlh3=2.104ns
++	tswhl4=2.724ns		tswlh4=2.104ns
++	DIGPOWER="DIGIFPWR"
++	)
+*$
+.model IO_LS_OC_ST uio (
++	drvh=1MEG		drvl=157.
++	AtoD1="AtoD_LS_ST"	AtoD2="AtoD_LS_ST"
++	AtoD3="AtoD_LS_ST"	AtoD4="AtoD_LS_ST"
++	DtoA1="DtoA_LS_OC"	DtoA2="DtoA_LS_OC"
++	DtoA3="DtoA_LS_OC"	DtoA4="DtoA_LS_OC"
+* Open collector Tsw measured with 1K pullup
++	tswhl1=2.800ns		tswlh1=2.052ns
++	tswhl2=2.800ns		tswlh2=2.052ns
++	tswhl3=2.800ns		tswlh3=2.052ns
++	tswhl4=2.800ns		tswlh4=2.052ns
++	DIGPOWER="DIGIFPWR"
++	)
+
+*$
+*-------------------------------------------------
+* 74LS Standard AtoD Subcircuits
+
+*
+* 74LS Standard Input
+*
+.subckt AtoD_LS  A D  DPWR DGND
++	params: CAPACITANCE=0
+*
+O0  A DGND DO74LS DGTLNET=D IO_LS
+C1  A DGND {CAPACITANCE+0.1pF}
+X1  A DGND 74LS_InputClamp
+.ends
+
+*$
+*
+* 74LS Standard Input Without Intermediate Levels
+*
+.subckt AtoD_LS_NX  A D  DPWR DGND
++	params: CAPACITANCE=0
+*
+O0  A DGND DO74LS_NX DGTLNET=D IO_LS
+C1  A DGND {CAPACITANCE+0.1pF}
+X1  A DGND 74LS_InputClamp
+.ends
+
+*$
+*
+* 74LS Schmitt-trigger Input
+*
+.subckt AtoD_LS_ST  A D  DPWR DGND
++	params: CAPACITANCE=0
+*
+O0  A DGND DO74LS_ST DGTLNET=D IO_LS
+C1  A DGND {CAPACITANCE+0.1pF}
+X1  A DGND 74LS_InputClamp
+.ends
+
+*$
+.subckt 74LS_InputClamp  A DGND
+*
+G_Clamp  A DGND
++ TABLE { V(A) }
++ -3.1   -1.00E+00
++ -1.5   -2.159E-01
++ -1.4   -1.706E-01
++ -1.3   -1.279E-01
++ -1.2   -8.926E-02
++ -1.1   -5.696E-02
++ -1.0   -3.339E-02
++ -0.9   -1.865E-02
++ -0.8   -1.019E-02
++ -0.7   -5.461E-03
++ -0.6   -2.856E-03
++ -0.5   -1.461E-03
++ -0.4   -7.288E-04
++ -0.3   -3.487E-04
++  0	 -225u
++  1.05	 -125u
++  1.08	 -100u
++  1.12	 -30u
++  1.15	 -10u
++  1.2	 -1u
++  1.4	  0
+.ends
+
+*$
+*-------------------------------------------------
+* 74LS DtoA Subcircuits
+
+*
+* 74LS Standard Output
+*
+.subckt DtoA_LS  D A  DPWR DGND
++	params: DRVL=0 DRVH=0 CAPACITANCE=0
+*
+N1  A DGND_OL DPWR_OH DIN74LS DGTLNET=D IO_LS
+C1  A DGND {CAPACITANCE+0.1pF}
+R1  A DGND 1G
+
+G_OH  DPWR DPWR_OH
++ TABLE { V(DPWR_OH,DPWR) }
++ -10      1A
++ -5.5    73mA
++ -5	  65mA
++ -4	  50mA
++ -2.5    25.5mA
++ -2.2	  20mA
++ -1.75	  10mA
++ -1.55	   0
++ -1.4  -750u
++ -1.3    -1m
++  0.48	  -5mA
++  0.55  -10mA
++  1	-100mA
++  6     -1A
+ROH DPWR DPWR_OH 100meg
+
+G_OL  DGND_OL DGND
++ TABLE { V(DGND_OL,DGND) }
++ -5      -1A
++ -600m	  -20m
++ -550m	  -13.5m
++ -500m   -10mA
++  0      -2mA
++  0.1    -10uA
++  0.2     3mA
++  0.7    24mA
++  0.75   24.5mA
++  1.6    25.3mA
++  1.7    26mA
++  1.8    28mA
++  3	  93mA
++  5      200mA
++  7      307mA
++  11     1A
+ROL DGND DGND_OL 100MEG
+.ends
+
+*$
+*
+* 74LS Open Collector Output
+*
+.subckt DtoA_LS_OC  D A  DPWR DGND
++	params: DRVL=0 DRVH=0 CAPACITANCE=0
+*
+N1  A DGND_OL DPWR DIN74LS_OC DGTLNET=D IO_LS_OC
+C1  A DGND {CAPACITANCE+0.1pF}
+R1  A DGND 1G
+
+G_OL  DGND_OL DGND
++ TABLE { V(DGND_OL,DGND) }
++ -5      -1A
++ -600m	  -20m
++ -550m	  -13.5m
++ -500m   -10mA
++  0      -2mA
++  0.1    -10uA
++  0.2     3mA
++  0.7    24mA
++  0.75   24.5mA
++  1.6    25.3mA
++  1.7    26mA
++  1.8    28mA
++  3	  93mA
++  5      200mA
++  7      307mA
++  11     1A
+ROL DGND DGND_OL 100MEG
+
+.ends
+
+*$
+*-------------------------------------------------
+* 74LS Digital Input/Output Models
+
+.model DIN74LS dinput (
++	s0name="0"	s0tsw=5.0ns	s0rlo=1		s0rhi=100K
++	s1name="1"	s1tsw=4.5ns	s1rlo=100K	s1rhi=1
++	s2name="X"	s2tsw=4.5ns	s2rlo=30.9	s2rhi=100
++	s3name="R"	s3tsw=4.5ns	s3rlo=30.9	s3rhi=100
++	s4name="F"	s4tsw=4.5ns	s4rlo=30.9	s4rhi=100
++	s5name="Z"	s5tsw=4.5ns	s5rlo=200K	s5rhi=200K
++	)
+
+*$
+.model DIN74LS_OC dinput (
++	s0name="0"	s0tsw=5.0ns	s0rlo=1		s0rhi=100k
++	s1name="1"	s1tsw=4.5ns	s1rlo=200k	s1rhi=200k
++	s2name="X"	s2tsw=4.5ns	s2rlo=30.9	s2rhi=100
++	s3name="R"	s3tsw=4.5ns	s3rlo=30.9	s3rhi=100
++	s4name="F"	s4tsw=4.5ns	s4rlo=30.9	s4rhi=100
++	s5name="Z"	s5tsw=4.5ns	s5rlo=200K	s5rhi=200K
++	)
+
+
+*$
+.model DO74LS doutput (
++	s0name="X"	s0vlo=0.8	s0vhi=2.0
++	s1name="0"	s1vlo=-1.5	s1vhi=0.8
++	s2name="R"	s2vlo=0.8	s2vhi=1.2
++	s3name="R"	s3vlo=1.1	s3vhi=2.0
++	s4name="X"	s4vlo=0.8	s4vhi=2.0
++	s5name="1"	s5vlo=2.0	s5vhi=7.0
++	s6name="F"	s6vlo=1.1	s6vhi=2.0
++	s7name="F"	s7vlo=0.8	s7vhi=1.2
++	)
+
+*$
+.model DO74LS_NX doutput (
++	s0name="0"	s0vlo=-1.5	s0vhi=1.15	; Vt for diode inputs
++	s2name="1"	s2vlo=1.15	s2vhi=7.0
++	)
+
+*$
+.model DO74LS_ST doutput (
++	s0name="0"	s0vlo=-1.5	s0vhi=1.66
++	s1name="1"	s1vlo=0.855	s1vhi=7.0
++	)
+*$
+******************************************************************************
+* TTL device models
+******************************************************************************
+
+* These parameter values are taken from:
+*
+*   "Analysis and Design of Digital Integrated Circuits"
+*   by David A. Hodges and Horace G. Jackson
+*   1983, McGraw-Hill  pg 301
+*
+*$
+.model D74 d (
++	is=1e-16	rs=25	cjo=2pf
++	)
+*$
+.model D74S d (
++	is=1e-12	vj=.7	rs=25	cjo=2pf
++	)
+*$
+.model D74CLMP d (
++	is=1e-15	rs=2	cjo=2pf
++	)
+*$
+.model D74SCLMP d (
++	is=1e-11	vj=.7	rs=2	cjo=2pf
++	)
+*$
+.model Q74 npn (
++	ise=1e-16	isc=4e-16
++	bf=49	br=.03
++	cje=1pf	cjc=.5pf
++	cjs=3pf	vje=0.9v
++	vjc=0.8v	vjs=0.7v
++	mje=0.5	mjc=0.33
++	mjs=0.33	tf=0.2ns
++	tr=10ns	rb=50
++	rc=20
++	)
+*$
+.model Q74S npn (
++	ise=1e-16	isc=4e-16
++	bf=49	br=.33
++	cje=1pf	cjc=.5pf
++	cjs=3pf	vje=0.9v
++	vjc=0.8v	vjs=0.7v
++	mje=0.5	mjc=0.33
++	mjs=0.33	tf=0.2ns
++	tr=10ns	rb=50
++	rc=20
++	)
+*$
+
+
+*-------------------------------------------------
+* 4000A I/O Models
+*$
+
+.model IO_4000A uio (
++	drvh=1649	drvl=1649
++	AtoD1="AtoD_4000A"	AtoD2="AtoD_4000A_NX"
++	AtoD3="AtoD_4000A"	AtoD4="AtoD_4000A_NX"
++	DtoA1="DtoA_4000A"	DtoA2="DtoA_4000A"
++	DtoA3="DtoA_4000A"	DtoA4="DtoA_4000A"
++       tswhl1=7.07ns		tswlh1=8.58ns
++       tswhl2=6.94ns		tswlh2=8.37ns
++       tswhl3=9.33ns		tswlh3=10.73ns
++       tswhl4=9.18ns		tswlh4=10.59ns
++	DIGPOWER="CD4000_PWR"
++	)
+*$
+.model IO_4000A_ST uio (
++	drvh=1649	drvl=1649
++	AtoD1="AtoD_4000A_ST"	AtoD2="AtoD_4000A_ST"
++	AtoD3="AtoD_4000A_ST"	AtoD4="AtoD_4000A_ST"
++	DtoA1="DtoA_4000A"	DtoA2="DtoA_4000A"
++	DtoA3="DtoA_4000A"	DtoA4="DtoA_4000A"
++       tswhl1=7.07ns		tswlh1=8.58ns
++       tswhl2=6.94ns		tswlh2=8.37ns
++       tswhl3=9.33ns		tswlh3=10.73ns
++       tswhl4=9.18ns		tswlh4=10.59ns
++	DIGPOWER="CD4000_PWR"
++	)
+*$
+.model IO_4000A_OC uio (
++	drvh=10MEG	drvl=1649
++	AtoD1="AtoD_4000A"	AtoD2="AtoD_4000A_NX"
++	AtoD3="AtoD_4000A"	AtoD4="AtoD_4000A_NX"
++	DtoA1="DtoA_4000A_OC"	DtoA2="DtoA_4000A_OC"
++	DtoA3="DtoA_4000A_OC"	DtoA4="DtoA_4000A_OC"
++       tswhl1=7.07ns		tswlh1=8.58ns
++       tswhl2=6.94ns		tswlh2=8.37ns
++       tswhl3=9.33ns		tswlh3=10.73ns
++       tswhl4=9.18ns		tswlh4=10.59ns
++	DIGPOWER="CD4000_PWR"
++	)
+*$
+*-------------------------------------------------
+* 4000A Standard AtoD Subcircuits
+*$
+.subckt AtoD_4000A  A D  DPWR DGND
++	params: CAPACITANCE=0
+*
+XNORM A NORM DPWR DGND AtoD_NORM_4000A
+O0  NORM DGND DO4000A DGTLNET=D IO_4000A
+C1  A DGND {CAPACITANCE+0.1pF}
+D1  DGND A    D74CLMP
+D2  A    DPWR D74CLMP
+.ends
+*$
+.subckt AtoD_4000A_NX  A D  DPWR DGND
++	params: CAPACITANCE=0
+*
+XNORM A NORM DPWR DGND AtoD_NORM_4000A
+O0  NORM DGND DO4000A_NX DGTLNET=D IO_4000A
+C1  A DGND {CAPACITANCE+0.1pF}
+D1  DGND A    D74CLMP
+D2  A    DPWR D74CLMP
+.ends
+*$
+*-------------------------------------------------
+* 4000A Schmitt-trigger AtoD Subcircuits
+
+.subckt AtoD_4000A_ST  A D  DPWR DGND
++	params: CAPACITANCE=0
+*
+XNORM A NORM DPWR DGND AtoD_NORM_4000A
+O0  NORM DGND DO4000A_ST DGTLNET=D IO_4000A
+C1  A DGND {CAPACITANCE+0.1pF}
+D1  DGND A    D74CLMP
+D2  A    DPWR D74CLMP
+.ends
+*$
+*-------------------------------------------------
+* 4000A Standard DtoA Subcircuit
+
+.subckt DtoA_4000A  D A  DPWR DGND
++	params: DRVL=0 DRVH=0 CAPACITANCE=0
+*
+X1  DPWR DGND DRVPWR DRVGND DtoA_DRIVE_4000A
+N1  A DRVGND DRVPWR DIN4000A DGTLNET=D IO_4000A
+C1  A DGND {CAPACITANCE+0.1pF}
+.ends
+*$
+*-------------------------------------------------
+* 4000A Open Collector DtoA Subcircuit
+
+.subckt DtoA_4000A_OC  D A  DPWR DGND
++	params: DRVL=0 DRVH=0 CAPACITANCE=0
+*
+X1  DPWR DGND DRVPWR DRVGND DtoA_DRIVE_4000A
+N1  A DRVGND DRVPWR DIN4000A_OC DGTLNET=D IO_4000A_OC
+C1  A DGND {CAPACITANCE+0.1pF}
+.ends
+*$
+*-------------------------------------------------
+* 4000A Input Voltage Normilization Subcircuit
+*
+* This circuit normalizes the input voltage, so that
+* voltages below -0.5 are '0', and above +0.5 are '1'.
+* The EVt device "looks up" the threshold voltage for the
+* current power supply voltage in the table.  The data for the
+* table comes from the minimum and maximum voltage transfer
+* characteristics graph for the CD4000A.
+
+.subckt AtoD_NORM_4000A A ANORM DPWR DGND
+*
+EVt THRESHOLD 0 TABLE {V(DPWR,DGND)} = 1.5,0 3.5,0.6 5,1.5 10,3 15,4
+RVt THRESHOLD 0 100k
+EN  ANORM DGND VALUE = {(V(A,DGND)-V(DPWR,DGND)/2)/((V(DPWR,DGND)-2*V(THRESHOLD))+1u)}
+RN  ANORM DGND 100k
+Rld1 A DPWR 100MEG
+Rld2 A DGND 100MEG
+.ends
+*$
+*-------------------------------------------------
+* 4000A Output Drive Subcircuit
+*
+* This circuit constructs the correct output drive
+* resistance for the power supply voltage.  This resistance is inserted
+* in series with the digital input device, and the digital input device
+* resistance is set to a low value when it is on.  The tables provide the
+* output current at 1v VDS for various values of VDD (3V is an estimate)
+* from the CD4000A
+
+.subckt DtoA_DRIVE_4000A DPWR DGND DRVPWR DRVGND
+*
+EDRVP DRVP 0 TABLE {V(DPWR,DGND)} = 1.5,0mA 3,0.5mA 5,1.2mA 10,2.0mA 15,3.0mA
+EDRVN DRVN 0 TABLE {V(DPWR,DGND)} = 1.5,0mA 3,0.5mA 5,1.5mA 10,4.0mA 15,7.0mA
+RDRVP DRVP 0 1K
+RDRVN DRVN 0 1K
+GPWR DPWR DRVPWR VALUE = {V(DPWR,DRVPWR)*V(DRVP)}
+GGND DRVGND DGND VALUE = {V(DRVGND,DGND)*V(DRVN)}
+RDUM1 DPWR DRVPWR 100MEG
+RDUM2 DGND DRVGND 100MEG
+.ends
+*$
+*-------------------------------------------------
+* 4000A Digital Input/Output Models
+
+.model DIN4000A dinput (
++	s0name="0"	s0tsw=15ns	s0rlo=1 	s0rhi=80K
++	s1name="1"	s1tsw=15ns	s1rlo=40K	s1rhi=1
++	s2name="X"	s2tsw=15ns	s2rlo=800	s2rhi=800
++	s3name="R"	s3tsw=15ns	s3rlo=800	s3rhi=800
++	s4name="F"	s4tsw=15ns	s4rlo=800	s4rhi=800
++	s5name="Z"	s5tsw=15ns	s5rlo=1MEG	s5rhi=1MEG
++	)
+*$
+.model DIN4000A_OC dinput (
++	s0name="0"	s0tsw=15ns	s0rlo=1 	s0rhi=80K
++	s1name="1"	s1tsw=15ns	s1rlo=1MEG	s1rhi=1MEG
++	s2name="X"	s2tsw=15ns	s2rlo=800	s2rhi=800
++	s3name="R"	s3tsw=15ns	s3rlo=800	s3rhi=800
++	s4name="F"	s4tsw=15ns	s4rlo=800	s4rhi=800
++	s5name="Z"	s5tsw=15ns	s5rlo=1MEG	s5rhi=1MEG
++	)
+*$
+.model DO4000A doutput (
++	s0name="X"	s0vlo=-0.5	s0vhi=0.5
++	s1name="0"	s1vlo=-3.0	s1vhi=-0.5
++	s2name="R"	s2vlo=-0.5	s2vhi=0.05
++	s3name="R"	s3vlo=-0.05	s3vhi=0.5
++	s4name="X"	s4vlo=-0.5	s4vhi=0.5
++	s5name="1"	s5vlo= 0.5	s5vhi=3.0
++	s6name="F"	s6vlo=-0.05	s6vhi=0.5
++	s7name="F"	s7vlo=-0.5	s7vhi=0.05
++	)
+*$
+.model DO4000A_NX doutput (
++	s0name="0"	s0vlo=-3.0	s0vhi=0.0
++	s2name="1"	s2vlo= 0.0	s2vhi=3.0
++	)
+*$
+.model DO4000A_ST doutput (
++	s0name="0"	s0vlo=-3.0	s0vhi=0.2
++	s1name="1"	s1vlo=-0.3	s1vhi=3.0
++	)
+*$
+
+*-------------------------------------------------
+* 7400 open collector DtoA Subcircuit
+
+.subckt DtoA_STD_OC  D A  DPWR DGND
++	params: DRVL=0 DRVH=0 CAPACITANCE=0
+*
+N1  A DGND DPWR DIN74_OC DGTLNET=D IO_STD_OC
+C1  A DGND {CAPACITANCE+0.1pF}
+.ends
+*$
+*-------------------------------------------------
+* 74HC I/O Models
+*$
+.model IO_HC_o uio (
++	drvh=87	                drvl=87
++	inld=3.5pF
++	AtoD1="AtoD_HC"	        AtoD2="AtoD_HC_NX"
++	AtoD3="AtoD_HC"		AtoD4="AtoD_HC_NX"
++	DtoA1="DtoA_HC"	        DtoA2="DtoA_HC"
++	DtoA3="DtoA_HC_E"	DtoA4="DtoA_HC_E"
++       tswhl1=2.742ns		tswlh1=2.758ns
++       tswhl2=2.742ns		tswlh2=2.758ns
++       tswhl3=2.751ns		tswlh3=2.763ns
++       tswhl4=2.751ns		tswlh4=2.763ns
++	DIGPOWER="DIGIFPWR"	tpwrt=2ns
++	)
+*$
+.model IO_HC_1 uio (
++	drvh=50	                drvl=25
++	inld=3.0pF          outld=0.6pF
++	AtoD1="AtoD_HC"	        AtoD2="AtoD_HC_NX"
++	AtoD3="AtoD_HC"		AtoD4="AtoD_HC_NX"
++	DtoA1="DtoA_HC"	        DtoA2="DtoA_HC"
++	DtoA3="DtoA_HC_E"	DtoA4="DtoA_HC_E"
++       tswhl1=1.0ns		tswlh1=1.0ns
++       tswhl2=1.0ns		tswlh2=1.0ns
++       tswhl3=1.0ns		tswlh3=1.0ns
++       tswhl4=1.0ns		tswlh4=1.0ns
++	DIGPOWER="DIGIFPWR"	tpwrt=2ns
++	)
+*$
+.model IO_HC_n uio (
++	drvh=50	                drvl=25
++	inld=3.0pF          outld=0.6pF
++	AtoD1="AtoD_HC_NX"  AtoD2="AtoD_HC_NX"
++	AtoD3="AtoD_HC"		AtoD4="AtoD_HC_NX"
++	DtoA1="DtoA_HC"	        DtoA2="DtoA_HC"
++	DtoA3="DtoA_HC_E"	DtoA4="DtoA_HC_E"
++       tswhl1=0.5ns		tswlh1=0.5ns
++       tswhl2=0.5ns		tswlh2=0.5ns
++       tswhl3=0.5ns		tswlh3=0.5ns
++       tswhl4=0.5ns		tswlh4=0.5ns
++	DIGPOWER="DIGIFPWR"	tpwrt=2ns
++	)
+*$	
+.model IO_HC uio (
++	drvh=50	          drvl=50
++	inld=0.0pF        outld=0.0pF
++	AtoD1="AtoD_HC"   AtoD2="AtoD_HC"
++	AtoD3="AtoD_HC"		AtoD4="AtoD_HC"
++	DtoA1="DtoA_HC"	  DtoA2="DtoA_HC"
++	DtoA3="DtoA_HC"	DtoA4="DtoA_HC"
+*+       tswhl1=0.5ns		tswlh1=0.5ns
+*+       tswhl2=0.5ns		tswlh2=0.5ns
+*+       tswhl3=0.5ns		tswlh3=0.5ns
+*+       tswhl4=0.5ns		tswlh4=0.5ns
++       tswhl1=0.0ns		tswlh1=0.0ns
++       tswhl2=0.0ns		tswlh2=0.0ns
++       tswhl3=0.0ns		tswlh3=0.0ns
++       tswhl4=0.0ns		tswlh4=0.0ns
+*+	DIGPOWER="DIGIFPWR"	tpwrt=2ns
++	DIGPOWER="DIGIFPWR"	tpwrt=0ns
++	)
+*$
+.model IO_HC_OC uio (
++	drvh=1MEG	        drvl=25
++	inld=3.0pF          outld=0.6pF
++	AtoD1="AtoD_HC"	        AtoD2="AtoD_HC_NX"
++	AtoD3="AtoD_HC"		AtoD4="AtoD_HC_NX"
++	DtoA1="DtoA_HC_OC"	DtoA2="DtoA_HC_OC"
++	DtoA3="DtoA_HC_OC_E"	DtoA4="DtoA_HC_OC_E"
++       tswhl1=2.811ns		tswlh1=4.582ns
++       tswhl2=2.811ns		tswlh2=4.582ns
++       tswhl3=2.805ns		tswlh3=4.589ns
++       tswhl4=2.805ns		tswlh4=4.589ns
++	DIGPOWER="DIGIFPWR"	tpwrt=2ns
++	)
+*$
+.model IO_HC_BUS uio (
++	drvh=57	                drvl=57
++	inld=3.0pF		   outld=0.6pF
++	AtoD1="AtoD_HC"		AtoD2="AtoD_HC_NX"
++	AtoD3="AtoD_HC"		AtoD4="AtoD_HC_NX"
++	DtoA1="DtoA_HC_BUS"	DtoA2="DtoA_HC_BUS"
++	DtoA3="DtoA_HC_BUS_E"	DtoA4="DtoA_HC_BUS_E"
++       tswhl1=2.954ns		tswlh1=3.039ns
++       tswhl2=2.954ns		tswlh2=3.039ns
++       tswhl3=2.947ns		tswlh3=2.964ns
++       tswhl4=2.947ns		tswlh4=2.964ns
++	DIGPOWER="DIGIFPWR"	tpwrt=2ns
++	)
+*$
+.model IO_HC_ST uio (
++	drvh=87	                drvl=87
++	inld=3.5pF
++	AtoD1="AtoD_HC_ST"	AtoD2="AtoD_HC_ST"
++	AtoD3="AtoD_HC_ST"	AtoD4="AtoD_HC_ST"
++	DtoA1="DtoA_HC"	        DtoA2="DtoA_HC"
++	DtoA3="DtoA_HC_E"	DtoA4="DtoA_HC_E"
++       tswhl1=2.742ns		tswlh1=2.758ns
++       tswhl2=2.742ns		tswlh2=2.758ns
++       tswhl3=2.751ns		tswlh3=2.763ns
++       tswhl4=2.751ns		tswlh4=2.763ns
++	DIGPOWER="DIGIFPWR"	tpwrt=2ns
++	)
+*
+* Note:
+*   The above Tsw times were measured at Vcc=5.0V, driving a single input.
+*   The Tsw times in the IO_HC_OC model were measured with an additional
+*   1K pullup on the output.
+*
+
+*$
+*-------------------------------------------------
+* 74HCT I/O Models
+*
+* Note: The output stage is the same as the HC series, so the
+*	HC DtoA is used.  Because the power supply range is limited,
+*	only simple (5v) models are used on the output.
+
+.model IO_HCT_o uio (
++	drvh=87	                drvl=87
++	AtoD1="AtoD_HCT"	AtoD2="AtoD_HCT_NX"
++	AtoD3="AtoD_HCT"	AtoD4="AtoD_HCT_NX"
++	DtoA1="DtoA_HC"	        DtoA2="DtoA_HC"
++	DtoA3="DtoA_HC"		DtoA4="DtoA_HC"
++       tswhl1=2.742ns		tswlh1=2.758ns
++       tswhl2=2.742ns		tswlh2=2.758ns
++       tswhl3=2.742ns		tswlh3=2.758ns
++       tswhl4=2.742ns		tswlh4=2.758ns
++	DIGPOWER="DIGIFPWR"	tpwrt=3.5ns
++	)
+*$
+.model IO_HCT_1 uio (
++	drvh=87	                drvl=87
++	inld=3.0pF          outld=0.6pF
++	AtoD1="AtoD_HCT"	AtoD2="AtoD_HCT_NX"
++	AtoD3="AtoD_HCT"	AtoD4="AtoD_HCT_NX"
++	DtoA1="DtoA_HC"	        DtoA2="DtoA_HC"
++	DtoA3="DtoA_HC"		DtoA4="DtoA_HC"
++       tswhl1=1.0ns		tswlh1=1.0ns
++       tswhl2=1.0ns		tswlh2=1.0ns
++       tswhl3=1.0ns		tswlh3=1.0ns
++       tswhl4=1.0ns		tswlh4=1.0ns
++	DIGPOWER="DIGIFPWR"	tpwrt=3.5ns
++	)
+*$
+.model IO_HCT uio (
++	drvh=87	                drvl=87
++	inld=3.0pF          outld=0.6pF
++	AtoD1="AtoD_HCT"	AtoD2="AtoD_HCT_NX"
++	AtoD3="AtoD_HCT"	AtoD4="AtoD_HCT_NX"
++	DtoA1="DtoA_HC"	        DtoA2="DtoA_HC"
++	DtoA3="DtoA_HC"		DtoA4="DtoA_HC"
++       tswhl1=1.0ns		tswlh1=1.0ns
++       tswhl2=1.0ns		tswlh2=1.0ns
++       tswhl3=1.0ns		tswlh3=1.0ns
++       tswhl4=1.0ns		tswlh4=1.0ns
++	DIGPOWER="DIGIFPWR"	tpwrt=3.5ns
++	)
+*$
+.model IO_HCT_OC uio (
++	drvh=1MEG		drvl=87
++	AtoD1="AtoD_HCT"	AtoD2="AtoD_HCT_NX"
++	AtoD3="AtoD_HCT"	AtoD4="AtoD_HCT_NX"
++	DtoA1="DtoA_HC_OC"	DtoA2="DtoA_HC_OC"
++	DtoA3="DtoA_HC_OC"	DtoA4="DtoA_HC_OC"
++       tswhl1=2.811ns		tswlh1=4.582ns
++       tswhl2=2.811ns		tswlh2=4.582ns
++       tswhl3=2.811ns		tswlh3=4.582ns
++       tswhl4=2.811ns		tswlh4=4.582ns
++	DIGPOWER="DIGIFPWR"	tpwrt=3.5ns
++	)
+*$
+.model IO_HCT_BUS uio (
++	drvh=57	                drvl=57
++	AtoD1="AtoD_HCT"	AtoD2="AtoD_HCT_NX"
++	AtoD3="AtoD_HCT"	AtoD4="AtoD_HCT_NX"
++	DtoA1="DtoA_HC_BUS"	DtoA2="DtoA_HC_BUS"
++	DtoA3="DtoA_HC_BUS"	DtoA4="DtoA_HC_BUS"
++       tswhl1=2.954ns		tswlh1=3.039ns
++       tswhl2=2.954ns		tswlh2=3.039ns
++       tswhl3=2.954ns		tswlh3=3.039ns
++       tswhl4=2.954ns		tswlh4=3.039ns
++	DIGPOWER="DIGIFPWR"	tpwrt=3.5ns
++	)
+*$
+.model IO_HCT_ST uio (
++	drvh=87	                drvl=87
++	AtoD1="AtoD_HCT_ST"	AtoD2="AtoD_HCT_ST"
++	AtoD3="AtoD_HCT_ST"	AtoD4="AtoD_HCT_ST"
++	DtoA1="DtoA_HC"	        DtoA2="DtoA_HC"
++	DtoA3="DtoA_HC"		DtoA4="DtoA_HC"
++       tswhl1=2.742ns		tswlh1=2.758ns
++       tswhl2=2.742ns		tswlh2=2.758ns
++       tswhl3=2.742ns		tswlh3=2.758ns
++       tswhl4=2.742ns		tswlh4=2.758ns
++	DIGPOWER="DIGIFPWR"	tpwrt=3.5ns
++	)
+
+*$
+*-------------------------------------------------
+* 74HC AtoD Subcircuits
+
+*
+* 74HC Standard Input
+*
+.subckt AtoD_HC_n  A D  DPWR DGND
++	params: CAPACITANCE=0
+*
+C1  A DGND {CAPACITANCE+0.01pF}
+*X1  DGND A    HC_CLAMP
+*X2  A    DPWR HC_CLAMP
+ENORM NORM DGND VALUE={V(A,DGND)/(V(DPWR,DGND)+1U)}
+*GNORM DGND NORM VALUE={V(A,DGND)/(V(DPWR,DGND)+1U)}
+*RNORM NORM DGND 1
+O0  NORM DGND DO74HC DGTLNET=D IO_HC
+.ends
+*$
+.subckt AtoD_HC  A D  DPWR DGND
++	params: CAPACITANCE=0
+*
+*C1  A DGND {CAPACITANCE}
+*X1  DGND A    HC_CLAMP
+*X2  A    DPWR HC_CLAMP
+*ENORM NORM DGND VALUE={V(A,DGND)/(V(DPWR,DGND)+1U)}
+*O0  NORM DGND DO74HC_NX DGTLNET=D IO_HC
+O0  A DGND DO74HC DGTLNET=D IO_HC
+.ends
+*$
+*
+* 74HC Standard Input W/O Intermediate Levels
+*
+.subckt AtoD_HC_NX  A D  DPWR DGND
++	params: CAPACITANCE=0
+*
+C1  A DGND {CAPACITANCE+0.01pF}
+*X1  DGND A    HC_CLAMP
+*X2  A    DPWR HC_CLAMP
+ENORM NORM DGND VALUE={V(A,DGND)/(V(DPWR,DGND)+1U)}
+O0  NORM DGND DO74HC_NX DGTLNET=D IO_HC
+.ends
+*$
+
+*
+* 74HC Schmitt-trigger Input
+*
+.subckt AtoD_HC_ST  A D  DPWR DGND
++	params: CAPACITANCE=0
+*
+C1  A DGND {CAPACITANCE+0.01pF}
+*X1  DGND A    HC_CLAMP
+*X2  A    DPWR HC_CLAMP
+ENORM NORM DGND VALUE={V(A,DGND)/(V(DPWR,DGND)+1U)}
+O0  NORM DGND DO74HC_ST DGTLNET=D IO_HC
+.ends
+*$
+
+*-------------------------------------------------
+* 74HCT AtoD Subcircuits
+
+*
+* 74HCT Standard Input
+*
+.subckt AtoD_HCT  A D  DPWR DGND
++	params: CAPACITANCE=0
+*
+C1  A DGND {CAPACITANCE+0.01pF}
+*X1  DGND A    HC_CLAMP
+*X2  A    DPWR HC_CLAMP
+O0  A DGND DO74HCT DGTLNET=D IO_HCT
+.ends
+
+*$
+*
+* 74HCT Standard Input W/O Intermediate Levels
+*
+.subckt AtoD_HCT_NX  A D  DPWR DGND
++	params: CAPACITANCE=0
+*
+C1  A DGND {CAPACITANCE+0.01pF}
+*X1  DGND A    HC_CLAMP
+*X2  A    DPWR HC_CLAMP
+O0  A DGND DO74HCT_NX DGTLNET=D IO_HCT
+.ends
+
+*$
+*
+* 74HCT Schmitt-trigger Input
+*
+.subckt AtoD_HCT_ST  A D  DPWR DGND
++	params: CAPACITANCE=0
+*
+C1  A DGND {CAPACITANCE+0.01pF}
+*X1  DGND A    HC_CLAMP
+*X2  A    DPWR HC_CLAMP
+O0  A DGND DO74HCT_ST DGTLNET=D IO_HCT
+.ends
+
+*$
+*
+* HC Clamp Model
+*
+.subckt HC_Clamp A C
+G_Clamp  A C TABLE { V(A,C) }
++ 0.0, 1nA
++ 0.5, 1uA
++ 5.5, 1A
+.ends
+
+*$
+*-------------------------------------------------
+* 74HC DtoA Subcircuits
+
+*
+* 74HC Standard Output, Simple Model
+*
+* This DtoA interface models the hi- and lo-level I-V curves for a standard
+* output at VCC=4.5V. For accurate currents at other supply voltages, or
+* for temperature effects, use the "elaborate" model (below) by specifying
+* IOLEVEL 3 or 4.
+*
+* The I-V curves were taken from
+*
+*  High Speed CMOS PC74HC/HCT/HCU Logic Family Book, 1991
+*  Philips Semiconductors, pp. 56-58
+*
+* Typical values at 25 deg. C were used.
+*
+* Changes:
+*   rbh - 06/01/93 - Handle different VCC; update clamps
+*
+.subckt DtoA_HC_o  D A  DPWR DGND
++	params: DRVL=0 DRVH=0 CAPACITANCE=0
+*
+G_OH  DPWR DPWR_OH
++ TABLE {V(DPWR_OH,DPWR) }
++       -7.0,  45mA,
++       -3.5,  41mA,
++	-2.0,  33mA,
++       -1.0,  20mA,
++          0,   0,
++        1.5, -35mA
+*X1  A    DPWR HC_CLAMP
+ROH DPWR DPWR_OH 100meg
+
+G_OL  DGND_OL DGND
++  TABLE { V(DGND_OL,DGND) }
++       -1.0,  -23mA,
++        0,     0,
++        1.0,   23mA,
++        1.5,   30mA,
++        2.5,   36mA,
++        5.0,   37mA
+*X2  DGND A    HC_CLAMP
+ROL DGND DGND_OL 100MEG
+
+N1  A DGND_OL DPWR_OH DIN74HC DGTLNET=D IO_HC_DTOA
+C1  A DGND {CAPACITANCE+0.01pF}
+R1  A DGND 1G
+.ends
+
+.subckt DtoA_HC_n  D A  DPWR DGND
++	params: DRVL=0 DRVH=0 CAPACITANCE=0
+*
+*X2  DGND A    HC_CLAMP
+N1  A DGND DPWR DIN74HC DGTLNET=D IO_HC_DTOA
+C1  A DGND {CAPACITANCE+0.01pF}
+R1  A DGND 1G
+.ends
+		
+.subckt DtoA_HC  D A  DPWR DGND
++	params: DRVL=0 DRVH=0 CAPACITANCE=0
+*
+*X2  DGND A    HC_CLAMP
+N1  A DGND DPWR DIN74HC DGTLNET=D IO_HC_DTOA
+*C1  A DGND {CAPACITANCE}
+R1  A DGND 1G
+.ends
+
+.model IO_HC_DTOA uio ()
+
+
+*$
+*-------------------------------------------------
+* 74HC Digital Input/Output Models
+
+.model DIN74HC_o dinput (
++	s0name="0"	s0tsw=5.0ns	s0rlo=1		s0rhi=100K
++	s1name="1"	s1tsw=5.0ns	s1rlo=100K	s1rhi=1
++	s2name="X"	s2tsw=5.0ns	s2rlo=110	s2rhi=100
++	s3name="R"	s3tsw=5.0ns	s3rlo=110	s3rhi=100
++	s4name="F"	s4tsw=5.0ns	s4rlo=110	s4rhi=100
++	s5name="Z"	s5tsw=5.0ns	s5rlo=200K	s5rhi=200K
++	)
+*$
+.model DIN74HC_n dinput (
++	s0name="0"	s0tsw=1.0ns	s0rlo=25	s0rhi=100K
++	s1name="1"	s1tsw=1.0ns	s1rlo=100K	s1rhi=50
++	s2name="X"	s2tsw=1.0ns	s2rlo=110	s2rhi=100
++	s3name="R"	s3tsw=1.0ns	s3rlo=110	s3rhi=100
++	s4name="F"	s4tsw=1.0ns	s4rlo=110	s4rhi=100
++	s5name="Z"	s5tsw=1.0ns	s5rlo=200K	s5rhi=200K
++	)
+*$	   
+.model DIN74HC dinput (
+*+	s0name="0"	s0tsw=1.0ns	s0rlo=50	s0rhi=100K
+*+	s1name="1"	s1tsw=1.0ns	s1rlo=100K	s1rhi=50
+*+	s2name="X"	s2tsw=1.0ns	s2rlo=110	s2rhi=100
+*+	s3name="R"	s3tsw=1.0ns	s3rlo=110	s3rhi=100
+*+	s4name="F"	s4tsw=1.0ns	s4rlo=110	s4rhi=100
+*+	s5name="Z"	s5tsw=1.0ns	s5rlo=200K	s5rhi=200K
++	s0name="0"	s0tsw=0.0ns	s0rlo=50	s0rhi=100K
++	s1name="1"	s1tsw=0.0ns	s1rlo=100K	s1rhi=50
++	s2name="X"	s2tsw=0.0ns	s2rlo=110	s2rhi=100
++	s3name="R"	s3tsw=0.0ns	s3rlo=110	s3rhi=100
++	s4name="F"	s4tsw=0.0ns	s4rlo=110	s4rhi=100
++	s5name="Z"	s5tsw=0.0ns	s5rlo=200K	s5rhi=200K
++	)
+*$
+
+.model DIN74HC_OC dinput (
++	s0name="0"	s0tsw=5.0ns	s0rlo=1		s0rhi=100K
++	s1name="1"	s1tsw=5.0ns	s1rlo=200K	s1rhi=200K
++	s2name="X"	s2tsw=5.0ns	s2rlo=110	s2rhi=100
++	s3name="R"	s3tsw=5.0ns	s3rlo=110	s3rhi=100
++	s4name="F"	s4tsw=5.0ns	s4rlo=110	s4rhi=100
++	s5name="Z"	s5tsw=5.0ns	s5rlo=200K	s5rhi=200K
++	)
+
+*$
+*
+* Input voltage thresholds are normalized to unit Vcc.  Values are
+* derived from:
+*
+*   High Speed CMOS Logic Data Book, Texas Instruments, 1989 pp 4-42,4-43
+*
+* Because the input voltages are normalized, the minimum/maximum voltages
+* will vary with supply voltage.  For example, at VCC=5.0, the minimum input
+* voltage is -1.5V, but at 2.0V, the minimum is -0.6V.
+*
+*$
+.model DO74HC_n doutput (
++	s0name="X"	s0vlo=0.2	s0vhi=0.7
++	s1name="0"	s1vlo=-0.3	s1vhi=0.2
++	s2name="R"	s2vlo=0.2	s2vhi=0.55
++	s3name="R"	s3vlo=0.45	s3vhi=0.7
++	s4name="X"	s4vlo=0.2	s4vhi=0.7
++	s5name="1"	s5vlo=0.7	s5vhi=1.3
++	s6name="F"	s6vlo=0.45	s6vhi=0.7
++	s7name="F"	s7vlo=0.2	s7vhi=0.55
++	)
+*$	 
+.model DO74HC doutput (
++	s0name="0"	s0vlo=-1.3	s0vhi=0.5
++	s2name="1"	s2vlo=0.5	s2vhi=1.3
++	)
+*$
+
+.model DO74HC_NX doutput (
++	s0name="0"	s0vlo=-1.3	s0vhi=0.5
++	s2name="1"	s2vlo=0.5	s2vhi=1.3
++	)
+*$
+.model DO74HC_ST doutput (
++	s0name="0"	s0vlo=-1.3	s0vhi=0.55
++	s1name="1"	s1vlo=0.33	s1vhi=1.3
++	)
+*$
+
+*-------------------------------------------------
+* 74HCT Digital Input/Output Models
+
+.model DO74HCT doutput (
++	s0name="X"	s0vlo=0.8	s0vhi=2.0
++	s1name="0"	s1vlo=-1.5	s1vhi=0.8
++	s2name="R"	s2vlo=0.8	s2vhi=1.55
++	s3name="R"	s3vlo=1.45	s3vhi=2.0
++	s4name="X"	s4vlo=0.8	s4vhi=2.0
++	s5name="1"	s5vlo=2.0	s5vhi=7.0
++	s6name="F"	s6vlo=1.45	s6vhi=2.0
++	s7name="F"	s7vlo=0.8	s7vhi=1.55
++	)
+*$
+.model DO74HCT_NX doutput (
++	s0name="0"	s0vlo=-1.5	s0vhi=1.5
++	s2name="1"	s2vlo=1.5	s2vhi=7.0
++	)
+*$
+.model DO74HCT_ST doutput (
++	s0name="0"	s0vlo=-1.5	s0vhi=1.7
++	s1name="1"	s1vlo=0.9	s1vhi=7.0
++	)
+*$
+
+
+.model IO_STM uio (
++	drvh=0	drvl=0
++	DtoA1="DtoA_STM"	DtoA2="DtoA_STM"
++	DtoA3="DtoA_STM"	DtoA4="DtoA_STM"
++	DIGPOWER="DIGI_PWR"
++	)
+*$
+.subckt DtoA_STM  D A  DPWR DGND
++	params: DRVL=0 DRVH=0 CAPACITANCE=0
+*
+N1  A DGND DPWR DINSTM DGTLNET=D IO_STM
+C1  A DGND {CAPACITANCE+0.1pF}
+.ends
+*$
+.model DINSTM dinput (
++	s0name="0"	s0tsw=0.1ns	s0rlo=.1	s0rhi=1k
++	s1name="1"	s1tsw=0.1ns	s1rlo=1k	s1rhi=.1
++	s2name="X"	s2tsw=0.1ns	s2rlo=1	    s2rhi=1
++	s3name="R"	s3tsw=0.1ns	s3rlo=1	    s3rhi=1
++	s4name="F"	s4tsw=0.1ns	s4rlo=1	    s4rhi=1
++	s5name="Z"	s5tsw=0.1ns	s5rlo=1G	s5rhi=1G
++	)
+*$
+.MODEL Locgate UGATE (TPLHTY=0 TPHLTY=0)
+
+; ****************** MasterSlave JK & RS flipflops *****************
+
+.SUBCKT JKFF_MS_STD P C CP J K Q QN OPTIONAL: GND=$G_DGND
++       PARAMS: DLH = 0 DHL = 0
+U_2 JKFF(1) $G_DPWR GND P C CP DJ DK Q QN Local IO_STD
+U_3 DFF(2) $G_DPWR GND $G_DPWR $G_DPWR CP J K DJ DK DJN DKN UEFF IO_STD
+.MODEL Local UEFF ( TPPCQLHTY = {DLH} TPCLKQLHTY = {DLH}
++                   TPPCQHLTY = {DHL} TPCLKQHLTY = {DHL} )
+.ENDS
+
+.SUBCKT JKFF_MS_STD_OC P C CP J K Q QN OPTIONAL: GND=$G_DGND
++       PARAMS: DLH = 0 DHL = 0
+U_2 JKFF(1) $G_DPWR GND P C CP DJ DK Q QN Local IO_STD_OC
+U_3 DFF(2) $G_DPWR GND $G_DPWR $G_DPWR CP J K DJ DK DJN DKN UEFF IO_STD_OC
+.MODEL Local UEFF ( TPPCQLHTY = {DLH} TPCLKQLHTY = {DLH}
++                   TPPCQHLTY = {DHL} TPCLKQHLTY = {DHL} )
+.ENDS
+
+.SUBCKT JKFF_MS_LS P C CP J K Q QN OPTIONAL: GND=$G_DGND
++       PARAMS: DLH = 0 DHL = 0
+U_2 JKFF(1) $G_DPWR GND P C CP DJ DK Q QN Local IO_LS
+U_3 DFF(2) $G_DPWR GND $G_DPWR $G_DPWR CP J K DJ DK DJN DKN UEFF IO_LS
+.MODEL Local UEFF ( TPPCQLHTY = {DLH} TPCLKQLHTY = {DLH}
++                   TPPCQHLTY = {DHL} TPCLKQHLTY = {DHL} )
+.ENDS
+
+.SUBCKT JKFF_MS_LS_OC P C CP J K Q QN OPTIONAL: GND=$G_DGND
++       PARAMS: DLH = 0 DHL = 0
+U_2 JKFF(1) $G_DPWR GND P C CP DJ DK Q QN Local IO_LS_OC
+U_3 DFF(2) $G_DPWR GND $G_DPWR $G_DPWR CP J K DJ DK DJN DKN UEFF IO_LS_OC
+.MODEL Local UEFF ( TPPCQLHTY = {DLH} TPCLKQLHTY = {DLH}
++                   TPPCQHLTY = {DHL} TPCLKQHLTY = {DHL} )
+.ENDS
+
+; ******************* Masterslave D flipflops *********************
+
+.SUBCKT DFF_MS_STD P C CP D Q QN OPTIONAL: GND=$G_DGND
++       PARAMS: DLH = 0 DHL = 0
+U_2 JKFF(1) $G_DPWR GND P C CP DD DDN Q QN Local IO_STD
+U_3 DFF(1) $G_DPWR GND $G_DPWR $G_DPWR CP D DD DDN UEFF IO_STD
+.MODEL Local UEFF ( TPPCQLHTY = {DLH} TPCLKQLHTY = {DLH}
++                   TPPCQHLTY = {DHL} TPCLKQHLTY = {DHL} )
+.ENDS
+
+.SUBCKT DFF_MS_STD_OC P C CP D Q QN OPTIONAL: GND=$G_DGND
++       PARAMS: DLH = 0 DHL = 0
+U_2 JKFF(1) $G_DPWR GND P C CP DD DDN Q QN Local IO_STD_OC
+U_3 DFF(1) $G_DPWR GND $G_DPWR $G_DPWR CP D DD DDN UEFF IO_STD_OC
+.MODEL Local UEFF ( TPPCQLHTY = {DLH} TPCLKQLHTY = {DLH}
++                   TPPCQHLTY = {DHL} TPCLKQHLTY = {DHL} )
+.ENDS
+
+.SUBCKT DFF_MS_LS P C CP D Q QN OPTIONAL: GND=$G_DGND
++       PARAMS: DLH = 0 DHL = 0
+U_2 JKFF(1) $G_DPWR GND P C CP DD DDN Q QN Local IO_LS
+U_3  DFF(1) $G_DPWR GND $G_DPWR $G_DPWR CP D DD DDN UEFF IO_LS
+.MODEL Local UEFF ( TPPCQLHTY = {DLH} TPCLKQLHTY = {DLH}
++                   TPPCQHLTY = {DHL} TPCLKQHLTY = {DHL} )
+.MODEL Locgate UGATE (TPLHTY=0 TPHLTY=0)
+.ENDS
+
+.SUBCKT DFF_MS_LS_OC P C CP D Q QN OPTIONAL: GND=$G_DGND
++       PARAMS: DLH = 0 DHL = 0
+U_2 JKFF(1) $G_DPWR GND P C CP DD DDN Q QN Local IO_LS_OC
+U_3  DFF(1) $G_DPWR GND $G_DPWR $G_DPWR CP D DD DDN UEFF IO_LS_OC
+.MODEL Local UEFF ( TPPCQLHTY = {DLH} TPCLKQLHTY = {DLH}
++                   TPPCQHLTY = {DHL} TPCLKQHLTY = {DHL} )
+.MODEL Locgate UGATE (TPLHTY=0 TPHLTY=0)
+.ENDS
+
+* UA741 operational amplifier "macromodel" subcircuit
+* created using Parts release 4.01 on 07/05/89 at 09:09
+* (REV N/A)
+* connections:   non-inverting input
+*                | inverting input
+*                | | positive power supply
+*                | | | negative power supply
+*                | | | | output
+*                | | | | |
+.subckt UA741    1 2 3 4 5
+*
+  c1   11 12 4.664E-12
+  c2    6  7 20.00E-12
+  dc    5 53 dx
+  de   54  5 dx
+  dlp  90 91 dx
+  dln  92 90 dx
+  dp    4  3 dx
+  egnd 99  0 poly(2) (3,0) (4,0) 0 .5 .5
+  fb    7 99 poly(5) vb vc ve vlp vln 0 10.61E6 -10E6 10E6 10E6 -10E6
+  ga	6  0 11 12 137.7E-6
+  gcm	0  6 10 99 2.574E-9
+  iee  10  4 dc 10.16E-6
+  hlim 90  0 vlim 1K
+  q1   11  2 13 qx
+  q2   12  1 14 qx
+  r2    6  9 100.0E3
+  rc1   3 11 7.957E3
+  rc2   3 12 7.957E3
+  re1  13 10 2.740E3
+  re2  14 10 2.740E3
+  ree  10 99 19.69E6
+  ro1   8  5 150
+  ro2   7 99 150
+  rp    3  4 18.11E3
+  vb    9  0 dc 0
+  vc	3 53 dc 2.600
+  ve   54  4 dc 2.600
+  vlim  7  8 dc 0
+  vlp  91  0 dc 25
+  vln   0 92 dc 25
+.model dx D(Is=800.0E-18)
+.model qx NPN(Is=800.0E-18 Bf=62.50)
+.ends
+
+* STANDARD OPERATIONAL AMPLIFIER MACROMODEL SUBCIRCUIT
+* CREATED USING 08/05/06
+* (REV 1.3 26/02/08 )
+.SUBCKT STDOPAMP  INP INM VP VM OUT
++ PARAMS: GAIN=200K RIN=2MEG RINC=1E9 ROUT=75 SLEWRATE=500K FPOLE1=5 FPOLE2=1MEG
++         VDROPOH=1.9 VDROPOL=1.9 VOFFS=1M IBIAS=80N IOFFS=20N
+*
+.PARAM PI = 3.141592
+.PARAM IS = 1.0E-12
+.PARAM VT = 0.02585
+.PARAM IMAX = 100.0E-2
+.PARAM C1 = {IMAX/SLEWRATE}
+.PARAM R1 = {1/(2*PI*C1*FPOLE1)}
+.PARAM GM1 = {GAIN/R1}
+.PARAM R2 = 100
+.PARAM G2 = {1/R2}
+.PARAM GOUT = {1/ROUT}
+.PARAM C2 = {1/(2*PI*R2*FPOLE2)}
+.PARAM VDF = {VT*LOG(1 + IMAX/IS)}
+*
+IBIASM      INM 0  {IBIAS - IOFFS}
+RINM      INM  8  {2*RINC}
+RINP      INP  8  {2*RINC}
+IBIAS       10 0   {IBIAS}
+VOFFS       10 INP  {VOFFS}
+EVP VPI 0 VP 0 1
+EVM VMI 0 VM 0 1
+VC          VPI 11  {VDROPOH + VDF}
+VE          12 VMI  {VDROPOL + VDF}
+D1          VM VP  D_1
+RP          VP VM  15E3
+ROUT        OUT 8  {ROUT}
+GMO         8 OUT 9 8 {GOUT}
+C2          9 8  {C2}
+R2          9 8  {R2}
+GM2         8 9 7 8 {G2}
+RIN         INM 10  {RIN}
+EGND        8  0  POLY(2) (VP,0) (VM,0) 0 .5 .5
+D3         12 7  D_1
+D2          7 11  D_1
+C1          7 8  {C1}
+R1          7 8  {R1}
+GM1         8 7 VALUE = { LIMIT( GM1*V(10,INM), -IMAX, IMAX) }
+.MODEL D_1 D( IS={IS} )
+.ENDS
+
+* Standard operational amplifier macromodel subcircuit
+* Created using 08/05/06
+* (REV 1.2 10/12/07 )
+.SUBCKT StdOpamp12 INP INM VP VM Out
++ Params: GAIN=200K RIN=2MEG RINC=1E9 ROUT=75 SLEWRATE=500K FPOLE1=5 FPOLE2=1MEG
++         VDROPOH=1.9 VDROPOL=1.9 VOFFS=1m IBIAS=80n IOFFS=20n
+*
+.PARAM VOSW = 15
+.PARAM pi = 3.141592
+.PARAM IS = 8.0E-16
+.PARAM VT = 0.02585
+.PARAM C1 = {VOSW/ROUT/SLEWRATE}
+.PARAM IMAX = {C1*SLEWRATE}
+.PARAM R1 = {1/(2*pi*C1*FPOLE1)}
+.PARAM GM1 = {GAIN/R1}
+.PARAM R2 = 100
+.PARAM G2 = {1/R2}
+.PARAM GOUT = {1/ROUT}
+.PARAM C2 = {1/(2*pi*R2*FPOLE2)}
+.PARAM VDF = {VT*Log(1 + IMAX/IS)}
+*
+Ibiasm      INM 0  {IBIAS - IOFFS}
+RINM      INM  8  {2*RINC}
+RINP      INP  8  {2*RINC}
+Ibias       10 0   {IBIAS}
+Voffs       10 INP  {VOFFS}
+EVP VPI 0 VP 0 1
+EVM VMI 0 VM 0 1
+Vc          VPI 11  {VDROPOH + VDF}
+Ve          12 VMI  {VDROPOL + VDF}
+D1          VM VP  D_1
+Rp          VP VM  15E3
+ROut        OUT 8  {ROUT}
+GmO         8 OUT Value =  {V(9,8)*GOUT}
+C2          9 8  {C2}
+R2          9 8  {R2}
+Gm2         8 9  Value =  {V(7,8)*G2}
+Rin         INM 10  {RIN}
+EGND        8  0  POLY(2) (VP,0) (VM,0) 0 .5 .5
+D3         12 7  D_1
+D2          7 11  D_1
+C1          7 8  {C1}
+R1          7 8  {R1}
+Gm1         8 7 Value = { Limit( GM1*V(10,INM), -IMAX, IMAX) }
+.MODEL D_1 D( IS={IS} RS=10m )
+.ENDS
+
+* Standard operational amplifier macromodel subcircuit
+* Created using 08/05/06
+* (REV 1.1 29/07/06 )
+.SUBCKT StdOpamp11 INP INM VP VM Out
++ Params: GAIN=200K RIN=2MEG RINC=1E9 ROUT=75 SLEWRATE=500K FPOLE1=5 FPOLE2=1MEG
++         VDROPOH=1.9 VDROPOL=1.9 VOFFS=1m IBIAS=80n IOFFS=20n
+*
+.PARAM VOSW = 15
+.PARAM pi = 3.141592
+.PARAM IS = 1.0E-12
+.PARAM VT = 0.02585
+.PARAM C1 = {VOSW/ROUT/SLEWRATE}
+.PARAM IMAX = {C1*SLEWRATE}
+.PARAM R1 = {1/(2*pi*C1*FPOLE1)}
+.PARAM GM1 = {GAIN/R1}
+.PARAM R2 = 100
+.PARAM G2 = {1/R2}
+.PARAM GOUT = {1/ROUT}
+.PARAM C2 = {1/(2*pi*R2*FPOLE2)}
+.PARAM VDF = {VT*Log(1 + IMAX/IS)}
+*
+Ibiasm      INM 0  {IBIAS - IOFFS}
+RINM      INM  8  {2*RINC}
+RINP      INP  8  {2*RINC}
+Ibias       10 0   {IBIAS}
+Voffs       10 INP  {VOFFS}
+Vc          VP 11  {VDROPOH + VDF}
+Ve          12 VM  {VDROPOL + VDF}
+D1          VM VP  D_1
+Rp          VP VM  15E3
+ROut        OUT 8  {ROUT}
+GmO         8 OUT Value =  {V(9,8)*GOUT}
+C2          9 8  {C2}
+R2          9 8  {R2}
+Gm2         8 9  Value =  {V(7,8)*G2}
+Rin         INM 10  {RIN}
+EGND        8  0  POLY(2) (VP,0) (VM,0) 0 .5 .5
+D3          12 7  D_1
+D2          7 11  D_1
+C1          7 8  {C1}
+R1          7 8  {R1}
+Gm1         8 7 Value = { Limit( GM1*V(10,INM), -IMAX, IMAX) }
+.MODEL D_1 D( IS={IS} RS=10m )
+.ENDS
+
+* Standard operational amplifier macromodel subcircuit
+* Created using 08/05/06
+* (REV 1.0)
+.SUBCKT StdOpamp10 In+ In- V+ V- Out
++ Params: GAIN=200K RIN=2MEG ROUT=75 SLEWRATE=500K FPOLE1=5 FPOLE2=1MEG
++         VDROPOH=1.9 VDROPOL=1.9 VOFFS=1m IBIAS=80n IOFFS=20n
+*
+.PARAM VOSW = 15
+.PARAM pi = 3.141592
+.PARAM IS = 1.0E-12
+.PARAM VT = 0.02585
+.PARAM C1 = {VOSW/ROUT/SLEWRATE}
+.PARAM IMAX = {C1*SLEWRATE}
+.PARAM R1 = {1/(2*pi*C1*FPOLE1)}
+.PARAM GM1 = {GAIN/R1}
+.PARAM R2 = 100
+.PARAM G2 = {1/R2}
+.PARAM GOUT = {1/ROUT}
+.PARAM C2 = {1/(2*pi*R2*FPOLE2)}
+.PARAM VDF = {VT*Log(1 + IMAX/IS)}
+*
+Ibiasm      In- 0  {IBIAS - IOFFS}
+RIn-      In-  8  {10*RIN}
+RIn+      In+  8  {10*RIN}
+Ibias       10 0   {IBIAS}
+Voffs       10 In+  {VOFFS}
+Vc          V+ 11  {VDROPOH + VDF}
+Ve          12 V-  {VDROPOL + VDF}
+D1          V- V+  D_1
+Rp          V+ V-  15E3
+ROut        OUT 8  {ROUT}
+GmO         8 OUT Value =  {V(9,8)*GOUT}
+C2          9 8  {C2}
+R2          9 8  {R2}
+Gm2         8 9  Value =  {V(7,8)*G2}
+Rin         In- 10  {RIN}
+EGND        8  0  POLY(2) (V+,0) (V-,0) 0 .5 .5
+D3          12 7  D_1
+D2          7 11  D_1
+C1          7 8  {C1}
+R1          7 8  {R1}
+Gm1         8 7 Value = { Limit( GM1*V(10,In-), -IMAX, IMAX) }
+.MODEL D_1 D( IS={IS} )
+.ENDS
+
+* Linear operational amplifier macromodel subcircuit
+* Created using 11/05/06
+* (REV 1.0)
+.SUBCKT LinOpamp In+ In- V+ V- Out
++ Params: GAIN=200K RIN=2MEG ROUT=75 FPOLE1=5
+*
+Rp          V+ V-  15E3
+ROut        OUT 8  {ROUT}
+GmO         8 OUT In+ In-  {GAIN/ROUT}
+Rin         In- In+  {RIN}
+EGND        8  0  POLY(2) (V+,0) (V-,0) 0 .5 .5
+C1          OUT 8  {1/(2*pi*ROUT*FPOLE1)}
+.ENDS
+
+* Ideal operational amplifier macromodel subcircuit
+* Created using 11/05/06
+* (REV 1.0)
+.SUBCKT IdOpamp In+ In- Out
++ Params: GAIN=1E12
+*
+EO         OUT 0  In+ In-  {GAIN}
+.ENDS
+
+.SUBCKT SW N+ N- NC+ NC-
++ PARAMS: VT=0 VH=0 RON=1 ROFF=1E12 TDEL=10N
+*
+*VT threshold voltage Volts 0.0
+*VH hysteresis voltage Volts 0.0
+*RON on resistance ohm 1.0
+*ROFF off resistance ohm 1/GMIN*
+*
+.PARAM VTHH={VT+VH}
+.PARAM VTHL={VT-VH}
+.PARAM RD=1
+.PARAM CD={TDEL/(0.693*RD)}
+.PARAM RSW={RON*ROFF/(ROFF - RON)}
+.PARAM GSW={1/RSW}
+*
+R2 NC+ 0 1E9
+R3 NC- 0 1E9
+R4 N+ N- {ROFF}
+G1 N+ N- VALUE= { IF ( V(NC+,NC-) > V(CN), V(N+,N-)*{GSW}, 0) }
+E1 1 0 VALUE= { IF ( V(NC+,NC-) > V(CN), {VTHL}, {VTHH}) }
+R1 1 CN {RD}
+C1 CN 0 {CD}
+.ENDS SW
+*
+
+.SUBCKT SW_SPST  Sp Sm PARAMS: DCstate=0 Ron=0 Roff=1G
+.Param Ron_={Max(Ron,1m)}
+.Param Roff_={Max(Roff,1m)}
+V_SW1  Cp 0 {DCstate}
+S_SW1  Sp Sm Cp 0 SW1
+.model SW1 SW(Ron={Ron} Roff={Roff} Vt=0.5 Vh=0.1)
+*.model SW1 VSWITCH (Ron={Ron} Roff={Roff} VON=0.6V VOFF=0.4V )
+.ENDS
+
+.SUBCKT SW_SPDT  Sm Sp Sp2 PARAMS: DCstate=0 Ron=0 Roff=1G
+.Param Ron_={Max(Ron,1m)}
+.Param Roff_={Max(Roff,1m)}
+V_SW1  Cp 0 {DCstate}
+S_SW1  Sp2 Sm Cp 0 SW1
+S_SW2  Sp  Sm Cp 0 SW2
+.model SW1 SW(Ron={Roff_} Roff={Ron_} Vt=0.5 Vh=0.1)
+.model SW2 SW(Ron={Ron_} Roff={Roff_} Vt=0.5 Vh=0.1)
+*.model SW1 VSWITCH (Ron={Ron_} Roff={Roff_} VON=0.4V VOFF=0.6V )
+*.model SW2 VSWITCH (Ron={Ron_} Roff={Roff_} VON=0.6V VOFF=0.4V )
+.ENDS
+
+.SUBCKT TctrlSW Sp Sm Params: DCstate=0 Ron=0 Roff=1G Ton=0 Toff=100n Periodic=0 Period=200n
+.Param Trise={Max(Ton, Toff)/1000}
+.Param Tdel={Min(Ton, Toff)}
+.Param Twidth={Abs(Ton-Toff)}
+.Param Per={If(Periodic > 0.5, Period, 1e12)}
+.Param V1={If(Ton > Toff, 1, 0)}
+.Param Ron_={Max(Ron,1m)}
+.Param Roff_={Max(Roff,1m)}
+*VP1         3 0 DC {DCSTATE} AC 1 0
+*+ PULSE ( {V1} {1-V1} {TDEL} {TRISE} {TRISE} {TWIDTH} {PER} )
+VP1         Cp 30 DC 0 AC 1 0
++ PULSE ( {V1} {1-V1} {TDEL} {TRISE} {TRISE} {TWIDTH} {PER} )
+VP2         30 0 DC {DCSTATE} AC 1 0
++ PULSE ( {-V1*(1-DCSTATE)} 0 0 {TRISE} {TRISE} 1e11 1e12 )
+S_SW1  Sp Sm Cp 0 SW1
+.model SW1 SW(Ron={Ron_} Roff={Roff_} Vt=0.5 Vh=0.1)
+*.model SW1 VSWITCH (Ron={Ron_} Roff={Roff_} VON=0.6V VOFF=0.4V )
+.ENDS
+
+
+*****************************************************************************
+*MODEL SUBCIRCUITs  version 1.0:
+*
+*****************************************************************************
+
+.SUBCKT VOST_10   1 2
+*OFFSET VOLTAGE, RTI(1) VOS VSENSE = 0MV ±20 ±70 UV
+*VS TEMPERATURE DVOS/DT ±0.3 ±1.5 UV/°C
+.PARAM I0 = 1M
+*.PARAM DVOS_DT= {0.3U*5/6}
+*.PARAM VOFFS = {20U*5/6 + 2*DVOS_DT}
+.PARAM DVOS_DT= {0.3U*5}
+.PARAM VOFFS = {20U*5 + 2*DVOS_DT}
+.PARAM R0 = {VOFFS/I0}
+.PARAM TC1= {DVOS_DT/R0/I0}
+
+R2 40 0 RMOD2 {R0}
+I2 40 0 {I0}
+E3 1 2 40 0 1
+.MODEL RMOD2 RES (TC1={TC1} TC2=0 TCE=0)
+.ENDS
+
+.SUBCKT DZZ_15_80V_0  C1 C2 
+D1 A1A2 C1 DZ_15V
+D2 A1A2 C2 DZ_80V
+.ENDS
+*$
+.SUBCKT D_D2_0       1    2
+D1 1 2  D2
+.ENDS
+*$
+.SUBCKT SW1_0  SP SM CP CM
+R_SW1         Cp Cm 1G
+S_SW1  Sp Sm Cp Cm SW1 
+.ENDS 
+*$
+.SUBCKT SW2_0  SP SM CP CM
+R_SW1         Cp Cm 1G
+S_SW1  Sp Sm Cp Cm SW2 
+.ENDS 
+*$
+
+.SUBCKT D_LIM1_0   1 2
+D1 1 2  D_LIM1
+.ENDS
+*$
+.SUBCKT D_DB7_0      1    2
+D1 1 2  DD
+.MODEL DD D( IS=10F N=1.25 RS=1 XTI=0  )
+.ENDS
+*$
+.SUBCKT D_DB4_0       1    2
+D1 1 2  DD
+.MODEL DD D( IS=10F N=1.0 RS=20K XTI=0 )
+.ENDS
+*$
+.SUBCKT D_DB3_0       1    2
+D1 1 2  DD
+.MODEL DD D( IS=10F N=2.0 RS=1 XTI=0 EG=2.22)
+.ENDS 
+*$
+.SUBCKT D_DB2_0       1    2
+D1 1 2  DD
+.MODEL DD D( IS=10F N=2.0 RS=1K XTI=0 EG=2.22)
+.ENDS 
+*$
+.SUBCKT D_DB1_0       1    2
+D1 1 2  DD
+.MODEL DD D( IS=1P N=0.5 RS=20K XTI=0 EG=0.555)
+.ENDS 
+*$
+.SUBCKT D_LIM2_0   1 2
+D1 1 2  D_LIM2
+.ENDS
+*$
+.SUBCKT D_D10      1    2
+D1 1 2  DD
+Cd 1 2 10f
+.MODEL DD D( IS=1F N=2.0 RS=1 XTI=0 EG=2.22 )
+.ENDS 
+*$
+.SUBCKT D_D4_0       1    2
+D1 1 2  DD
+.MODEL DD D( IS=10F N=2.5 RS=1 )
+.ENDS D_D4_0 
+*$
+.SUBCKT D_ZB1_0        1    2
+D1 1 2  D_4_9V
+CD 1 2 1P
+.MODEL D_4_9V D( IS=1F N=3.0 BV=4.9 IBV=1.0U RS=0 )
+.ENDS 
+*$
+.SUBCKT D_Zr_2V      1    2
+D1 1 2  D_2V
+*C1 1 2 1P
+.MODEL D_2V D( IS=1P N=0.2 BV=2.0 IBV=1.0m RS=1 XTI=0 EG=0.222 )
+.ENDS 
+*$
+.SUBCKT D_Zr_5V      1    2
+D1 1 2  D_Z5V
+.ENDS 
+*$
+.SUBCKT D_Zr_27V   1    2
+D1 1 2  D_Z27V
+.ENDS
+
+.SUBCKT D_DNoise      1    2
+D1 1 2  DD
+.MODEL DD D( IS=0.9e-18 N=1.0 )
+.ENDS D_D
+*$
+.SUBCKT HYSTCOMP_0  INP INM OUT GND 
++ PARAMS: VTHRES=0 VHYST=1 VOUTH=5 VOUTL=0 ROUT=1 TDEL=1N
+*
+.PARAM RDEL = {IF ( (TDEL > 1E-15) & (ROUT < 1), 1, ROUT ) } 
+.PARAM VOUTM={(VOUTH+VOUTL)/2}
+.PARAM VTHH={VTHRES+VHYST}
+.PARAM VTHL={VTHRES-VHYST}
+.PARAM COUT={TDEL/(0.693*(RDEL+1U))}
+*
+ETHR THR GND VALUE= { IF ( V(OUT,GND) < {VOUTM}, {VTHH}, {VTHL}) }
+EOUT OUT GND VALUE= { IF ( V(INP,INM) > V(THR,GND), VOUTH + RDEL*I(EOUT) , VOUTL + RDEL*I(EOUT)  ) }
+COUT OUT GND {COUT}
+.ENDS
+*$
+.SUBCKT HYSTCOMP_EN inp inm en out gnd 
++ Params: Vthres=0 Vhyst=1 VoutH=5 VoutL=0 Rout=1 Tdel=1N Venthres=0.5
+*
+.Param Rdel = {IF ( (Tdel > 1E-15) & (Rout < 1), 1, Rout ) } 
+.Param VoutM={(VoutH+VoutL)/2}
+.Param VthH={Vthres+Vhyst}
+.Param VthL={Vthres-Vhyst}
+.Param Cout={Tdel/(0.693*(Rdel+1u))}
+*
+Ethr thr gnd Value= { IF ( V(out,gnd) < {VoutM}, {VthH}, {VthL}) }
+Eout out gnd Value= { IF ( (V(inp,inm) > V(thr,gnd)) | (V(en,gnd) < Venthres) , VoutH + Rdel*I(Eout) , VoutL + Rdel*I(Eout)  ) }
+Cout out gnd {Cout}
+.ENDS
+*$
+.SUBCKT Q_NMOS  D G S PARAMS: M=1 W=10U L=2U
+*            D G S
+MNI1 D G S S Q_NMOS M={M} L={L} W={W}
+.ENDS
+*$
+.SUBCKT Q_PMOS  D G S PARAMS: M=1 W=10U L=2U
+*            D G S
+MPI1 D G S S Q_PMOS M={M} L={L} W={W}
+.ENDS
+*$
+.SUBCKT VOST_1   1 2 ACM
+*OFFSET VOLTAGE, RTI(1) VOS VSENSE = 0MV ±20 ±70 UV
+*VS TEMPERATURE DVOS/DT ±0.3 ±1.5 UV/°C
+.PARAM I0 = 1M
+.PARAM DVOS_DT= {0.3U*5/6}
+.PARAM VOFFS = {20U*5/6 + 2*DVOS_DT}
+.PARAM R0 = {VOFFS/I0}
+.PARAM TC1= {DVOS_DT/R0/I0}
+
+R2 40 0 RMOD2 {R0}
+I2 40 0 {I0}
+*E3 1 2 40 0 1
+E3 1 2 VALUE = {IF (V(ACM,0) > 0.5, V(40), V(40)-10.8U)}
+.MODEL RMOD2 RES (TC1={TC1} TC2=0 TCE=0)
+.ENDS
+
+*$
+.SUBCKT Q_PMOS_OUT_L1_0   D G S B PARAMS:  M = 1 W = 100U L = 10U
+M1 D G S B Q_PMOS_OUT_L1 W = {W} L = {L} M = {M} AD={W*LS} AS={W*LS} PD={W + 2*LS} PS={W + 2*LS} 
++ NRD={LS/W} NRS={LS/W}
+.ENDS
+*$
+.SUBCKT Q_PMOS_OUT_0   D G S B PARAMS:  M = 1 W = 100U L = 10U
+M1 D G S B Q_PMOS_OUT W = {W} L = {L} M = {M} AD={W*LS} AS={W*LS} PD={W + 2*LS} PS={W + 2*LS} 
++ NRD={LS/W} NRS={LS/W}
+.ENDS
+*$
+.SUBCKT Q_NMOS_OUT_0   D G S B PARAMS:  M = 1 W = 100U L = 10U
+M1 D G S B Q_NMOS_OUT  W = {W} L = {L} M = {M} AD={W*LS} AS={W*LS} PD={W + 2*LS} PS={W + 2*LS} 
++ NRD={LS/W} NRS={LS/W}
+.ENDS
+*$
+.SUBCKT Q_NMOS_OUT_L1_0   D G S B PARAMS:  M = 1 W = 100U L = 10U
+M1 D G S B Q_NMOS_OUT_L1  W = {W} L = {L} M = {M} AD={W*LS} AS={W*LS} PD={W + 2*LS} PS={W + 2*LS} 
++ NRD={LS/W} NRS={LS/W}
+.ENDS
+*$
+
+*PARAMETERS: 0.4UM CMOS
+.PARAM LS = 1.0U
+.PARAM VTOHP = 0.70
+.PARAM VTOHN = 0.70
+.PARAM LAMBDA = 100M
+.PARAM LAMBDAP = 100M
+.PARAM LAMBDAN = 100M
+.PARAM GAMMA = 0.0
+.PARAM KAPPA = 1.0
+.PARAM THETA = 0.1
+.PARAM ETA = 0.05
+.PARAM PHI = 0.6
+.PARAM EPSSIO2 = {3.9*8.854214871E-12}
+.PARAM TOX = 80E-10
+.PARAM COX = {EPSSIO2/TOX}
+.PARAM KPN = {UON*COX * 1E-4}
+.PARAM KPP = {UOP*COX * 1E-4}
+.PARAM LDN = 0.09U
+.PARAM LDP = 0.09U
+.PARAM RSW = 1810
+.PARAM RSN = 1.41
+.PARAM RSH = 4.0
+*.PARAM RDS = 2.25MEG
+.PARAM RDS = 1.8MEG
+.PARAM VBMUL = 1E6
+.PARAM RPAR = 1T
+.PARAM CBDJ = 1.0 
+.PARAM CBDS = 1.0
+.PARAM CGBF = 1.0
+.PARAM PBP = 0.7
+.PARAM PBN = 0.7
+.PARAM UON = 900
+.PARAM UOP = 900
+.PARAM CJN = {200U}
+.PARAM CJP = {400U} 
+.PARAM CJSWN = {1.2N}
+.PARAM CJSWP = {2.4N}
+.PARAM XJN = 0.15U
+.PARAM CGSON = {0.6*XJN*COX} 
+.PARAM CGDON = {CGSON}
+.PARAM CGBON = {CGBF*CGDON}
+.PARAM XJP = 0.18U
+.PARAM CGSOP = {0.6*XJP*COX} 
+.PARAM CGDOP = {CGSOP}
+.PARAM CGBOP = {CGBF*CGDOP}
+*$
+.MODEL  SW1 VSWITCH RON=10 ROFF=1E12 VON=0.6V VOFF=0.4V 
+*$
+.MODEL  SW2 VSWITCH RON=100m ROFF=1E12 VON=0.6V VOFF=0.4V 
+*$
+.MODEL  SW2IC VSWITCH RON=100m ROFF=1E12 VON=0.4V VOFF=0.6V 
+*$
+.MODEL Q_NMOS NMOS LEVEL=1 L=2U W=10U KP={KPN} VTO={VTOHN}  AF=0 KF=0
+*$
+.MODEL Q_PMOS PMOS LEVEL=1 L=2U W=10U KP={KPP} VTO={-VTOHP}  AF=0 KF=0
+*$
+*$
+.MODEL Q_NMOS_OUT_L111 NMOS LEVEL=1 L=10U W=100U KP={KPN} VTO=0.4 LAMBDA={LAMBDAN} GAMMA={GAMMA} 
++ CJ={CJN} CJSW={CJSWN} CGSO={CGSON} CGDO={CGDON} RSH={RSH} PB={PBN} LD= {LDN} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
+*+ RSH={RSH} PB={PBN} LD= {LDN} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
+*$
+.MODEL Q_NMOS_OUT_L8980 NMOS LEVEL=1 L=10U W=100U KP={KPN} VTO=2.0 LAMBDA={LAMBDAN} GAMMA={GAMMA} 
++ CJ={CJN} CJSW={CJSWN} CGSO={CGSON} CGDO={CGDON} RSH={RSH} PB={PBN} LD= {LDN} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
+*+ RSH={RSH} PB={PBN} LD= {LDN} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
+*$
+.MODEL Q_NMOS_OUT_L1050 NMOS LEVEL=1 L=10U W=100U KP={KPN} VTO=2.2 LAMBDA={20m} GAMMA={GAMMA} 
++ CJ={CJN} CJSW={CJSWN} CGSO={CGSON} CGDO={CGDON} RSH={RSH} PB={PBN} LD= {LDN} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
+*+ RSH={RSH} PB={PBN} LD= {LDN} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
+
+*$
+.MODEL Q_NMOS_OUT_L7250 NMOS LEVEL=1 L=10U W=100U KP={KPN} VTO=2.3 LAMBDA={20m} GAMMA={GAMMA} 
++ CJ={CJN} CJSW={CJSWN} CGSO={CGSON} CGDO={CGDON} RSH={RSH} PB={PBN} LD= {LDN} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
+*+ RSH={RSH} PB={PBN} LD= {LDN} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
+.MODEL Q_NMOS_OUT_R1050 NMOS LEVEL=1 L=10U W=100U KP={KPN} VTO=0.5 LAMBDA={5m} GAMMA={GAMMA} 
++ CJ={CJN} CJSW={CJSWN} CGSO={CGSON} CGDO={CGDON} RSH={RSH} PB={PBN} LD= {LDN} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
+*+ RSH={RSH} PB={PBN} LD= {LDN} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
+
+*$
+.MODEL Q_NMOS_OUT_L1 NMOS LEVEL=1 L=10U W=100U KP={KPN} VTO={VTOHN} LAMBDA={LAMBDAN} GAMMA={GAMMA} 
+*+ CJ={CJN} CJSW={CJSWN} CGSO={CGSON} CGDO={CGDON} RSH={RSH} PB={PBN} LD= {LDN} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
++ RSH={RSH} PB={PBN} LD= {LDN} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
+*$
+.MODEL Q_NMOS_OUT NMOS LEVEL=3 L=10U W=100U KP={KPN} VTO={VTOHN}
++ CJ={CJN} CJSW={CJSWN} CGSO={CGSON} CGDO={CGDON} RSH={RSH} PB={PBN} LD= {LDN} RDS={RDS} TOX={TOX} XJ={XJN}
+*+  THETA={THETA} GAMMA={GAMMA} KAPPA={KAPPA} ETA={ETA} PHI={PHI}  AF=0 KF=0
++  THETA={THETA} GAMMA={GAMMA} KAPPA={KAPPA} ETA={ETA} PHI={PHI}  AF=0 KF=0
+*$
+.MODEL Q_PMOS_OUT_L1 PMOS LEVEL=1 L=10U W=100U KP={KPP} VTO={-VTOHP} LAMBDA={LAMBDAP} GAMMA={GAMMA} 
+*+ CJ={CJP} CJSW={CJSWP} CGSO={CGSOP} CGDO={CGDOP} RSH={RSH} PB={PBP} LD= {LDP} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
++ RSH={RSH} PB={PBP} LD= {LDP} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
+*$
+.MODEL Q_PMOS_OUT_L8980 PMOS LEVEL=1 L=10U W=100U KP={KPP} VTO=-2.0 LAMBDA={LAMBDAP} GAMMA={GAMMA} 
+*+ CJ={CJP} CJSW={CJSWP} CGSO={CGSOP} CGDO={CGDOP} RSH={RSH} PB={PBP} LD= {LDP} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
++ RSH={RSH} PB={PBP} LD= {LDP} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
+
+*$
+.MODEL Q_PMOS_OUT_L1050 PMOS LEVEL=1 L=10U W=100U KP={KPP} VTO=-2.2 LAMBDA={20m} GAMMA={GAMMA} 
+*+ CJ={CJP} CJSW={CJSWP} CGSO={CGSOP} CGDO={CGDOP} RSH={RSH} PB={PBP} LD= {LDP} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
++ RSH={RSH} PB={PBP} LD= {LDP} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
+
+*$
+.MODEL Q_PMOS_OUT_L7250 PMOS LEVEL=1 L=10U W=100U KP={KPP} VTO=-2.2 LAMBDA={20m} GAMMA={GAMMA} 
+*+ CJ={CJP} CJSW={CJSWP} CGSO={CGSOP} CGDO={CGDOP} RSH={RSH} PB={PBP} LD= {LDP} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
++ RSH={RSH} PB={PBP} LD= {LDP} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
+
+.MODEL Q_PMOS_OUT_R1050 PMOS LEVEL=1 L=10U W=100U KP={KPP} VTO=-0.5 LAMBDA={5m} GAMMA={GAMMA} 
+*+ CJ={CJP} CJSW={CJSWP} CGSO={CGSOP} CGDO={CGDOP} RSH={RSH} PB={PBP} LD= {LDP} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
++ RSH={RSH} PB={PBP} LD= {LDP} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
+*$
+
+.MODEL Q_PMOS_OUT_450 PMOS LEVEL=1 L=10U W=100U KP={KPP} VTO=-0.5 LAMBDA={100m} GAMMA={GAMMA} 
+*+ CJ={CJP} CJSW={CJSWP} CGSO={CGSOP} CGDO={CGDOP} RSH={RSH} PB={PBP} LD= {LDP} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
++ RSH={RSH} PB={PBP} LD= {LDP} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
+*$
+
+.MODEL Q_PMOS_OUT_BSD314 PMOS LEVEL=1 L=10U W=100U KP={3} VTO=-1.5 LAMBDA={50m} GAMMA={GAMMA} 
+*+ CJ={CJP} CJSW={CJSWP} CGSO={CGSOP} CGDO={CGDOP} RSH={RSH} PB={PBP} LD= {LDP} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
++ RSH={RSH} PB={PBP} LD= {LDP} RDS={RDS} PHI={PHI}  AF=0 KF=0.0
+*$
+.MODEL Q_PMOS_OUT PMOS LEVEL=3 L=10U W=100U KP={KPP} VTO={-VTOHP}
++ CJ={CJP} CJSW={CJSWP} CGSO={CGSOP} CGDO={CGDOP} RSH={RSH} PB={PBP} LD= {LDP} RDS={RDS} TOX={TOX} XJ={XJP}
+*+  THETA={THETA} GAMMA={GAMMA} KAPPA={KAPPA} ETA={ETA} PHI={PHI}  AF=0 KF=0
++  THETA={THETA} GAMMA={GAMMA} KAPPA={KAPPA} ETA={ETA} PHI={PHI}  AF=0 KF=0
+*$
+.MODEL D_LIM0 D( IS=10F N=10.0 RS=1 XTI=0 AF=0 KF=0 EG=1.11)
+*$
+.MODEL D_LIM1 D( IS=10F N=1.0 RS=100 XTI=0 AF=0 KF=0 EG=0.48)
+*$
+*.MODEL D_LIM1 D( IS=10F N=1.0 RS=10 XTI=0 AF=0 KF=0 EG=1.11)
+.MODEL D_LIM1T D( IS=10F N=1.0 RS=10 XTI=0 AF=0 KF=0 EG=0.555)
+*$
+.MODEL D_LIM01 D( IS=10F N=0.1 RS=10 XTI=0 AF=0 KF=0 EG=0.111)
+*$
+.MODEL D_LIM7183 D( IS=10F N=0.85 RS=10 XTI=0 AF=0 KF=0 EG=0.111)
+*$
+.MODEL D_LIM2 D( IS=10F N=0.5 RS=1 XTI=0 AF=0 KF=0 EG=0.555 )
+*$
+.MODEL D_LIM3 D( IS=1E-18 N=1.0 RS=1 XTI=0 AF=0 KF=0)
+*$
+.MODEL D1 D( IS=1P N=1.0 RS=0 XTI=3 AF=0 KF=0 )
+*$
+.MODEL D_2V D( IS=10F N=1.0 BV=2.0 IBV=10.0U RS=10 XTI=0 EG=1.11 )
+*$
+.MODEL D_Z5V D( IS=1P N=1.0 BV=5.0 IBV=10.0U RS=10 XTI=0 EG=0.48 )
+*$
+.MODEL D_Z27V D( IS=1P N=1.0 BV=27.0 IBV=10.0U RS=10 XTI=0 EG=0.48 )
+*$
+.MODEL D2 D( IS=1P N=1.0 XTI=0 RS=10 )
+*$
+.Subckt Comp4INpNOrSD IN1p IN1m IN2p IN2m IN3p IN3m IN4p IN4m OUT GND
++ Params: RIN=1E12 DELAYLH=0 DELAYHL=0 VOUTH=0 VOUTL=0 VTHRES1=0 VHYST1=0 VTHRES2=0 VHYST2=0 VTHRES3=0 VHYST3=0 VTHRES4=0 VHYST4=0 
++ COUT=1p
+*
+.Param TdelHL = {IF ( (DELAYHL < 1e-9) , 1e-9, DELAYHL ) } 
+.Param TdelLH = {IF ( (DELAYLH < 1e-9) , 1e-9, DELAYLH ) } 
+.Param Coutc = {IF ( (Cout < 1p), 1p, Cout ) } 
+.Param RdelHL = {IF ( (TdelHL < 1E-12), 1, TdelHL/(0.693*(Cout+1p)) ) } 
+.Param RdelLH = {IF ( (TdelLH < 1E-12), 1, TdelLH/(0.693*(Cout+1p)) ) } 
+*
+RINp1 IN1p GND {RIN}
+RINm1 IN1m GND {RIN}
+RINp2 IN2p GND {RIN}
+RINm2 IN2m GND {RIN}
+RINp3 IN3p GND {RIN}
+RINm3 IN3m GND {RIN}
+RINp4 IN4p GND {RIN}
+RINm4 IN4m GND {RIN}
+Eout OUT gnd Value= { IF ( (V(IN1p,IN1m) > {VTHRES1}) | (V(IN2p,IN2m) > {VTHRES2}) | (V(IN3p,IN3m) > {VTHRES3}) | 
++ (V(IN4p,IN4m) > {VTHRES4}), VOUTL + RdelHL*I(Eout), VOUTH + RdelLH*I(Eout) ) }
+Cout OUT gnd {Coutc}
+.Ends Comp4INpNOrSD
+*$
+
+
+D1 1 2  DD
+.MODEL DD D( IS=10F N=1.1 RS=1 XTI=3.0  )
+*.MODEL DD D( IS=10F N=1.25 RS=1 XTI=0  )
+.ENDS
+*$
+
+*End of library file
+

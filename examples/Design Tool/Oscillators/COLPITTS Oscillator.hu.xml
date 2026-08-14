@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<schematic><circuit><text id="Text_158F0B7020151002183709" changed="False" type="1" fontname="Arial" fontsize="11" bold="0" italic="0" color="4278190335" fill="4294967295" border="1"><![CDATA[A kimeneti hullámformák megtekintéséhez futtassa a Transient... 
+az Elemzés menüből. Ha különböző koordináta
+rendszerekben szeretné megjeleníteni a kimeneteket,
+válassza a 'Külön görbék' lehetőséget a Diagram
+ablak Nézet menüjéből. 
+
+Alternatívaként válassza az Oszcilloszkóp
+lehetőséget a T&M menüből, majd kattintson a
+Futtatás gombra. A képernyő hullámformájának
+szinkronizálásához állítsa a módot Normálra,
+a forrást Out2-re és a szintet 200m-ra vagy
+nagyobbra. 'Egyszeri felvétel' megjelenítést is
+kaphat (beleértve a kezdeti transziens), ha
+beállítja a Trigger módot Egyszerire, majd
+megnyomja a Futtatás gombot. 
+
+MEGJEGYZÉS: a "Kezdeti értékek nullázása"
+beállítás a Transient elemző párbeszédablakban.
+Ezek a beállítások nélkül (működési pontból
+kiindulva) az oszcilláció később kezdődik,
+a többi oszcillátor esetében pedig lehet, hogy
+nem is indul el.]]></text><text id="Text_158F0CC020151002183709" changed="False" type="1" fontname="Arial" fontsize="27" bold="0" italic="0" color="4286578816" fill="" border="0"><![CDATA[Colpitts oszcillátor tervezés]]></text></circuit></schematic>

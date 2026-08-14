@@ -1,0 +1,43 @@
+Created by TINA
+*************************************
+**  This file was created by TINA  **
+**    (c) 1996 DesignSoft, Inc.    **
+*************************************
+.LIB "TSPICE.LIB" ; for the examples only
+* Please use your own Spice libraries.
+.LIB
+.TEMP 27
+.TRAN 4M 2
+
+.PROBE D(8) D(7) D(6) D(5) D(9) D(10) D(11)
+
+UNoname     INV $G_DPWR $G_DGND   10  12  U_SN74LS04 IO_STD
+XNoname       13   9  12   6   5   4 DFF_R_STD
++            PARAMS: DLH=25N DHL=30N
+XNoname_2     13   9  12   7   6   3 DFF_R_STD
++            PARAMS: DLH=25N DHL=30N
+XNoname_3     13   9  12   8   7   2 DFF_R_STD
++            PARAMS: DLH=25N DHL=30N
+U_11        STIM(1,1) $G_DPWR $G_DGND 10 IO_STM
++            LABEL = STARTLOOP
++            0 0
++            50M 1
++            100M GOTO STARTLOOP -1 TIMES
+U_10        STIM(1,1) $G_DPWR $G_DGND 9 IO_STM
++            0 0
++            100M 1
++            400M 0
++            420M 1
+U_9         STIM(1,1) $G_DPWR $G_DGND 11 IO_STM
++            0 0
++            300M 1
++            800M 0
++            1.4 1
+UNoname_2   STIM(1,1) $G_DPWR $G_DGND 13 IO_STM
++            0 1
+XNoname_4     13   9  12  11   8   1 DFF_R_STD
++            PARAMS: DLH=25N DHL=30N
+
+.MODEL U_SN74LS04 UGATE( TPLHTY=10N TPHLTY=10N )
+
+.END

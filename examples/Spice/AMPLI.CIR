@@ -1,0 +1,23 @@
+Created by TINA
+*************************************
+**  This file was created by TINA  **
+*************************************
+
+VUin    1   0 SIN(0 1M 1K 0 0 0)
+C11u     1   2 1.0U 
+R4_73k  3   2 4.73K
+R270    2   0 270.0
+R2k     3   4 2.0K
+QBC107A 4   2   0  QBC107A
+R10k    5   0 10.0K
+V12V    3   0 12.0
+C21u     4   5 1.0U
+.TRAN 50U 3M
+.AC DEC 10 100 100MEG
+.PLOT TRAN V(5)
+*.PLOT AC V(5)
+.MODEL QBC107A NPN (BF=180 BR = 1 IS =
++  7.677e-14 RB=10 RC=0 CJC=6.019e-12 VJC=0.75
++ MJC=0.33 TR=1.0e-8 CJE=1.065e-11 VJE=0.75 MJE=0.33 TF=5.102e-10 EG=1.11
++ VAF=100 XTB=2e-3 KF=0 AF=1.0)
+.END

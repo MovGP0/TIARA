@@ -1,0 +1,98 @@
+`timescale 10 ns / 1 ps
+
+module DA(SDI, LDANeg, LDBNeg, CLK, CSNeg, RSNeg, MSB, SHDNNeg, VOUTA, VOUTB, AGND, VREF, VDD, DGND);
+
+ input SDI, LDANeg, LDBNeg, CLK, CSNeg, RSNeg, MSB, SHDNNeg, DGND, AGND, VREF, VDD;
+ reg [11:0] inreg, dacregA, dacvalA;
+ integer i, i_d;	 
+ real r_d; 
+ output VOUTA, VOUTB;
+ wreal VOUTA;
+ 
+ always @(posedge CLK or SDI or LDANeg or CLK or CSNeg or RSNeg)
+ begin
+  if (!RSNeg) begin
+   dacregA = 12'b000000000000;
+   inreg = 12'b000000000000;
+   dacvalA = dacregA; 
+  end
+  else if (!CSNeg && RSNeg) begin
+   if (CLK) begin
+    i = 11; 
+    while (i >= 1) begin
+     inreg[i] = inreg[i-1];
+     i = i-1; 
+    end
+    inreg[0] = SDI;
+   end
+  end
+  if (RSNeg) begin
+   if (!LDANeg) begin
+    dacregA = inreg;
+    dacvalA = dacregA;
+    i_d = dacvalA; 
+    r_d = 1.0*i_d*5/4096;
+   end
+  end
+ end
+ 
+ assign VOUTA = r_d;
+endmodule
+
+`include "disciplines.vams"
+
+module v_dc(vp, vn);
+	inout vp, vn;
+	electrical vp, vn;
+	parameter real dc = 1;
+
+   	analog
+      	V(vp, vn) <+ dc;
+endmodule
+
+module res (p, n);
+ parameter real r = 100k from (0:inf); // resistance (Ohms)
+ inout p, n;
+ electrical p, n;
+ 
+ analog 
+  V(p, n) <+ r*I(p, n);
+endmodule
+
+module cap(p,n);
+ inout p,n;
+ electrical p,n;
+ parameter real c=1e-9 from [0:inf);
+
+ analog
+    I(p,n) <+ ddt(c*V(p,n));
+endmodule
+
+module opamp(vout, vin_p, vin_n);
+	inout vin_p, vin_n;
+	inout vout;
+	electrical vout, vin_p, vin_n;
+	parameter real gain = 1;
+
+   	analog
+      	V(vout) <+ gain*V(vin_p, vin_n);
+endmodule
+
+connectrules MyRules;
+ connect a2d_TTL input electrical, output logic;
+ connect d2a_TTL input logic, output electrical;
+endconnectrules
+
+module macro1(SDI, LDANeg, LDBNeg, CLK, CSNeg, RSNeg, MSB, SHDNNeg, VOUTA, VOUTB, AGND, VREF, VDD, DGND);
+ input SDI, LDANeg, LDBNeg, CLK, CSNeg, RSNeg, MSB, SHDNNeg, DGND, AGND, VREF, VDD;
+ inout VOUTA, VOUTB;
+ wire i1;
+ electrical VOUTA, i2, i3;
+ ground gnd;
+
+ DA U1( .SDI(SDI), .LDANeg(LDANeg), .LDBNeg(LDBNeg), .CLK(CLK), .CSNeg(CSNeg), .RSNeg(RSNeg), .MSB(MSB), .SHDNNeg(SHDNNeg), .VOUTA(i1), .VOUTB(VOUTB), .AGND(AGND), .VREF(VREF), .VDD(VDD), .DGND(DGND) );
+ res #(.r(1k)) R1 (i1, i3);
+ cap #(.c(1n)) C1 (i3, gnd);
+ v_dc# (.dc(0)) V1(.vp(i2), .vn(gnd));
+ opamp #(.gain(1)) U2 (VOUTA, i3, i2);
+endmodule

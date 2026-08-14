@@ -1,0 +1,2848 @@
+
+(EDIF
+  (rename &2013_45_06_45_19_09_45_39_45_11 "2013-06-19_09-39-11")
+  (EDIFVersion 2 0 0)
+  (EDIFLevel 0)
+  (keywordMap (keywordLevel 0))
+  (status
+    (written
+      (timestamp 2013 06 19 09 39 11)
+      (dataOrigin "Ultra Librarian Gold")
+      (program "ULADICIS - Accelerated Designs"
+        (version "5.3.362 - Ultra Librarian Gold"))))
+  (library to_orcad
+    (EDIFLevel 0)
+    (technology
+      (numberDefinition (scale 1 (e 254 -9) (unit DISTANCE)))
+      (userData GRIDRESOLUTION (integer 10000 10000))
+      (figureGroup H50S3
+        (textHeight 50)
+        (pathWidth 3)
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Accelerated-Designs")))
+      (figureGroup H25S3
+        (textHeight 25)
+        (pathWidth 1)
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Accelerated-Designs")))
+      (figureGroup H82S5
+        (textHeight 82)
+        (pathWidth 5)
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Accelerated-Designs")))
+      (figureGroup DEFAULT
+        (textHeight 100)
+        (pathWidth 10)
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Accelerated-Designs")))
+      (figureGroup H100S10
+        (textHeight 100)
+        (pathWidth 10)
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Accelerated-Designs")))
+      (figureGroup H100S3
+        (textHeight 100)
+        (pathWidth 3)
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Accelerated-Designs")))
+      (figureGroup H100S5
+        (textHeight 100)
+        (pathWidth 5)
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Accelerated-Designs")))
+      (figureGroup H10S1
+        (textHeight 10)
+        (pathWidth 1)
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Accelerated-Designs")))
+      (figureGroup H125S6
+        (textHeight 125)
+        (pathWidth 6)
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Accelerated-Designs")))
+      (figureGroup H150S6
+        (textHeight 150)
+        (pathWidth 6)
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Accelerated-Designs")))
+      (figureGroup H151S6
+        (textHeight 150)
+        (pathWidth 6)
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Accelerated-Designs")))
+      (figureGroup H160S0
+        (textHeight 160)
+        (pathWidth 0)
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Accelerated-Designs")))
+      (figureGroup H30S3
+        (textHeight 30)
+        (pathWidth 3)
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Accelerated-Designs")))
+      (figureGroup H40S2
+        (textHeight 40)
+        (pathWidth 2)
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Accelerated-Designs")))
+      (figureGroup H50S0
+        (textHeight 50)
+        (pathWidth 0)
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Accelerated-Designs")))
+      (figureGroup H51S3
+        (textHeight 51)
+        (pathWidth 3)
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Accelerated-Designs")))
+      (figureGroup H60S7
+        (textHeight 60)
+        (pathWidth 7)
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Accelerated-Designs")))
+      (figureGroup H70S4
+        (textHeight 70)
+        (pathWidth 4)
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Accelerated-Designs")))
+      (figureGroup H80S4
+        (textHeight 80)
+        (pathWidth 4)
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Accelerated-Designs")))
+      (figureGroup H82S8
+        (textHeight 82)
+        (pathWidth 8)
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Accelerated-Designs")))
+      (figureGroup PINNUMBER
+        (color 0 0 0)
+        (cornerType TRUNCATE)
+        (endType TRUNCATE)
+        (textHeight 9)
+        (pathWidth 5)
+        (fillPattern 1 1 
+          (boolean
+            (boolean
+              (true))))
+        (property ETCFONTNAME
+          (string "Arial")
+          (owner "Accelerated Designs")
+          (property SUFFIX
+            (string "def")))
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Schematic_TSC")))
+      (figureGroup PINNAME
+        (color 0 25 50)
+        (cornerType TRUNCATE)
+        (endType TRUNCATE)
+        (textHeight 9)
+        (pathWidth 5)
+        (fillPattern 1 1 
+          (boolean
+            (boolean
+              (true))))
+        (property ETCFONTNAME
+          (string "Arial")
+          (owner "Accelerated Designs")
+          (property SUFFIX
+            (string "def")))
+        (property TEXTWIDTH
+          (integer 6)
+          (owner "Schematic_TSC")))
+      (figureGroup PORT (pathWidth 1) (textHeight 90))
+      (figureGroup PROPERTY (pathWidth 1) (textHeight 90))
+      (figureGroup BODY (pathWidth 1) (textHeight 100))
+      (figureGroup WIRE (pathWidth 1) (textHeight 10))
+      (figureGroup WW_0 (pathWidth 0) (textHeight 0))
+    )
+    (cell
+      (Rename JPT0 "junction-point")
+      (CellType TIE)
+      (View
+        (Rename &1 "1")
+        (ViewType SCHEMATIC)
+        (Interface
+          (Port
+            (Rename &1 "1"))
+          (Symbol
+            (PortImplementation
+              (Name &1)
+              (ConnectLocation
+                (Figure WIRE
+                  (Dot
+                    (Pt 0 0)))))
+            (Figure
+              (FigureGroupOverride WIRE
+                (PathWidth 1))
+              (OpenShape
+                (Curve
+                  (Arc
+                    (Pt 40 0)
+                    (Pt 0 -40)
+                    (Pt -40 0)))))
+            (Figure
+              (FigureGroupOverride WIRE
+                (PathWidth 1))
+              (OpenShape
+                (Curve
+                  (Arc
+                    (Pt -40 0)
+                    (Pt 0 40)
+                    (Pt 40 0)))))))))
+    (cell
+      (rename GRM31CR61E106KA12L "GRM31CR61E106KA12L")
+      (cellType GENERIC)
+      (view
+        (rename NORMAL "Normal")
+        (viewType SCHEMATIC)
+        (interface
+          (designator "U")
+          (property (rename PACKAGENAME "PackageName") (string "GRM31CR61E106KA12L") (owner "Accelerated-Designs"))
+          (property (rename ISHETEROGENEOUS "IsHeterogeneous") (string "False") (owner "Accelerated-Designs"))
+          (property (rename DEVICESINVIEW "DevicesInView") (string "1") (owner "Accelerated-Designs"))
+          (property (rename DEVICESINPACKAGE "DevicesInPackage") (string "1") (owner "Accelerated-Designs"))
+          (property (rename DEVICEDESIGNATOR "DeviceDesignator") (string "A") (owner "Accelerated-Designs"))
+          (property (rename DEVICENUMBERING "DeviceNumbering") (string "Alpha") (owner "Accelerated-Designs"))
+          (property (rename PCB_32_FOOTPRINT "PCB Footprint") (string "1206"))
+          (property (rename CAP "Cap") (string "1.0E-5"))
+          (property (rename ESR "ESR") (string "0.0040"))
+          (property (rename IRMS "IRMS") (string "0.0"))
+          (property (rename VDC "VDC") (string "25.0"))
+          (property (rename MANUFACTURER_PART_NUMBER "Manufacturer_Part_Number") (string "GRM31CR61E106KA12L"))
+          (property (rename VENDOR "Vendor") (string "MuRata"))
+          (property (rename MANUFACTURER_NAME "Manufacturer_Name") (string "MuRata"))
+          (property (rename TYPE "Type") (string "GRM31CR61E106KA12L"))
+          (property (rename VALUE "Value") (string "Value"))
+          (port
+            (rename &1 "1")
+            (designator "1")
+            (property (rename ORDER "Order") (string "0") (owner "OrCAD"))
+          )
+          (port
+            (rename &2 "2")
+            (designator "2")
+            (property (rename ORDER "Order") (string "1") (owner "OrCAD"))
+          )
+          (symbol
+            (commentGraphics)
+            (boundingBox (rectangle (pt -390 -123) (pt 390 341)))
+            (portImplementation
+              (name &1
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt 180 0))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt 220 0))))
+              (connectLocation (figure PORT (dot (pt 300 0))))
+              (figure BODY (path (pointList (pt 200 0) (pt 300 0))))
+            )
+            (portImplementation
+              (name &2
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt -180 0))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt -220 0))))
+              (connectLocation (figure PORT (dot (pt -300 0))))
+              (figure BODY (path (pointList (pt -200 0) (pt -300 0))))
+            )
+            (figure BODY
+              (path (pointList (pt 300 0) (pt 200 0)))
+              (path (pointList (pt -300 0) (pt -200 0)))
+              (path (pointList (pt 30 -120) (pt 30 120)))
+              (path (pointList (pt -200 0) (pt -30 0)))
+              (path (pointList (pt 30 0) (pt 200 0)))
+              (path (pointList (pt -30 -120) (pt -30 120)))
+            )
+            (keywordDisplay DESIGNATOR (display H82S5 (justify CENTERCENTER) (orientation R0) (origin (pt 0 300))))
+            (propertyDisplay VALUE (display H82S5 (justify CENTERCENTER) (orientation R0) (origin (pt 0 200))))
+          )
+        )
+      )
+    )
+    (cell
+      (rename C2012X5R0J226M "C2012X5R0J226M")
+      (cellType GENERIC)
+      (view
+        (rename NORMAL "Normal")
+        (viewType SCHEMATIC)
+        (interface
+          (designator "U")
+          (property (rename PACKAGENAME "PackageName") (string "C2012X5R0J226M") (owner "Accelerated-Designs"))
+          (property (rename ISHETEROGENEOUS "IsHeterogeneous") (string "False") (owner "Accelerated-Designs"))
+          (property (rename DEVICESINVIEW "DevicesInView") (string "1") (owner "Accelerated-Designs"))
+          (property (rename DEVICESINPACKAGE "DevicesInPackage") (string "1") (owner "Accelerated-Designs"))
+          (property (rename DEVICEDESIGNATOR "DeviceDesignator") (string "A") (owner "Accelerated-Designs"))
+          (property (rename DEVICENUMBERING "DeviceNumbering") (string "Alpha") (owner "Accelerated-Designs"))
+          (property (rename PCB_32_FOOTPRINT "PCB Footprint") (string "0805"))
+          (property (rename CAP "Cap") (string "2.2E-5"))
+          (property (rename ESR "ESR") (string "0.0018"))
+          (property (rename IRMS "IRMS") (string "0.0"))
+          (property (rename VDC "VDC") (string "6.3"))
+          (property (rename MANUFACTURER_PART_NUMBER "Manufacturer_Part_Number") (string "C2012X5R0J226M"))
+          (property (rename VENDOR "Vendor") (string "TDK"))
+          (property (rename MANUFACTURER_NAME "Manufacturer_Name") (string "TDK"))
+          (property (rename TYPE "Type") (string "C2012X5R0J226M"))
+          (property (rename VALUE "Value") (string "Value"))
+          (port
+            (rename &1 "1")
+            (designator "1")
+            (property (rename ORDER "Order") (string "0") (owner "OrCAD"))
+          )
+          (port
+            (rename &2 "2")
+            (designator "2")
+            (property (rename ORDER "Order") (string "1") (owner "OrCAD"))
+          )
+          (symbol
+            (commentGraphics)
+            (boundingBox (rectangle (pt -390 -123) (pt 390 341)))
+            (portImplementation
+              (name &1
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt 180 0))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt 220 0))))
+              (connectLocation (figure PORT (dot (pt 300 0))))
+              (figure BODY (path (pointList (pt 200 0) (pt 300 0))))
+            )
+            (portImplementation
+              (name &2
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt -180 0))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt -220 0))))
+              (connectLocation (figure PORT (dot (pt -300 0))))
+              (figure BODY (path (pointList (pt -200 0) (pt -300 0))))
+            )
+            (figure BODY
+              (path (pointList (pt 300 0) (pt 200 0)))
+              (path (pointList (pt -300 0) (pt -200 0)))
+              (path (pointList (pt 30 -120) (pt 30 120)))
+              (path (pointList (pt -200 0) (pt -30 0)))
+              (path (pointList (pt 30 0) (pt 200 0)))
+              (path (pointList (pt -30 -120) (pt -30 120)))
+            )
+            (keywordDisplay DESIGNATOR (display H82S5 (justify CENTERCENTER) (orientation R0) (origin (pt 0 300))))
+            (propertyDisplay VALUE (display H82S5 (justify CENTERCENTER) (orientation R0) (origin (pt 0 200))))
+          )
+        )
+      )
+    )
+    (cell
+      (rename C0805C332K5RACTU "C0805C332K5RACTU")
+      (cellType GENERIC)
+      (view
+        (rename NORMAL "Normal")
+        (viewType SCHEMATIC)
+        (interface
+          (designator "U")
+          (property (rename PACKAGENAME "PackageName") (string "C0805C332K5RACTU") (owner "Accelerated-Designs"))
+          (property (rename ISHETEROGENEOUS "IsHeterogeneous") (string "False") (owner "Accelerated-Designs"))
+          (property (rename DEVICESINVIEW "DevicesInView") (string "1") (owner "Accelerated-Designs"))
+          (property (rename DEVICESINPACKAGE "DevicesInPackage") (string "1") (owner "Accelerated-Designs"))
+          (property (rename DEVICEDESIGNATOR "DeviceDesignator") (string "A") (owner "Accelerated-Designs"))
+          (property (rename DEVICENUMBERING "DeviceNumbering") (string "Alpha") (owner "Accelerated-Designs"))
+          (property (rename PCB_32_FOOTPRINT "PCB Footprint") (string "0805"))
+          (property (rename CAP "Cap") (string "3.3E-9"))
+          (property (rename ESR "ESR") (string "0.332"))
+          (property (rename IRMS "IRMS") (string "0.319"))
+          (property (rename VDC "VDC") (string "50.0"))
+          (property (rename MANUFACTURER_PART_NUMBER "Manufacturer_Part_Number") (string "C0805C332K5RACTU"))
+          (property (rename VENDOR "Vendor") (string "Kemet"))
+          (property (rename MANUFACTURER_NAME "Manufacturer_Name") (string "Kemet"))
+          (property (rename TYPE "Type") (string "C0805C332K5RACTU"))
+          (property (rename VALUE "Value") (string "Value"))
+          (port
+            (rename &1 "1")
+            (designator "1")
+            (property (rename ORDER "Order") (string "0") (owner "OrCAD"))
+          )
+          (port
+            (rename &2 "2")
+            (designator "2")
+            (property (rename ORDER "Order") (string "1") (owner "OrCAD"))
+          )
+          (symbol
+            (commentGraphics)
+            (boundingBox (rectangle (pt -390 -123) (pt 390 341)))
+            (portImplementation
+              (name &1
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt 180 0))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt 220 0))))
+              (connectLocation (figure PORT (dot (pt 300 0))))
+              (figure BODY (path (pointList (pt 200 0) (pt 300 0))))
+            )
+            (portImplementation
+              (name &2
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt -180 0))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt -220 0))))
+              (connectLocation (figure PORT (dot (pt -300 0))))
+              (figure BODY (path (pointList (pt -200 0) (pt -300 0))))
+            )
+            (figure BODY
+              (path (pointList (pt 300 0) (pt 200 0)))
+              (path (pointList (pt -300 0) (pt -200 0)))
+              (path (pointList (pt 30 -120) (pt 30 120)))
+              (path (pointList (pt -200 0) (pt -30 0)))
+              (path (pointList (pt 30 0) (pt 200 0)))
+              (path (pointList (pt -30 -120) (pt -30 120)))
+            )
+            (keywordDisplay DESIGNATOR (display H82S5 (justify CENTERCENTER) (orientation R0) (origin (pt 0 300))))
+            (propertyDisplay VALUE (display H82S5 (justify CENTERCENTER) (orientation R0) (origin (pt 0 200))))
+          )
+        )
+      )
+    )
+    (cell WB_GND
+      (cellType GENERIC)
+      (property CELLTYPE 
+      (string "pagePort"))
+      (view WB_GND
+        (viewType GRAPHIC)
+        (interface)
+        (contents
+          (figure BODY
+            (path (pointList (pt 0 100) (pt 0 0)))
+            (path (pointList (pt -130 0) (pt 130 0)))
+            (path (pointList (pt -90 -40) (pt 90 -40)))
+            (path (pointList (pt -30 -80) (pt 30 -80)))
+          )
+        )
+      )
+    )
+    (cell
+      (rename SRN6045_45_2R2Y "SRN6045-2R2Y")
+      (cellType GENERIC)
+      (view
+        (rename NORMAL "Normal")
+        (viewType SCHEMATIC)
+        (interface
+          (designator "U")
+          (property (rename PACKAGENAME "PackageName") (string "SRN6045-2R2Y") (owner "Accelerated-Designs"))
+          (property (rename ISHETEROGENEOUS "IsHeterogeneous") (string "False") (owner "Accelerated-Designs"))
+          (property (rename DEVICESINVIEW "DevicesInView") (string "1") (owner "Accelerated-Designs"))
+          (property (rename DEVICESINPACKAGE "DevicesInPackage") (string "1") (owner "Accelerated-Designs"))
+          (property (rename DEVICEDESIGNATOR "DeviceDesignator") (string "A") (owner "Accelerated-Designs"))
+          (property (rename DEVICENUMBERING "DeviceNumbering") (string "Alpha") (owner "Accelerated-Designs"))
+          (property (rename PCB_32_FOOTPRINT "PCB Footprint") (string "SRN6045"))
+          (property (rename DATASHEET_32_URL "Datasheet URL") (string "http://www.bourns.com/data/global/pdfs/SRN6045.pdf"))
+          (property (rename L "L") (string "2.2E-6"))
+          (property (rename DCR "DCR") (string "0.0251"))
+          (property (rename IDC "IDC") (string "3.5"))
+          (property (rename MANUFACTURER_PART_NUMBER "Manufacturer_Part_Number") (string "SRN6045-2R2Y"))
+          (property (rename VENDOR "Vendor") (string "Bourns"))
+          (property (rename MANUFACTURER_NAME "Manufacturer_Name") (string "Bourns"))
+          (property (rename TYPE "Type") (string "SRN6045-2R2Y"))
+          (property (rename VALUE "Value") (string "Value"))
+          (port
+            (rename &1 "1")
+            (designator "1")
+            (property (rename ORDER "Order") (string "0") (owner "OrCAD"))
+          )
+          (port
+            (rename &2 "2")
+            (designator "2")
+            (property (rename ORDER "Order") (string "1") (owner "OrCAD"))
+          )
+          (symbol
+            (commentGraphics)
+            (boundingBox (rectangle (pt -390 -134) (pt 411 266)))
+            (portImplementation
+              (name &1
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt 180 0))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt 220 0))))
+              (connectLocation (figure PORT (dot (pt 300 0))))
+              (figure BODY (path (pointList (pt 200 0) (pt 300 0))))
+            )
+            (portImplementation
+              (name &2
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt -180 0))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt -220 0))))
+              (connectLocation (figure PORT (dot (pt -300 0))))
+              (figure BODY (path (pointList (pt -200 0) (pt -300 0))))
+            )
+            (figure BODY
+              (openShape (curve (arc (pt 106 33) (pt 102 17) (pt 100 0))))
+              (openShape (curve (arc (pt 150 73) (pt 121 61) (pt 106 33))))
+              (openShape (curve (arc (pt 193 33) (pt 179 61) (pt 150 73))))
+              (openShape (curve (arc (pt 200 3) (pt 197 18) (pt 193 33))))
+              (path (pointList (pt 200 0) (pt 300 0)))
+              (openShape (curve (arc (pt 6 33) (pt 2 17) (pt 0 0))))
+              (openShape (curve (arc (pt 50 73) (pt 21 61) (pt 6 33))))
+              (openShape (curve (arc (pt 93 33) (pt 79 61) (pt 50 73))))
+              (openShape (curve (arc (pt 100 -7) (pt 98 13) (pt 93 33))))
+              (openShape (curve (arc (pt -94 33) (pt -98 17) (pt -100 0))))
+              (openShape (curve (arc (pt -50 73) (pt -79 61) (pt -94 33))))
+              (openShape (curve (arc (pt -7 33) (pt -21 61) (pt -50 73))))
+              (openShape (curve (arc (pt 0 -7) (pt -2 13) (pt -7 33))))
+              (path (pointList (pt -300 0) (pt -200 0)))
+              (openShape (curve (arc (pt -194 33) (pt -198 17) (pt -200 0))))
+              (openShape (curve (arc (pt -150 73) (pt -179 61) (pt -194 33))))
+              (openShape (curve (arc (pt -107 33) (pt -121 61) (pt -150 73))))
+              (openShape (curve (arc (pt -100 -7) (pt -102 13) (pt -107 33))))
+              (openShape (curve (arc (pt -100 0) (pt -101 -3) (pt -100 -7))))
+              (openShape (curve (arc (pt 0 0) (pt -1 -3) (pt 0 -7))))
+              (openShape (curve (arc (pt 100 0) (pt 99 -3) (pt 100 -7))))
+            )
+            (keywordDisplay DESIGNATOR (display H82S5 (justify CENTERCENTER) (orientation R0) (origin (pt 0 225))))
+            (propertyDisplay VALUE (display H82S5 (justify CENTERCENTER) (orientation R0) (origin (pt 0 125))))
+          )
+        )
+      )
+    )
+    (cell
+      (rename RR1220P_45_184_45_D "RR1220P-184-D")
+      (cellType GENERIC)
+      (view
+        (rename NORMAL "Normal")
+        (viewType SCHEMATIC)
+        (interface
+          (designator "U")
+          (property (rename PACKAGENAME "PackageName") (string "RR1220P-184-D") (owner "Accelerated-Designs"))
+          (property (rename ISHETEROGENEOUS "IsHeterogeneous") (string "False") (owner "Accelerated-Designs"))
+          (property (rename DEVICESINVIEW "DevicesInView") (string "1") (owner "Accelerated-Designs"))
+          (property (rename DEVICESINPACKAGE "DevicesInPackage") (string "1") (owner "Accelerated-Designs"))
+          (property (rename DEVICEDESIGNATOR "DeviceDesignator") (string "A") (owner "Accelerated-Designs"))
+          (property (rename DEVICENUMBERING "DeviceNumbering") (string "Alpha") (owner "Accelerated-Designs"))
+          (property (rename PCB_32_FOOTPRINT "PCB Footprint") (string "0805"))
+          (property (rename RESISTANCE "Resistance") (string "180000.0"))
+          (property (rename POWER "Power") (string "0.1"))
+          (property (rename TOLERANCE "Tolerance") (string "0.5"))
+          (property (rename MANUFACTURER_PART_NUMBER "Manufacturer_Part_Number") (string "RR1220P-184-D"))
+          (property (rename VENDOR "Vendor") (string "Susumu Co Ltd"))
+          (property (rename MANUFACTURER_NAME "Manufacturer_Name") (string "Susumu Co Ltd"))
+          (property (rename TYPE "Type") (string "RR1220P-184-D"))
+          (property (rename VALUE "Value") (string "Value"))
+          (port
+            (rename &1 "1")
+            (designator "1")
+            (property (rename ORDER "Order") (string "0") (owner "OrCAD"))
+          )
+          (port
+            (rename &2 "2")
+            (designator "2")
+            (property (rename ORDER "Order") (string "1") (owner "OrCAD"))
+          )
+          (symbol
+            (commentGraphics)
+            (boundingBox (rectangle (pt -390 -63) (pt 390 266)))
+            (portImplementation
+              (name &1
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt 180 0))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt 220 0))))
+              (connectLocation (figure PORT (dot (pt 300 0))))
+              (figure BODY (path (pointList (pt 200 0) (pt 300 0))))
+            )
+            (portImplementation
+              (name &2
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt -180 0))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt -220 0))))
+              (connectLocation (figure PORT (dot (pt -300 0))))
+              (figure BODY (path (pointList (pt -200 0) (pt -300 0))))
+            )
+            (figure BODY
+              (path (pointList (pt 300 0) (pt 200 0)))
+              (path (pointList (pt 200 0) (pt 150 60)))
+              (path (pointList (pt 150 60) (pt 75 -60)))
+              (path (pointList (pt 75 -60) (pt 0 60)))
+              (path (pointList (pt 0 60) (pt -75 -60)))
+              (path (pointList (pt -75 -60) (pt -150 60)))
+              (path (pointList (pt -150 60) (pt -200 0)))
+              (path (pointList (pt -200 0) (pt -300 0)))
+            )
+            (keywordDisplay DESIGNATOR (display H82S5 (justify CENTERCENTER) (orientation R0) (origin (pt 0 225))))
+            (propertyDisplay VALUE (display H82S5 (justify CENTERCENTER) (orientation R0) (origin (pt 0 125))))
+          )
+        )
+      )
+    )
+    (cell
+      (rename CRCW0402562KFKED "CRCW0402562KFKED")
+      (cellType GENERIC)
+      (view
+        (rename NORMAL "Normal")
+        (viewType SCHEMATIC)
+        (interface
+          (designator "U")
+          (property (rename PACKAGENAME "PackageName") (string "CRCW0402562KFKED") (owner "Accelerated-Designs"))
+          (property (rename ISHETEROGENEOUS "IsHeterogeneous") (string "False") (owner "Accelerated-Designs"))
+          (property (rename DEVICESINVIEW "DevicesInView") (string "1") (owner "Accelerated-Designs"))
+          (property (rename DEVICESINPACKAGE "DevicesInPackage") (string "1") (owner "Accelerated-Designs"))
+          (property (rename DEVICEDESIGNATOR "DeviceDesignator") (string "A") (owner "Accelerated-Designs"))
+          (property (rename DEVICENUMBERING "DeviceNumbering") (string "Alpha") (owner "Accelerated-Designs"))
+          (property (rename PCB_32_FOOTPRINT "PCB Footprint") (string "0402"))
+          (property (rename RESISTANCE "Resistance") (string "562000.0"))
+          (property (rename POWER "Power") (string "0.063"))
+          (property (rename TOLERANCE "Tolerance") (string "1.0"))
+          (property (rename MANUFACTURER_PART_NUMBER "Manufacturer_Part_Number") (string "CRCW0402562KFKED"))
+          (property (rename VENDOR "Vendor") (string "Vishay-Dale"))
+          (property (rename MANUFACTURER_NAME "Manufacturer_Name") (string "Vishay-Dale"))
+          (property (rename TYPE "Type") (string "CRCW0402562KFKED"))
+          (property (rename VALUE "Value") (string "Value"))
+          (port
+            (rename &1 "1")
+            (designator "1")
+            (property (rename ORDER "Order") (string "0") (owner "OrCAD"))
+          )
+          (port
+            (rename &2 "2")
+            (designator "2")
+            (property (rename ORDER "Order") (string "1") (owner "OrCAD"))
+          )
+          (symbol
+            (commentGraphics)
+            (boundingBox (rectangle (pt -390 -63) (pt 390 266)))
+            (portImplementation
+              (name &1
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt 180 0))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt 220 0))))
+              (connectLocation (figure PORT (dot (pt 300 0))))
+              (figure BODY (path (pointList (pt 200 0) (pt 300 0))))
+            )
+            (portImplementation
+              (name &2
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt -180 0))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt -220 0))))
+              (connectLocation (figure PORT (dot (pt -300 0))))
+              (figure BODY (path (pointList (pt -200 0) (pt -300 0))))
+            )
+            (figure BODY
+              (path (pointList (pt 300 0) (pt 200 0)))
+              (path (pointList (pt 200 0) (pt 150 60)))
+              (path (pointList (pt 150 60) (pt 75 -60)))
+              (path (pointList (pt 75 -60) (pt 0 60)))
+              (path (pointList (pt 0 60) (pt -75 -60)))
+              (path (pointList (pt -75 -60) (pt -150 60)))
+              (path (pointList (pt -150 60) (pt -200 0)))
+              (path (pointList (pt -200 0) (pt -300 0)))
+            )
+            (keywordDisplay DESIGNATOR (display H82S5 (justify CENTERCENTER) (orientation R0) (origin (pt 0 225))))
+            (propertyDisplay VALUE (display H82S5 (justify CENTERCENTER) (orientation R0) (origin (pt 0 125))))
+          )
+        )
+      )
+    )
+    (cell
+      (rename CRCW0402100KFKED "CRCW0402100KFKED")
+      (cellType GENERIC)
+      (view
+        (rename NORMAL "Normal")
+        (viewType SCHEMATIC)
+        (interface
+          (designator "U")
+          (property (rename PACKAGENAME "PackageName") (string "CRCW0402100KFKED") (owner "Accelerated-Designs"))
+          (property (rename ISHETEROGENEOUS "IsHeterogeneous") (string "False") (owner "Accelerated-Designs"))
+          (property (rename DEVICESINVIEW "DevicesInView") (string "1") (owner "Accelerated-Designs"))
+          (property (rename DEVICESINPACKAGE "DevicesInPackage") (string "1") (owner "Accelerated-Designs"))
+          (property (rename DEVICEDESIGNATOR "DeviceDesignator") (string "A") (owner "Accelerated-Designs"))
+          (property (rename DEVICENUMBERING "DeviceNumbering") (string "Alpha") (owner "Accelerated-Designs"))
+          (property (rename PCB_32_FOOTPRINT "PCB Footprint") (string "0402"))
+          (property (rename RESISTANCE "Resistance") (string "100000.0"))
+          (property (rename POWER "Power") (string "0.063"))
+          (property (rename TOLERANCE "Tolerance") (string "1.0"))
+          (property (rename MANUFACTURER_PART_NUMBER "Manufacturer_Part_Number") (string "CRCW0402100KFKED"))
+          (property (rename VENDOR "Vendor") (string "Vishay-Dale"))
+          (property (rename MANUFACTURER_NAME "Manufacturer_Name") (string "Vishay-Dale"))
+          (property (rename TYPE "Type") (string "CRCW0402100KFKED"))
+          (property (rename VALUE "Value") (string "Value"))
+          (port
+            (rename &1 "1")
+            (designator "1")
+            (property (rename ORDER "Order") (string "0") (owner "OrCAD"))
+          )
+          (port
+            (rename &2 "2")
+            (designator "2")
+            (property (rename ORDER "Order") (string "1") (owner "OrCAD"))
+          )
+          (symbol
+            (commentGraphics)
+            (boundingBox (rectangle (pt -390 -63) (pt 390 266)))
+            (portImplementation
+              (name &1
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt 180 0))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt 220 0))))
+              (connectLocation (figure PORT (dot (pt 300 0))))
+              (figure BODY (path (pointList (pt 200 0) (pt 300 0))))
+            )
+            (portImplementation
+              (name &2
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt -180 0))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt -220 0))))
+              (connectLocation (figure PORT (dot (pt -300 0))))
+              (figure BODY (path (pointList (pt -200 0) (pt -300 0))))
+            )
+            (figure BODY
+              (path (pointList (pt 300 0) (pt 200 0)))
+              (path (pointList (pt 200 0) (pt 150 60)))
+              (path (pointList (pt 150 60) (pt 75 -60)))
+              (path (pointList (pt 75 -60) (pt 0 60)))
+              (path (pointList (pt 0 60) (pt -75 -60)))
+              (path (pointList (pt -75 -60) (pt -150 60)))
+              (path (pointList (pt -150 60) (pt -200 0)))
+              (path (pointList (pt -200 0) (pt -300 0)))
+            )
+            (keywordDisplay DESIGNATOR (display H82S5 (justify CENTERCENTER) (orientation R0) (origin (pt 0 225))))
+            (propertyDisplay VALUE (display H82S5 (justify CENTERCENTER) (orientation R0) (origin (pt 0 125))))
+          )
+        )
+      )
+    )
+    (cell
+      (rename TPS62140RGTR "TPS62140RGTR")
+      (cellType GENERIC)
+      (view
+        (rename NORMAL "Normal")
+        (viewType SCHEMATIC)
+        (interface
+          (designator "U")
+          (property (rename PACKAGENAME "PackageName") (string "TPS62140RGTR") (owner "Accelerated-Designs"))
+          (property (rename ISHETEROGENEOUS "IsHeterogeneous") (string "False") (owner "Accelerated-Designs"))
+          (property (rename DEVICESINVIEW "DevicesInView") (string "1") (owner "Accelerated-Designs"))
+          (property (rename DEVICESINPACKAGE "DevicesInPackage") (string "1") (owner "Accelerated-Designs"))
+          (property (rename DEVICEDESIGNATOR "DeviceDesignator") (string "A") (owner "Accelerated-Designs"))
+          (property (rename DEVICENUMBERING "DeviceNumbering") (string "Alpha") (owner "Accelerated-Designs"))
+          (property (rename PCB_32_FOOTPRINT "PCB Footprint") (string "S-PVQFN-N16"))
+          (property (rename DATASHEET_32_URL "Datasheet URL") (string "http://www.ti.com/product/tps62140"))
+          (property (rename FREQUENCY "Frequency") (string "2500000.0"))
+          (property (rename IMAX "Imax") (string "2.0"))
+          (property (rename PACKAGE "Package") (string "TPS62140"))
+          (property (rename MKTG_PACKAGE "Mktg_Package") (string "TPS62140"))
+          (property (rename NSID "NSID") (string "TPS62140RGTR"))
+          (property (rename MANUFACTURER_PART_NUMBER "Manufacturer_Part_Number") (string "TPS62140RGTR"))
+          (property (rename VENDOR "Vendor") (string "Texas Instruments"))
+          (property (rename MANUFACTURER_NAME "Manufacturer_Name") (string "Texas Instruments"))
+          (property (rename TYPE "Type") (string "TPS62140RGTR"))
+          (property (rename VALUE "Value") (string "Value"))
+          (port
+            (rename EN "EN")
+            (designator "13")
+            (property (rename ORDER "Order") (string "0") (owner "OrCAD"))
+          )
+          (port
+            (rename SS_47_TR "SS/TR")
+            (designator "9")
+            (property (rename ORDER "Order") (string "1") (owner "OrCAD"))
+          )
+          (port
+            (rename PGND "PGND")
+            (designator "15")
+            (property (rename ORDER "Order") (string "2") (owner "OrCAD"))
+          )
+          (port
+            (rename FB "FB")
+            (designator "5")
+            (property (rename ORDER "Order") (string "3") (owner "OrCAD"))
+          )
+          (port
+            (rename DEF "DEF")
+            (designator "8")
+            (property (rename ORDER "Order") (string "4") (owner "OrCAD"))
+          )
+          (port
+            (rename FSW "FSW")
+            (designator "7")
+            (property (rename ORDER "Order") (string "5") (owner "OrCAD"))
+          )
+          (port
+            (rename SW_1 "SW_1")
+            (designator "1")
+            (property (rename ORDER "Order") (string "6") (owner "OrCAD"))
+          )
+          (port
+            (rename PVIN_1 "PVIN_1")
+            (designator "11")
+            (property (rename ORDER "Order") (string "7") (owner "OrCAD"))
+          )
+          (port
+            (rename VOS "VOS")
+            (designator "14")
+            (property (rename ORDER "Order") (string "8") (owner "OrCAD"))
+          )
+          (port
+            (rename PG "PG")
+            (designator "4")
+            (property (rename ORDER "Order") (string "9") (owner "OrCAD"))
+          )
+          (port
+            (rename AGND "AGND")
+            (designator "6")
+            (property (rename ORDER "Order") (string "10") (owner "OrCAD"))
+          )
+          (port
+            (rename PGND_1 "PGND_1")
+            (designator "16")
+            (property (rename ORDER "Order") (string "11") (owner "OrCAD"))
+          )
+          (port
+            (rename SW "SW")
+            (designator "2")
+            (property (rename ORDER "Order") (string "12") (owner "OrCAD"))
+          )
+          (port
+            (rename SW_2 "SW_2")
+            (designator "3")
+            (property (rename ORDER "Order") (string "13") (owner "OrCAD"))
+          )
+          (port
+            (rename PVIN "PVIN")
+            (designator "12")
+            (property (rename ORDER "Order") (string "14") (owner "OrCAD"))
+          )
+          (port
+            (rename AVIN "AVIN")
+            (designator "10")
+            (property (rename ORDER "Order") (string "15") (owner "OrCAD"))
+          )
+          (symbol
+            (commentGraphics)
+            (boundingBox (rectangle (pt -690 -950) (pt 690 950)))
+            (portImplementation
+              (name EN
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (True)))
+                  (justify CENTERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt -480 200))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (True)))
+                  (justify LOWERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt -520 200))))
+              (connectLocation (figure PORT (dot (pt -600 200))))
+              (figure BODY (path (pointList (pt -500 200) (pt -600 200))))
+            )
+            (portImplementation
+              (name SS_47_TR
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (True)))
+                  (justify CENTERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt -480 -100))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (True)))
+                  (justify LOWERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt -520 -100))))
+              (connectLocation (figure PORT (dot (pt -600 -100))))
+              (figure BODY (path (pointList (pt -500 -100) (pt -600 -100))))
+            )
+            (portImplementation
+              (name PGND
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (True)))
+                  (justify CENTERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt -480 -500))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (True)))
+                  (justify LOWERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt -520 -500))))
+              (connectLocation (figure PORT (dot (pt -600 -500))))
+              (figure BODY (path (pointList (pt -500 -500) (pt -600 -500))))
+            )
+            (portImplementation
+              (name FB
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (True)))
+                  (justify CENTERRIGHT)
+                  (orientation R270)
+                  (origin
+                    (pt 0 -780))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (True)))
+                  (justify LOWERLEFT)
+                  (orientation R270)
+                  (origin
+                    (pt 0 -820))))
+              (connectLocation (figure PORT (dot (pt 0 -900))))
+              (figure BODY (path (pointList (pt 0 -800) (pt 0 -900))))
+            )
+            (portImplementation
+              (name DEF
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (True)))
+                  (justify CENTERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt 480 -400))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (True)))
+                  (justify LOWERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt 520 -400))))
+              (connectLocation (figure PORT (dot (pt 600 -400))))
+              (figure BODY (path (pointList (pt 500 -400) (pt 600 -400))))
+            )
+            (portImplementation
+              (name FSW
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (True)))
+                  (justify CENTERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt 480 0))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (True)))
+                  (justify LOWERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt 520 0))))
+              (connectLocation (figure PORT (dot (pt 600 0))))
+              (figure BODY (path (pointList (pt 500 0) (pt 600 0))))
+            )
+            (portImplementation
+              (name SW_1
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (True)))
+                  (justify CENTERLEFT)
+                  (orientation R270)
+                  (origin
+                    (pt 0 780))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (True)))
+                  (justify LOWERRIGHT)
+                  (orientation R270)
+                  (origin
+                    (pt 0 820))))
+              (connectLocation (figure PORT (dot (pt 0 900))))
+              (figure BODY (path (pointList (pt 0 800) (pt 0 900))))
+            )
+            (portImplementation
+              (name PVIN_1
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (True)))
+                  (justify CENTERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt -480 500))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (True)))
+                  (justify LOWERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt -520 500))))
+              (connectLocation (figure PORT (dot (pt -600 500))))
+              (figure BODY (path (pointList (pt -500 500) (pt -600 500))))
+            )
+            (portImplementation
+              (name VOS
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (True)))
+                  (justify CENTERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt 480 600))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (True)))
+                  (justify LOWERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt 520 600))))
+              (connectLocation (figure PORT (dot (pt 600 600))))
+              (figure BODY (path (pointList (pt 500 600) (pt 600 600))))
+            )
+            (portImplementation
+              (name PG
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (True)))
+                  (justify CENTERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt 480 300))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (True)))
+                  (justify LOWERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt 520 300))))
+              (connectLocation (figure PORT (dot (pt 600 300))))
+              (figure BODY (path (pointList (pt 500 300) (pt 600 300))))
+            )
+            (portImplementation
+              (name AGND
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt -480 -500))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt -520 -500))))
+              (connectLocation (figure PORT (dot (pt -600 -500))))
+              (figure BODY (path (pointList (pt -500 -500) (pt -600 -500))))
+            )
+            (portImplementation
+              (name PGND_1
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt -480 -500))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt -520 -500))))
+              (connectLocation (figure PORT (dot (pt -600 -500))))
+              (figure BODY (path (pointList (pt -500 -500) (pt -600 -500))))
+            )
+            (portImplementation
+              (name SW
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERLEFT)
+                  (orientation R270)
+                  (origin
+                    (pt 0 780))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERRIGHT)
+                  (orientation R270)
+                  (origin
+                    (pt 0 820))))
+              (connectLocation (figure PORT (dot (pt 0 900))))
+              (figure BODY (path (pointList (pt 0 800) (pt 0 900))))
+            )
+            (portImplementation
+              (name SW_2
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERLEFT)
+                  (orientation R270)
+                  (origin
+                    (pt 0 780))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERRIGHT)
+                  (orientation R270)
+                  (origin
+                    (pt 0 820))))
+              (connectLocation (figure PORT (dot (pt 0 900))))
+              (figure BODY (path (pointList (pt 0 800) (pt 0 900))))
+            )
+            (portImplementation
+              (name PVIN
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt -480 500))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt -520 500))))
+              (connectLocation (figure PORT (dot (pt -600 500))))
+              (figure BODY (path (pointList (pt -500 500) (pt -600 500))))
+            )
+            (portImplementation
+              (name AVIN
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt -480 500))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt -520 500))))
+              (connectLocation (figure PORT (dot (pt -600 500))))
+              (figure BODY (path (pointList (pt -500 500) (pt -600 500))))
+            )
+            (figure BODY
+              (path (pointList (pt -500 800) (pt 500 800)))
+              (path (pointList (pt 500 800) (pt 500 -800)))
+              (path (pointList (pt 500 -800) (pt -500 -800)))
+              (path (pointList (pt -500 -800) (pt -500 800)))
+              (path (pointList (pt -600 200) (pt -500 200)))
+              (path (pointList (pt -600 -100) (pt -500 -100)))
+              (path (pointList (pt -600 -500) (pt -500 -500)))
+              (path (pointList (pt 0 -900) (pt 0 -800)))
+              (path (pointList (pt 600 -400) (pt 500 -400)))
+              (path (pointList (pt 600 0) (pt 500 0)))
+              (path (pointList (pt 0 900) (pt 0 800)))
+              (path (pointList (pt -600 500) (pt -500 500)))
+              (path (pointList (pt 600 600) (pt 500 600)))
+              (path (pointList (pt 600 300) (pt 500 300)))
+            )
+            (keywordDisplay DESIGNATOR (display H82S5 (justify CENTERCENTER) (orientation R0) (origin (pt 0 100))))
+          )
+        )
+      )
+    )
+    (cell
+      (rename WB_BATTERY "WB_BATTERY")
+      (cellType GENERIC)
+      (view
+        (rename NORMAL "Normal")
+        (viewType SCHEMATIC)
+        (interface
+          (designator "U")
+          (property (rename PACKAGENAME "PackageName") (string "WB_BATTERY") (owner "Accelerated-Designs"))
+          (property (rename ISHETEROGENEOUS "IsHeterogeneous") (string "False") (owner "Accelerated-Designs"))
+          (property (rename DEVICESINVIEW "DevicesInView") (string "1") (owner "Accelerated-Designs"))
+          (property (rename DEVICESINPACKAGE "DevicesInPackage") (string "1") (owner "Accelerated-Designs"))
+          (property (rename DEVICEDESIGNATOR "DeviceDesignator") (string "A") (owner "Accelerated-Designs"))
+          (property (rename DEVICENUMBERING "DeviceNumbering") (string "Alpha") (owner "Accelerated-Designs"))
+          (property (rename VALUE "Value") (string "Value"))
+          (property (rename MANUFACTURER_PART_NUMBER "Manufacturer_Part_Number") (string "WB_BATTERY"))
+          (property (rename MANUFACTURER_NAME "Manufacturer_Name") (string "WB_BATTERY"))
+          (property (rename TYPE "Type") (string "WB_BATTERY"))
+          (port
+            (rename &_43_ "+")
+            (designator "1")
+            (property (rename ORDER "Order") (string "0") (owner "OrCAD"))
+          )
+          (port
+            (rename &_45_ "-")
+            (designator "2")
+            (property (rename ORDER "Order") (string "1") (owner "OrCAD"))
+          )
+          (symbol
+            (commentGraphics)
+            (boundingBox (rectangle (pt -390 -123) (pt 390 241)))
+            (portImplementation
+              (name &_43_
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt -180 0))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt -220 0))))
+              (connectLocation (figure PORT (dot (pt -300 0))))
+              (figure BODY (path (pointList (pt -200 0) (pt -300 0))))
+            )
+            (portImplementation
+              (name &_45_
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt 180 0))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt 220 0))))
+              (connectLocation (figure PORT (dot (pt 300 0))))
+              (figure BODY (path (pointList (pt 200 0) (pt 300 0))))
+            )
+            (figure BODY
+              (path (pointList (pt -80 0) (pt -300 0)))
+              (path (pointList (pt -70 -120) (pt -70 120)))
+              (path (pointList (pt 40 -120) (pt 40 120)))
+              (path (pointList (pt 300 0) (pt 110 0)))
+              (path (pointList (pt -20 -50) (pt -20 50)))
+              (path (pointList (pt -10 -50) (pt -10 50)))
+              (path (pointList (pt -140 90) (pt -140 150)))
+              (path (pointList (pt -110 120) (pt -170 120)))
+              (path (pointList (pt 130 100) (pt 130 150)))
+              (path (pointList (pt 100 -50) (pt 100 50)))
+              (path (pointList (pt 90 -50) (pt 90 50)))
+            )
+            (keywordDisplay DESIGNATOR (display H82S5 (justify CENTERCENTER) (orientation R0) (origin (pt 0 200))))
+          )
+        )
+      )
+    )
+    (cell
+      (rename WB_CURRENT_LOAD "WB_CURRENT_LOAD")
+      (cellType GENERIC)
+      (view
+        (rename NORMAL "Normal")
+        (viewType SCHEMATIC)
+        (interface
+          (designator "U")
+          (property (rename PACKAGENAME "PackageName") (string "WB_CURRENT_LOAD") (owner "Accelerated-Designs"))
+          (property (rename ISHETEROGENEOUS "IsHeterogeneous") (string "False") (owner "Accelerated-Designs"))
+          (property (rename DEVICESINVIEW "DevicesInView") (string "1") (owner "Accelerated-Designs"))
+          (property (rename DEVICESINPACKAGE "DevicesInPackage") (string "1") (owner "Accelerated-Designs"))
+          (property (rename DEVICEDESIGNATOR "DeviceDesignator") (string "A") (owner "Accelerated-Designs"))
+          (property (rename DEVICENUMBERING "DeviceNumbering") (string "Alpha") (owner "Accelerated-Designs"))
+          (property (rename VALUE "Value") (string "Value"))
+          (property (rename MANUFACTURER_PART_NUMBER "Manufacturer_Part_Number") (string "WB_CURRENT_LOAD"))
+          (property (rename MANUFACTURER_NAME "Manufacturer_Name") (string "WB_CURRENT_LOAD"))
+          (property (rename TYPE "Type") (string "WB_CURRENT_LOAD"))
+          (port
+            (rename &_43_ "+")
+            (designator "1")
+            (property (rename ORDER "Order") (string "0") (owner "OrCAD"))
+          )
+          (port
+            (rename &_45_ "-")
+            (designator "2")
+            (property (rename ORDER "Order") (string "1") (owner "OrCAD"))
+          )
+          (symbol
+            (commentGraphics)
+            (boundingBox (rectangle (pt -390 -153) (pt 390 153)))
+            (portImplementation
+              (name &_43_
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt -250 50))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt -220 0))))
+              (connectLocation (figure PORT (dot (pt -300 0))))
+              (figure BODY (path (pointList (pt -200 0) (pt -300 0))))
+            )
+            (portImplementation
+              (name &_45_
+                (display
+                  (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify CENTERRIGHT)
+                  (orientation R0)
+                  (origin
+                    (pt 250 50))))
+             (keywordDisplay designator
+               (display
+                 (figureGroupOverride H82S5
+                    (visible
+                      (False)))
+                  (justify LOWERLEFT)
+                  (orientation R0)
+                  (origin
+                    (pt 220 0))))
+              (connectLocation (figure PORT (dot (pt 300 0))))
+              (figure BODY (path (pointList (pt 200 0) (pt 300 0))))
+            )
+            (figure BODY
+              (openShape (curve (arc (pt -150 0) (pt -138 -57) (pt -106 -106))))
+              (openShape (curve (arc (pt -106 -106) (pt -58 -139) (pt 0 -150))))
+              (openShape (curve (arc (pt 0 -150) (pt 58 -139) (pt 106 -106))))
+              (openShape (curve (arc (pt 106 -106) (pt 139 -57) (pt 150 0))))
+              (openShape (curve (arc (pt 150 0) (pt 138 57) (pt 106 106))))
+              (openShape (curve (arc (pt 106 106) (pt 58 139) (pt 0 150))))
+              (openShape (curve (arc (pt 0 150) (pt -58 139) (pt -106 106))))
+              (openShape (curve (arc (pt -106 106) (pt -139 57) (pt -150 0))))
+              (path (pointList (pt 300 0) (pt 150 0)))
+              (path (pointList (pt -150 0) (pt -300 0)))
+              (path (pointList (pt 30 -70) (pt 120 0)))
+              (path (pointList (pt 30 70) (pt 120 0)))
+              (path (pointList (pt 120 0) (pt -120 0)))
+            )
+            (keywordDisplay DESIGNATOR (display H82S5 (justify CENTERCENTER) (orientation R0) (origin (pt 0 0))))
+          )
+        )
+      )
+    )
+    (cell
+      (rename SH_Sheet1 "Schematic 1")
+      (cellType GENERIC)
+      (View
+        (Rename &1 "1")
+        (ViewType SCHEMATIC)
+        (Interface
+          (port WB_GND
+            (property IMPLICITPORTCLASS
+              (string "GND")
+              (owner "Schematic_TSC"))
+            (property PORTTYPE
+              (string "supply")
+              (owner "Schematic_TSC")))
+          (port WB_GND
+            (property IMPLICITPORTCLASS
+              (string "GND")
+              (owner "Schematic_TSC"))
+            (property PORTTYPE
+              (string "supply")
+              (owner "Schematic_TSC")))
+          (port WB_GND
+            (property IMPLICITPORTCLASS
+              (string "GND")
+              (owner "Schematic_TSC"))
+            (property PORTTYPE
+              (string "supply")
+              (owner "Schematic_TSC")))
+            )
+        (Contents
+          (CommentGraphics)
+          (Page
+            (Rename &1 "Sheet 1")
+            (CommentGraphics
+            )
+            (Instance
+              (Rename CMP_Cin_1 "Cin_1")
+              (ViewRef &NORMAL
+                (CellRef GRM31CR61E106KA12L
+                  (LibraryRef to_orcad)))
+              (Transform
+                (Orientation R90)
+                (Origin
+                  (pt 1550 2050)))
+              (Designator
+                  (StringDisplay "Cin_1"
+                    (Display
+                      (FigureGroupOverride H82S5
+                        (TextHeight 82))
+                      (Justify LOWERLEFT)
+                      (Origin
+                        (pt 1670 2220)))))
+              (Property
+                (Rename value "value")
+                (String 
+                  (StringDisplay "10uF"
+                    (Display
+                      (FigureGroupOverride H82S5
+                        (TextHeight 82))
+                      (Justify LOWERLEFT)
+                      (Origin
+                        (pt 1670 2040))))))
+            )
+            (Instance
+              (Rename CMP_Cout_1 "Cout_1")
+              (ViewRef &NORMAL
+                (CellRef C2012X5R0J226M
+                  (LibraryRef to_orcad)))
+              (Transform
+                (Orientation R90)
+                (Origin
+                  (pt 6050 2100)))
+              (Designator
+                  (StringDisplay "Cout_1"
+                    (Display
+                      (FigureGroupOverride H82S5
+                        (TextHeight 82))
+                      (Justify LOWERLEFT)
+                      (Origin
+                        (pt 6170 2270)))))
+              (Property
+                (Rename value "value")
+                (String 
+                  (StringDisplay "22uF"
+                    (Display
+                      (FigureGroupOverride H82S5
+                        (TextHeight 82))
+                      (Justify LOWERLEFT)
+                      (Origin
+                        (pt 6170 2090))))))
+              (PortInstance 
+                (name &1
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERRIGHT)
+                    (origin
+                      (pt 6230 2100))))
+                (designator
+                  (stringDisplay "1"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERLEFT)
+                      (origin
+                        (pt 6270 2100)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name &2
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERLEFT)
+                    (origin
+                      (pt 5870 2100))))
+                (designator
+                  (stringDisplay "2"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERRIGHT)
+                      (origin
+                        (pt 5830 2100)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+            )
+            (Instance
+              (Rename CMP_Css_1 "Css_1")
+              (ViewRef &NORMAL
+                (CellRef C0805C332K5RACTU
+                  (LibraryRef to_orcad)))
+              (Transform
+                (Orientation R270)
+                (Origin
+                  (pt 2350 2200)))
+              (Designator
+                  (StringDisplay "Css_1"
+                    (Display
+                      (FigureGroupOverride H82S5
+                        (TextHeight 82))
+                      (Justify LOWERLEFT)
+                      (Origin
+                        (pt 2470 2370)))))
+              (Property
+                (Rename value "value")
+                (String 
+                  (StringDisplay "3.3nF"
+                    (Display
+                      (FigureGroupOverride H82S5
+                        (TextHeight 82))
+                      (Justify LOWERLEFT)
+                      (Origin
+                        (pt 2470 2190))))))
+              (PortInstance 
+                (name &1
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERLEFT)
+                    (origin
+                      (pt 2530 2200))))
+                (designator
+                  (stringDisplay "1"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify UPPERRIGHT)
+                      (origin
+                        (pt 2570 2200)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name &2
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERRIGHT)
+                    (origin
+                      (pt 2170 2200))))
+                (designator
+                  (stringDisplay "2"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify UPPERLEFT)
+                      (origin
+                        (pt 2130 2200)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+            )
+            (portImplementation WB_GND
+              (instance WB_GND
+                (viewRef WB_GND
+                  (cellRef WB_GND))
+                (transform
+                  (origin
+                  (pt 4600 2300))))
+              (connectLocation
+                (figure WIRE
+                  (dot
+                  (pt 4600 2400)))))
+            (portImplementation WB_GND
+              (instance WB_GND
+                (viewRef WB_GND
+                  (cellRef WB_GND))
+                (transform
+                  (origin
+                  (pt 4800 2750))))
+              (connectLocation
+                (figure WIRE
+                  (dot
+                  (pt 4800 2850)))))
+            (portImplementation WB_GND
+              (instance WB_GND
+                (viewRef WB_GND
+                  (cellRef WB_GND))
+                (transform
+                  (origin
+                  (pt 3750 1100))))
+              (connectLocation
+                (figure WIRE
+                  (dot
+                  (pt 3750 1200)))))
+            (Instance
+              (Rename CMP_L1 "L1")
+              (ViewRef &NORMAL
+                (CellRef SRN6045_45_2R2Y
+                  (LibraryRef to_orcad)))
+              (Transform
+                (Origin
+                  (pt 4700 4150)))
+              (Designator
+                  (StringDisplay "L1"
+                    (Display
+                      (FigureGroupOverride H82S5
+                        (TextHeight 82))
+                      (Justify LOWERCENTER)
+                      (Origin
+                        (pt 4700 4320)))))
+              (Property
+                (Rename value "value")
+                (String 
+                  (StringDisplay "2.2uH"
+                    (Display
+                      (FigureGroupOverride H82S5
+                        (TextHeight 82))
+                      (Justify LOWERCENTER)
+                      (Origin
+                        (pt 4700 3950))))))
+              (PortInstance 
+                (name &1
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERRIGHT)
+                    (origin
+                      (pt 4880 4150))))
+                (designator
+                  (stringDisplay "1"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERLEFT)
+                      (origin
+                        (pt 4920 4150)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name &2
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERLEFT)
+                    (origin
+                      (pt 4520 4150))))
+                (designator
+                  (stringDisplay "2"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERRIGHT)
+                      (origin
+                        (pt 4480 4150)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+            )
+            (Instance
+              (Rename CMP_Rfb1 "Rfb1")
+              (ViewRef &NORMAL
+                (CellRef RR1220P_45_184_45_D
+                  (LibraryRef to_orcad)))
+              (Transform
+                (Orientation R270)
+                (Origin
+                  (pt 5350 1600)))
+              (Designator
+                  (StringDisplay "Rfb1"
+                    (Display
+                      (FigureGroupOverride H82S5
+                        (TextHeight 82))
+                      (Justify LOWERLEFT)
+                      (Origin
+                        (pt 5410 1710)))))
+              (Property
+                (Rename value "value")
+                (String 
+                  (StringDisplay "180k"
+                    (Display
+                      (FigureGroupOverride H82S5
+                        (TextHeight 82))
+                      (Justify LOWERLEFT)
+                      (Origin
+                        (pt 5410 1530))))))
+              (PortInstance 
+                (name &1
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERLEFT)
+                    (origin
+                      (pt 5530 1600))))
+                (designator
+                  (stringDisplay "1"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify UPPERRIGHT)
+                      (origin
+                        (pt 5570 1600)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name &2
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERRIGHT)
+                    (origin
+                      (pt 5170 1600))))
+                (designator
+                  (stringDisplay "2"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify UPPERLEFT)
+                      (origin
+                        (pt 5130 1600)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+            )
+            (Instance
+              (Rename CMP_Rfb2 "Rfb2")
+              (ViewRef &NORMAL
+                (CellRef CRCW0402562KFKED
+                  (LibraryRef to_orcad)))
+              (Transform
+                (Orientation R90)
+                (Origin
+                  (pt 5350 2300)))
+              (Designator
+                  (StringDisplay "Rfb2"
+                    (Display
+                      (FigureGroupOverride H82S5
+                        (TextHeight 82))
+                      (Justify LOWERLEFT)
+                      (Origin
+                        (pt 5410 2410)))))
+              (Property
+                (Rename value "value")
+                (String 
+                  (StringDisplay "562k"
+                    (Display
+                      (FigureGroupOverride H82S5
+                        (TextHeight 82))
+                      (Justify LOWERLEFT)
+                      (Origin
+                        (pt 5410 2230))))))
+              (PortInstance 
+                (name &1
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERRIGHT)
+                    (origin
+                      (pt 5530 2300))))
+                (designator
+                  (stringDisplay "1"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERLEFT)
+                      (origin
+                        (pt 5570 2300)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name &2
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERLEFT)
+                    (origin
+                      (pt 5170 2300))))
+                (designator
+                  (stringDisplay "2"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERRIGHT)
+                      (origin
+                        (pt 5130 2300)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+            )
+            (Instance
+              (Rename CMP_Rpg_1 "Rpg_1")
+              (ViewRef &NORMAL
+                (CellRef CRCW0402100KFKED
+                  (LibraryRef to_orcad)))
+              (Transform
+                (Origin
+                  (pt 4650 3200)))
+              (Designator
+                  (StringDisplay "Rpg_1"
+                    (Display
+                      (FigureGroupOverride H82S5
+                        (TextHeight 82))
+                      (Justify LOWERCENTER)
+                      (Origin
+                        (pt 4650 3380)))))
+              (Property
+                (Rename value "value")
+                (String 
+                  (StringDisplay "100k"
+                    (Display
+                      (FigureGroupOverride H82S5
+                        (TextHeight 82))
+                      (Justify LOWERCENTER)
+                      (Origin
+                        (pt 4650 2990))))))
+              (PortInstance 
+                (name &1
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERRIGHT)
+                    (origin
+                      (pt 4830 3200))))
+                (designator
+                  (stringDisplay "1"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERLEFT)
+                      (origin
+                        (pt 4870 3200)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name &2
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERLEFT)
+                    (origin
+                      (pt 4470 3200))))
+                (designator
+                  (stringDisplay "2"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERRIGHT)
+                      (origin
+                        (pt 4430 3200)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+            )
+            (Instance
+              (Rename CMP_U1 "U1")
+              (ViewRef &NORMAL
+                (CellRef TPS62140RGTR
+                  (LibraryRef to_orcad)))
+              (Transform
+                (Origin
+                  (pt 3750 2900)))
+              (Designator
+                  (StringDisplay "U1"
+                    (Display
+                      (FigureGroupOverride H82S5
+                        (TextHeight 82))
+                      (Justify LOWERCENTER)
+                      (Origin
+                        (pt 3750 2900)))))
+              (Property
+                (Rename Type "Type")
+                (String 
+                  (StringDisplay "TPS62140RGTR"
+                    (Display
+                      (FigureGroupOverride H82S5
+                        (TextHeight 82))
+                      (Justify LOWERCENTER)
+                      (Origin
+                        (pt 3750 2750))))))
+              (PortInstance 
+                (name EN
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERLEFT)
+                    (origin
+                      (pt 3270 3100))))
+                (designator
+                  (stringDisplay "13"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERRIGHT)
+                      (origin
+                        (pt 3230 3100)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name SS_47_TR
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERLEFT)
+                    (origin
+                      (pt 3270 2800))))
+                (designator
+                  (stringDisplay "9"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERRIGHT)
+                      (origin
+                        (pt 3230 2800)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name AGND
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERLEFT)
+                    (origin
+                      (pt 3270 2400))))
+                (designator
+                  (stringDisplay "6"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERRIGHT)
+                      (origin
+                        (pt 3230 2400)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name PGND
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERLEFT)
+                    (origin
+                      (pt 3270 2400))))
+                (designator
+                  (stringDisplay "15"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERRIGHT)
+                      (origin
+                        (pt 3230 2400)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name PGND_1
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERLEFT)
+                    (origin
+                      (pt 3270 2400))))
+                (designator
+                  (stringDisplay "16"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERRIGHT)
+                      (origin
+                        (pt 3230 2400)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name FB
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERRIGHT)
+                      (orientation R90)
+                    (origin
+                      (pt 3750 2120))))
+                (designator
+                  (stringDisplay "5"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERLEFT)
+                      (orientation R90)
+                      (origin
+                        (pt 3750 2080)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name DEF
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERRIGHT)
+                    (origin
+                      (pt 4230 2500))))
+                (designator
+                  (stringDisplay "8"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERLEFT)
+                      (origin
+                        (pt 4270 2500)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name FSW
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERRIGHT)
+                    (origin
+                      (pt 4230 2900))))
+                (designator
+                  (stringDisplay "7"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERLEFT)
+                      (origin
+                        (pt 4270 2900)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name SW
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERLEFT)
+                      (orientation R90)
+                    (origin
+                      (pt 3750 3680))))
+                (designator
+                  (stringDisplay "2"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERRIGHT)
+                      (orientation R90)
+                      (origin
+                        (pt 3750 3720)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name SW_1
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERLEFT)
+                      (orientation R90)
+                    (origin
+                      (pt 3750 3680))))
+                (designator
+                  (stringDisplay "1"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERRIGHT)
+                      (orientation R90)
+                      (origin
+                        (pt 3750 3720)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name SW_2
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERLEFT)
+                      (orientation R90)
+                    (origin
+                      (pt 3750 3680))))
+                (designator
+                  (stringDisplay "3"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERRIGHT)
+                      (orientation R90)
+                      (origin
+                        (pt 3750 3720)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name PVIN
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERLEFT)
+                    (origin
+                      (pt 3270 3400))))
+                (designator
+                  (stringDisplay "12"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERRIGHT)
+                      (origin
+                        (pt 3230 3400)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name AVIN
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERLEFT)
+                    (origin
+                      (pt 3270 3400))))
+                (designator
+                  (stringDisplay "10"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERRIGHT)
+                      (origin
+                        (pt 3230 3400)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name PVIN_1
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERLEFT)
+                    (origin
+                      (pt 3270 3400))))
+                (designator
+                  (stringDisplay "11"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERRIGHT)
+                      (origin
+                        (pt 3230 3400)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name VOS
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERRIGHT)
+                    (origin
+                      (pt 4230 3500))))
+                (designator
+                  (stringDisplay "14"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERLEFT)
+                      (origin
+                        (pt 4270 3500)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name PG
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERRIGHT)
+                    (origin
+                      (pt 4230 3200))))
+                (designator
+                  (stringDisplay "4"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify LOWERLEFT)
+                      (origin
+                        (pt 4270 3200)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+            )
+            (Instance
+              (Rename CMP_Vin_1 "Vin_1")
+              (ViewRef &NORMAL
+                (CellRef WB_BATTERY
+                  (LibraryRef to_orcad)))
+              (Transform
+                (Orientation R270)
+                (Origin
+                  (pt 1150 2600)))
+              (Designator
+                  (StringDisplay "Vin_1"
+                    (Display
+                      (FigureGroupOverride H82S5
+                        (TextHeight 82))
+                      (Justify LOWERLEFT)
+                      (Origin
+                        (pt 1300 2800)))))
+              (PortInstance 
+                (name &_43_
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERRIGHT)
+                    (origin
+                      (pt 970 2600))))
+                (designator
+                  (stringDisplay "1"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify UPPERLEFT)
+                      (origin
+                        (pt 930 2600)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name &_45_
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERLEFT)
+                    (origin
+                      (pt 1330 2600))))
+                (designator
+                  (stringDisplay "2"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify UPPERRIGHT)
+                      (origin
+                        (pt 1370 2600)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+            )
+            (Instance
+              (Rename CMP_Iout_1 "Iout_1")
+              (ViewRef &NORMAL
+                (CellRef WB_CURRENT_LOAD
+                  (LibraryRef to_orcad)))
+              (Transform
+                (Orientation R270)
+                (Origin
+                  (pt 6950 2000)))
+              (Designator
+                  (StringDisplay "Iout_1"
+                    (Display
+                      (FigureGroupOverride H82S5
+                        (TextHeight 82))
+                      (Justify LOWERLEFT)
+                      (Origin
+                        (pt 7110 2210)))))
+              (PortInstance 
+                (name &_43_
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERRIGHT)
+                    (origin
+                      (pt 6700 2050))))
+                (designator
+                  (stringDisplay "1"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify UPPERLEFT)
+                      (origin
+                        (pt 6730 2000)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+              (PortInstance 
+                (name &_45_
+                  (display
+                    (figureGroupOverride PINNAME
+                      (visible
+                        (false)))
+                    (justify CENTERLEFT)
+                    (origin
+                      (pt 7200 2050))))
+                (designator
+                  (stringDisplay "2"
+                    (display
+                      (figureGroupOverride PINNUMBER
+                        (visible
+                          (false)))
+                      (justify UPPERRIGHT)
+                      (origin
+                        (pt 7170 2000)))))
+               (property INVISIBLEPIN
+                 (string "TRUE"))
+)
+            )
+            (Net
+              (Rename N_4 "4")
+              (Joined
+                (PortRef &1
+                  (InstanceRef CMP_Cout_1))
+                (PortRef &1
+                  (InstanceRef CMP_L1))
+                (PortRef &1
+                  (InstanceRef CMP_Rfb2))
+                (PortRef &1
+                  (InstanceRef CMP_Rpg_1))
+                (PortRef VOS
+                  (InstanceRef CMP_U1))
+                (PortRef &_43_
+                  (InstanceRef CMP_Iout_1))
+              )
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 4350 3500)
+                    (pt 5350 3500))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 4950 3200)
+                    (pt 5350 3200))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 5000 4150)
+                    (pt 5350 4150))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 5350 2600)
+                    (pt 5350 4150))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 6050 2400)
+                    (pt 6050 3400))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 6950 2300)
+                    (pt 6950 3400))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 5350 3400)
+                    (pt 6950 3400))))
+            )
+            (Net
+              (Rename N_0 "0")
+              (Joined
+                (PortRef &2
+                  (InstanceRef CMP_Cout_1))
+                (PortRef &1
+                  (InstanceRef CMP_Css_1))
+                (PortRef &1
+                  (InstanceRef CMP_Rfb1))
+                (PortRef AGND
+                  (InstanceRef CMP_U1))
+                (PortRef PGND
+                  (InstanceRef CMP_U1))
+                (PortRef PGND_1
+                  (InstanceRef CMP_U1))
+                (PortRef DEF
+                  (InstanceRef CMP_U1))
+                (PortRef FSW
+                  (InstanceRef CMP_U1))
+                (PortRef &_45_
+                  (InstanceRef CMP_Vin_1))
+                (PortRef &_45_
+                  (InstanceRef CMP_Iout_1))
+              )
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 4600 2400)
+                    (pt 4600 2500))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 4350 2500)
+                    (pt 4600 2500))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 4800 2850)
+                    (pt 4800 2900))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 4350 2900)
+                    (pt 4800 2900))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 1550 1200)
+                    (pt 1550 1750))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 2350 1900)
+                    (pt 2350 1200))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 3150 2400)
+                    (pt 3150 1200))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 5350 1300)
+                    (pt 5350 1200))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 6050 1200)
+                    (pt 6050 1800))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 1150 2300)
+                    (pt 1150 1200))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 6950 1200)
+                    (pt 6950 1700))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 1150 1200)
+                    (pt 6950 1200))))
+            )
+            (Net
+              (Rename N_1 "1")
+              (Joined
+                (PortRef &2
+                  (InstanceRef CMP_Css_1))
+                (PortRef SS_47_TR
+                  (InstanceRef CMP_U1))
+              )
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 2350 2500)
+                    (pt 2350 2800))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 3150 2800)
+                    (pt 2350 2800))))
+            )
+            (Net
+              (Rename N_3 "3")
+              (Joined
+                (PortRef &2
+                  (InstanceRef CMP_L1))
+                (PortRef SW
+                  (InstanceRef CMP_U1))
+                (PortRef SW_1
+                  (InstanceRef CMP_U1))
+                (PortRef SW_2
+                  (InstanceRef CMP_U1))
+              )
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 3750 3800)
+                    (pt 3750 4150))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 4400 4150)
+                    (pt 3750 4150))))
+            )
+            (Net
+              (Rename N_5 "5")
+              (Joined
+                (PortRef &2
+                  (InstanceRef CMP_Rfb1))
+                (PortRef &2
+                  (InstanceRef CMP_Rfb2))
+                (PortRef FB
+                  (InstanceRef CMP_U1))
+              )
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 5350 2000)
+                    (pt 3750 2000))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 5350 2000)
+                    (pt 5350 1900))))
+            )
+            (Net
+              (Rename N_6 "6")
+              (Joined
+                (PortRef &2
+                  (InstanceRef CMP_Rpg_1))
+                (PortRef PG
+                  (InstanceRef CMP_U1))
+              )
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 4350 3200)
+                    (pt 4350 3200))))
+            )
+            (Net
+              (Rename N_2 "2")
+              (Joined
+                (PortRef EN
+                  (InstanceRef CMP_U1))
+                (PortRef PVIN
+                  (InstanceRef CMP_U1))
+                (PortRef AVIN
+                  (InstanceRef CMP_U1))
+                (PortRef PVIN_1
+                  (InstanceRef CMP_U1))
+                (PortRef &_43_
+                  (InstanceRef CMP_Vin_1))
+              )
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 1550 3400)
+                    (pt 1550 2350))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 2650 3100)
+                    (pt 2650 3400))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 3150 3100)
+                    (pt 2650 3100))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 1150 2900)
+                    (pt 1150 3400))))
+              (Figure WIRE
+                (Path
+                  (PointList
+                    (pt 1150 3400)
+                    (pt 3150 3400))))
+            )
+          )
+        )
+      )
+    )
+  )
+)

@@ -1,0 +1,55 @@
+{ Load IPR\EULER.SCH before running this }
+
+{ Euler approximation function }
+Function Euler (t,h);
+ begin
+  I:=I+h/L*(UA-R*I);
+  Euler:=R*I;
+ end; {Euler}
+
+{ The exact solution }
+Function Trans (t);
+ begin
+  Trans:=1-exp(-R/L*t);
+ end; {Trans}
+
+I:=0;
+
+{ T, n parameters coming from Settings/Drawing Preferences }
+T := 20u;
+n := 200;
+h1:=T/n;
+
+Draw (Euler(t,h1),First);
+Draw (Trans(t),Transient);
+
+
+
+
+
+
+
+
+@ Configuration begin
+; numerical format
+0
+1
+0
+0
+4
+; math
+ 1.00000000000000E-0002
+100
+ 2.00000000000000E-0005
+50
+; drawing
+0
+s
+V
+t
+U
+Transient
+ 0.00000000000000E+0000
+ 2.00000000000000E-0005
+200
+.@ Configuration end

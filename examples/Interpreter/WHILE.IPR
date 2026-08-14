@@ -1,0 +1,47 @@
+function Test1(t);
+begin
+  s := 0;
+  For i := 1 To t Do
+   s := s+i;
+  Test1 := s;
+end;
+
+function Test2(t);
+begin
+  s := 0;
+  i := 0;
+  While i <= t Do Begin
+   s := s+i;
+   i:=i+1;
+  End;
+  Test2 := s;
+end;
+
+Test1(5)=[15]
+Test2(5)=[15]
+
+
+
+@ Configuration begin
+; numerical format
+0
+1
+0
+1
+4
+; math
+ 1.00000000000000E-0002
+100
+ 2.00000000000000E-0005
+50
+; drawing
+0
+s
+V
+t
+U
+
+ 0.00000000000000E+0000
+ 2.00000000000000E-0005
+50
+.@ Configuration end

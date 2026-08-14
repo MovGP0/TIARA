@@ -1,0 +1,117 @@
+#***********************************************************************************
+#*          Project:   test
+#*
+#*        File Name:   tlab2xc2s.ucf
+#*          Version:   1.01
+#*
+#************************************************************************************
+#clocks
+#NET "GCK0"	LOC = "P88";
+NET "CLK" 	LOC = "P88";
+#NET "GCK3"	LOC = "P15";
+
+#push buttons
+NET "push<0>"	LOC = "P136";
+NET "push<1>"	LOC = "P137";
+NET "push<2>"	LOC = "P138";
+NET "push<3>"	LOC = "P139";
+NET "push<0>"	PULLUP;
+NET "push<1>"	PULLUP;
+NET "push<2>"	PULLUP;
+NET "push<3>"	PULLUP;
+
+#LEDs
+NET "LED<0>" 	LOC = "P10";
+NET "LED<1>"	LOC = "P7";
+NET "LED<2>"	LOC = "P6";
+NET "LED<3>"	LOC = "P5";
+NET "LED<4>"	LOC = "P4";
+NET "LED<5>"	LOC = "P3";
+NET "LED<6>"	LOC = "P141";
+NET "LED<7>"	LOC = "P140";
+
+#DAC
+NET "DAC<0>" 	LOC = "P54";
+NET "DAC<1>"	LOC = "P56";
+NET "DAC<2>"	LOC = "P58";
+NET "DAC<3>"	LOC = "P59";
+
+#DISP
+NET "DISPA" 	LOC = "P43";
+NET "DISPB" 	LOC = "P41";
+NET "DISPC" 	LOC = "P29";
+NET "DISPD" 	LOC = "P27";
+NET "DISPE" 	LOC = "P26";
+NET "DISPF" 	LOC = "P42";
+NET "DISPG" 	LOC = "P40";
+NET "DISPDP"	LOC = "P28";
+
+#Switch
+NET "switch<0>"		LOC = "P20";
+NET "switch<1>"		LOC = "P21";
+NET "switch<2>"		LOC = "P22";
+NET "switch<3>"		LOC = "P23";
+NET "switch<4>"		LOC = "P19";
+NET "switch<5>"		LOC = "P13";
+NET "switch<6>"		LOC = "P12";
+NET "switch<7>"		LOC = "P11";
+NET "switch<0>"		PULLUP;
+NET "switch<1>"		PULLUP;
+NET "switch<2>"		PULLUP;
+NET "switch<3>"		PULLUP;
+NET "switch<4>"		PULLUP;
+NET "switch<5>"		PULLUP;
+NET "switch<6>"		PULLUP;
+NET "switch<7>"		PULLUP;
+
+#DIGITS
+NET "DIGIT<0>"	LOC = "P47";
+NET "DIGIT<1>"	LOC = "P48";
+NET "DIGIT<2>"	LOC = "P50";
+NET "DIGIT<3>"	LOC = "P51";
+
+#VGA
+NET "HSYNC" 	LOC = "P126";
+NET "VSYNC" 	LOC = "P124";
+NET "RED0"	LOC = "P134";
+NET "RED1"	LOC = "P133";
+NET "GREEN0"	LOC = "P132";
+NET "GREEN1"	LOC = "P131";
+NET "BLUE0" 	LOC = "P130";
+NET "BLUE1" 	LOC = "P129";
+
+#Digital in
+NET "DIn<0>"  	LOC = "P86";
+NET "DIn<1>"  	LOC = "P87";
+NET "DIn<2>"  	LOC = "P84";
+NET "DIn<3>"  	LOC = "P85";
+NET "DIn<4>"  	LOC = "P80";
+NET "DIn<5>"  	LOC = "P83";
+NET "DIn<6>"  	LOC = "P78";
+NET "DIn<7>"  	LOC = "P79"; 
+NET "DIn<8>"  	LOC = "P76";
+NET "DIn<9>"  	LOC = "P77";
+NET "DIn<10>" 	LOC = "P74";
+NET "DIn<11>" 	LOC = "P75";
+NET "DIn<12>" 	LOC = "P65";
+NET "DIn<13>" 	LOC = "P66";
+NET "DIn<14>" 	LOC = "P60";
+NET "DIn<15>" 	LOC = "P64";
+
+#Digital in
+NET "DOut<0>"  	LOC = "P118";
+NET "DOut<1>"  	LOC = "P117";
+NET "DOut<2>"  	LOC = "P116";
+NET "DOut<3>"  	LOC = "P115";
+NET "DOut<4>"  	LOC = "P114";
+NET "DOut<5>"  	LOC = "P113";
+NET "DOut<6>"  	LOC = "P112";
+NET "DOut<7>"  	LOC = "P103";
+NET "DOut<8>"  	LOC = "P102";
+NET "DOut<9>"  	LOC = "P101";
+NET "DOut<10>" 	LOC = "P100";
+NET "DOut<11>" 	LOC = "P99";
+NET "DOut<12>" 	LOC = "P96";
+NET "DOut<13>" 	LOC = "P95";
+NET "DOut<14>" 	LOC = "P94";
+NET "DOut<15>" 	LOC = "P93";

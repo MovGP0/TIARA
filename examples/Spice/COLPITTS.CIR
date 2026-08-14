@@ -1,0 +1,17 @@
+Created by TINA
+*************************************
+**  This file was created by TINA  **
+*************************************
+
+QT   2   1 0 Q2N1893
+C1   2   0 10.0N
+C2   1   0 10.0N
+L    2   1 1.0U
+R    3   2 1.0K
+V10V 3   0  PULSE(0 10 0 0 0 10U 10U)
+.TRAN 1N 5U 0 10N UIC
+.PLOT TRAN V(C2) V(C1)
+.MODEL Q2N1893 NPN (BF=80 BR=1 IS=1e-15 RB=10 RC=0 CJC=3.611e-11 VJC=0.75
++ MJC=0.33 TR=1.0e-8 CJE=1.006e-10 VJE=0.75 MJE=0.33 TF=3.149e-9 EG=1.11
++ VAF=100 XTB=2e-3 KF=0 AF=1.0)
+.END

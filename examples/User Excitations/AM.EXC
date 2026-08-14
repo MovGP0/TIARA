@@ -1,0 +1,9 @@
+Function Signal(t);
+Begin
+   fCarrier:=1M; 
+   wC:=fCarrier*2*pi;
+   m:=0.5;
+   fmodsig:=100k;
+   wS:=fmodsig*2*pi;  
+   Signal := 1*sin(wC*t)*(1+m * sin(wS*t));
+End;

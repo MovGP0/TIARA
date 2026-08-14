@@ -1,0 +1,30 @@
+TINA enclosure configuaration file
+version 1
+<<ENCLOSURE DATA>>
+[Settings]
+filename=enclosure12704_top.wrl
+sizex=712.8
+sizey=1222.6
+sizez=312.2
+rotate1=-90
+rotate2=0
+positionx=80
+positiony=5
+positionz=-55
+transparent=1
+
+<<ENCLOSURE END>>
+<<ENCLOSURE DATA>>
+[Settings]
+filename=enclosure12704_bottom.wrl
+sizex=712.8
+sizey=1223.2
+sizez=203.4
+rotate1=-90
+rotate2=0
+positionx=80
+positiony=5
+positionz=-130
+transparent=1
+
+<<ENCLOSURE END>>

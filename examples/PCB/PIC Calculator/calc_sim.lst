@@ -1,0 +1,2739 @@
+
+
+HI-TECH Software PICC Macro Assembler V9.60PL4 build 3851 
+                                                      Tue Mar 03 14:09:57 2009
+
+HI-TECH Software Omniscient Code Generator build 3851
+     1                           	processor	16F88
+     2                           	fnconf	fnauto0,??,?,0
+     3                           	opt	pw 79
+     4                           	psect	config,global,class=CONFIG,delta=2
+     5                           	psect	text239,local,class=CODE,delta=2
+     6                           	psect	rbss_1,global,class=BANK1,space=1,delta=
+      +                          1
+     7                           	psect	idata,global,class=CODE,delta=2
+     8                           	psect	strings,global,reloc=256,class=CODE,delt
+      +                          a=2
+     9                           	psect	common,global,class=COMMON,space=1,delta
+      +                          =1
+    10                           	psect	fnauto0,global,class=BANK0,space=1,delta
+      +                          =1
+    11                           	dabs	1,0xD4,18
+    12                           	dabs	1,0xE6,10
+    13                           	dabs	1,0x79,2
+    14                           	dabs	1,0x77,2
+    15                           	dabs	1,0x7B,1
+    16                           	dabs	1,0x7D,1
+    17                           	dabs	1,0x7C,1
+    18  0000                     
+    19  0000                     
+    20  0000                     
+    21  0000                     
+    22  0000                     
+    23  0000                     
+    24  0000                     
+    25  0000                     
+    26  0000                     
+    27  0000                     
+    28  0000                     
+    29  0000                     
+    30  0000                     
+    31  0000                     
+    32  0000                     
+    33  0000                     
+    34  0000                     
+    35  0000                     
+    36  0000                     	;#
+    37                           
+    38                           	psect	config
+    39  2007  3FDF               	dw	16351	;#
+    40  0000                     __tempreg	set	32
+    41  0000                     __Lcommon	set	119
+    42  0000                     __Hcommon	set	126
+    43  0000                     
+    44  0000                     
+    45  0000                     __Lramdata	set	212
+    46  0000                     __Hramdata	set	240
+    47  0000                     
+    48  0000                     
+    49  0000                     
+    50  0000                     
+    51  0000                     
+    52  0000                     
+    53  0000                     
+    54  0000                     
+    55  0000                     
+    56  0000                     
+    57  0000                     
+    58  0000                     
+    59  0000                     
+    60  0000                     
+    61  0000                     
+    62  0000                     
+    63  0000                     
+    64  0000                     
+    65  0000                     
+    66  0000                     
+    67  0000                     
+    68  0000                     
+    69  0000                     
+    70  0000                     
+    71  0000                     
+    72  0000                     
+    73  0000                     
+    74  0000                     
+    75  0000                     
+    76  0000                     
+    77  0000                     
+    78  0000                     
+    79  0000                     
+    80  0000                     
+    81  0000                     
+    82  0000                     
+    83  0000                     
+    84  0000                     
+    85  0000                     
+    86  0000                     
+    87  0000                     
+    88  0000                     
+    89  0000                     
+    90  0000                     
+    91  0000                     
+    92  0000                     
+    93  0000                     
+    94  0000                     
+    95  0000                     
+    96  0000                     
+    97  0000                     
+    98  0000                     
+    99  0000                     
+   100  0000                     
+   101  0000                     
+   102                           
+   103                           	psect	text239
+   104                           ; *************** function _calc_testkey ******
+      +                          *********
+   105                           ; Defined at:
+   106                           ;		line 169 in file "C:\Attila\Devel Files\Proj
+      +                          ects\MPLab\calc\ver6_test\calc.c"
+   107                           ; Parameters:
+   108                           ;		key         	reg:   wr	type: unsigned char 
+   109                           ; Auto variables:
+   110                           ;		key         	       	type: unsigned char 
+   111                           ; Return value:
+   112                           ;		type: unsigned char 
+   113                           ;		size: 1
+   114                           ; Registers used:
+   115                           ;		wreg
+   116                           ; Tracked objects:
+   117                           ;		On entry : B00/0
+   118                           ;		On exit  : B00/0
+   119                           ;		Unchanged: FFFFFCFF/0
+   120                           ; Data sizes:
+   121                           ;		Autos:    1
+   122                           ;		Params:   0
+   123                           ;		Temp:     0
+   124                           ;		Total:    1
+   125                           ; This function calls:
+   126                           ;		Nothing
+   127                           ; This function is called by:
+   128                           ;		_calc_evaluate
+   129                           ; This function uses a non-reentrant model
+   130                           ; 
+   131                           ;calc.c: 168: BOOL calc_testkey (char key)
+   132                           ;calc.c: 169: {
+   133  0441                     _calc_testkey:
+   134                           ; Regs used in _calc_testkey: [wreg]
+   135                           ;_calc_testkey_key stored from wreg
+   136  0441  00BB               	movwf	??_calc_testkey
+   137                           ;calc.c: 170: if ( ((key >= '0') && (key <= '9'
+      +                          )))
+   138  0442  3030               	movlw	48
+   139  0443  023B               	subwf	??_calc_testkey,w
+   140  0444  1C03               	btfss	3,0
+   141  0445  3400               	retlw	0
+   142  0446  303A               	movlw	58
+   143  0447  023B               	subwf	??_calc_testkey,w
+   144  0448  1C03               	btfss	3,0
+   145                           ;calc.c: 171: return 1;
+   146  0449  3401               	retlw	1
+   147                           ;calc.c: 172: else
+   148                           ;calc.c: 173: return 0;
+   149  044A  3400               	retlw	0
+   150                           ;calc.c: 174: }
+   151                           ; =============== function _calc_testkey ends =
+      +                          ==============
+   152  044B                     __end_of_calc_testkey:
+   153                           ; *************** function _scankeypad ********
+      +                          *******
+   154                           ; Defined at:
+   155                           ;		line 96 in file "C:\Attila\Devel Files\Proje
+      +                          cts\MPLab\calc\ver6_test\calc.c"
+   156                           ; Parameters:
+   157                           ;		None
+   158                           ; Auto variables:
+   159                           ;		tmp1        	       	type: unsigned char 
+   160                           ;		row         	       	type: unsigned char 
+   161                           ;		f           	       	type: unsigned char 
+   162                           ;		col         	       	type: unsigned char 
+   163                           ;		val         	       	type: unsigned char 
+   164                           ;		j           	       	type: unsigned char 
+   165                           ;		i           	       	type: unsigned char 
+   166                           ; Return value:
+   167                           ;		type: unsigned char 
+   168                           ;		size: 1
+   169                           ; Registers used:
+   170                           ;		wreg, fsr, status,2, status,0
+   171                           ; Tracked objects:
+   172                           ;		On entry : B00/0
+   173                           ;		On exit  : B00/0
+   174                           ;		Unchanged: FFFFF4FF/0
+   175                           ; Data sizes:
+   176                           ;		Autos:    7
+   177                           ;		Params:   0
+   178                           ;		Temp:     2
+   179                           ;		Total:    9
+   180                           ; This function calls:
+   181                           ;		Nothing
+   182                           ; This function is called by:
+   183                           ;		_keypadread
+   184                           ; This function uses a non-reentrant model
+   185                           ; 
+   186                           ;calc.c: 92: char keycodes[18] = { '7', '8', '9
+      +                          ', '/', '4', '5', '6', '*', '1', '2', '3', '-',
+      +                           '0', '.', '=', '+', 'P', 'C'};
+   187                           ;calc.c: 93: char digits[10] = {'0','1','2','3'
+      +                          ,'4','5','6','7','8','9'};
+   188                           ;calc.c: 95: char scankeypad()
+   189                           ;calc.c: 96: {
+   190  044B                     _scankeypad:
+   191                           ; Regs used in _scankeypad: [wreg+fsr+status,2+
+      +                          status,0]
+   192                           ;calc.c: 97: BYTE val, i, j, tmp1, col, row;
+   193                           ;calc.c: 98: BOOL f;
+   194                           ;calc.c: 100: f = 0;
+   195  044B  01BE               	clrf	??_scankeypad+1
+   196                           ;calc.c: 101: for (i=0; i<=4; i++) {
+   197  044C  01C3               	clrf	??_scankeypad+6
+   198  044D                     l18:
+   199                           ;calc.c: 102: row = i;
+   200  044D  0843               	movf	??_scankeypad+6,w
+   201  044E  00BF               	movwf	??_scankeypad+2
+   202                           ;calc.c: 104: if (i == 4) {
+   203  044F  0843               	movf	??_scankeypad+6,w
+   204  0450  3A04               	xorlw	4
+   205  0451  1D03               	btfss	3,2
+   206  0452  2C56               	goto	l21
+   207                           ;calc.c: 105: RB0 = 0;
+   208  0453  1006               	bcf	6,0
+   209                           ;calc.c: 106: PORTA = 0xFF;
+   210  0454  30FF               	movlw	255
+   211  0455  2C62               	goto	L3
+   212                           ;calc.c: 107: }
+   213  0456                     l21:
+   214                           ;calc.c: 108: else {
+   215                           ;calc.c: 109: RB0 = 1;
+   216  0456  1406               	bsf	6,0
+   217                           ;calc.c: 110: PORTA = ~(1<<i);
+   218  0457  3001               	movlw	1
+   219  0458  00C4               	movwf	??_scankeypad+7
+   220  0459  0A43               	incf	??_scankeypad+6,w
+   221  045A  2C5D               	goto	u2764
+   222  045B                     u2765:
+   223  045B  1003               	bcf	3,0
+   224  045C  0DC4               	rlf	??_scankeypad+7,f
+   225  045D                     u2764:
+   226  045D  3EFF               	addlw	-1
+   227  045E  1D03               	btfss	3,2
+   228  045F  2C5B               	goto	u2765
+   229  0460  0844               	movf	??_scankeypad+7,w
+   230  0461  3AFF               	xorlw	255
+   231  0462                     L3:
+   232  0462  0085               	movwf	5	;volatile
+   233                           ;calc.c: 111: }
+   234                           ;calc.c: 119: val = PORTA;
+   235  0463  0805               	movf	5,w	;volatile
+   236  0464  00C2               	movwf	??_scankeypad+5
+   237                           ;calc.c: 120: val = val >> 4;
+   238  0465  0EC2               	swapf	??_scankeypad+5,f
+   239  0466  300F               	movlw	15
+   240  0467  05C2               	andwf	??_scankeypad+5,f
+   241                           ;calc.c: 122: for (j=0; j<=3; j++) {
+   242  0468  01C1               	clrf	??_scankeypad+4
+   243  0469                     l23:
+   244                           ;calc.c: 123: tmp1 = 1<<j;
+   245  0469  3001               	movlw	1
+   246  046A  00C4               	movwf	??_scankeypad+7
+   247  046B  0A41               	incf	??_scankeypad+4,w
+   248  046C  2C6F               	goto	u2784
+   249  046D                     u2785:
+   250  046D  1003               	bcf	3,0
+   251  046E  0DC4               	rlf	??_scankeypad+7,f
+   252  046F                     u2784:
+   253  046F  3EFF               	addlw	-1
+   254  0470  1D03               	btfss	3,2
+   255  0471  2C6D               	goto	u2785
+   256  0472  0844               	movf	??_scankeypad+7,w
+   257  0473  00BD               	movwf	??_scankeypad
+   258                           ;calc.c: 124: if ((val & tmp1) == 0) {
+   259  0474  0542               	andwf	??_scankeypad+5,w
+   260  0475  1D03               	btfss	3,2
+   261  0476  2C7C               	goto	l26
+   262                           ;calc.c: 125: f = 1; col = j;
+   263  0477  01BE               	clrf	??_scankeypad+1
+   264  0478  0ABE               	incf	??_scankeypad+1,f
+   265  0479  0841               	movf	??_scankeypad+4,w
+   266  047A  00C0               	movwf	??_scankeypad+3
+   267  047B  2C86               	goto	l28
+   268  047C                     l26:
+   269  047C  0AC1               	incf	??_scankeypad+4,f
+   270  047D  3004               	movlw	4
+   271  047E  0241               	subwf	??_scankeypad+4,w
+   272  047F  1C03               	btfss	3,0
+   273  0480  2C69               	goto	l23
+   274  0481  0AC3               	incf	??_scankeypad+6,f
+   275  0482  3005               	movlw	5
+   276  0483  0243               	subwf	??_scankeypad+6,w
+   277  0484  1C03               	btfss	3,0
+   278  0485  2C4D               	goto	l18
+   279                           ;calc.c: 127: }
+   280                           ;calc.c: 128: }
+   281                           ;calc.c: 131: }
+   282                           ;calc.c: 134: lab1:
+   283  0486                     l28:
+   284                           ;calc.c: 135: if (f) {
+   285  0486  08BE               	movf	??_scankeypad+1,f
+   286  0487  1903               	btfsc	3,2
+   287  0488  3400               	retlw	0
+   288                           ;calc.c: 136: if (row == 4)
+   289  0489  083F               	movf	??_scankeypad+2,w
+   290  048A  3A04               	xorlw	4
+   291  048B  1D03               	btfss	3,2
+   292  048C  2C8F               	goto	l30
+   293                           ;calc.c: 137: col = col-2;
+   294  048D  30FE               	movlw	254
+   295  048E  07C0               	addwf	??_scankeypad+3,f
+   296  048F                     l30:
+   297                           ;calc.c: 138: i = row*4+col;
+   298  048F  083F               	movf	??_scankeypad+2,w
+   299  0490  00C4               	movwf	??_scankeypad+7
+   300  0491  1003               	bcf	3,0
+   301  0492  0DC4               	rlf	??_scankeypad+7,f
+   302  0493  1003               	bcf	3,0
+   303  0494  0DC4               	rlf	??_scankeypad+7,f
+   304  0495  0840               	movf	??_scankeypad+3,w
+   305  0496  0744               	addwf	??_scankeypad+7,w
+   306  0497  00C3               	movwf	??_scankeypad+6
+   307                           ;calc.c: 140: val = keycodes[i];
+   308  0498  3ED4               	addlw	212
+   309  0499  0084               	movwf	4
+   310  049A  0800               	movf	0,w
+   311  049B  00C2               	movwf	??_scankeypad+5
+   312                           ;calc.c: 141: return val;
+   313  049C  0008               	return
+   314                           ;calc.c: 143: else
+   315                           ;calc.c: 144: return 0;
+   316                           ;calc.c: 145: }
+   317                           ; =============== function _scankeypad ends ===
+      +                          ============
+   318  049D                     __end_of_scankeypad:
+   319                           ; *************** function _keypadread ********
+      +                          *******
+   320                           ; Defined at:
+   321                           ;		line 148 in file "C:\Attila\Devel Files\Proj
+      +                          ects\MPLab\calc\ver6_test\calc.c"
+   322                           ; Parameters:
+   323                           ;		None
+   324                           ; Auto variables:
+   325                           ;		key         	       	type: unsigned char 
+   326                           ; Return value:
+   327                           ;		type: unsigned char 
+   328                           ;		size: 1
+   329                           ; Registers used:
+   330                           ;		wreg, fsr, status,2, status,0, pclath, cstac
+      +                          k
+   331                           ; Tracked objects:
+   332                           ;		On entry : B00/0
+   333                           ;		On exit  : B00/0
+   334                           ;		Unchanged: FFFFF4FF/0
+   335                           ; Data sizes:
+   336                           ;		Autos:    1
+   337                           ;		Params:   0
+   338                           ;		Temp:     0
+   339                           ;		Total:    1
+   340                           ; This function calls:
+   341                           ;		_scankeypad
+   342                           ; This function is called by:
+   343                           ;		_calc_getkey
+   344                           ; This function uses a non-reentrant model
+   345                           ; 
+   346                           ;calc.c: 147: char keypadread()
+   347                           ;calc.c: 148: {
+   348  049D                     _keypadread:
+   349                           ; Regs used in _keypadread: [wreg+fsr+status,2+
+      +                          status,0+pclath+cstack]
+   350                           ;calc.c: 149: char key;
+   351                           ;calc.c: 151: key = scankeypad();
+   352  049D  244B               	fcall	_scankeypad
+   353  049E  00BC               	movwf	??_keypadread
+   354                           ;calc.c: 152: if (key)
+   355  049F  08BC               	movf	??_keypadread,f
+   356  04A0  1903               	btfsc	3,2
+   357  04A1  2CA6               	goto	l33
+   358                           ;calc.c: 153: while (scankeypad() != 0);
+   359  04A2                     l34:
+   360  04A2  244B               	fcall	_scankeypad
+   361  04A3  3800               	iorlw	0
+   362  04A4  1D03               	btfss	3,2
+   363  04A5  2CA2               	goto	l34
+   364  04A6                     l33:
+   365                           ;calc.c: 154: return key;
+   366  04A6  083C               	movf	??_keypadread,w
+   367                           ;calc.c: 155: }
+   368  04A7  0008               	return
+   369                           ; =============== function _keypadread ends ===
+      +                          ============
+   370  04A8                     __end_of_keypadread:
+   371                           ; *************** function _calc_getkey *******
+      +                          ********
+   372                           ; Defined at:
+   373                           ;		line 158 in file "C:\Attila\Devel Files\Proj
+      +                          ects\MPLab\calc\ver6_test\calc.c"
+   374                           ; Parameters:
+   375                           ;		None
+   376                           ; Auto variables:
+   377                           ;		key         	       	type: unsigned char 
+   378                           ; Return value:
+   379                           ;		type: unsigned char 
+   380                           ;		size: 1
+   381                           ; Registers used:
+   382                           ;		wreg, fsr, status,2, status,0, pclath, cstac
+      +                          k
+   383                           ; Tracked objects:
+   384                           ;		On entry : B00/0
+   385                           ;		On exit  : B00/0
+   386                           ;		Unchanged: FFFFF4FF/0
+   387                           ; Data sizes:
+   388                           ;		Autos:    1
+   389                           ;		Params:   0
+   390                           ;		Temp:     0
+   391                           ;		Total:    1
+   392                           ; This function calls:
+   393                           ;		_keypadread
+   394                           ; This function is called by:
+   395                           ;		_calc_evaluate
+   396                           ; This function uses a non-reentrant model
+   397                           ; 
+   398                           ;calc.c: 157: char calc_getkey()
+   399                           ;calc.c: 158: {
+   400  04A8                     _calc_getkey:
+   401                           ; Regs used in _calc_getkey: [wreg+fsr+status,2
+      +                          +status,0+pclath+cstack]
+   402                           ;calc.c: 159: char key;
+   403                           ;calc.c: 161: key = 0;
+   404  04A8  01BB               	clrf	??_calc_getkey
+   405                           ;calc.c: 162: while (key == 0) {
+   406  04A9  2CAC               	goto	l38
+   407  04AA                     l39:
+   408                           ;calc.c: 163: key = keypadread();
+   409  04AA  249D               	fcall	_keypadread
+   410  04AB  00BB               	movwf	??_calc_getkey
+   411  04AC                     l38:
+   412  04AC  08BB               	movf	??_calc_getkey,f
+   413  04AD  1903               	btfsc	3,2
+   414  04AE  2CAA               	goto	l39
+   415                           ;calc.c: 164: }
+   416                           ;calc.c: 165: return key;
+   417  04AF  083B               	movf	??_calc_getkey,w
+   418                           ;calc.c: 166: }
+   419  04B0  0008               	return
+   420                           ; =============== function _calc_getkey ends ==
+      +                          =============
+   421  04B1                     __end_of_calc_getkey:
+   422                           ; *************** function _my_strrev *********
+      +                          ******
+   423                           ; Defined at:
+   424                           ;		line 218 in file "C:\Attila\Devel Files\Proj
+      +                          ects\MPLab\calc\ver6_test\calc.c"
+   425                           ; Parameters:
+   426                           ;		src         	reg:   wr	type: PTR unsigned ch
+      +                          ar ; Largest target is 11
+   427                           ;		 -> my_ftoa_s(11), 
+   428                           ;		dest        	offs:   0	type: PTR unsigned ch
+      +                          ar ; Largest target is 11
+   429                           ;		 -> calc_format_buf(11), 
+   430                           ; Auto variables:
+   431                           ;		src         	       	type: PTR unsigned char
+      +                           ; Largest target is 11
+   432                           ;		 -> my_ftoa_s(11), 
+   433                           ;		j           	       	type: int 
+   434                           ;		i           	       	type: int 
+   435                           ; Return value:
+   436                           ;		type: void 
+   437                           ;		size: 0
+   438                           ; Registers used:
+   439                           ;		wreg, fsr, status,2, status,0
+   440                           ; Tracked objects:
+   441                           ;		On entry : B00/0
+   442                           ;		On exit  : B00/0
+   443                           ;		Unchanged: FFFFF4FF/0
+   444                           ; Data sizes:
+   445                           ;		Autos:    5
+   446                           ;		Params:   1
+   447                           ;		Temp:     3
+   448                           ;		Total:    9
+   449                           ; This function calls:
+   450                           ;		Nothing
+   451                           ; This function is called by:
+   452                           ;		_my_ftoa
+   453                           ; This function uses a non-reentrant model
+   454                           ; 
+   455                           ;calc.c: 217: void my_strrev(char* src, char* d
+      +                          est)
+   456                           ;calc.c: 218: {
+   457  04B1                     _my_strrev:
+   458                           ; Regs used in _my_strrev: [wreg+fsr+status,2+s
+      +                          tatus,0]
+   459                           ;_my_strrev_src stored from wreg
+   460  04B1  00DE               	movwf	??_my_strrev
+   461                           ;calc.c: 219: int i, j;
+   462                           ;calc.c: 221: j = 0;
+   463  04B2  01DF               	clrf	??_my_strrev+1
+   464  04B3  01E0               	clrf	??_my_strrev+2
+   465                           ;calc.c: 222: for (i=0; src[i] != 0; i++); i--;
+   466  04B4  01E1               	clrf	??_my_strrev+3
+   467  04B5  01E2               	clrf	??_my_strrev+4
+   468  04B6  2CBA               	goto	l62
+   469  04B7                     l59:
+   470  04B7  0AE1               	incf	??_my_strrev+3,f
+   471  04B8  1903               	btfsc	3,2
+   472  04B9  0AE2               	incf	??_my_strrev+4,f
+   473  04BA                     l62:
+   474  04BA  0861               	movf	??_my_strrev+3,w
+   475  04BB  075E               	addwf	??_my_strrev,w
+   476  04BC  0084               	movwf	4
+   477  04BD  0880               	movf	0,f
+   478  04BE  1D03               	btfss	3,2
+   479  04BF  2CB7               	goto	l59
+   480  04C0  30FF               	movlw	-1
+   481  04C1  07E1               	addwf	??_my_strrev+3,f
+   482  04C2  1C03               	btfss	3,0
+   483  04C3  03E2               	decf	??_my_strrev+4,f
+   484                           ;calc.c: 224: while (i>=0) {
+   485  04C4                     l63:
+   486  04C4  1BE2               	btfsc	??_my_strrev+4,7
+   487  04C5  2CD8               	goto	l65
+   488                           ;calc.c: 225: dest[j++] = src[i--];
+   489  04C6  0861               	movf	??_my_strrev+3,w
+   490  04C7  075E               	addwf	??_my_strrev,w
+   491  04C8  0084               	movwf	4
+   492  04C9  0800               	movf	0,w
+   493  04CA  00E4               	movwf	??_my_strrev+6
+   494  04CB  085F               	movf	??_my_strrev+1,w
+   495  04CC  075D               	addwf	?_my_strrev,w
+   496  04CD  0084               	movwf	4
+   497  04CE  0864               	movf	??_my_strrev+6,w
+   498  04CF  0080               	movwf	0
+   499  04D0  30FF               	movlw	-1
+   500  04D1  07E1               	addwf	??_my_strrev+3,f
+   501  04D2  1C03               	btfss	3,0
+   502  04D3  03E2               	decf	??_my_strrev+4,f
+   503  04D4  0ADF               	incf	??_my_strrev+1,f
+   504  04D5  1903               	btfsc	3,2
+   505  04D6  0AE0               	incf	??_my_strrev+2,f
+   506  04D7  2CC4               	goto	l63
+   507  04D8                     l65:
+   508                           ;calc.c: 226: }
+   509                           ;calc.c: 227: dest[j] = '\0';
+   510  04D8  085F               	movf	??_my_strrev+1,w
+   511  04D9  075D               	addwf	?_my_strrev,w
+   512  04DA  0084               	movwf	4
+   513  04DB  0180               	clrf	0
+   514                           ;calc.c: 228: }
+   515  04DC  0008               	return
+   516                           ; =============== function _my_strrev ends ====
+      +                          ===========
+   517  04DD                     __end_of_my_strrev:
+   518                           ; *************** function ___awdiv ***********
+      +                          ****
+   519                           ; Defined at:
+   520                           ;		line 5 in file "C:\Program Files\HI-TECH Sof
+      +                          tware\PICC\PRO\9.60\sources\awdiv.c"
+   521                           ; Parameters:
+   522                           ;		dividend    	offs:   0	type: int 
+   523                           ;		divisor     	offs:   2	type: int 
+   524                           ; Auto variables:
+   525                           ;		counter     	       	type: unsigned char 
+   526                           ;		sign        	       	type: unsigned char 
+   527                           ;		quotient    	       	type: int 
+   528                           ; Return value:
+   529                           ;		type: int 
+   530                           ;		size: 2
+   531                           ; Registers used:
+   532                           ;		wreg, status,2, status,0
+   533                           ; Tracked objects:
+   534                           ;		On entry : B00/0
+   535                           ;		On exit  : B00/0
+   536                           ;		Unchanged: FFFFFCFF/0
+   537                           ; Data sizes:
+   538                           ;		Autos:    4
+   539                           ;		Params:   4
+   540                           ;		Temp:     0
+   541                           ;		Total:    8
+   542                           ; This function calls:
+   543                           ;		Nothing
+   544                           ; This function is called by:
+   545                           ;		_my_ftoa
+   546                           ;		_calc_opfunctions
+   547                           ; This function uses a non-reentrant model
+   548                           ; 
+   549  04DD                     ___awdiv:
+   550                           ; Regs used in ___awdiv: [wreg+status,2+status,
+      +                          0]
+   551  04DD  01E1               	clrf	??___awdiv
+   552  04DE  1FE0               	btfss	?___awdiv+3,7
+   553  04DF  2CE7               	goto	l287
+   554  04E0  09DF               	comf	?___awdiv+2,f
+   555  04E1  09E0               	comf	?___awdiv+3,f
+   556  04E2  0ADF               	incf	?___awdiv+2,f
+   557  04E3  1903               	btfsc	3,2
+   558  04E4  0AE0               	incf	?___awdiv+3,f
+   559  04E5  01E1               	clrf	??___awdiv
+   560  04E6  0AE1               	incf	??___awdiv,f
+   561  04E7                     l287:
+   562  04E7  1FDE               	btfss	?___awdiv+1,7
+   563  04E8  2CF0               	goto	l288
+   564  04E9  09DD               	comf	?___awdiv,f
+   565  04EA  09DE               	comf	?___awdiv+1,f
+   566  04EB  0ADD               	incf	?___awdiv,f
+   567  04EC  1903               	btfsc	3,2
+   568  04ED  0ADE               	incf	?___awdiv+1,f
+   569  04EE  3001               	movlw	1
+   570  04EF  06E1               	xorwf	??___awdiv,f
+   571  04F0                     l288:
+   572  04F0  01E3               	clrf	??___awdiv+2
+   573  04F1  01E4               	clrf	??___awdiv+3
+   574  04F2  0860               	movf	(?___awdiv+3)& (0+127),w
+   575  04F3  045F               	iorwf	(?___awdiv+2)& (0+127),w
+   576  04F4  1903               	btfsc	3,2
+   577  04F5  2D15               	goto	l289
+   578  04F6  01E2               	clrf	??___awdiv+1
+   579  04F7                     L4:
+   580  04F7  0AE2               	incf	??___awdiv+1,f
+   581  04F8  1003               	bcf	3,0
+   582  04F9  1BE0               	btfsc	?___awdiv+3,7
+   583  04FA  2CFF               	goto	L6
+   584  04FB  0DDF               	rlf	?___awdiv+2,f
+   585  04FC  0DE0               	rlf	?___awdiv+3,f
+   586  04FD  2CF7               	goto	L4
+   587  04FE                     l295:
+   588  04FE  1003               	bcf	3,0
+   589  04FF                     L6:
+   590  04FF  0DE3               	rlf	??___awdiv+2,f
+   591  0500  0DE4               	rlf	??___awdiv+3,f
+   592  0501  0860               	movf	?___awdiv+3,w
+   593  0502  025E               	subwf	?___awdiv+1,w
+   594  0503  1D03               	btfss	3,2
+   595  0504  2D07               	goto	u2905
+   596  0505  085F               	movf	?___awdiv+2,w
+   597  0506  025D               	subwf	?___awdiv,w
+   598  0507                     u2905:
+   599  0507  1C03               	btfss	3,0
+   600  0508  2D11               	goto	L5
+   601  0509  085F               	movf	?___awdiv+2,w
+   602  050A  02DD               	subwf	?___awdiv,f
+   603  050B  0860               	movf	?___awdiv+3,w
+   604  050C  1C03               	btfss	3,0
+   605  050D  03DE               	decf	?___awdiv+1,f
+   606  050E  02DE               	subwf	?___awdiv+1,f
+   607  050F  1463               	bsf	??___awdiv+2,0
+   608  0510  1003               	bcf	3,0
+   609  0511                     L5:
+   610  0511  0CE0               	rrf	?___awdiv+3,f
+   611  0512  0CDF               	rrf	?___awdiv+2,f
+   612  0513  0BE2               	decfsz	??___awdiv+1,f
+   613  0514  2CFE               	goto	l295
+   614  0515                     l289:
+   615  0515  08E1               	movf	??___awdiv,f
+   616  0516  1903               	btfsc	3,2
+   617  0517  2D1D               	goto	l297
+   618  0518  09E3               	comf	??___awdiv+2,f
+   619  0519  09E4               	comf	??___awdiv+3,f
+   620  051A  0AE3               	incf	??___awdiv+2,f
+   621  051B  1903               	btfsc	3,2
+   622  051C  0AE4               	incf	??___awdiv+3,f
+   623  051D                     l297:
+   624  051D  0864               	movf	??___awdiv+3,w
+   625  051E  00DE               	movwf	?___awdiv+1
+   626  051F  0863               	movf	??___awdiv+2,w
+   627  0520  00DD               	movwf	?___awdiv
+   628  0521  0008               	return
+   629                           ; =============== function ___awdiv ends ======
+      +                          =========
+   630  0522                     __end_of___awdiv:
+   631                           ; *************** function ___wmul ************
+      +                          ***
+   632                           ; Defined at:
+   633                           ;		line 3 in file "C:\Program Files\HI-TECH Sof
+      +                          tware\PICC\PRO\9.60\sources\wmul.c"
+   634                           ; Parameters:
+   635                           ;		multiplier  	offs:   0	type: unsigned int 
+   636                           ;		multiplicand	offs:   2	type: unsigned int 
+   637                           ; Auto variables:
+   638                           ;		product     	       	type: unsigned int 
+   639                           ; Return value:
+   640                           ;		type: unsigned int 
+   641                           ;		size: 2
+   642                           ; Registers used:
+   643                           ;		wreg, status,2, status,0
+   644                           ; Tracked objects:
+   645                           ;		On entry : B00/0
+   646                           ;		On exit  : B00/0
+   647                           ;		Unchanged: FFFFFCFF/0
+   648                           ; Data sizes:
+   649                           ;		Autos:    2
+   650                           ;		Params:   4
+   651                           ;		Temp:     0
+   652                           ;		Total:    6
+   653                           ; This function calls:
+   654                           ;		Nothing
+   655                           ; This function is called by:
+   656                           ;		_my_atof
+   657                           ;		_calc_opfunctions
+   658                           ; This function uses a non-reentrant model
+   659                           ; 
+   660  0522                     ___wmul:
+   661                           ; Regs used in ___wmul: [wreg+status,2+status,0
+      +                          ]
+   662  0522  01CA               	clrf	??___wmul
+   663  0523  01CB               	clrf	??___wmul+1
+   664  0524                     l130:
+   665  0524  1C46               	btfss	?___wmul,0
+   666  0525  2D2C               	goto	l131
+   667  0526  0848               	movf	?___wmul+2,w
+   668  0527  07CA               	addwf	??___wmul,f
+   669  0528  1803               	btfsc	3,0
+   670  0529  0ACB               	incf	??___wmul+1,f
+   671  052A  0849               	movf	?___wmul+3,w
+   672  052B  07CB               	addwf	??___wmul+1,f
+   673  052C                     l131:
+   674  052C  1003               	bcf	3,0
+   675  052D  0DC8               	rlf	?___wmul+2,f
+   676  052E  0DC9               	rlf	?___wmul+3,f
+   677  052F  1003               	bcf	3,0
+   678  0530  0CC7               	rrf	?___wmul+1,f
+   679  0531  0CC6               	rrf	?___wmul,f
+   680  0532  0847               	movf	(?___wmul+1)& (0+127),w
+   681  0533  0446               	iorwf	?___wmul& (0+127),w
+   682  0534  1D03               	btfss	3,2
+   683  0535  2D24               	goto	l130
+   684  0536  084B               	movf	??___wmul+1,w
+   685  0537  00C7               	movwf	?___wmul+1
+   686  0538  084A               	movf	??___wmul,w
+   687  0539  00C6               	movwf	?___wmul
+   688  053A  0008               	return
+   689                           ; =============== function ___wmul ends =======
+      +                          ========
+   690  053B                     __end_of___wmul:
+   691                           ; *************** function _my_atof ***********
+      +                          ****
+   692                           ; Defined at:
+   693                           ;		line 195 in file "C:\Attila\Devel Files\Proj
+      +                          ects\MPLab\calc\ver6_test\calc.c"
+   694                           ; Parameters:
+   695                           ;		str         	reg:   wr	type: PTR unsigned ch
+      +                          ar ; Largest target is 11
+   696                           ;		 -> calc_evaluate_number(11), 
+   697                           ; Auto variables:
+   698                           ;		sign        	       	type: unsigned char 
+   699                           ;		str         	       	type: PTR unsigned char
+      +                           ; Largest target is 11
+   700                           ;		 -> calc_evaluate_number(11), 
+   701                           ;		n           	       	type: int 
+   702                           ;		i           	       	type: int 
+   703                           ; Return value:
+   704                           ;		type: int 
+   705                           ;		size: 2
+   706                           ; Registers used:
+   707                           ;		wreg, fsr, status,2, status,0, pclath, cstac
+      +                          k
+   708                           ; Tracked objects:
+   709                           ;		On entry : B00/0
+   710                           ;		On exit  : B00/0
+   711                           ;		Unchanged: FFFFF4FF/0
+   712                           ; Data sizes:
+   713                           ;		Autos:    6
+   714                           ;		Params:   2
+   715                           ;		Temp:     3
+   716                           ;		Total:   11
+   717                           ; This function calls:
+   718                           ;		___wmul
+   719                           ; This function is called by:
+   720                           ;		_calc_evaluate
+   721                           ; This function uses a non-reentrant model
+   722                           ; 
+   723                           ;calc.c: 194: int my_atof(char* str)
+   724                           ;calc.c: 195: {
+   725  053B                     _my_atof:
+   726                           ; Regs used in _my_atof: [wreg+fsr+status,2+sta
+      +                          tus,0+pclath+cstack]
+   727                           ;_my_atof_str stored from wreg
+   728  053B  00BD               	movwf	??_my_atof
+   729                           ;calc.c: 196: int n, i;
+   730                           ;calc.c: 197: BOOL sign;
+   731                           ;calc.c: 199: n = 0; i = 0;
+   732  053C  01BF               	clrf	??_my_atof+2
+   733  053D  01C0               	clrf	??_my_atof+3
+   734  053E  01C1               	clrf	??_my_atof+4
+   735  053F  01C2               	clrf	??_my_atof+5
+   736                           ;calc.c: 200: if (str[0] == '-') {
+   737  0540  0084               	movwf	4
+   738  0541  0800               	movf	0,w
+   739  0542  3A2D               	xorlw	45
+   740  0543  1D03               	btfss	3,2
+   741  0544  2D4B               	goto	l51
+   742                           ;calc.c: 201: sign = 1;
+   743  0545  01BE               	clrf	??_my_atof+1
+   744  0546  0ABE               	incf	??_my_atof+1,f
+   745                           ;calc.c: 202: i = 1;
+   746  0547  01C1               	clrf	??_my_atof+4
+   747  0548  0AC1               	incf	??_my_atof+4,f
+   748  0549  01C2               	clrf	??_my_atof+5
+   749                           ;calc.c: 203: }
+   750  054A  2D4C               	goto	l53
+   751  054B                     l51:
+   752                           ;calc.c: 204: else
+   753                           ;calc.c: 205: sign = 0;
+   754  054B  01BE               	clrf	??_my_atof+1
+   755                           ;calc.c: 207: while (str[i] != 0) {
+   756  054C                     l53:
+   757  054C  0841               	movf	??_my_atof+4,w
+   758  054D  073D               	addwf	??_my_atof,w
+   759  054E  0084               	movwf	4
+   760  054F  0880               	movf	0,f
+   761  0550  1903               	btfsc	3,2
+   762  0551  2D71               	goto	l55
+   763                           ;calc.c: 208: n = 10*n+str[i]-'0';
+   764  0552  0841               	movf	??_my_atof+4,w
+   765  0553  073D               	addwf	??_my_atof,w
+   766  0554  0084               	movwf	4
+   767  0555  300A               	movlw	10
+   768  0556  00C8               	movwf	(?___wmul+2)& (0+127)
+   769  0557  01C9               	clrf	(?___wmul+3)& (0+127)
+   770  0558  0840               	movf	??_my_atof+3,w
+   771  0559  00C7               	movwf	?___wmul+1
+   772  055A  083F               	movf	??_my_atof+2,w
+   773  055B  00C6               	movwf	?___wmul
+   774  055C  2522               	fcall	___wmul
+   775  055D  0800               	movf	0,w
+   776  055E  0746               	addwf	?___wmul,w
+   777  055F  00C4               	movwf	??_my_atof+7
+   778  0560  3000               	movlw	0
+   779  0561  1803               	btfsc	3,0
+   780  0562  3001               	movlw	1
+   781  0563  0747               	addwf	?___wmul+1,w
+   782  0564  00C5               	movwf	??_my_atof+8
+   783  0565  0844               	movf	??_my_atof+7,w
+   784  0566  3ED0               	addlw	208
+   785  0567  00BF               	movwf	??_my_atof+2
+   786  0568  0845               	movf	??_my_atof+8,w
+   787  0569  1803               	btfsc	3,0
+   788  056A  3E01               	addlw	1
+   789  056B  3EFF               	addlw	255
+   790  056C  00C0               	movwf	??_my_atof+3
+   791                           ;calc.c: 209: i++;
+   792  056D  0AC1               	incf	??_my_atof+4,f
+   793  056E  1903               	btfsc	3,2
+   794  056F  0AC2               	incf	??_my_atof+5,f
+   795  0570  2D4C               	goto	l53
+   796  0571                     l55:
+   797                           ;calc.c: 210: }
+   798                           ;calc.c: 211: if (sign)
+   799  0571  08BE               	movf	??_my_atof+1,f
+   800  0572  1903               	btfsc	3,2
+   801  0573  2D82               	goto	l56
+   802  0574  0840               	movf	??_my_atof+3,w
+   803  0575  00C4               	movwf	??_my_atof+7
+   804  0576  083F               	movf	??_my_atof+2,w
+   805  0577  00C3               	movwf	??_my_atof+6
+   806  0578  09C3               	comf	??_my_atof+6,f
+   807  0579  09C4               	comf	??_my_atof+7,f
+   808  057A  0AC3               	incf	??_my_atof+6,f
+   809  057B  1903               	btfsc	3,2
+   810  057C  0AC4               	incf	??_my_atof+7,f
+   811  057D  0843               	movf	??_my_atof+6,w
+   812  057E  00BB               	movwf	?_my_atof
+   813  057F  0844               	movf	??_my_atof+7,w
+   814  0580  00BC               	movwf	?_my_atof+1
+   815  0581  0008               	return
+   816  0582                     l56:
+   817  0582  0840               	movf	??_my_atof+3,w
+   818  0583  00BC               	movwf	?_my_atof+1
+   819  0584  083F               	movf	??_my_atof+2,w
+   820  0585  00BB               	movwf	?_my_atof
+   821                           ;calc.c: 215: }
+   822  0586  0008               	return
+   823                           ; =============== function _my_atof ends ======
+      +                          =========
+   824  0587                     __end_of_my_atof:
+   825                           ; *************** function _calc_opfunctions **
+      +                          *************
+   826                           ; Defined at:
+   827                           ;		line 250 in file "C:\Attila\Devel Files\Proj
+      +                          ects\MPLab\calc\ver6_test\calc.c"
+   828                           ; Parameters:
+   829                           ;		token       	reg:   wr	type: unsigned char 
+   830                           ; Auto variables:
+   831                           ;		token       	       	type: unsigned char 
+   832                           ;		result      	       	type: unsigned char 
+   833                           ; Return value:
+   834                           ;		type: void 
+   835                           ;		size: 0
+   836                           ; Registers used:
+   837                           ;		wreg, fsr, status,2, status,0, pclath, cstac
+      +                          k
+   838                           ; Tracked objects:
+   839                           ;		On entry : B00/0
+   840                           ;		On exit  : B00/0
+   841                           ;		Unchanged: FFFFF4FF/0
+   842                           ; Data sizes:
+   843                           ;		Autos:    2
+   844                           ;		Params:   0
+   845                           ;		Temp:     0
+   846                           ;		Total:    2
+   847                           ; This function calls:
+   848                           ;		___wmul
+   849                           ;		___awdiv
+   850                           ;		_calc_format
+   851                           ; This function is called by:
+   852                           ;		_calc_evaluate
+   853                           ; This function uses a non-reentrant model
+   854                           ; 
+   855                           ;calc.c: 249: void calc_opfunctions(char token)
+   856                           ;calc.c: 250: {
+   857  0587                     _calc_opfunctions:
+   858                           ; Regs used in _calc_opfunctions: [wreg+fsr+sta
+      +                          tus,2+status,0+pclath+cstack]
+   859                           ;_calc_opfunctions_token stored from wreg
+   860  0587  00BB               	movwf	??_calc_opfunctions
+   861                           ;calc.c: 251: BYTE result = 0;
+   862  0588  01BC               	clrf	??_calc_opfunctions+1
+   863                           ;calc.c: 253: switch (token)
+   864  0589  2DBA               	goto	l74
+   865                           ;calc.c: 254: {
+   866                           ;calc.c: 255: case '-' : lvalue -= rvalue; brea
+      +                          k;
+   867  058A                     l75:
+   868  058A  0877               	movf	119,w
+   869  058B  02F9               	subwf	121,f
+   870  058C  0878               	movf	120,w
+   871  058D  1C03               	btfss	3,0
+   872  058E  03FA               	decf	122,f
+   873  058F  02FA               	subwf	122,f
+   874  0590  2DC7               	goto	l73
+   875                           ;calc.c: 256: case '+' : lvalue += rvalue; brea
+      +                          k;
+   876  0591                     l76:
+   877  0591  0877               	movf	119,w
+   878  0592  07F9               	addwf	121,f
+   879  0593  1803               	btfsc	3,0
+   880  0594  0AFA               	incf	122,f
+   881  0595  0878               	movf	120,w
+   882  0596  07FA               	addwf	122,f
+   883  0597  2DC7               	goto	l73
+   884                           ;calc.c: 257: case '*' : lvalue *= rvalue; brea
+      +                          k;
+   885  0598                     l77:
+   886  0598  0878               	movf	120,w
+   887  0599  00C9               	movwf	(?___wmul+3)& (0+127)
+   888  059A  0877               	movf	119,w
+   889  059B  00C8               	movwf	(?___wmul+2)& (0+127)
+   890  059C  087A               	movf	122,w
+   891  059D  00C7               	movwf	?___wmul+1
+   892  059E  0879               	movf	121,w
+   893  059F  00C6               	movwf	?___wmul
+   894  05A0  2522               	fcall	___wmul
+   895  05A1  0847               	movf	?___wmul+1,w
+   896  05A2  00FA               	movwf	122
+   897  05A3  0846               	movf	?___wmul,w
+   898  05A4  2DB5               	goto	L2
+   899                           ;calc.c: 258: case '/' :
+   900  05A5                     l78:
+   901                           ;calc.c: 259: if (rvalue != 0)
+   902  05A5  0878               	movf	120,w
+   903  05A6  0477               	iorwf	119,w
+   904  05A7  1903               	btfsc	3,2
+   905  05A8  2DB7               	goto	l79
+   906                           ;calc.c: 260: lvalue /= rvalue;
+   907  05A9  0878               	movf	120,w
+   908  05AA  00E0               	movwf	(?___awdiv+3)& (0+127)
+   909  05AB  0877               	movf	119,w
+   910  05AC  00DF               	movwf	(?___awdiv+2)& (0+127)
+   911  05AD  087A               	movf	122,w
+   912  05AE  00DE               	movwf	?___awdiv+1
+   913  05AF  0879               	movf	121,w
+   914  05B0  00DD               	movwf	?___awdiv
+   915  05B1  24DD               	fcall	___awdiv
+   916  05B2  085E               	movf	?___awdiv+1,w
+   917  05B3  00FA               	movwf	122
+   918  05B4  085D               	movf	?___awdiv,w
+   919  05B5                     L2:
+   920  05B5  00F9               	movwf	121
+   921  05B6  2DC7               	goto	l73
+   922  05B7                     l79:
+   923                           ;calc.c: 261: else
+   924                           ;calc.c: 262: result = 2;
+   925  05B7  3002               	movlw	2
+   926  05B8  00BC               	movwf	??_calc_opfunctions+1
+   927                           ;calc.c: 263: break;
+   928  05B9  2DC7               	goto	l73
+   929  05BA                     l74:
+   930  05BA  083B               	movf	??_calc_opfunctions,w
+   931  05BB  3A2A               	xorlw	42
+   932  05BC  1903               	btfsc	3,2
+   933  05BD  2D98               	goto	l77
+   934  05BE  3A01               	xorlw	1
+   935  05BF  1903               	btfsc	3,2
+   936  05C0  2D91               	goto	l76
+   937  05C1  3A06               	xorlw	6
+   938  05C2  1903               	btfsc	3,2
+   939  05C3  2D8A               	goto	l75
+   940  05C4  3A02               	xorlw	2
+   941  05C5  1903               	btfsc	3,2
+   942  05C6  2DA5               	goto	l78
+   943  05C7                     l73:
+   944                           ;calc.c: 266: if (result == 0)
+   945  05C7  08BC               	movf	??_calc_opfunctions+1,f
+   946  05C8  1D03               	btfss	3,2
+   947  05C9  0008               	return
+   948                           ;calc.c: 267: calc_format(lvalue);
+   949  05CA  087A               	movf	122,w
+   950  05CB  00BE               	movwf	?_calc_format+1
+   951  05CC  0879               	movf	121,w
+   952  05CD  00BD               	movwf	?_calc_format
+   953  05CE  2E53               	ljmp	_calc_format
+   954                           ;calc.c: 268: }
+   955                           ; =============== function _calc_opfunctions en
+      +                          ds ===============
+   956  05CF                     __end_of_calc_opfunctions:
+   957                           ; *************** function ___awmod ***********
+      +                          ****
+   958                           ; Defined at:
+   959                           ;		line 5 in file "C:\Program Files\HI-TECH Sof
+      +                          tware\PICC\PRO\9.60\sources\awmod.c"
+   960                           ; Parameters:
+   961                           ;		dividend    	offs:   0	type: int 
+   962                           ;		divisor     	offs:   2	type: int 
+   963                           ; Auto variables:
+   964                           ;		sign        	       	type: unsigned char 
+   965                           ;		counter     	       	type: unsigned char 
+   966                           ; Return value:
+   967                           ;		type: int 
+   968                           ;		size: 2
+   969                           ; Registers used:
+   970                           ;		wreg, status,2, status,0
+   971                           ; Tracked objects:
+   972                           ;		On entry : B00/0
+   973                           ;		On exit  : B00/0
+   974                           ;		Unchanged: FFFFFCFF/0
+   975                           ; Data sizes:
+   976                           ;		Autos:    2
+   977                           ;		Params:   4
+   978                           ;		Temp:     0
+   979                           ;		Total:    6
+   980                           ; This function calls:
+   981                           ;		Nothing
+   982                           ; This function is called by:
+   983                           ;		_my_ftoa
+   984                           ; This function uses a non-reentrant model
+   985                           ; 
+   986  05CF                     ___awmod:
+   987                           ; Regs used in ___awmod: [wreg+status,2+status,
+      +                          0]
+   988  05CF  01E1               	clrf	??___awmod
+   989  05D0  1FDE               	btfss	?___awmod+1,7
+   990  05D1  2DD9               	goto	l369
+   991  05D2  09DD               	comf	?___awmod,f
+   992  05D3  09DE               	comf	?___awmod+1,f
+   993  05D4  0ADD               	incf	?___awmod,f
+   994  05D5  1903               	btfsc	3,2
+   995  05D6  0ADE               	incf	?___awmod+1,f
+   996  05D7  01E1               	clrf	??___awmod
+   997  05D8  0AE1               	incf	??___awmod,f
+   998  05D9                     l369:
+   999  05D9  1FE0               	btfss	?___awmod+3,7
+  1000  05DA  2DE0               	goto	l370
+  1001  05DB  09DF               	comf	?___awmod+2,f
+  1002  05DC  09E0               	comf	?___awmod+3,f
+  1003  05DD  0ADF               	incf	?___awmod+2,f
+  1004  05DE  1903               	btfsc	3,2
+  1005  05DF  0AE0               	incf	?___awmod+3,f
+  1006  05E0                     l370:
+  1007  05E0  0860               	movf	(?___awmod+3)& (0+127),w
+  1008  05E1  045F               	iorwf	(?___awmod+2)& (0+127),w
+  1009  05E2  1903               	btfsc	3,2
+  1010  05E3  2DFF               	goto	l371
+  1011  05E4  01E2               	clrf	??___awmod+1
+  1012  05E5                     L7:
+  1013  05E5  0AE2               	incf	??___awmod+1,f
+  1014  05E6  1BE0               	btfsc	?___awmod+3,7
+  1015  05E7  2DEC               	goto	l377
+  1016  05E8  1003               	bcf	3,0
+  1017  05E9  0DDF               	rlf	?___awmod+2,f
+  1018  05EA  0DE0               	rlf	?___awmod+3,f
+  1019  05EB  2DE5               	goto	L7
+  1020  05EC                     l377:
+  1021  05EC  0860               	movf	?___awmod+3,w
+  1022  05ED  025E               	subwf	?___awmod+1,w
+  1023  05EE  1D03               	btfss	3,2
+  1024  05EF  2DF2               	goto	u2975
+  1025  05F0  085F               	movf	?___awmod+2,w
+  1026  05F1  025D               	subwf	?___awmod,w
+  1027  05F2                     u2975:
+  1028  05F2  1C03               	btfss	3,0
+  1029  05F3  2DFB               	goto	L8
+  1030  05F4  085F               	movf	?___awmod+2,w
+  1031  05F5  02DD               	subwf	?___awmod,f
+  1032  05F6  0860               	movf	?___awmod+3,w
+  1033  05F7  1C03               	btfss	3,0
+  1034  05F8  03DE               	decf	?___awmod+1,f
+  1035  05F9  02DE               	subwf	?___awmod+1,f
+  1036  05FA  1003               	bcf	3,0
+  1037  05FB                     L8:
+  1038  05FB  0CE0               	rrf	?___awmod+3,f
+  1039  05FC  0CDF               	rrf	?___awmod+2,f
+  1040  05FD  0BE2               	decfsz	??___awmod+1,f
+  1041  05FE  2DEC               	goto	l377
+  1042  05FF                     l371:
+  1043  05FF  08E1               	movf	??___awmod,f
+  1044  0600  1903               	btfsc	3,2
+  1045  0601  0008               	return
+  1046  0602  09DD               	comf	?___awmod,f
+  1047  0603  09DE               	comf	?___awmod+1,f
+  1048  0604  0ADD               	incf	?___awmod,f
+  1049  0605  1903               	btfsc	3,2
+  1050  0606  0ADE               	incf	?___awmod+1,f
+  1051  0607  0008               	return
+  1052                           ; =============== function ___awmod ends ======
+      +                          =========
+  1053  0608                     __end_of___awmod:
+  1054                           ; *************** function _my_ftoa ***********
+      +                          ****
+  1055                           ; Defined at:
+  1056                           ;		line 230 in file "C:\Attila\Devel Files\Proj
+      +                          ects\MPLab\calc\ver6_test\calc.c"
+  1057                           ; Parameters:
+  1058                           ;		n           	offs:   0	type: int 
+  1059                           ;		str         	offs:   2	type: PTR unsigned ch
+      +                          ar ; Largest target is 11
+  1060                           ;		 -> calc_format_buf(11), 
+  1061                           ; Auto variables:
+  1062                           ;		sign        	       	type: int 
+  1063                           ;		i           	       	type: int 
+  1064                           ;		s           	       	type: unsigned char [11
+      +                          ]
+  1065                           ; Return value:
+  1066                           ;		type: void 
+  1067                           ;		size: 0
+  1068                           ; Registers used:
+  1069                           ;		wreg, fsr, status,2, status,0, pclath, cstac
+      +                          k
+  1070                           ; Tracked objects:
+  1071                           ;		On entry : B00/0
+  1072                           ;		On exit  : B00/0
+  1073                           ;		Unchanged: FFFFF4FF/0
+  1074                           ; Data sizes:
+  1075                           ;		Autos:   15
+  1076                           ;		Params:   3
+  1077                           ;		Temp:     1
+  1078                           ;		Total:   19
+  1079                           ; This function calls:
+  1080                           ;		___awmod
+  1081                           ;		___awdiv
+  1082                           ;		_my_strrev
+  1083                           ; This function is called by:
+  1084                           ;		_calc_format
+  1085                           ; This function uses a non-reentrant model
+  1086                           ; 
+  1087                           ;calc.c: 230: void my_ftoa(int n, char *str) {
+  1088  0608                     _my_ftoa:
+  1089                           ; Regs used in _my_ftoa: [wreg+fsr+status,2+sta
+      +                          tus,0+pclath+cstack]
+  1090                           ;calc.c: 231: int i, sign;
+  1091                           ;calc.c: 232: char s[10+1];
+  1092                           ;calc.c: 234: i = 0;
+  1093  0608  01CF               	clrf	??_my_ftoa+2
+  1094  0609  01D0               	clrf	??_my_ftoa+3
+  1095                           ;calc.c: 235: if ((sign = n) < 0)
+  1096  060A  084B               	movf	?_my_ftoa+1,w
+  1097  060B  00CE               	movwf	??_my_ftoa+1
+  1098  060C  084A               	movf	?_my_ftoa,w
+  1099  060D  00CD               	movwf	??_my_ftoa
+  1100  060E  1FCE               	btfss	(??_my_ftoa+1)& (0+127),7
+  1101  060F  2E15               	goto	l70
+  1102                           ;calc.c: 236: n = -n;
+  1103  0610  09CA               	comf	?_my_ftoa,f
+  1104  0611  09CB               	comf	?_my_ftoa+1,f
+  1105  0612  0ACA               	incf	?_my_ftoa,f
+  1106  0613  1903               	btfsc	3,2
+  1107  0614  0ACB               	incf	?_my_ftoa+1,f
+  1108                           ;calc.c: 238: do {
+  1109  0615                     l70:
+  1110                           ;calc.c: 239: s[i++] = digits[n % 10];
+  1111  0615  300A               	movlw	10
+  1112  0616  00DF               	movwf	(?___awmod+2)& (0+127)
+  1113  0617  01E0               	clrf	(?___awmod+3)& (0+127)
+  1114  0618  084B               	movf	?_my_ftoa+1,w
+  1115  0619  00DE               	movwf	?___awmod+1
+  1116  061A  084A               	movf	?_my_ftoa,w
+  1117  061B  00DD               	movwf	?___awmod
+  1118  061C  25CF               	fcall	___awmod
+  1119  061D  085D               	movf	?___awmod,w
+  1120  061E  3EE6               	addlw	230
+  1121  061F  0084               	movwf	4
+  1122  0620  0800               	movf	0,w
+  1123  0621  00DC               	movwf	??_my_ftoa+15
+  1124  0622  084F               	movf	??_my_ftoa+2,w
+  1125  0623  3E51               	addlw	(??_my_ftoa+4)& (0+255)
+  1126  0624  0084               	movwf	4
+  1127  0625  085C               	movf	??_my_ftoa+15,w
+  1128  0626  0080               	movwf	0
+  1129  0627  0ACF               	incf	??_my_ftoa+2,f
+  1130  0628  1903               	btfsc	3,2
+  1131  0629  0AD0               	incf	??_my_ftoa+3,f
+  1132                           ;calc.c: 240: } while ((n /= 10) > 0);
+  1133  062A  300A               	movlw	10
+  1134  062B  00DF               	movwf	(?___awdiv+2)& (0+127)
+  1135  062C  01E0               	clrf	(?___awdiv+3)& (0+127)
+  1136  062D  084B               	movf	?_my_ftoa+1,w
+  1137  062E  00DE               	movwf	?___awdiv+1
+  1138  062F  084A               	movf	?_my_ftoa,w
+  1139  0630  00DD               	movwf	?___awdiv
+  1140  0631  24DD               	fcall	___awdiv
+  1141  0632  085E               	movf	?___awdiv+1,w
+  1142  0633  00CB               	movwf	?_my_ftoa+1
+  1143  0634  085D               	movf	?___awdiv,w
+  1144  0635  00CA               	movwf	?_my_ftoa
+  1145  0636  084B               	movf	(?_my_ftoa+1)& (0+127),w
+  1146  0637  3A80               	xorlw	128
+  1147  0638  00DC               	movwf	??_my_ftoa+15
+  1148  0639  3080               	movlw	128
+  1149  063A  025C               	subwf	??_my_ftoa+15,w
+  1150  063B  1D03               	btfss	3,2
+  1151  063C  2E3F               	goto	u27210
+  1152  063D  3001               	movlw	1
+  1153  063E  024A               	subwf	?_my_ftoa& (0+127),w
+  1154  063F                     u27210:
+  1155  063F  1803               	btfsc	3,0
+  1156  0640  2E15               	goto	l70
+  1157                           ;calc.c: 242: if (sign < 0)
+  1158  0641  1FCE               	btfss	??_my_ftoa+1,7
+  1159  0642  2E4B               	goto	l71
+  1160                           ;calc.c: 243: s[i++] = '-';
+  1161  0643  084F               	movf	??_my_ftoa+2,w
+  1162  0644  3E51               	addlw	(??_my_ftoa+4)& (0+255)
+  1163  0645  0084               	movwf	4
+  1164  0646  302D               	movlw	45
+  1165  0647  0080               	movwf	0
+  1166  0648  0ACF               	incf	??_my_ftoa+2,f
+  1167  0649  1903               	btfsc	3,2
+  1168  064A  0AD0               	incf	??_my_ftoa+3,f
+  1169  064B                     l71:
+  1170                           ;calc.c: 244: s[i] = '\0';
+  1171  064B  084F               	movf	??_my_ftoa+2,w
+  1172  064C  3E51               	addlw	(??_my_ftoa+4)& (0+255)
+  1173  064D  0084               	movwf	4
+  1174  064E  0180               	clrf	0
+  1175                           ;calc.c: 246: my_strrev(s, str);
+  1176  064F  084C               	movf	?_my_ftoa+2,w
+  1177  0650  00DD               	movwf	?_my_strrev
+  1178  0651  3051               	movlw	(??_my_ftoa+4)& (0+255)
+  1179  0652  2CB1               	ljmp	_my_strrev
+  1180                           ;calc.c: 247: }
+  1181                           ; =============== function _my_ftoa ends ======
+      +                          =========
+  1182  0653                     __end_of_my_ftoa:
+  1183                           ; *************** function _calc_format *******
+      +                          ********
+  1184                           ; Defined at:
+  1185                           ;		line 187 in file "C:\Attila\Devel Files\Proj
+      +                          ects\MPLab\calc\ver6_test\calc.c"
+  1186                           ; Parameters:
+  1187                           ;		f           	offs:   0	type: int 
+  1188                           ; Auto variables:
+  1189                           ;		buf         	       	type: unsigned char [11
+      +                          ]
+  1190                           ; Return value:
+  1191                           ;		type: void 
+  1192                           ;		size: 0
+  1193                           ; Registers used:
+  1194                           ;		wreg, fsr, status,2, status,0, pclath, cstac
+      +                          k
+  1195                           ; Tracked objects:
+  1196                           ;		On entry : B00/0
+  1197                           ;		On exit  : B00/0
+  1198                           ;		Unchanged: FFFFF4FF/0
+  1199                           ; Data sizes:
+  1200                           ;		Autos:   11
+  1201                           ;		Params:   2
+  1202                           ;		Temp:     0
+  1203                           ;		Total:   13
+  1204                           ; This function calls:
+  1205                           ;		_my_ftoa
+  1206                           ;		_calc_display
+  1207                           ; This function is called by:
+  1208                           ;		_calc_opfunctions
+  1209                           ;		_calc_evaluate
+  1210                           ; This function uses a non-reentrant model
+  1211                           ; 
+  1212                           ;calc.c: 186: void calc_format (int f)
+  1213                           ;calc.c: 187: {
+  1214  0653                     _calc_format:
+  1215                           ; Regs used in _calc_format: [wreg+fsr+status,2
+      +                          +status,0+pclath+cstack]
+  1216                           ;calc.c: 188: char buf[10+1];
+  1217                           ;calc.c: 190: my_ftoa(f, buf);
+  1218  0653  303F               	movlw	??_calc_format& (0+255)
+  1219  0654  00CC               	movwf	(?_my_ftoa+2)& (0+127)
+  1220  0655  083E               	movf	?_calc_format+1,w
+  1221  0656  00CB               	movwf	?_my_ftoa+1
+  1222  0657  083D               	movf	?_calc_format,w
+  1223  0658  00CA               	movwf	?_my_ftoa
+  1224  0659  2608  118A         	fcall	_my_ftoa
+  1225                           ;calc.c: 191: calc_display(buf);
+  1226  065B  303F               	movlw	??_calc_format& (0+255)
+  1227  065C  2FCF               	ljmp	_calc_display
+  1228                           ;calc.c: 192: }
+  1229                           ; =============== function _calc_format ends ==
+      +                          =============
+  1230  065D                     __end_of_calc_format:
+  1231                           ; *************** function _calc_evaluate *****
+      +                          **********
+  1232                           ; Defined at:
+  1233                           ;		line 271 in file "C:\Attila\Devel Files\Proj
+      +                          ects\MPLab\calc\ver6_test\calc.c"
+  1234                           ; Parameters:
+  1235                           ;		None
+  1236                           ; Auto variables:
+  1237                           ;		key         	       	type: unsigned char 
+  1238                           ;		m           	       	type: unsigned char 
+  1239                           ;		tmp         	       	type: int 
+  1240                           ;		n_tmp       	       	type: unsigned char [11
+      +                          ]
+  1241                           ;		number      	       	type: unsigned char [11
+      +                          ]
+  1242                           ; Return value:
+  1243                           ;		type: void 
+  1244                           ;		size: 0
+  1245                           ; Registers used:
+  1246                           ;		wreg, fsr, status,2, status,0, pclath, cstac
+      +                          k
+  1247                           ; Tracked objects:
+  1248                           ;		On entry : BFF/0
+  1249                           ;		On exit  : BFF/0
+  1250                           ;		Unchanged: FFFFF4FF/0
+  1251                           ; Data sizes:
+  1252                           ;		Autos:   26
+  1253                           ;		Params:   0
+  1254                           ;		Temp:     1
+  1255                           ;		Total:   27
+  1256                           ; This function calls:
+  1257                           ;		_calc_format
+  1258                           ;		_calc_getkey
+  1259                           ;		_calc_display
+  1260                           ;		_calc_testkey
+  1261                           ;		_my_atof
+  1262                           ;		_calc_opfunctions
+  1263                           ; This function is called by:
+  1264                           ;		_main
+  1265                           ; This function uses a non-reentrant model
+  1266                           ; 
+  1267                           ;calc.c: 270: void calc_evaluate()
+  1268                           ;calc.c: 271: {
+  1269  065D                     _calc_evaluate:
+  1270                           ; Regs used in _calc_evaluate: [wreg+fsr+status
+      +                          ,2+status,0+pclath+cstack]
+  1271                           ;calc.c: 272: char number[10+1], key;
+  1272                           ;calc.c: 273: char n_tmp[10+1];
+  1273                           ;calc.c: 274: int tmp;
+  1274                           ;calc.c: 275: BYTE i, m;
+  1275                           ;calc.c: 277: lvalue = 0;
+  1276  065D  01F9               	clrf	121
+  1277  065E  01FA               	clrf	122
+  1278                           ;calc.c: 278: rvalue = 0;
+  1279  065F  01F7               	clrf	119
+  1280  0660  01F8               	clrf	120
+  1281                           ;calc.c: 279: lastop = 0;
+  1282  0661  01FB               	clrf	123
+  1283                           ;calc.c: 281: calc_format(0);
+  1284  0662  01BD               	clrf	?_calc_format
+  1285  0663  01BE               	clrf	?_calc_format+1
+  1286  0664  2653  118A         	fcall	_calc_format
+  1287                           ;calc.c: 283: pos = 0;
+  1288  0666  01FD               	clrf	125
+  1289                           ;calc.c: 285: for (;;) {
+  1290  0667                     l83:
+  1291                           ;calc.c: 286: key = calc_getkey();
+  1292  0667  24A8               	fcall	_calc_getkey
+  1293  0668  00A0               	movwf	??_calc_evaluate
+  1294                           ;calc.c: 289: if (key == 'C') {
+  1295  0669  3A43               	xorlw	67
+  1296  066A  1D03               	btfss	3,2
+  1297  066B  2E7A               	goto	l86
+  1298                           ;calc.c: 290: lvalue = 0; rvalue = 0; lastop = 
+      +                          0; pos = 0; sign = 0;
+  1299  066C  01F9               	clrf	121
+  1300  066D  01FA               	clrf	122
+  1301  066E  01F7               	clrf	119
+  1302  066F  01F8               	clrf	120
+  1303  0670  01FB               	clrf	123
+  1304  0671  01FD               	clrf	125
+  1305  0672  01FC               	clrf	124
+  1306                           ;calc.c: 291: calc_format(lvalue);
+  1307  0673  087A               	movf	122,w
+  1308  0674  00BE               	movwf	?_calc_format+1
+  1309  0675  0879               	movf	121,w
+  1310  0676  00BD               	movwf	?_calc_format
+  1311  0677  2653  118A         	fcall	_calc_format
+  1312                           ;calc.c: 292: }
+  1313  0679  2E67               	goto	l83
+  1314  067A                     l86:
+  1315                           ;calc.c: 293: else if (key == 'P') {
+  1316  067A  0820               	movf	??_calc_evaluate,w
+  1317  067B  3A50               	xorlw	80
+  1318  067C  1D03               	btfss	3,2
+  1319  067D  2EF3               	goto	l88
+  1320                           ;calc.c: 294: if ((pos != 10 - 2) && (pos > 0))
+      +                           {
+  1321  067E  087D               	movf	125,w
+  1322  067F  3A08               	xorlw	8
+  1323  0680  1903               	btfsc	3,2
+  1324  0681  2E67               	goto	l83
+  1325  0682  08FD               	movf	125,f
+  1326  0683  1903               	btfsc	3,2
+  1327  0684  2E67               	goto	l83
+  1328                           ;calc.c: 296: if (sign) sign = 0; else sign = 1
+      +                          ;
+  1329  0685  08FC               	movf	124,f
+  1330  0686  1903               	btfsc	3,2
+  1331  0687  2E8A               	goto	l90
+  1332  0688  01FC               	clrf	124
+  1333  0689  2E8C               	goto	l91
+  1334  068A                     l90:
+  1335  068A  01FC               	clrf	124
+  1336  068B  0AFC               	incf	124,f
+  1337  068C                     l91:
+  1338                           ;calc.c: 299: if (sign) {
+  1339  068C  08FC               	movf	124,f
+  1340  068D  1903               	btfsc	3,2
+  1341  068E  2EBF               	goto	l92
+  1342                           ;calc.c: 300: n_tmp[0] = '-';
+  1343  068F  302D               	movlw	45
+  1344  0690  00A4               	movwf	??_calc_evaluate+4
+  1345                           ;calc.c: 301: for (m=0; number[m] != 0; m++)
+  1346  0691  01A1               	clrf	??_calc_evaluate+1
+  1347  0692                     l96:
+  1348  0692  0821               	movf	??_calc_evaluate+1,w
+  1349  0693  3E2F               	addlw	(??_calc_evaluate+15)& (0+255)
+  1350  0694  0084               	movwf	4
+  1351  0695  0880               	movf	0,f
+  1352  0696  1903               	btfsc	3,2
+  1353  0697  2EA4               	goto	l94
+  1354                           ;calc.c: 302: n_tmp[m+1] = number[m];
+  1355  0698  0821               	movf	??_calc_evaluate+1,w
+  1356  0699  3E2F               	addlw	(??_calc_evaluate+15)& (0+255)
+  1357  069A  0084               	movwf	4
+  1358  069B  0800               	movf	0,w
+  1359  069C  00BA               	movwf	??_calc_evaluate+26
+  1360  069D  0A21               	incf	??_calc_evaluate+1,w
+  1361  069E  3E24               	addlw	(??_calc_evaluate+4)& (0+255)
+  1362  069F  0084               	movwf	4
+  1363  06A0  083A               	movf	??_calc_evaluate+26,w
+  1364  06A1  0080               	movwf	0
+  1365  06A2  0AA1               	incf	??_calc_evaluate+1,f
+  1366  06A3  2E92               	goto	l96
+  1367  06A4                     l94:
+  1368                           ;calc.c: 303: n_tmp[m+1] = 0;
+  1369  06A4  0A21               	incf	??_calc_evaluate+1,w
+  1370  06A5  3E24               	addlw	(??_calc_evaluate+4)& (0+255)
+  1371  06A6  0084               	movwf	4
+  1372  06A7  0180               	clrf	0
+  1373                           ;calc.c: 304: for (m=0; n_tmp[m] != 0; m++)
+  1374  06A8  01A1               	clrf	??_calc_evaluate+1
+  1375  06A9                     l100:
+  1376  06A9  0821               	movf	??_calc_evaluate+1,w
+  1377  06AA  3E24               	addlw	(??_calc_evaluate+4)& (0+255)
+  1378  06AB  0084               	movwf	4
+  1379  06AC  0880               	movf	0,f
+  1380  06AD  1903               	btfsc	3,2
+  1381  06AE  2EBB               	goto	l98
+  1382                           ;calc.c: 305: number[m] = n_tmp[m];
+  1383  06AF  0821               	movf	??_calc_evaluate+1,w
+  1384  06B0  3E24               	addlw	(??_calc_evaluate+4)& (0+255)
+  1385  06B1  0084               	movwf	4
+  1386  06B2  0800               	movf	0,w
+  1387  06B3  00BA               	movwf	??_calc_evaluate+26
+  1388  06B4  0821               	movf	??_calc_evaluate+1,w
+  1389  06B5  3E2F               	addlw	(??_calc_evaluate+15)& (0+255)
+  1390  06B6  0084               	movwf	4
+  1391  06B7  083A               	movf	??_calc_evaluate+26,w
+  1392  06B8  0080               	movwf	0
+  1393  06B9  0AA1               	incf	??_calc_evaluate+1,f
+  1394  06BA  2EA9               	goto	l100
+  1395  06BB                     l98:
+  1396                           ;calc.c: 306: number[m] = 0;
+  1397  06BB  0821               	movf	??_calc_evaluate+1,w
+  1398  06BC  3E2F               	addlw	(??_calc_evaluate+15)& (0+255)
+  1399  06BD  0084               	movwf	4
+  1400  06BE  0180               	clrf	0
+  1401  06BF                     l92:
+  1402                           ;calc.c: 307: }
+  1403                           ;calc.c: 310: if (!sign) {
+  1404  06BF  08FC               	movf	124,f
+  1405  06C0  1D03               	btfss	3,2
+  1406  06C1  2EF0               	goto	l101
+  1407                           ;calc.c: 311: for (m=1; number[m] != 0; m++) {
+  1408  06C2  01A1               	clrf	??_calc_evaluate+1
+  1409  06C3                     L1:
+  1410  06C3  0AA1               	incf	??_calc_evaluate+1,f
+  1411  06C4  0821               	movf	??_calc_evaluate+1,w
+  1412  06C5  3E2F               	addlw	(??_calc_evaluate+15)& (0+255)
+  1413  06C6  0084               	movwf	4
+  1414  06C7  0880               	movf	0,f
+  1415  06C8  1903               	btfsc	3,2
+  1416  06C9  2ED5               	goto	l103
+  1417                           ;calc.c: 312: n_tmp[m-1] = number[m];
+  1418  06CA  0821               	movf	??_calc_evaluate+1,w
+  1419  06CB  3E2F               	addlw	(??_calc_evaluate+15)& (0+255)
+  1420  06CC  0084               	movwf	4
+  1421  06CD  0800               	movf	0,w
+  1422  06CE  00BA               	movwf	??_calc_evaluate+26
+  1423  06CF  0321               	decf	??_calc_evaluate+1,w
+  1424  06D0  3E24               	addlw	(??_calc_evaluate+4)& (0+255)
+  1425  06D1  0084               	movwf	4
+  1426  06D2  083A               	movf	??_calc_evaluate+26,w
+  1427  06D3  0080               	movwf	0
+  1428  06D4  2EC3               	goto	L1
+  1429  06D5                     l103:
+  1430                           ;calc.c: 313: }
+  1431                           ;calc.c: 314: n_tmp[m-1] = 0;
+  1432  06D5  0321               	decf	??_calc_evaluate+1,w
+  1433  06D6  3E24               	addlw	(??_calc_evaluate+4)& (0+255)
+  1434  06D7  0084               	movwf	4
+  1435  06D8  0180               	clrf	0
+  1436                           ;calc.c: 315: for (m=0; n_tmp[m] != 0; m++)
+  1437  06D9  01A1               	clrf	??_calc_evaluate+1
+  1438  06DA                     l109:
+  1439  06DA  0821               	movf	??_calc_evaluate+1,w
+  1440  06DB  3E24               	addlw	(??_calc_evaluate+4)& (0+255)
+  1441  06DC  0084               	movwf	4
+  1442  06DD  0880               	movf	0,f
+  1443  06DE  1903               	btfsc	3,2
+  1444  06DF  2EEC               	goto	l107
+  1445                           ;calc.c: 316: number[m] = n_tmp[m];
+  1446  06E0  0821               	movf	??_calc_evaluate+1,w
+  1447  06E1  3E24               	addlw	(??_calc_evaluate+4)& (0+255)
+  1448  06E2  0084               	movwf	4
+  1449  06E3  0800               	movf	0,w
+  1450  06E4  00BA               	movwf	??_calc_evaluate+26
+  1451  06E5  0821               	movf	??_calc_evaluate+1,w
+  1452  06E6  3E2F               	addlw	(??_calc_evaluate+15)& (0+255)
+  1453  06E7  0084               	movwf	4
+  1454  06E8  083A               	movf	??_calc_evaluate+26,w
+  1455  06E9  0080               	movwf	0
+  1456  06EA  0AA1               	incf	??_calc_evaluate+1,f
+  1457  06EB  2EDA               	goto	l109
+  1458  06EC                     l107:
+  1459                           ;calc.c: 317: number[m] = 0;
+  1460  06EC  0821               	movf	??_calc_evaluate+1,w
+  1461  06ED  3E2F               	addlw	(??_calc_evaluate+15)& (0+255)
+  1462  06EE  0084               	movwf	4
+  1463  06EF  0180               	clrf	0
+  1464  06F0                     l101:
+  1465                           ;calc.c: 318: }
+  1466                           ;calc.c: 320: calc_display(number);
+  1467  06F0  302F               	movlw	(??_calc_evaluate+15)& (0+255)
+  1468  06F1  27CF               	fcall	_calc_display
+  1469                           ;calc.c: 321: }
+  1470                           ;calc.c: 322: }
+  1471  06F2  2E67               	goto	l83
+  1472  06F3                     l88:
+  1473                           ;calc.c: 323: else if (calc_testkey(key)) {
+  1474  06F3  0820               	movf	??_calc_evaluate,w
+  1475  06F4  2441               	fcall	_calc_testkey
+  1476  06F5  3A00               	xorlw	0
+  1477  06F6  1903               	btfsc	3,2
+  1478  06F7  2F09               	goto	l111
+  1479                           ;calc.c: 324: if (pos != 10 - 2) {
+  1480  06F8  087D               	movf	125,w
+  1481  06F9  3A08               	xorlw	8
+  1482  06FA  1903               	btfsc	3,2
+  1483  06FB  2E67               	goto	l83
+  1484                           ;calc.c: 325: number[pos++] = key; number[pos] 
+      +                          = 0;
+  1485  06FC  087D               	movf	125,w
+  1486  06FD  3E2F               	addlw	(??_calc_evaluate+15)& (0+255)
+  1487  06FE  0084               	movwf	4
+  1488  06FF  0820               	movf	??_calc_evaluate,w
+  1489  0700  0080               	movwf	0
+  1490  0701  0AFD               	incf	125,f
+  1491  0702  087D               	movf	125,w
+  1492  0703  3E2F               	addlw	(??_calc_evaluate+15)& (0+255)
+  1493  0704  0084               	movwf	4
+  1494  0705  0180               	clrf	0
+  1495                           ;calc.c: 326: calc_display(number);
+  1496  0706  302F               	movlw	(??_calc_evaluate+15)& (0+255)
+  1497  0707  27CF               	fcall	_calc_display
+  1498                           ;calc.c: 327: }
+  1499                           ;calc.c: 328: }
+  1500  0708  2E67               	goto	l83
+  1501  0709                     l111:
+  1502                           ;calc.c: 329: else {
+  1503                           ;calc.c: 330: if (pos != 0)
+  1504  0709  08FD               	movf	125,f
+  1505  070A  1903               	btfsc	3,2
+  1506  070B  2F1E               	goto	l114
+  1507                           ;calc.c: 331: { tmp = my_atof(number);
+  1508  070C  302F               	movlw	(??_calc_evaluate+15)& (0+255)
+  1509  070D  253B               	fcall	_my_atof
+  1510  070E  083C               	movf	?_my_atof+1,w
+  1511  070F  00A3               	movwf	??_calc_evaluate+3
+  1512  0710  083B               	movf	?_my_atof,w
+  1513  0711  00A2               	movwf	??_calc_evaluate+2
+  1514                           ;calc.c: 332: if (lastop == 0)
+  1515  0712  08FB               	movf	123,f
+  1516  0713  1D03               	btfss	3,2
+  1517  0714  2F1A               	goto	l115
+  1518                           ;calc.c: 333: lvalue = tmp;
+  1519  0715  0823               	movf	??_calc_evaluate+3,w
+  1520  0716  00FA               	movwf	122
+  1521  0717  0822               	movf	??_calc_evaluate+2,w
+  1522  0718  00F9               	movwf	121
+  1523  0719  2F1E               	goto	l114
+  1524  071A                     l115:
+  1525                           ;calc.c: 334: else
+  1526                           ;calc.c: 335: rvalue = tmp;
+  1527  071A  0823               	movf	??_calc_evaluate+3,w
+  1528  071B  00F8               	movwf	120
+  1529  071C  0822               	movf	??_calc_evaluate+2,w
+  1530  071D  00F7               	movwf	119
+  1531  071E                     l114:
+  1532                           ;calc.c: 336: }
+  1533                           ;calc.c: 337: pos = 0; sign = 0;
+  1534  071E  01FD               	clrf	125
+  1535  071F  01FC               	clrf	124
+  1536                           ;calc.c: 338: if (lastop != 0)
+  1537  0720  08FB               	movf	123,f
+  1538  0721  1903               	btfsc	3,2
+  1539  0722  2F26               	goto	l117
+  1540                           ;calc.c: 339: calc_opfunctions(lastop);
+  1541  0723  087B               	movf	123,w
+  1542  0724  2587  118A         	fcall	_calc_opfunctions
+  1543  0726                     l117:
+  1544                           ;calc.c: 340: if (key != '=')
+  1545  0726  0820               	movf	??_calc_evaluate,w
+  1546  0727  3A3D               	xorlw	61
+  1547  0728  1903               	btfsc	3,2
+  1548  0729  2F2D               	goto	l118
+  1549                           ;calc.c: 341: lastop = key;
+  1550  072A  0820               	movf	??_calc_evaluate,w
+  1551  072B  00FB               	movwf	123
+  1552  072C  2E67               	goto	l83
+  1553  072D                     l118:
+  1554                           ;calc.c: 342: else
+  1555                           ;calc.c: 343: lastop = 0;
+  1556  072D  01FB               	clrf	123
+  1557                           ;calc.c: 344: }
+  1558                           ;calc.c: 345: }
+  1559  072E  2E67               	goto	l83
+  1560                           ; =============== function _calc_evaluate ends 
+      +                          ===============
+  1561  072F                     __end_of_calc_evaluate:
+  1562                           ; *************** function _my_delay **********
+      +                          *****
+  1563                           ; Defined at:
+  1564                           ;		line 25 in file "C:\Attila\Devel Files\Proje
+      +                          cts\MPLab\calc\ver6_test\calc.c"
+  1565                           ; Parameters:
+  1566                           ;		u           	offs:   0	type: int 
+  1567                           ; Auto variables:
+  1568                           ;		i           	       	type: int 
+  1569                           ; Return value:
+  1570                           ;		type: void 
+  1571                           ;		size: 0
+  1572                           ; Registers used:
+  1573                           ;		wreg, status,2, status,0
+  1574                           ; Tracked objects:
+  1575                           ;		On entry : B00/0
+  1576                           ;		On exit  : B00/0
+  1577                           ;		Unchanged: FFFFFCFF/0
+  1578                           ; Data sizes:
+  1579                           ;		Autos:    2
+  1580                           ;		Params:   2
+  1581                           ;		Temp:     1
+  1582                           ;		Total:    5
+  1583                           ; This function calls:
+  1584                           ;		Nothing
+  1585                           ; This function is called by:
+  1586                           ;		_lcd_send2
+  1587                           ;		_lcd_init
+  1588                           ; This function uses a non-reentrant model
+  1589                           ; 
+  1590                           ;calc.c: 21: asm("\tpsect config,class=CONFIG,d
+      +                          elta=2"); asm("\tdw ""0x3FDF");
+  1591                           ;calc.c: 24: void my_delay(int u)
+  1592                           ;calc.c: 25: {
+  1593  072F                     _my_delay:
+  1594                           ; Regs used in _my_delay: [wreg+status,2+status
+      +                          ,0]
+  1595                           ;calc.c: 26: int i;
+  1596                           ;calc.c: 28: for (i=0; i<u; i++) ;
+  1597  072F  01D3               	clrf	??_my_delay
+  1598  0730  01D4               	clrf	??_my_delay+1
+  1599  0731  2F35               	goto	l9
+  1600  0732                     l6:
+  1601  0732  0AD3               	incf	??_my_delay,f
+  1602  0733  1903               	btfsc	3,2
+  1603  0734  0AD4               	incf	??_my_delay+1,f
+  1604  0735                     l9:
+  1605  0735  0854               	movf	??_my_delay+1,w
+  1606  0736  3A80               	xorlw	128
+  1607  0737  00D5               	movwf	??_my_delay+2
+  1608  0738  0852               	movf	?_my_delay+1,w
+  1609  0739  3A80               	xorlw	128
+  1610  073A  0255               	subwf	??_my_delay+2,w
+  1611  073B  1D03               	btfss	3,2
+  1612  073C  2F3F               	goto	u30410
+  1613  073D  0851               	movf	?_my_delay,w
+  1614  073E  0253               	subwf	??_my_delay,w
+  1615  073F                     u30410:
+  1616  073F  1803               	btfsc	3,0
+  1617  0740  0008               	return
+  1618  0741  2F32               	goto	l6
+  1619                           ;calc.c: 29: }
+  1620                           ; =============== function _my_delay ends =====
+      +                          ==========
+  1621  0742                     __end_of_my_delay:	;_keycodes
+  1622                           ; *************** function _lcd_send **********
+      +                          *****
+  1623                           ; Defined at:
+  1624                           ;		line 33 in file "C:\Attila\Devel Files\Proje
+      +                          cts\MPLab\calc\ver6_test\calc.c"
+  1625                           ; Parameters:
+  1626                           ;		val         	reg:   wr	type: unsigned char 
+  1627                           ;		is_data     	offs:   0	type: unsigned char 
+  1628                           ; Auto variables:
+  1629                           ;		val         	       	type: unsigned char 
+  1630                           ;		tmp         	       	type: int 
+  1631                           ; Return value:
+  1632                           ;		type: void 
+  1633                           ;		size: 0
+  1634                           ; Registers used:
+  1635                           ;		wreg
+  1636                           ; Tracked objects:
+  1637                           ;		On entry : BFF/0
+  1638                           ;		On exit  : BFF/0
+  1639                           ;		Unchanged: FFFFF4FF/0
+  1640                           ; Data sizes:
+  1641                           ;		Autos:    3
+  1642                           ;		Params:   1
+  1643                           ;		Temp:     0
+  1644                           ;		Total:    4
+  1645                           ; This function calls:
+  1646                           ;		Nothing
+  1647                           ; This function is called by:
+  1648                           ;		_lcd_init
+  1649                           ; This function uses a non-reentrant model
+  1650                           ; 
+  1651                           ;calc.c: 32: void lcd_send(BYTE val, BYTE is_da
+      +                          ta)
+  1652                           ;calc.c: 33: {
+  1653  0742                     _lcd_send:
+  1654                           ; Regs used in _lcd_send: [wreg]
+  1655                           ;_lcd_send_val stored from wreg
+  1656  0742  00A1               	movwf	??_lcd_send
+  1657                           ;calc.c: 34: int tmp;
+  1658                           ;calc.c: 36: tmp = val >> 4; if (is_data) tmp |
+      +                          = 0x10; PORTB = tmp;
+  1659  0743  0E21               	swapf	??_lcd_send,w
+  1660  0744  390F               	andlw	15
+  1661  0745  00A2               	movwf	??_lcd_send+1
+  1662  0746  01A3               	clrf	??_lcd_send+2
+  1663  0747  08A0               	movf	?_lcd_send,f
+  1664  0748  1D03               	btfss	3,2
+  1665  0749  1622               	bsf	??_lcd_send+1,4
+  1666  074A  0822               	movf	??_lcd_send+1,w
+  1667  074B  0086               	movwf	6	;volatile
+  1668                           ;calc.c: 37: tmp |= 0x20; PORTB = tmp;
+  1669  074C  16A2               	bsf	??_lcd_send+1,5
+  1670  074D  0822               	movf	??_lcd_send+1,w
+  1671  074E  0086               	movwf	6	;volatile
+  1672                           ;calc.c: 38: tmp &= 0xDF; PORTB = tmp;
+  1673  074F  30DF               	movlw	223
+  1674  0750  05A2               	andwf	??_lcd_send+1,f
+  1675  0751  01A3               	clrf	??_lcd_send+2
+  1676  0752  0822               	movf	??_lcd_send+1,w
+  1677  0753  0086               	movwf	6	;volatile
+  1678                           ;calc.c: 39: }
+  1679  0754  0008               	return
+  1680                           ; =============== function _lcd_send ends =====
+      +                          ==========
+  1681  0755                     __end_of_lcd_send:
+  1682                           ; *************** function _lcd_init **********
+      +                          *****
+  1683                           ; Defined at:
+  1684                           ;		line 63 in file "C:\Attila\Devel Files\Proje
+      +                          cts\MPLab\calc\ver6_test\calc.c"
+  1685                           ; Parameters:
+  1686                           ;		None
+  1687                           ; Auto variables:
+  1688                           ;		None
+  1689                           ; Return value:
+  1690                           ;		type: void 
+  1691                           ;		size: 0
+  1692                           ; Registers used:
+  1693                           ;		wreg, status,2, status,0, pclath, cstack
+  1694                           ; Tracked objects:
+  1695                           ;		On entry : BFF/0
+  1696                           ;		On exit  : BFF/0
+  1697                           ;		Unchanged: FFFFF4FF/0
+  1698                           ; Data sizes:
+  1699                           ;		Autos:    0
+  1700                           ;		Params:   0
+  1701                           ;		Temp:     0
+  1702                           ;		Total:    0
+  1703                           ; This function calls:
+  1704                           ;		_lcd_send
+  1705                           ;		_my_delay
+  1706                           ;		_lcd_send2
+  1707                           ; This function is called by:
+  1708                           ;		_init
+  1709                           ; This function uses a non-reentrant model
+  1710                           ; 
+  1711                           ;calc.c: 62: void lcd_init()
+  1712                           ;calc.c: 63: {
+  1713  0755                     _lcd_init:
+  1714                           ; Regs used in _lcd_init: [wreg+status,2+status
+      +                          ,0+pclath+cstack]
+  1715                           ;calc.c: 64: lcd_send(0x30,0); my_delay(10);
+  1716  0755  01A0               	clrf	?_lcd_send
+  1717  0756  3030               	movlw	48
+  1718  0757  2742               	fcall	_lcd_send
+  1719  0758  300A               	movlw	10
+  1720  0759  00D1               	movwf	?_my_delay
+  1721  075A  01D2               	clrf	?_my_delay+1
+  1722  075B  272F               	fcall	_my_delay
+  1723                           ;calc.c: 65: lcd_send(0x30,0);
+  1724  075C  01A0               	clrf	?_lcd_send
+  1725  075D  3030               	movlw	48
+  1726  075E  2742               	fcall	_lcd_send
+  1727                           ;calc.c: 67: lcd_send(0x30,0);
+  1728  075F  01A0               	clrf	?_lcd_send
+  1729  0760  3030               	movlw	48
+  1730  0761  2742               	fcall	_lcd_send
+  1731                           ;calc.c: 68: lcd_send(0x20,0);
+  1732  0762  01A0               	clrf	?_lcd_send
+  1733  0763  3020               	movlw	32
+  1734  0764  2742               	fcall	_lcd_send
+  1735                           ;calc.c: 70: lcd_send(0x20,0);
+  1736  0765  01A0               	clrf	?_lcd_send
+  1737  0766  3020               	movlw	32
+  1738  0767  2742               	fcall	_lcd_send
+  1739                           ;calc.c: 71: lcd_send(0x80,0);
+  1740  0768  01A0               	clrf	?_lcd_send
+  1741  0769  3080               	movlw	128
+  1742  076A  2742               	fcall	_lcd_send
+  1743                           ;calc.c: 73: lcd_send(0x00,0);
+  1744  076B  01A0               	clrf	?_lcd_send
+  1745  076C  3000               	movlw	0
+  1746  076D  2742               	fcall	_lcd_send
+  1747                           ;calc.c: 74: lcd_send(0x80,0);
+  1748  076E  01A0               	clrf	?_lcd_send
+  1749  076F  3080               	movlw	128
+  1750  0770  2742               	fcall	_lcd_send
+  1751                           ;calc.c: 76: lcd_send(0x00,0);
+  1752  0771  01A0               	clrf	?_lcd_send
+  1753  0772  3000               	movlw	0
+  1754  0773  2742               	fcall	_lcd_send
+  1755                           ;calc.c: 77: lcd_send(0x10,0);
+  1756  0774  01A0               	clrf	?_lcd_send
+  1757  0775  3010               	movlw	16
+  1758  0776  2742               	fcall	_lcd_send
+  1759                           ;calc.c: 79: lcd_send(0x00,0);
+  1760  0777  01A0               	clrf	?_lcd_send
+  1761  0778  3000               	movlw	0
+  1762  0779  2742               	fcall	_lcd_send
+  1763                           ;calc.c: 80: lcd_send(0x60,0);
+  1764  077A  01A0               	clrf	?_lcd_send
+  1765  077B  3060               	movlw	96
+  1766  077C  2742               	fcall	_lcd_send
+  1767                           ;calc.c: 82: lcd_send(0x00,0);
+  1768  077D  01A0               	clrf	?_lcd_send
+  1769  077E  3000               	movlw	0
+  1770  077F  2742               	fcall	_lcd_send
+  1771                           ;calc.c: 83: lcd_send(0xE0,0);
+  1772  0780  01A0               	clrf	?_lcd_send
+  1773  0781  30E0               	movlw	224
+  1774  0782  2742               	fcall	_lcd_send
+  1775                           ;calc.c: 85: lcd_send(0x80,0);
+  1776  0783  01A0               	clrf	?_lcd_send
+  1777  0784  3080               	movlw	128
+  1778  0785  2742               	fcall	_lcd_send
+  1779                           ;calc.c: 86: lcd_send(0x00,0);
+  1780  0786  01A0               	clrf	?_lcd_send
+  1781  0787  3000               	movlw	0
+  1782  0788  2742               	fcall	_lcd_send
+  1783                           ;calc.c: 88: lcd_send2('H',1);
+  1784  0789  01CD               	clrf	?_lcd_send2
+  1785  078A  0ACD               	incf	?_lcd_send2,f
+  1786  078B  3048               	movlw	72
+  1787  078C  2FA1               	ljmp	_lcd_send2
+  1788                           ;calc.c: 89: }
+  1789                           ; =============== function _lcd_init ends =====
+      +                          ==========
+  1790  078D                     __end_of_lcd_init:
+  1791                           ; *************** function _init **************
+      +                          *
+  1792                           ; Defined at:
+  1793                           ;		line 350 in file "C:\Attila\Devel Files\Proj
+      +                          ects\MPLab\calc\ver6_test\calc.c"
+  1794                           ; Parameters:
+  1795                           ;		None
+  1796                           ; Auto variables:
+  1797                           ;		None
+  1798                           ; Return value:
+  1799                           ;		type: void 
+  1800                           ;		size: 0
+  1801                           ; Registers used:
+  1802                           ;		wreg, status,2, status,0, pclath, cstack
+  1803                           ; Tracked objects:
+  1804                           ;		On entry : BFF/0
+  1805                           ;		On exit  : BFF/0
+  1806                           ;		Unchanged: FFFFF4FF/0
+  1807                           ; Data sizes:
+  1808                           ;		Autos:    0
+  1809                           ;		Params:   0
+  1810                           ;		Temp:     0
+  1811                           ;		Total:    0
+  1812                           ; This function calls:
+  1813                           ;		_lcd_init
+  1814                           ; This function is called by:
+  1815                           ;		_main
+  1816                           ; This function uses a non-reentrant model
+  1817                           ; 
+  1818                           ;calc.c: 349: void init()
+  1819                           ;calc.c: 350: {
+  1820  078D                     _init:
+  1821                           ; Regs used in _init: [wreg+status,2+status,0+p
+      +                          clath+cstack]
+  1822                           ;calc.c: 351: ANSEL = 0;
+  1823  078D  1683               	bsf	3,5	;RP0=1, select bank1
+  1824  078E  019B               	clrf	27
+  1825                           ;calc.c: 352: CMCON = 0x07;
+  1826  078F  3007               	movlw	7
+  1827  0790  009C               	movwf	28	;volatile
+  1828                           ;calc.c: 353: OSCCON |= 0b01110000;
+  1829  0791  3070               	movlw	112
+  1830  0792  048F               	iorwf	15,f	;volatile
+  1831                           ;calc.c: 354: TRISA = 0b11110000;
+  1832  0793  30F0               	movlw	240
+  1833  0794  0085               	movwf	5	;volatile
+  1834                           ;calc.c: 355: TRISB = 0x00;
+  1835  0795  0186               	clrf	6	;volatile
+  1836                           ;calc.c: 356: PORTA = 0xFF;
+  1837  0796  1283               	bcf	3,5	;RP0=0, select bank0
+  1838  0797  30FF               	movlw	255
+  1839  0798  0085               	movwf	5	;volatile
+  1840                           ;calc.c: 357: PORTB = 0x00;
+  1841  0799  0186               	clrf	6	;volatile
+  1842                           ;calc.c: 358: sign = 0;
+  1843  079A  01FC               	clrf	124
+  1844                           ;calc.c: 359: lcd_init();
+  1845  079B  2F55               	ljmp	_lcd_init
+  1846                           ;calc.c: 360: }
+  1847                           ; =============== function _init ends =========
+      +                          ======
+  1848  079C                     __end_of_init:
+  1849                           ;Data sizes: Strings 0, constant 0, data 28, bs
+      +                          s 0, persistent 0 stack 70
+  1850                           ; *************** function _main **************
+      +                          *
+  1851                           ; Defined at:
+  1852                           ;		line 363 in file "C:\Attila\Devel Files\Proj
+      +                          ects\MPLab\calc\ver6_test\calc.c"
+  1853                           ; Parameters:
+  1854                           ;		None
+  1855                           ; Auto variables:
+  1856                           ;		None
+  1857                           ; Return value:
+  1858                           ;		type: void 
+  1859                           ;		size: 0
+  1860                           ; Registers used:
+  1861                           ;		wreg, fsr, status,2, status,0, pclath, cstac
+      +                          k
+  1862                           ; Tracked objects:
+  1863                           ;		On entry : BFF/0
+  1864                           ;		On exit  : BFF/0
+  1865                           ;		Unchanged: FFFFF4FF/0
+  1866                           ; Data sizes:
+  1867                           ;		Autos:    0
+  1868                           ;		Params:   0
+  1869                           ;		Temp:     0
+  1870                           ;		Total:    0
+  1871                           ; This function calls:
+  1872                           ;		_init
+  1873                           ;		_calc_evaluate
+  1874                           ; This function is called by:
+  1875                           ;		Startup code after reset
+  1876                           ; This function uses a non-reentrant model
+  1877                           ; 
+  1878                           ;calc.c: 362: void main()
+  1879                           ;calc.c: 363: {
+  1880  079C                     _main:
+  1881                           ; Regs used in _main: [wreg+fsr+status,2+status
+      +                          ,0+pclath+cstack]
+  1882                           ;calc.c: 364: init();
+  1883  079C  278D  118A         	fcall	_init
+  1884                           ;calc.c: 365: calc_evaluate();
+  1885  079E  265D               	fcall	_calc_evaluate
+  1886                           ;calc.c: 366: }
+  1887  079F  118A  2800         	ljmp	start
+  1888                           ; =============== function _main ends =========
+      +                          ======
+  1889  07A1                     __end_of_main:
+  1890                           ; *************** function _lcd_send2 *********
+      +                          ******
+  1891                           ; Defined at:
+  1892                           ;		line 42 in file "C:\Attila\Devel Files\Proje
+      +                          cts\MPLab\calc\ver6_test\calc.c"
+  1893                           ; Parameters:
+  1894                           ;		val         	reg:   wr	type: unsigned char 
+  1895                           ;		is_data     	offs:   0	type: unsigned char 
+  1896                           ; Auto variables:
+  1897                           ;		val         	       	type: unsigned char 
+  1898                           ;		tmp         	       	type: int 
+  1899                           ; Return value:
+  1900                           ;		type: void 
+  1901                           ;		size: 0
+  1902                           ; Registers used:
+  1903                           ;		wreg, status,2, status,0, pclath, cstack
+  1904                           ; Tracked objects:
+  1905                           ;		On entry : B00/0
+  1906                           ;		On exit  : B00/0
+  1907                           ;		Unchanged: FFFFF4FF/0
+  1908                           ; Data sizes:
+  1909                           ;		Autos:    3
+  1910                           ;		Params:   1
+  1911                           ;		Temp:     0
+  1912                           ;		Total:    4
+  1913                           ; This function calls:
+  1914                           ;		_my_delay
+  1915                           ; This function is called by:
+  1916                           ;		_lcd_clear
+  1917                           ;		_lcd_init
+  1918                           ;		_calc_display
+  1919                           ; This function uses a non-reentrant model
+  1920                           ; 
+  1921                           ;calc.c: 41: void lcd_send2(BYTE val, BYTE is_d
+      +                          ata)
+  1922                           ;calc.c: 42: {
+  1923  07A1                     _lcd_send2:
+  1924                           ; Regs used in _lcd_send2: [wreg+status,2+statu
+      +                          s,0+pclath+cstack]
+  1925                           ;_lcd_send2_val stored from wreg
+  1926  07A1  00CE               	movwf	??_lcd_send2
+  1927                           ;calc.c: 43: int tmp;
+  1928                           ;calc.c: 45: tmp = val >> 4; if (is_data) tmp |
+      +                          = 0x10; PORTB = tmp;
+  1929  07A2  0E4E               	swapf	??_lcd_send2,w
+  1930  07A3  390F               	andlw	15
+  1931  07A4  00CF               	movwf	??_lcd_send2+1
+  1932  07A5  01D0               	clrf	??_lcd_send2+2
+  1933  07A6  08CD               	movf	?_lcd_send2,f
+  1934  07A7  1D03               	btfss	3,2
+  1935  07A8  164F               	bsf	??_lcd_send2+1,4
+  1936  07A9  084F               	movf	??_lcd_send2+1,w
+  1937  07AA  0086               	movwf	6	;volatile
+  1938                           ;calc.c: 46: tmp |= 0x20; PORTB = tmp;
+  1939  07AB  16CF               	bsf	??_lcd_send2+1,5
+  1940  07AC  084F               	movf	??_lcd_send2+1,w
+  1941  07AD  0086               	movwf	6	;volatile
+  1942                           ;calc.c: 47: tmp &= 0xDF; PORTB = tmp;
+  1943  07AE  30DF               	movlw	223
+  1944  07AF  05CF               	andwf	??_lcd_send2+1,f
+  1945  07B0  01D0               	clrf	??_lcd_send2+2
+  1946  07B1  084F               	movf	??_lcd_send2+1,w
+  1947  07B2  0086               	movwf	6	;volatile
+  1948                           ;calc.c: 49: tmp = val & 0x0F; if (is_data) tmp
+      +                           |= 0x10; PORTB = tmp;
+  1949  07B3  084E               	movf	??_lcd_send2,w
+  1950  07B4  390F               	andlw	15
+  1951  07B5  00CF               	movwf	??_lcd_send2+1
+  1952  07B6  01D0               	clrf	??_lcd_send2+2
+  1953  07B7  08CD               	movf	?_lcd_send2,f
+  1954  07B8  1D03               	btfss	3,2
+  1955  07B9  164F               	bsf	??_lcd_send2+1,4
+  1956  07BA  084F               	movf	??_lcd_send2+1,w
+  1957  07BB  0086               	movwf	6	;volatile
+  1958                           ;calc.c: 50: tmp |= 0x20; PORTB = tmp;
+  1959  07BC  16CF               	bsf	??_lcd_send2+1,5
+  1960  07BD  084F               	movf	??_lcd_send2+1,w
+  1961  07BE  0086               	movwf	6	;volatile
+  1962                           ;calc.c: 51: tmp &= 0xDF; PORTB = tmp;
+  1963  07BF  30DF               	movlw	223
+  1964  07C0  05CF               	andwf	??_lcd_send2+1,f
+  1965  07C1  01D0               	clrf	??_lcd_send2+2
+  1966  07C2  084F               	movf	??_lcd_send2+1,w
+  1967  07C3  0086               	movwf	6	;volatile
+  1968                           ;calc.c: 53: my_delay(2);
+  1969  07C4  3002               	movlw	2
+  1970  07C5  00D1               	movwf	?_my_delay
+  1971  07C6  01D2               	clrf	?_my_delay+1
+  1972  07C7  2F2F               	ljmp	_my_delay
+  1973                           ;calc.c: 54: }
+  1974                           ; =============== function _lcd_send2 ends ====
+      +                          ===========
+  1975  07C8                     __end_of_lcd_send2:
+  1976                           ; *************** function _lcd_clear *********
+      +                          ******
+  1977                           ; Defined at:
+  1978                           ;		line 57 in file "C:\Attila\Devel Files\Proje
+      +                          cts\MPLab\calc\ver6_test\calc.c"
+  1979                           ; Parameters:
+  1980                           ;		None
+  1981                           ; Auto variables:
+  1982                           ;		None
+  1983                           ; Return value:
+  1984                           ;		type: void 
+  1985                           ;		size: 0
+  1986                           ; Registers used:
+  1987                           ;		wreg, status,2, status,0, pclath, cstack
+  1988                           ; Tracked objects:
+  1989                           ;		On entry : B00/0
+  1990                           ;		On exit  : B00/0
+  1991                           ;		Unchanged: FFFFF4FF/0
+  1992                           ; Data sizes:
+  1993                           ;		Autos:    0
+  1994                           ;		Params:   0
+  1995                           ;		Temp:     0
+  1996                           ;		Total:    0
+  1997                           ; This function calls:
+  1998                           ;		_lcd_send2
+  1999                           ; This function is called by:
+  2000                           ;		_calc_display
+  2001                           ; This function uses a non-reentrant model
+  2002                           ; 
+  2003                           ;calc.c: 56: void lcd_clear()
+  2004                           ;calc.c: 57: {
+  2005  07C8                     _lcd_clear:
+  2006                           ; Regs used in _lcd_clear: [wreg+status,2+statu
+      +                          s,0+pclath+cstack]
+  2007                           ;calc.c: 58: lcd_send2(0x01,0);
+  2008  07C8  01CD               	clrf	?_lcd_send2
+  2009  07C9  3001               	movlw	1
+  2010  07CA  27A1  118A         	fcall	_lcd_send2
+  2011                           ;calc.c: 59: lcd_send2(0x02,0);
+  2012  07CC  01CD               	clrf	?_lcd_send2
+  2013  07CD  3002               	movlw	2
+  2014  07CE  2FA1               	ljmp	_lcd_send2
+  2015                           ;calc.c: 60: }
+  2016                           ; =============== function _lcd_clear ends ====
+      +                          ===========
+  2017  07CF                     __end_of_lcd_clear:
+  2018                           ; *************** function _calc_display ******
+      +                          *********
+  2019                           ; Defined at:
+  2020                           ;		line 178 in file "C:\Attila\Devel Files\Proj
+      +                          ects\MPLab\calc\ver6_test\calc.c"
+  2021                           ; Parameters:
+  2022                           ;		buf         	reg:   wr	type: PTR unsigned ch
+      +                          ar ; Largest target is 11
+  2023                           ;		 -> calc_evaluate_number(11), calc_format_bu
+      +                          f(11), 
+  2024                           ; Auto variables:
+  2025                           ;		buf         	       	type: PTR unsigned char
+      +                           ; Largest target is 11
+  2026                           ;		 -> calc_evaluate_number(11), calc_format_bu
+      +                          f(11), 
+  2027                           ;		i           	       	type: unsigned char 
+  2028                           ; Return value:
+  2029                           ;		type: void 
+  2030                           ;		size: 0
+  2031                           ; Registers used:
+  2032                           ;		wreg, fsr, status,2, status,0, pclath, cstac
+      +                          k
+  2033                           ; Tracked objects:
+  2034                           ;		On entry : B00/0
+  2035                           ;		On exit  : B00/0
+  2036                           ;		Unchanged: FFFFF4FF/0
+  2037                           ; Data sizes:
+  2038                           ;		Autos:    2
+  2039                           ;		Params:   0
+  2040                           ;		Temp:     1
+  2041                           ;		Total:    3
+  2042                           ; This function calls:
+  2043                           ;		_lcd_clear
+  2044                           ;		_lcd_send2
+  2045                           ; This function is called by:
+  2046                           ;		_calc_format
+  2047                           ;		_calc_evaluate
+  2048                           ; This function uses a non-reentrant model
+  2049                           ; 
+  2050                           ;calc.c: 177: void calc_display (char* buf)
+  2051                           ;calc.c: 178: {
+  2052  07CF                     _calc_display:
+  2053                           ; Regs used in _calc_display: [wreg+fsr+status,
+      +                          2+status,0+pclath+cstack]
+  2054                           ;_calc_display_buf stored from wreg
+  2055  07CF  00CA               	movwf	??_calc_display
+  2056                           ;calc.c: 179: BYTE i;
+  2057                           ;calc.c: 181: lcd_clear();
+  2058  07D0  27C8  118A         	fcall	_lcd_clear
+  2059                           ;calc.c: 182: for (i=0; buf[i] != 0; i++)
+  2060  07D2  01CB               	clrf	??_calc_display+1
+  2061  07D3  2FDD               	goto	l48
+  2062  07D4                     l45:
+  2063                           ;calc.c: 183: lcd_send2(buf[i],1);
+  2064  07D4  01CD               	clrf	?_lcd_send2
+  2065  07D5  0ACD               	incf	?_lcd_send2,f
+  2066  07D6  084B               	movf	??_calc_display+1,w
+  2067  07D7  074A               	addwf	??_calc_display,w
+  2068  07D8  0084               	movwf	4
+  2069  07D9  0800               	movf	0,w
+  2070  07DA  27A1  118A         	fcall	_lcd_send2
+  2071  07DC  0ACB               	incf	??_calc_display+1,f
+  2072  07DD                     l48:
+  2073  07DD  084B               	movf	??_calc_display+1,w
+  2074  07DE  074A               	addwf	??_calc_display,w
+  2075  07DF  0084               	movwf	4
+  2076  07E0  0880               	movf	0,f
+  2077  07E1  1903               	btfsc	3,2
+  2078  07E2  0008               	return
+  2079  07E3  2FD4               	goto	l45
+  2080                           ;calc.c: 184: }
+  2081                           ; =============== function _calc_display ends =
+      +                          ==============
+  2082  07E4                     __end_of_calc_display:
+  2083                           
+  2084                           	psect	rbss_1
+  2085  0000                     _keycodes	set	212	;_digits
+  2086  0000                     _digits	set	230
+  2087                           
+  2088                           	psect	idata
+  2089                           ;initializer for _keycodes
+  2090  07E4  3437               	retlw	55
+  2091  07E5  3438               	retlw	56
+  2092  07E6  3439               	retlw	57
+  2093  07E7  342F               	retlw	47
+  2094  07E8  3434               	retlw	52
+  2095  07E9  3435               	retlw	53
+  2096  07EA  3436               	retlw	54
+  2097  07EB  342A               	retlw	42
+  2098  07EC  3431               	retlw	49
+  2099  07ED  3432               	retlw	50
+  2100  07EE  3433               	retlw	51
+  2101  07EF  342D               	retlw	45
+  2102  07F0  3430               	retlw	48
+  2103  07F1  342E               	retlw	46
+  2104  07F2  343D               	retlw	61
+  2105  07F3  342B               	retlw	43
+  2106  07F4  3450               	retlw	80
+  2107  07F5  3443               	retlw	67
+  2108                           ;initializer for _digits
+  2109  07F6  3430               	retlw	48
+  2110  07F7  3431               	retlw	49
+  2111  07F8  3432               	retlw	50
+  2112  07F9  3433               	retlw	51
+  2113  07FA  3434               	retlw	52
+  2114  07FB  3435               	retlw	53
+  2115  07FC  3436               	retlw	54
+  2116  07FD  3437               	retlw	55
+  2117  07FE  3438               	retlw	56
+  2118  07FF  3439               	retlw	57	;_lvalue
+  2119                           
+  2120                           	psect	common
+  2121  0000                     _lvalue	set	121	;_rvalue
+  2122  0000                     _rvalue	set	119	;_lastop
+  2123  0000                     _lastop	set	123	;_pos
+  2124  0000                     _pos	set	125	;_sign
+  2125  0000                     _sign	set	124
+  2126  0000                     _ADCON0	set	31
+  2127  0000                     _ADCON1	set	159
+  2128  0000                     _ADRESH	set	30
+  2129  0000                     _ADRESL	set	158
+  2130  0000                     _ANSEL	set	155
+  2131  0000                     _CCP1CON	set	23
+  2132  0000                     _CCPR1H	set	22
+  2133  0000                     _CCPR1L	set	21
+  2134  0000                     _CMCON	set	156
+  2135  0000                     _CVRCON	set	157
+  2136  0000                     _EEADR	set	269
+  2137  0000                     _EEADRH	set	271
+  2138  0000                     _EEADRL	set	269
+  2139  0000                     _EECON1	set	396
+  2140  0000                     _EECON2	set	397
+  2141  0000                     _EEDAT	set	268
+  2142  0000                     _EEDATA	set	268
+  2143  0000                     _EEDATH	set	270
+  2144  0000                     _FSR	set	4
+  2145  0000                     _INTCON	set	11
+  2146  0000                     _OPTION	set	129
+  2147  0000                     _OSCCON	set	143
+  2148  0000                     _OSCTUNE	set	144
+  2149  0000                     _PCL	set	2
+  2150  0000                     _PCLATH	set	10
+  2151  0000                     _PCON	set	142
+  2152  0000                     _PIE1	set	140
+  2153  0000                     _PIE2	set	141
+  2154  0000                     _PIR1	set	12
+  2155  0000                     _PIR2	set	13
+  2156  0000                     _PORTA	set	5
+  2157  0000                     _PORTB	set	6
+  2158  0000                     _PR2	set	146
+  2159  0000                     _RCREG	set	26
+  2160  0000                     _RCSTA	set	24
+  2161  0000                     _SPBRG	set	153
+  2162  0000                     _SSPADD	set	147
+  2163  0000                     _SSPBUF	set	19
+  2164  0000                     _SSPCON	set	20
+  2165  0000                     _SSPSTAT	set	148
+  2166  0000                     _STATUS	set	3
+  2167  0000                     _T1CON	set	16
+  2168  0000                     _T2CON	set	18
+  2169  0000                     _TMR0	set	1
+  2170  0000                     _TMR1H	set	15
+  2171  0000                     _TMR1L	set	14
+  2172  0000                     _TMR2	set	17
+  2173  0000                     _TRISA	set	133
+  2174  0000                     _TRISB	set	134
+  2175  0000                     _TXREG	set	25
+  2176  0000                     _TXSTA	set	152
+  2177  0000                     _WDTCON	set	261
+  2178  0000                     _ADCS0	set	254	;byte address: 0x1F
+  2179  0000                     _ADCS1	set	255	;byte address: 0x1F
+  2180  0000                     _ADCS2	set	1278	;byte address: 0x9F
+  2181  0000                     _ADDEN	set	195	;byte address: 0x18
+  2182  0000                     _ADFM	set	1279	;byte address: 0x9F
+  2183  0000                     _ADGO	set	250	;byte address: 0x1F
+  2184  0000                     _ADIE	set	1126	;byte address: 0x8C
+  2185  0000                     _ADIF	set	102	;byte address: 0xC
+  2186  0000                     _ADON	set	248	;byte address: 0x1F
+  2187  0000                     _ANS0	set	1240	;byte address: 0x9B
+  2188  0000                     _ANS1	set	1241	;byte address: 0x9B
+  2189  0000                     _ANS2	set	1242	;byte address: 0x9B
+  2190  0000                     _ANS3	set	1243	;byte address: 0x9B
+  2191  0000                     _ANS4	set	1244	;byte address: 0x9B
+  2192  0000                     _ANS5	set	1245	;byte address: 0x9B
+  2193  0000                     _ANS6	set	1246	;byte address: 0x9B
+  2194  0000                     _BF	set	1184	;byte address: 0x94
+  2195  0000                     _BOR	set	1136	;byte address: 0x8E
+  2196  0000                     _BRGH	set	1218	;byte address: 0x98
+  2197  0000                     _C1INV	set	1252	;byte address: 0x9C
+  2198  0000                     _C1OUT	set	1254	;byte address: 0x9C
+  2199  0000                     _C2INV	set	1253	;byte address: 0x9C
+  2200  0000                     _C2OUT	set	1255	;byte address: 0x9C
+  2201  0000                     _CARRY	set	24	;byte address: 0x3
+  2202  0000                     _CCP1IE	set	1122	;byte address: 0x8C
+  2203  0000                     _CCP1IF	set	98	;byte address: 0xC
+  2204  0000                     _CCP1M0	set	184	;byte address: 0x17
+  2205  0000                     _CCP1M1	set	185	;byte address: 0x17
+  2206  0000                     _CCP1M2	set	186	;byte address: 0x17
+  2207  0000                     _CCP1M3	set	187	;byte address: 0x17
+  2208  0000                     _CCP1X	set	189	;byte address: 0x17
+  2209  0000                     _CCP1Y	set	188	;byte address: 0x17
+  2210  0000                     _CHS0	set	251	;byte address: 0x1F
+  2211  0000                     _CHS1	set	252	;byte address: 0x1F
+  2212  0000                     _CHS2	set	253	;byte address: 0x1F
+  2213  0000                     _CIS	set	1251	;byte address: 0x9C
+  2214  0000                     _CKE	set	1190	;byte address: 0x94
+  2215  0000                     _CKP	set	164	;byte address: 0x14
+  2216  0000                     _CM0	set	1248	;byte address: 0x9C
+  2217  0000                     _CM1	set	1249	;byte address: 0x9C
+  2218  0000                     _CM2	set	1250	;byte address: 0x9C
+  2219  0000                     _CMIE	set	1134	;byte address: 0x8D
+  2220  0000                     _CMIF	set	110	;byte address: 0xD
+  2221  0000                     _CREN	set	196	;byte address: 0x18
+  2222  0000                     _CSRC	set	1223	;byte address: 0x98
+  2223  0000                     _CVR0	set	1256	;byte address: 0x9D
+  2224  0000                     _CVR1	set	1257	;byte address: 0x9D
+  2225  0000                     _CVR2	set	1258	;byte address: 0x9D
+  2226  0000                     _CVR3	set	1259	;byte address: 0x9D
+  2227  0000                     _CVREN	set	1263	;byte address: 0x9D
+  2228  0000                     _CVROE	set	1262	;byte address: 0x9D
+  2229  0000                     _CVRR	set	1261	;byte address: 0x9D
+  2230  0000                     _DA	set	1189	;byte address: 0x94
+  2231  0000                     _DC	set	25	;byte address: 0x3
+  2232  0000                     _EEIE	set	1132	;byte address: 0x8D
+  2233  0000                     _EEIF	set	108	;byte address: 0xD
+  2234  0000                     _EEPGD	set	3175	;byte address: 0x18C
+  2235  0000                     _FERR	set	194	;byte address: 0x18
+  2236  0000                     _FREE	set	3172	;byte address: 0x18C
+  2237  0000                     _GIE	set	95	;byte address: 0xB
+  2238  0000                     _GODONE	set	250	;byte address: 0x1F
+  2239  0000                     _INT0IE	set	92	;byte address: 0xB
+  2240  0000                     _INT0IF	set	89	;byte address: 0xB
+  2241  0000                     _INTEDG	set	1038	;byte address: 0x81
+  2242  0000                     _IOFS	set	1146	;byte address: 0x8F
+  2243  0000                     _IRCF0	set	1148	;byte address: 0x8F
+  2244  0000                     _IRCF1	set	1149	;byte address: 0x8F
+  2245  0000                     _IRCF2	set	1150	;byte address: 0x8F
+  2246  0000                     _IRP	set	31	;byte address: 0x3
+  2247  0000                     _OERR	set	193	;byte address: 0x18
+  2248  0000                     _OSFIE	set	1135	;byte address: 0x8D
+  2249  0000                     _OSFIF	set	111	;byte address: 0xD
+  2250  0000                     _OSTS	set	1147	;byte address: 0x8F
+  2251  0000                     _PD	set	27	;byte address: 0x3
+  2252  0000                     _PEIE	set	94	;byte address: 0xB
+  2253  0000                     _POR	set	1137	;byte address: 0x8E
+  2254  0000                     _PS0	set	1032	;byte address: 0x81
+  2255  0000                     _PS1	set	1033	;byte address: 0x81
+  2256  0000                     _PS2	set	1034	;byte address: 0x81
+  2257  0000                     _PSA	set	1035	;byte address: 0x81
+  2258  0000                     _RA0	set	40	;byte address: 0x5
+  2259  0000                     _RA1	set	41	;byte address: 0x5
+  2260  0000                     _RA2	set	42	;byte address: 0x5
+  2261  0000                     _RA3	set	43	;byte address: 0x5
+  2262  0000                     _RA4	set	44	;byte address: 0x5
+  2263  0000                     _RA5	set	45	;byte address: 0x5
+  2264  0000                     _RA6	set	46	;byte address: 0x5
+  2265  0000                     _RA7	set	47	;byte address: 0x5
+  2266  0000                     _RB0	set	48	;byte address: 0x6
+  2267  0000                     _RB1	set	49	;byte address: 0x6
+  2268  0000                     _RB2	set	50	;byte address: 0x6
+  2269  0000                     _RB3	set	51	;byte address: 0x6
+  2270  0000                     _RB4	set	52	;byte address: 0x6
+  2271  0000                     _RB5	set	53	;byte address: 0x6
+  2272  0000                     _RB6	set	54	;byte address: 0x6
+  2273  0000                     _RB7	set	55	;byte address: 0x6
+  2274  0000                     _RBIE	set	91	;byte address: 0xB
+  2275  0000                     _RBIF	set	88	;byte address: 0xB
+  2276  0000                     _RBPU	set	1039	;byte address: 0x81
+  2277  0000                     _RCIE	set	1125	;byte address: 0x8C
+  2278  0000                     _RCIF	set	101	;byte address: 0xC
+  2279  0000                     _RD	set	3168	;byte address: 0x18C
+  2280  0000                     _RP0	set	29	;byte address: 0x3
+  2281  0000                     _RP1	set	30	;byte address: 0x3
+  2282  0000                     _RW	set	1186	;byte address: 0x94
+  2283  0000                     _RX9	set	198	;byte address: 0x18
+  2284  0000                     _RX9D	set	192	;byte address: 0x18
+  2285  0000                     _SCS0	set	1144	;byte address: 0x8F
+  2286  0000                     _SCS1	set	1145	;byte address: 0x8F
+  2287  0000                     _SMP	set	1191	;byte address: 0x94
+  2288  0000                     _SPEN	set	199	;byte address: 0x18
+  2289  0000                     _SREN	set	197	;byte address: 0x18
+  2290  0000                     _SSPEN	set	165	;byte address: 0x14
+  2291  0000                     _SSPIE	set	1123	;byte address: 0x8C
+  2292  0000                     _SSPIF	set	99	;byte address: 0xC
+  2293  0000                     _SSPM0	set	160	;byte address: 0x14
+  2294  0000                     _SSPM1	set	161	;byte address: 0x14
+  2295  0000                     _SSPM2	set	162	;byte address: 0x14
+  2296  0000                     _SSPM3	set	163	;byte address: 0x14
+  2297  0000                     _SSPOV	set	166	;byte address: 0x14
+  2298  0000                     _START	set	1187	;byte address: 0x94
+  2299  0000                     _STOP	set	1188	;byte address: 0x94
+  2300  0000                     _SWDTEN	set	2088	;byte address: 0x105
+  2301  0000                     _SYNC	set	1220	;byte address: 0x98
+  2302  0000                     _T0CS	set	1037	;byte address: 0x81
+  2303  0000                     _T0SE	set	1036	;byte address: 0x81
+  2304  0000                     _T1CKPS0	set	132	;byte address: 0x10
+  2305  0000                     _T1CKPS1	set	133	;byte address: 0x10
+  2306  0000                     _T1OSCEN	set	131	;byte address: 0x10
+  2307  0000                     _T1RUN	set	134	;byte address: 0x10
+  2308  0000                     _T1SYNC	set	130	;byte address: 0x10
+  2309  0000                     _T2CKPS0	set	144	;byte address: 0x12
+  2310  0000                     _T2CKPS1	set	145	;byte address: 0x12
+  2311  0000                     _TMR0IE	set	93	;byte address: 0xB
+  2312  0000                     _TMR0IF	set	90	;byte address: 0xB
+  2313  0000                     _TMR1CS	set	129	;byte address: 0x10
+  2314  0000                     _TMR1IE	set	1120	;byte address: 0x8C
+  2315  0000                     _TMR1IF	set	96	;byte address: 0xC
+  2316  0000                     _TMR1ON	set	128	;byte address: 0x10
+  2317  0000                     _TMR2IE	set	1121	;byte address: 0x8C
+  2318  0000                     _TMR2IF	set	97	;byte address: 0xC
+  2319  0000                     _TMR2ON	set	146	;byte address: 0x12
+  2320  0000                     _TO	set	28	;byte address: 0x3
+  2321  0000                     _TOUTPS0	set	147	;byte address: 0x12
+  2322  0000                     _TOUTPS1	set	148	;byte address: 0x12
+  2323  0000                     _TOUTPS2	set	149	;byte address: 0x12
+  2324  0000                     _TOUTPS3	set	150	;byte address: 0x12
+  2325  0000                     _TRISA0	set	1064	;byte address: 0x85
+  2326  0000                     _TRISA1	set	1065	;byte address: 0x85
+  2327  0000                     _TRISA2	set	1066	;byte address: 0x85
+  2328  0000                     _TRISA3	set	1067	;byte address: 0x85
+  2329  0000                     _TRISA4	set	1068	;byte address: 0x85
+  2330  0000                     _TRISA5	set	1069	;byte address: 0x85
+  2331  0000                     _TRISA6	set	1070	;byte address: 0x85
+  2332  0000                     _TRISA7	set	1071	;byte address: 0x85
+  2333  0000                     _TRISB0	set	1072	;byte address: 0x86
+  2334  0000                     _TRISB1	set	1073	;byte address: 0x86
+  2335  0000                     _TRISB2	set	1074	;byte address: 0x86
+  2336  0000                     _TRISB3	set	1075	;byte address: 0x86
+  2337  0000                     _TRISB4	set	1076	;byte address: 0x86
+  2338  0000                     _TRISB5	set	1077	;byte address: 0x86
+  2339  0000                     _TRISB6	set	1078	;byte address: 0x86
+  2340  0000                     _TRISB7	set	1079	;byte address: 0x86
+  2341  0000                     _TRMT	set	1217	;byte address: 0x98
+  2342  0000                     _TUN0	set	1152	;byte address: 0x90
+  2343  0000                     _TUN1	set	1153	;byte address: 0x90
+  2344  0000                     _TUN2	set	1154	;byte address: 0x90
+  2345  0000                     _TUN3	set	1155	;byte address: 0x90
+  2346  0000                     _TUN4	set	1156	;byte address: 0x90
+  2347  0000                     _TUN5	set	1157	;byte address: 0x90
+  2348  0000                     _TX9	set	1222	;byte address: 0x98
+  2349  0000                     _TX9D	set	1216	;byte address: 0x98
+  2350  0000                     _TXEN	set	1221	;byte address: 0x98
+  2351  0000                     _TXIE	set	1124	;byte address: 0x8C
+  2352  0000                     _TXIF	set	100	;byte address: 0xC
+  2353  0000                     _UA	set	1185	;byte address: 0x94
+  2354  0000                     _VCFG0	set	1276	;byte address: 0x9F
+  2355  0000                     _VCFG1	set	1277	;byte address: 0x9F
+  2356  0000                     _WCOL	set	167	;byte address: 0x14
+  2357  0000                     _WDTPS0	set	2089	;byte address: 0x105
+  2358  0000                     _WDTPS1	set	2090	;byte address: 0x105
+  2359  0000                     _WDTPS2	set	2091	;byte address: 0x105
+  2360  0000                     _WDTPS3	set	2092	;byte address: 0x105
+  2361  0000                     _WR	set	3169	;byte address: 0x18C
+  2362  0000                     _WREN	set	3170	;byte address: 0x18C
+  2363  0000                     _WRERR	set	3171	;byte address: 0x18C
+  2364  0000                     _ZERO	set	26	;byte address: 0x3
+  2365                           
+  2366                           	psect	fnauto0
+  2367  0020                     
+
+
+HI-TECH Software PICC Macro Assembler V9.60PL4 build 3851 
+Symbol Table                                          Tue Mar 03 14:09:57 2009
+
+                       l6 0732                         l9 0735  
+               __Lrdata_1 00D4                 __Lramdata 00D4  
+                      _DA 04A5                        l21 0456  
+                      _BF 04A0                        l30 048F  
+                      _DC 0019                        l23 0469  
+                      l33 04A6                        l26 047C  
+                      l18 044D                        l34 04A2  
+                      l51 054B                        l28 0486  
+                      l45 07D4                        l53 054C  
+                      l62 04BA                        l70 0615  
+                      l38 04AC                        l63 04C4  
+                      l71 064B                        l39 04AA  
+                      l55 0571                        l48 07DD  
+                      l56 0582                        l65 04D8  
+                      l73 05C7                        l74 05BA  
+                      l90 068A                        l59 04B7  
+                      l75 058A                        l91 068C  
+                      l83 0667                        l76 0591  
+                      l92 06BF                        l77 0598  
+                      l78 05A5              ?_calc_getkey 003B  
+                      l94 06A4                        l86 067A  
+                      l79 05B7                        l96 0692  
+                      l88 06F3                        l98 06BB  
+                      _PD 001B                        _RD 0C60  
+                      _UA 04A1                        _TO 001C  
+                      _RW 04A2                        _WR 0C61  
+            ?_calc_format 003D               ?_scankeypad 003D  
+                      fsr 0004          _lcd_send_is_data 0020  
+        _calc_opfunctions 0587                _my_delay_i 0053  
+              _my_delay_u 0051                       l100 06A9  
+                     l101 06F0                       l111 0709  
+                     l103 06D5                       l130 0524  
+                     l114 071E                       l131 052C  
+                     l115 071A                       l107 06EC  
+                     l117 0726                       l109 06DA  
+                     l118 072D                       l370 05E0  
+                     l371 05FF                       _CM0 04E0  
+                     _CM1 04E1                       l295 04FE  
+                     l287 04E7                       _CM2 04E2  
+                     l288 04F0                       l377 05EC  
+                     l369 05D9                       l297 051D  
+                     l289 0515                       _CKE 04A6  
+                     _CIS 04E3             ?_calc_display 004A  
+                     _CKP 00A4                       _GIE 005F  
+                     _BOR 0470                       _RA0 0028  
+                     _RA1 0029                       _RB0 0030  
+                     _RA2 002A                       _RB1 0031  
+                     _RA3 002B                       _RB2 0032  
+                     _RA4 002C                       _RB3 0033  
+                     _RA5 002D                       _RB4 0034  
+                     _RA6 002E                       _RB5 0035  
+                     _RA7 002F                       _RB6 0036  
+                     _RB7 0037                       _FSR 0004  
+                     _PCL 0002                       _PS0 0408  
+                     _PR2 0092                       _PS1 0409  
+                     _RP0 001D                       _PS2 040A  
+                     _IRP 001F                       _RP1 001E  
+                     _PSA 040B                       _POR 0471  
+                     _RX9 00C6                       _SMP 04A7  
+                     _TX9 04C6                       _pos 007D  
+                     indf 0000              ??_keypadread 003C  
+       ?_calc_opfunctions 003B             ?_calc_testkey 003B  
+                    _ADIE 0466                      _ADIF 0066  
+                    _ADFM 04FF                      _ADGO 00FA  
+                __tempreg 0020                      _ADON 00F8  
+                    _CHS0 00FB                      _CHS1 00FC  
+                    _CHS2 00FD                      _EEIE 046C  
+                    _EEIF 006C                      _ANS0 04D8  
+                    _ANS1 04D9                      _ANS2 04DA  
+                    _ANS3 04DB                      _ANS4 04DC  
+                    _ANS5 04DD                      _ANS6 04DE  
+                    _CMIE 046E                      _CMIF 006E  
+                    _BRGH 04C2                      _CREN 00C4  
+                    _T0CS 040D                      _FERR 00C2  
+                    _CVR0 04E8                      _CVR1 04E9  
+                    _CVR2 04EA                      _FREE 0C64  
+                    _CVR3 04EB                      _T0SE 040C  
+                    _CSRC 04C7                      _PIE1 008C  
+                    _PIE2 008D                      _IOFS 047A  
+                    _CVRR 04ED                      u2905 0507  
+                    _PEIE 005E                      u2764 045D  
+                    u2765 045B                      _RBIE 005B  
+                    _RBIF 0058                      u2784 046F  
+                    u2785 046D                      _RCIE 0465  
+                    _RCIF 0065                      u2975 05F2  
+                    _PCON 008E                      _PIR1 000C  
+                    _SCS0 0478                      _PIR2 000D  
+                    _SCS1 0479                      _OERR 00C1  
+                    _RBPU 040F                      _RX9D 00C0  
+                    _TMR0 0001                      _TMR2 0011  
+                    _WCOL 00A7                      _SPEN 00C7  
+               __databank 0001                      _TX9D 04C0  
+                    _SREN 00C5                      _OSTS 047B  
+                    _TUN0 0480                      _TUN1 0481  
+                    _TUN2 0482                      _TUN3 0483  
+                    _TUN4 0484                      _TUN5 0485  
+            ??_scankeypad 003D                      _TRMT 04C1  
+                    _STOP 04A4                      _ZERO 001A  
+                    _TXIE 0464                      _WREN 0C62  
+                    _TXIF 0064                      _TXEN 04C5  
+                    _SYNC 04C4                  _lcd_init 0755  
+                _lcd_send 0742            ?_calc_evaluate 0020  
+             _my_atof_str 003D                 ?_lcd_init 0020  
+               ?_lcd_send 0020                      _main 079C  
+                    _init 078D                      _sign 007C  
+         ??_calc_evaluate 0020                      start 0000  
+            ___awdiv_sign 0061          _calc_testkey_key 003B  
+                _keycodes 00D4                ??_lcd_init 0020  
+             _my_ftoa_str 004C                ??_lcd_send 0021  
+         ___awmod_divisor 005F           ___awmod_counter 0062  
+      ??_calc_opfunctions 003B                  _my_delay 072F  
+                 ?___wmul 0046                 ?_my_delay 0051  
+            ___awmod_sign 0061           __end_of___awdiv 0522  
+                ??___wmul 004A           __end_of___awmod 0608  
+        _calc_display_buf 004A             ??_calc_getkey 003B  
+                 _CCP1CON 0017             ??_calc_format 003F  
+       _lcd_send2_is_data 004D                ??_my_delay 0053  
+                   _C1INV 04E4                     _C2INV 04E5  
+          _calc_display_i 004B                     _C1OUT 04E6  
+                   _C2OUT 04E7                     _ADCS0 00FE  
+                   _ADCS1 00FF                     _ADCS2 04FE  
+                   _ADDEN 00C3                     ?_main 0020  
+                   ?_init 0020                     _CCP1X 00BD  
+                   _CCP1Y 00BC                     _EEADR 010D  
+                   _EEDAT 010C                     _CARRY 0018  
+                   _EEPGD 0C67                     _CMCON 009C  
+                   _ANSEL 009B                     _T1CON 0010  
+                   _T2CON 0012                     u30410 073F  
+  _calc_opfunctions_token 003B                   _T1CKPS0 0084  
+                 _T1CKPS1 0085                     _IRCF0 047C  
+                   _IRCF1 047D                     _IRCF2 047E  
+                   u27210 063F                   _T2CKPS0 0090  
+                 _T2CKPS1 0091                     _CVREN 04EF  
+                   _T1RUN 0086                     _CVROE 04EE  
+                   _VCFG0 04FC                     _VCFG1 04FD  
+                   _RCREG 001A                     _RCSTA 0018  
+                   _OSFIE 046F                     _OSFIF 006F  
+                   _TMR1H 000F                     _TMR1L 000E  
+                   _SPBRG 0099                     _PORTA 0005  
+                   _PORTB 0006                   _T1OSCEN 0083  
+                   _START 04A3                     _SSPM0 00A0  
+               _lcd_clear 07C8                     _SSPM1 00A1  
+                   _SSPM2 00A2                     _SSPM3 00A3  
+                   _TRISA 0085                     _TRISB 0086  
+                   _SSPIE 0463                     _SSPIF 0063  
+                   _SSPEN 00A5                     _SSPOV 00A6  
+                   _WRERR 0C63               _my_strrev_i 0061  
+             _my_strrev_j 005F                     _TXREG 0019  
+       __end_of_lcd_clear 07CF                     _TXSTA 0098  
+               _lcd_send2 07A1         __end_of_lcd_send2 07C8  
+              ?_lcd_clear 004D              _my_atof_sign 003E  
+         __end_of_my_atof 0587           __end_of_my_ftoa 0653  
+                 _OSCTUNE 0090                ?_lcd_send2 004D  
+                 _SSPSTAT 0094                   _TOUTPS0 0093  
+                 _TOUTPS1 0094                   _TOUTPS2 0095  
+                 _TOUTPS3 0096             _my_strrev_src 005E  
+             ??_lcd_clear 004D                     status 0003  
+            _my_ftoa_sign 004D         ___wmul_multiplier 0046  
+             ??_lcd_send2 004E          ___awmod_dividend 005D  
+        ___awdiv_dividend 005D                   ___awdiv 04DD  
+                 ___awmod 05CF                  ?___awdiv 005D  
+               _my_atof_i 0041                 _my_atof_n 003F  
+                ?___awmod 005D                 _my_ftoa_i 004F  
+               _my_ftoa_n 004A                 _my_ftoa_s 0051  
+          ___wmul_product 004A                 ??___awdiv 0061  
+               ??___awmod 0061                    ??_main 0020  
+                  ??_init 0020                 _my_strrev 04B1  
+          ??_calc_display 004A         __end_of_my_strrev 04DD  
+         _scankeypad_tmp1 003D                ?_my_strrev 005D  
+                 _my_atof 053B                   _my_ftoa 0608  
+                ?_my_atof 003B                  ?_my_ftoa 004A  
+                  _ADCON0 001F                    _ADCON1 009F  
+          ??_calc_testkey 003B                    _CCP1M0 00B8  
+                  _CCP1M1 00B9                    _CCP1M2 00BA  
+                  _CCP1M3 00BB                    _CCP1IE 0462  
+                  _CCP1IF 0062            __end_of___wmul 053B  
+                  _ADRESH 001E                    _EEADRH 010F  
+                  _ADRESL 009E                    _EEADRL 010D  
+                  _EEDATA 010C                    _CCPR1H 0016  
+                  _EEDATH 010E                    _CCPR1L 0015  
+                  _EECON1 018C                    _EECON2 018D  
+               ??_my_atof 003D                 ??_my_ftoa 004D  
+         _calc_getkey_key 003B              __end_of_main 07A1  
+        ___awdiv_quotient 0063   _calc_opfunctions_result 003C  
+            __end_of_init 079C                    _GODONE 00FA  
+                  _INT0IE 005C                    _INT0IF 0059  
+                  _CVRCON 009D                    _T1SYNC 0082  
+                  _INTEDG 040E                    _PCLATH 000A  
+                  _INTCON 000B          __end_of_lcd_init 078D  
+             ??_my_strrev 005E             _calc_evaluate 065D  
+        __end_of_lcd_send 0755                    _OSCCON 008F  
+           _calc_format_f 003D                    _TMR0IE 005D  
+                  _TMR0IF 005A                    _TMR1IE 0460  
+                  _TMR1IF 0060                    _TMR1CS 0081  
+                  _TMR2IE 0461                    _TMR2IF 0061  
+                  _TMR1ON 0080                    _OPTION 0081  
+                  _TMR2ON 0092                    _WDTCON 0105  
+                  _WDTPS0 0829                    _WDTPS1 082A  
+                  _WDTPS2 082B                    _WDTPS3 082C  
+                  _SSPADD 0093                    _TRISA0 0428  
+                  _TRISA1 0429                    _TRISB0 0430  
+                  _TRISA2 042A                    _TRISB1 0431  
+                  _TRISA3 042B                    _TRISB2 0432  
+                  _TRISA4 042C                    _TRISB3 0433  
+                  _TRISA5 042D                    _TRISB4 0434  
+                  _TRISA6 042E                    _TRISB5 0435  
+                  _TRISA7 042F                    _TRISB6 0436  
+                  _TRISB7 0437                    _STATUS 0003  
+                  _SSPCON 0014                    _SSPBUF 0013  
+                  _SWDTEN 0828  __end_of_calc_opfunctions 05CF  
+         _calc_evaluate_m 0021           ___awdiv_divisor 005F  
+   __end_of_calc_evaluate 072F          __end_of_my_delay 0742  
+         _calc_format_buf 003F           ___awdiv_counter 0062  
+    _calc_evaluate_number 002F                    ___wmul 0522  
+                  _digits 00E6            _scankeypad_col 0040  
+          _scankeypad_val 0042            _scankeypad_row 003F  
+                  _lastop 007B                    _lvalue 0079  
+     ___wmul_multiplicand 0048                    _rvalue 0077  
+            _calc_display 07CF             _lcd_send2_val 004E  
+           _lcd_send2_tmp 004F            _my_strrev_dest 005D  
+    __end_of_calc_display 07E4       _calc_evaluate_n_tmp 0024  
+            _calc_testkey 0441               _calc_getkey 04A8  
+             _calc_format 0653      __end_of_calc_testkey 044B  
+              _keypadread 049D       __end_of_calc_getkey 04B1  
+            _lcd_send_val 0021       __end_of_calc_format 065D  
+            _lcd_send_tmp 0022        __end_of_keypadread 04A8  
+            _scankeypad_f 003E              _scankeypad_i 0043  
+            _scankeypad_j 0041         _calc_evaluate_key 0020  
+       _calc_evaluate_tmp 0022            _keypadread_key 003C  
+                __Hcommon 007E                _scankeypad 044B  
+               __Hrdata_1 00F0                 __Hramdata 00F0  
+      __end_of_scankeypad 049D               ?_keypadread 003C  
+                __Lcommon 0077  

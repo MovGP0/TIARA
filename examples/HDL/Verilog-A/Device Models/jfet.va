@@ -1,0 +1,108 @@
+`include "disciplines.vams"
+`include "constants.vams"
+
+`define SPICE_GMIN 1.0e-12
+
+module jfetva(d,g,s);
+inout g,d,s;
+electrical g,d,s;
+electrical di, si;  
+branch (d,di) br_rd;
+branch (s,si) br_rs;
+branch (di,si) br_ds;
+branch (g,si) br_gs;
+branch (g,di) br_gd;
+
+// channel current parameters
+parameter real vto = -2;
+parameter real beta = 1.0e-4 from [0:inf);
+parameter real alpha = 2.0 from [0:inf);
+parameter real np = 2.0 from [0:inf);
+
+// capacitance parameters
+parameter real mj = 0.5 from (0:inf);
+parameter real pb = 1.0 from (0:inf);
+
+// gate junction currents
+parameter real is = 1.0e-14 from (0:inf);
+
+// temperature parameters
+parameter real tnom=27.0 from [0:inf); 
+parameter real xti=3.0 from (0:inf);
+
+// noise parameters
+parameter real af = 1.0 from [0.1:inf);
+
+
+// top level variables available with "save J1:all" in Spectre
+real vgs, vgd, vds;
+real igs, igd, id_chan;
+
+real mode;
+real T, TnomK, Vt, delta_T, ratio_T, eg, eg_tnom;
+real is_T;
+real v_gs, v_gd, v_ds, Vth, Vds_, Vgst, Ids;
+
+analog begin : the_module
+
+    // temperature equations
+
+    T = $temperature;
+    TnomK = tnom + `P_CELSIUS0;
+    Vt = $vt;
+
+    ratio_T = T/TnomK;
+    delta_T = T - TnomK;
+
+    eg = 1.16 - (7.02e-4*T*T)/(1108 + T);
+    eg_tnom = 1.16 - (7.02e-4*TnomK*TnomK)/(1108 + TnomK);
+
+    is_T = is*pow(ratio_T,xti)*exp(eg_tnom/$vt(TnomK) - eg/Vt);
+
+    vgs = V(br_gs);
+    vgd = V(br_gd);
+    vds = V(br_ds);
+    v_gs = vgs;
+    v_gd = vgd;
+    v_ds = vds;
+
+    Vth = vto;
+
+    // resistors
+    V(br_rd) <+ 0;
+    V(br_rs) <+ 0;
+
+    // gate currents
+    igd = is_T * (limexp(v_gd/(Vt)) - 1) + `SPICE_GMIN*v_gd;
+    igs = is_T * (limexp(v_gs/(Vt)) - 1) + `SPICE_GMIN*v_gs;
+
+    I(br_gd) <+ igd;
+    I(br_gs) <+ igs;
+
+    I(br_gd) <+ 0;
+    I(br_gs) <+ 0;
+
+    // channel current
+    if (v_ds > 0) begin : forward_mode
+        mode = 1;
+        Vgst = v_gs - Vth;
+        Vds_ = v_ds;
+    end else begin : reverse_mode
+        mode = -1;
+        Vgst = v_gd - Vth;
+        Vds_ = -v_ds;
+    end
+
+    if (Vgst <= 0) begin : subthresh
+        Ids = 0;
+    end else if (Vds_ <= Vgst) begin : triode
+        Ids = beta*(2*Vgst-Vds_)*Vds_;
+    end else begin : saturation
+        Ids = beta*Vgst*Vgst;
+    end
+
+    id_chan = mode*Ids;
+    I(br_ds) <+ id_chan;
+
+end  
+endmodule

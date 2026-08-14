@@ -1,0 +1,32 @@
+Created by TINA
+*************************************
+**  This file was created by TINA  **
+**    (c) 1996 DesignSoft, Inc.    **
+*************************************
+.LIB "TSPICE.LIB" ; for the examples only
+* Please use your own Spice libraries.
+.TEMP 27
+.AC DEC 3 1 1.0MEG
+.TRAN 2U 1M
+
+.PROBE V(1) V(3) V(4) V(5) V(2)
+
+RNoname       2   1  10
+CNoname       1   0  1U
+UNoname     STIM(1,1) $G_DPWR $G_DGND 3 IO_STM
++      0 0
++      400U 1
+UNoname_2   STIM(1,1) $G_DPWR $G_DGND 4 IO_STM
++      0 0
++      200U 1
++      600U 0
+UNoname_3   AND(2) $G_DPWR $G_DGND    6   7   2  U_SN7408 IO_STD
+UNoname_4   INV $G_DPWR $G_DGND    5   7  U_SN7404 IO_STD
+UNoname_5   AND(2) $G_DPWR $G_DGND    4   3   5  U_SN7408 IO_STD
+UNoname_6   OR(2) $G_DPWR $G_DGND    4   3   6  U_SN7432 IO_STD
+
+.MODEL U_SN7408 UGATE( TPLHTY=27N TPHLTY=19N )
+.MODEL U_SN7404 UGATE( TPLHTY=22N TPHLTY=15N )
+.MODEL U_SN7432 UGATE( TPLHTY=15N TPHLTY=22N )
+
+.END

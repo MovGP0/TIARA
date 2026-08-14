@@ -1,0 +1,32 @@
+Function AmpSpe(t);
+begin
+  AmpSpe := 2*Abs(sin(2*pi*t*1e-9/2))/(2*pi*t);
+end;
+
+draw(AmpSpe(t), Ampl);
+
+
+
+@ Configuration begin
+; numerical format
+0
+1
+0
+1
+4
+; math
+ 1.00000000000000E-0002
+100
+ 2.00000000000000E-0005
+100
+; drawing
+0
+Hz
+Vs
+t
+Amplitude 
+Ampl
+ 1.00000000000000E+0000
+ 1.00000000000000E+0010
+500
+.@ Configuration end

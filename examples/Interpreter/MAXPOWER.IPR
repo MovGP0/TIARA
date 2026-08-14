@@ -1,0 +1,35 @@
+{ Load IPR\MAXPOWER.SCH before running this }
+Function PowerR3(R3);
+Begin
+   PowerR3 := Sqr(Us)*Sqr(R2)*R3/Sqr(R1*R2+R1*R3+R2*R3);
+End;
+
+Draw( PowerR3(R3), P )
+
+
+
+
+
+@ Configuration begin
+; numerical format
+0
+1
+0
+0
+4
+; math
+ 1.00000000000000E-0002
+100
+ 2.00000000000000E-0005
+50
+; drawing
+0
+Ohm
+W
+R3
+Power
+P
+ 0.00000000000000E+0000
+ 5.00000000000000E+0002
+200
+.@ Configuration end

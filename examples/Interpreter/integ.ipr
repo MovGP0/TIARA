@@ -1,0 +1,39 @@
+Function Con1(t);
+Begin
+ Con1 := sin(t);
+End;
+
+Function Con(t);
+Begin
+ Con := Integ(sin(t),0,t,t);
+End;
+
+Draw(Con1(x),a1)
+Draw(Con(x),a2)
+Draw(Integ(Con1(x),0,x,x),a3)
+
+
+
+@ Configuration begin
+; numerical format
+0
+1
+0
+1
+4
+; math
+ 1.00000000000000E-0002
+100
+ 2.00000000000000E-0005
+100
+; drawing
+0
+s
+V
+x
+U
+a3
+ 0.00000000000000E+0000
+ 1.00000000000000E+0001
+100
+.@ Configuration end

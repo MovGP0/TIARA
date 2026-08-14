@@ -1,0 +1,32 @@
+{ Load IPR\PARALLEL.SCH before running this }
+Function Parallel( r1, r2, r3 );
+Begin
+  Parallel := 1/( 1/r1+1/r2+1/r3 );
+End;
+
+Parallel( R1, R2, R3 )=[545.4545]
+
+
+@ Configuration begin
+; numerical format
+0
+1
+0
+1
+4
+; math
+ 1.00000000000000E-0002
+100
+ 2.00000000000000E-0005
+100
+; drawing
+0
+s
+V
+t
+U
+
+ 0.00000000000000E+0000
+ 2.00000000000000E-0005
+100
+.@ Configuration end

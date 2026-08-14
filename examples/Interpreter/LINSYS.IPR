@@ -1,0 +1,32 @@
+{ Load IPR\LINSYS.SCH before running this }
+Sys Fi1,Fi2
+ Fi1/R1+(Fi1-U)/R2+(Fi1-Fi2)/R2 = 0
+ Fi2/R1+(Fi2-U)/R1+(Fi2-Fi1)/R2 = 0
+End
+
+Fi1=[1.8421]
+
+
+@ Configuration begin
+; numerical format
+0
+1
+0
+1
+4
+; math
+ 1.00000000000000E-0002
+100
+ 2.00000000000000E-0005
+100
+; drawing
+0
+s
+V
+t
+U
+
+ 0.00000000000000E+0000
+ 2.00000000000000E-0005
+100
+.@ Configuration end

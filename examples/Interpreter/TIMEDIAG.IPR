@@ -1,0 +1,61 @@
+{ Load IPR\TIMEDIAG.SCH before running this }
+function A1(s);
+ begin
+  A1:=s*(s^2+1/(L*C));
+ end; {A1}
+ 
+function BB1(s);
+ begin
+  BB1:=4*s^3+3/(R*C)*s^2+(2/(L*C)+2*Uw^2)*s+Uw^2*1/(R*C);
+ end; {BB1}
+ 
+function ER(s);
+ begin
+  ER:=Abs(A1(s)/BB1(s));
+ end; {ER}
+ 
+function EFi(s);
+ begin
+  EFi:=Arc(A1(s)/BB1(s));
+ end; {EFi}
+ 
+function Trans(t,s);
+ begin
+  Trans:=2*UA*ER(s)*exp(Re(s)*t)*cos(Im(s)*t+EFi(s));
+ end; {Trans}
+ 
+Draw(0.736*cos(Uw*t-4.86)+6.297*exp(-4000*t)*cos(4000*t+0.681),trans)
+
+ 
+ 
+ 
+ 
+  
+ 
+
+
+
+
+@ Configuration begin
+; numerical format
+0
+1
+0
+0
+4
+; math
+ 1.00000000000000E-0002
+100
+ 2.00000000000000E-0005
+50
+; drawing
+0
+s
+V
+t
+U
+trans
+ 0.00000000000000E+0000
+ 2.00000000000000E-0003
+100
+.@ Configuration end

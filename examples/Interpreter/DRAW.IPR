@@ -1,0 +1,31 @@
+Function F( x );
+Begin
+  F := Sin( x )+Cos( x );
+End;
+
+Draw( F( t ), FName )
+
+
+@ Configuration begin
+; numerical format
+0
+1
+0
+0
+4
+; math
+ 1.00000000000000E-0002
+100
+ 2.00000000000000E-0005
+50
+; drawing
+0
+s
+V
+t
+U
+FName
+ 0.00000000000000E+0000
+ 2.00000000000000E+0001
+50
+.@ Configuration end

@@ -1,0 +1,26 @@
+{ Load IPR\LOGLIN.SCH before running this }
+Draw( Out2_Compl(s), Out2_LogLin )
+
+@ Configuration begin
+; numerical format
+0
+1
+0
+1
+4
+; math
+ 1.00000000000000E-0002
+100
+ 2.00000000000000E-0005
+100
+; drawing
+1
+s
+V
+s
+U
+
+ 1.00000000000000E+0004
+ 1.00000000000000E+0007
+100
+.@ Configuration end

@@ -1,0 +1,43 @@
+{ Load IPR\AC1.SCH before running this }
+s := j*2*pi*1e6
+W := 1/(1+C*R*s+C*L*s*s)
+W  =
+
+WAbs := Abs( W )
+WFi  := Arc( W )
+
+WAbs =
+WFi  =
+
+
+
+
+
+
+
+
+
+
+@ Configuration begin
+; numerical format
+0
+1
+0
+1
+4
+; math
+ 1.00000000000000E-0002
+100
+ 2.00000000000000E-0005
+100
+; drawing
+0
+s
+V
+t
+U
+
+ 0.00000000000000E+0000
+ 2.00000000000000E-0005
+100
+.@ Configuration end

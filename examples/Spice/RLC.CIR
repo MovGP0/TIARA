@@ -1,0 +1,21 @@
+Created by TINA
+
+* RLC_1 EXAMPLE from TINA
+
+.FUNC AB(x,y) x-y
+*.OPTIONS ABSTOL = 10pA
+.PARAM RR = 54
+.PARAM RESI = { SQRT( 10000 ) 
++ / 2 + AB(RR,AB(5,1)) }
+.PLOT TRAN V( C) 
+*.PLOT AC VDB( 3, 0 ) 
+.TRAN 50ns 20u 
+.AC DEC 30 10kHz 1MEGHz
+.DC LIN VSource 2V 5V 0.05V
+
+VSource   1   0  PULSE( 0 1 0 0 0 30U 50U ) 
+*VSource   1   0  EXP(0 1 0 2U 10U 5U)	
+R         1   2  { 2* RESI / 2 }
+L         2   3 1M
+C         3   0 1N
+.end

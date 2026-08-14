@@ -1,0 +1,26 @@
+Created by TINA
+*************************************
+**  This file was created by TINA  **
+**    (c) 1996 DesignSoft, Inc.    **
+*************************************
+.LIB "TSPICE.LIB" ; for the examples only
+* Please use your own Spice libraries.
+.TEMP 27
+.AC DEC 10 100 100K
+.TRAN 6U 3M
+.DC LIN VU1_IN_ 0 1 50M
+
+.PROBE V(1,0)
+
+VU1_IN_       2   0  DC 0 AC 1 0 SIN( 0 500M 1K 0 0 0 )
+V12           0   3  12
+V12_2         4   0  12
+R2            1   5  10K
+R3            0   6  10K
+R1            2   5  10K
+C1            6   5  10N
+C2            0   6  10N
+XuA741         1   6   4   3   1  uA741 ; Opamp
+
+
+.END

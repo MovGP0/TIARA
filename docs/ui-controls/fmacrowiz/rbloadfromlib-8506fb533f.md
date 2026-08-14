@@ -1,69 +1,40 @@
 ﻿# Load shape from library
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and UI evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | fMacroWiz |
-| Component path | fMacroWiz.pcMWiz.tsShape.rbLoadFromLib |
-| Control class | TRadioButton |
-| Caption | Load shape from library |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | rbAutoGenClick |
-| Handler address | 01c3d610 |
-| Graph node | `resource:dfm:fMacroWiz/fMacroWiz.pcMWiz.tsShape.rbLoadFromLib` |
-| Handler node | `function:01c3d610` |
-| Graph layer | UI |
+| Component path | `fMacroWiz.pcMWiz.tsShape.rbLoadFromLib` |
+| Control class | `TRadioButton` |
+| Caption | `Load shape from library` |
+| Initial checked state | `true` |
+| Handler | `rbAutoGenClick` at `01c3d610` |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Selecting this radio button clears the `rbAutoGen` state. The shared handler detects that library mode is active and enables the library selector, shape list, suggested-shape check box, search editor, pin filter, and shape-type filter. It rebuilds the shape list with the current filters and refreshes wizard navigation. A later Next action loads the selected library shape.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Load shape from library"] -->|OnClick| handler["FUN_01c3d610"]
-    handler --> call1["FUN_01c38160"]
-    handler --> call2["FUN_01c43750"]
-    handler --> call3["FUN_01c437c0"]
+flowchart TD
+    control["Load shape from library"] --> handler["Shared shape-mode handler at 01c3d610"]
+    handler --> mode{"Is Auto generate checked?"}
+    mode -->|No| enable["Enable library and filter controls"]
+    enable --> rebuild["Rebuild the filtered shape list"]
+    rebuild --> update["Refresh shape state and navigation"]
+    update --> next["Next loads the selected shape"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C3D610__FUN_01c3d610.c](../../../DecompiledSources/Tina16/functions/0000000001C3D610__FUN_01c3d610.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 2 Delphi UI events: fMacroWiz.pcMWiz.tsShape.rbAutoGen.OnClick, fMacroWiz.pcMWiz.tsShape.rbLoadFromLib.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 3
-
-## Direct calls
-
-- `function:01c38160` — FUN_01c38160
-- `function:01c43750` — Handles 1 Delphi UI event: fMacroWiz.pcMWiz.tsShape.gbFilter.cbShapeSS.OnClick.
-- `function:01c437c0` — FUN_01c437c0
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: true
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Select the shape you want to assign: at distance 45.
+- [Recovered shared shape-mode handler](../../../DecompiledSources/Tina16/functions/0000000001C3D610__FUN_01c3d610.c)
+- [Recovered shape-list rebuild](../../../DecompiledSources/Tina16/functions/0000000001C3DC60__FUN_01c3dc60.c)
+- [Recovered Next handler](../../../DecompiledSources/Tina16/functions/0000000001C38D00__FUN_01c38d00.c)
+- The handler branches on the `rbAutoGen` checked state. The false branch applies to this radio button.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The shape library data object has no recovered Delphi class name.

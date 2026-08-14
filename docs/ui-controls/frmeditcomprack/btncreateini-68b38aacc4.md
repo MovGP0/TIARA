@@ -1,6 +1,6 @@
 ﻿# Create file
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered handler, resource, and glyph.
 
 ## Control
 
@@ -20,28 +20,30 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler first hides the new-file panel and reads the entered file name. If a tab with that name already exists, it does not add another file. Otherwise, it adds the name as a new tab, creates a loaded string-list object, and builds a `.tcr` path in the private or shared Component Bar directory according to the selected radio button. It associates that path and object with the new tab and selects it. In all cases, it clears the name field, shows the file tabs, and runs the tab-change handler to reload the editor. The recovered create-file glyph agrees with this operation.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Create file"] -->|OnClick| handler["FUN_01b9a640"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00416cd0"]
-    handler --> call3["FUN_004b6930"]
-    handler --> call4["FUN_0064dbe0"]
-    handler --> call5["VCL control Unicode text reader"]
-    handler --> call6["VCL control text setter with change suppression"]
+flowchart TD
+    control["Click Create file"] --> input["Hide the panel and read the file name"]
+    input --> duplicate{"Does a tab already use this name?"}
+    duplicate -- "Yes" --> finish["Clear the name and reload the selected tab"]
+    duplicate -- "No" --> location{"Is the private location selected?"}
+    location -- "Yes" --> private["Build a private .tcr path"]
+    location -- "No" --> shared["Build a shared .tcr path"]
+    private --> add["Add and select the tab and loaded file object"]
+    shared --> add
+    add --> finish
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B9A640__FUN_01b9a640.c](../../../DecompiledSources/Tina16/functions/0000000001B9A640__FUN_01b9a640.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Adds a private or shared Component Bar file tab.
 - Current graph summary: Handles 1 Delphi UI event: frmEditCompRack.pnlBrowser.pnlBrowserShowIcons.pnlNewIni.btnCreateIni.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Rejects a duplicate tab name, otherwise adds a tab and backing object with a private or shared `.tcr` path, selects it, clears the input, shows the tabs, and reloads the editor.
+- Current graph evidence: The handler reads `edNewIni`, calls the tab-list search virtual method, adds only when it returns -1, tests the private radio button at `0x870`, formats a path with the recovered `.tcr` literal and the corresponding global directory, inserts the loaded string-list object at the same index, selects the tab, clears `edNewIni`, shows the tab control, and calls `FUN_01b9aa30`, which calls the reset handler.
 - Complexity: complex
 - Distinct outgoing calls: 8
 
@@ -73,5 +75,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered handler creates the tab and backing object. It does not call an explicit disk-write function at this point.

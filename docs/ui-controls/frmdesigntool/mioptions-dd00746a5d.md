@@ -1,6 +1,6 @@
 ﻿# Options
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command edits Design Tool options and applies a changed interface selection.
 
 ## Control
 
@@ -20,13 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler creates the Options dialog and seeds staged Ignore min/max, Keep cursor, and interface values from current state. It shows the dialog, then copies the staging values back. Cancel returns the original staged values because only the dialog's OK handler updates staging from live controls. If the returned interface differs from the initial value, `FUN_01499620` changes the editor page, file filters, model interface bit, and related controls; otherwise that refresh is skipped.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Options"] -->|OnClick| handler["FUN_01499560"]
+flowchart TD
+    control["Choose Options"] --> stage["Load current options into dialog staging"]
+    stage --> dialog["Show Options dialog"]
+    dialog --> copy["Copy staged values back"]
+    copy --> changed{"Interface selection changed?"}
+    changed -->|No| stop["Keep current interface layout"]
+    changed -->|Yes| handler["Apply interface, editor, and file-filter changes"]
     handler --> call1["Nil-safe Delphi object destruction helper"]
     handler --> call2["FUN_007fc180"]
     handler --> call3["FUN_013b9680"]
@@ -73,4 +78,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Cancel copies unchanged staging values; the handler does not test the modal result.

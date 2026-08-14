@@ -1,6 +1,6 @@
 ﻿# Veitch-Karnaugh table
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source, UI resources, and the graph call path.
 
 ## Control
 
@@ -20,28 +20,30 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler selects the Veitch-Karnaugh help context. If the variable count is less than two, it shows a localized error and stops. Otherwise, it sets the shared operation flag, processes the current function, and clears the recalculation flag. It shows and activates the Veitch-Karnaugh table form only when the count is less than five. For five or more variables, this handler completes the calculation but does not open the table and does not show a local limit message. It clears the operation flag in both accepted-count branches.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Veitch-Karnaugh table"] -->|OnClick| handler["FUN_01b35e60"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00416740"]
-    handler --> call3["FUN_008059a0"]
-    handler --> call4["FUN_0080d2f0"]
-    handler --> call5["FUN_00b89270"]
-    handler --> call6["FUN_00b8e520"]
+flowchart TD
+    control["Veitch-Karnaugh table button"] --> context["Set Veitch-Karnaugh help context"]
+    context --> minimum{"At least 2 variables?"}
+    minimum -->|No| error["Show localized input error"]
+    minimum -->|Yes| calculate["Process the current logic function"]
+    calculate --> limit{"Fewer than 5 variables?"}
+    limit -->|Yes| show["Show and activate Veitch-Karnaugh table"]
+    limit -->|No| noOpen["Do not open a table"]
+    show --> clean["Clear operation state"]
+    noOpen --> clean
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B35E60__FUN_01b35e60.c](../../../DecompiledSources/Tina16/functions/0000000001B35E60__FUN_01b35e60.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Calculates and shows a Veitch-Karnaugh table for a supported variable count.
 - Current graph summary: Handles 1 Delphi UI event: introduction_form.gbMethod.VK_t.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The click rejects fewer than two variables, calculates accepted input, and opens the Veitch-Karnaugh table only for fewer than five variables.
+- Current graph evidence: `FUN_01b35e60` tests field `+0x764` before calculation, calls `FUN_01b2d120`, clears field `+0x7c0`, and calls the VCL form show-and-activate helper with `PTR_DAT_02001d58` only when the count is below five.
 - Complexity: complex
 - Distinct outgoing calls: 7
 
@@ -72,5 +74,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not resolve the localized error text. It also does not show a message in the five-or-more branch.

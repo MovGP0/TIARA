@@ -1,6 +1,6 @@
-﻿# Setup corner test
+﻿# Setup Corner Test
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for `TIARA-diz.6.7.1972`.
 
 ## Control
 
@@ -10,8 +10,7 @@
 | Component path | frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_testSettings.btn_setupCornerTest |
 | Control class | TButton |
 | Caption | Setup corner test |
-| Hint | Tolerance settings. |
-| Text | Not present in the recovered resource. |
+| Hint | See Resource evidence below. |
 | Handler name | btn_setupCornerTestClick |
 | Handler address | 012f85c0 |
 | Graph node | `resource:dfm:frmModelTestBenchEditor/frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_testSettings.btn_setupCornerTest` |
@@ -20,57 +19,38 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+- Checks that the current tree item is a circuit.
+- Builds a `.TSC` path from the circuit folder and the current item hierarchy.
+- Then releases its temporary strings and returns.
+- The recovered handler does not open a dialog, read tolerance settings, change state, or use the constructed path. It is a proven no-op after path construction.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Setup corner test"] -->|OnClick| handler["FUN_012f85c0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_00416cd0"]
-    handler --> call4["FUN_00416db0"]
-    handler --> call5["VCL control Unicode text reader"]
-    handler --> call6["FUN_006dd390"]
+flowchart TD
+    control["Setup corner test"] --> handler["btn_setupCornerTestClick (012f85c0)"]
+    handler --> circuit{"Current item is a circuit?"}
+    circuit -->|No| stop["Return"]
+    circuit -->|Yes| path["Construct circuit .TSC path"]
+    path --> cleanup["Discard temporary path"]
+    cleanup --> stop2["Return without changing state"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012F85C0__FUN_012f85c0.c](../../../DecompiledSources/Tina16/functions/00000000012F85C0__FUN_012f85c0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_testSettings.btn_setupCornerTest.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 7
-
-## Direct calls
-
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00416cd0` — FUN_00416cd0
-- `function:00416db0` — FUN_00416db0
-- `function:0064dd90` — VCL control Unicode text reader
-- `function:006dd390` — FUN_006dd390
-- `function:006e2530` — FUN_006e2530
+- Source: [FUN_012f85c0](../../../DecompiledSources/Tina16/functions/00000000012F85C0__FUN_012f85c0.c)
+- Recovered role: Construct a corner-test circuit path without applying a recovered action.
+- The hint says Tolerance settings, but a hint does not prove implementation.
+- FUN_012f85c0 contains path construction and string cleanup only. The constructed local value is not passed to another function or stored on the form.
+- The recovered call graph agrees that there is no application callee after the path is built.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Caption: `Setup corner test`.
+- No extracted glyph is present for this control.
+- Nearby labels, when cited above, are candidates from the same parent and are used only with handler evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No runtime UI test was performed.
+- The explanation does not infer behavior from the caption, hint, or nearby labels alone.

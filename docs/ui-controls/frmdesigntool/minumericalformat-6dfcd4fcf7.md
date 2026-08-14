@@ -1,6 +1,6 @@
 ﻿# Numerical Format && Precisions
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command edits numerical-format settings and refreshes the interpreter symbol state.
 
 ## Control
 
@@ -20,13 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler creates the numerical-format dialog, copies the active interpreter's packed numerical and math settings into it, and shows it modally. After the dialog returns, it updates the recovered imaginary-unit symbol name when needed, refreshes the active editor and symbol-table state, and applies the staged settings. The dialog owns the acceptance rules; this handler does not inspect the modal result directly.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Numerical Format && Precisions"] -->|OnClick| handler["FUN_014994a0"]
+flowchart TD
+    control["Choose Numerical Format and Precisions"] --> stage["Load active numerical and math settings"]
+    stage --> dialog["Show numerical-format dialog"]
+    dialog --> symbol["Update imaginary-unit symbol name if needed"]
+    symbol --> refresh["Refresh editor and symbol-table state"]
+    refresh --> handler["Apply staged settings"]
     handler --> call1["Nil-safe Delphi object destruction helper"]
     handler --> call2["FUN_007fc180"]
     handler --> call3["FUN_01115c40"]
@@ -70,4 +74,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The click handler does not expose the dialog's internal OK and Cancel branches.

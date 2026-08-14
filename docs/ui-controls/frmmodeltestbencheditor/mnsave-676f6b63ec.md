@@ -1,6 +1,6 @@
-﻿# Save
+﻿# Save Testbench
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for `TIARA-diz.6.7.1942`.
 
 ## Control
 
@@ -10,8 +10,7 @@
 | Component path | frmModelTestBenchEditor.TestBenchEditorMenu.mnFile.mnSave |
 | Control class | TMenuItem |
 | Caption | Save |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | See Resource evidence below. |
 | Handler name | mnSaveClick |
 | Handler address | 012f62e0 |
 | Graph node | `resource:dfm:frmModelTestBenchEditor/frmModelTestBenchEditor.TestBenchEditorMenu.mnFile.mnSave` |
@@ -20,46 +19,40 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+- First stores edits from the current circuit into the in-memory testbench.
+- If the testbench name is not Noname, writes the testbench XML to its current path without a file dialog.
+- For a Noname testbench, opens the save dialog. Cancel stops the file write.
+- The XML includes folders, data filename, report and result options, test mode, thread options, timeout, version, simulation mode, manufacturer, circuits, and per-circuit settings.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Save"] -->|OnClick| handler["FUN_012f62e0"]
-    handler --> call1["FUN_012fc960"]
+flowchart TD
+    control["Save"] --> handler["mnSaveClick (012f62e0)"]
+    handler --> stage["Store current circuit edits"]
+    stage --> unnamed{"Name is Noname?"}
+    unnamed -->|Yes| dialog{"Save path accepted?"}
+    dialog -->|No| stop["Do not write a file"]
+    dialog -->|Yes| write["Write testbench XML"]
+    unnamed -->|No| write
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012F62E0__FUN_012f62e0.c](../../../DecompiledSources/Tina16/functions/00000000012F62E0__FUN_012f62e0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmModelTestBenchEditor.TestBenchEditorMenu.mnFile.mnSave.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: simple
-- Distinct outgoing calls: 1
-
-## Direct calls
-
-- `function:012fc960` — FUN_012fc960
+- Source: [FUN_012f62e0](../../../DecompiledSources/Tina16/functions/00000000012F62E0__FUN_012f62e0.c)
+- Recovered role: Save the model testbench to its current file or request a file for a new testbench.
+- FUN_012f62e0 calls FUN_012fc960 with mode 0.
+- FUN_012fc960 asks for a path in mode 0 only when the current name equals Noname. It updates the saved path and caption only after dialog acceptance.
+- The same routine builds and writes the complete testbench XML document.
+- Relevant callee: [FUN_012fc960](../../../DecompiledSources/Tina16/functions/00000000012FC960__FUN_012fc960.c)
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Caption: `Save`.
+- No extracted glyph is present for this control.
+- Nearby labels, when cited above, are candidates from the same parent and are used only with handler evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No runtime UI test was performed.
+- The explanation does not infer behavior from the caption, hint, or nearby labels alone.

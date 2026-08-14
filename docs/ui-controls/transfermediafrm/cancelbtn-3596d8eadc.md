@@ -76,9 +76,11 @@ flowchart TD
 
 ## Handler-address gap
 
-The rebuilt image used by the extractor has no literal `TTransferMediaFrm` class-name match. The captured process dump contains one class-name occurrence, but a string occurrence does not supply an address-backed VMT or published-method table. The extractor therefore preserves `CancelBtnClick` with a null address.
+Manual recovery confirms why the handler remains unresolved. The captured runtime has one ASCII `TTransferMediaFrm` occurrence. Its ShortString length byte is at virtual address `0393D7D4`, and its text starts at `0393D7D5`. It is in the serialized form payload beside this form's event names. A scan of all 1,513 captured memory ranges found no 64-bit pointer to that ShortString. Therefore, this occurrence does not identify a Delphi `vmtClassName` slot.
 
-A later recovery needs the module or mapped class metadata that owns `TTransferMediaFrm`. It must map the class VMT and published method `CancelBtnClick` to executable code before a call tree or function annotation can be created.
+A self-pointer scan of the complete mapped `tina.exe` image found 5,123 VMT candidates and parsed 4,910 class-name and published-method-table combinations. None has the class name `TTransferMediaFrm`. The executable image has 15 structurally valid published-method records named `CancelBtnClick`, but the parsed VMTs assign same-name records to other form classes. The handler name alone cannot select one of those code addresses.
+
+A later recovery needs a loaded module or another address-bearing record that identifies the `TTransferMediaFrm` VMT. That VMT must map its `CancelBtnClick` entry to executable code before a call tree or function annotation can be created.
 
 ## Inputs, outputs, and limits
 
@@ -97,4 +99,3 @@ A later recovery needs the module or mapped class metadata that owns `TTransferM
 - The standard `bkCancel` path proves a Cancel request only.
 - The transfer instructions and drive selector do not prove the custom handler's data flow.
 - No function annotation JSON is justified without a recovered function address.
-

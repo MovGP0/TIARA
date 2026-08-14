@@ -1,6 +1,6 @@
 ﻿# Next
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and graph evidence.
 
 ## Control
 
@@ -20,23 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler requests the current one-based page number plus one. The shared page-selection routine clamps the result to the available range. It updates the current page in the main and thumbnail views, adjusts their scroll positions, invokes the page-change callback, and ends the guarded update. A click on the last page stays on the last page.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Next"] -->|OnClick| handler["FUN_018afb20"]
-    handler --> call1["FUN_018a9eb0"]
+    control["Next page button"] -->|OnClick| handler["NextBClick"]
+    handler --> request["Request current page plus one"]
+    request --> clamp["Clamp to the available page range"]
+    clamp --> notify["Synchronize views and notify page change"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000018AFB20__FUN_018afb20.c](../../../DecompiledSources/Tina16/functions/00000000018AFB20__FUN_018afb20.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Selects the next page in the FastReport preview.
 - Current graph summary: Handles 1 Delphi UI event: frxPreviewForm.ToolBar.NextB.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Increments the requested page, clamps it to the report, and synchronizes the main preview, thumbnail view, scrolling, and callback.
+- Current graph evidence: `FUN_018afb20` calls `FUN_018a9eb0`. That callee reads current page field `+0x528`, adds one, and passes the result to `FUN_018a9020`. The shared routine clamps the value to 1 through page count and applies it to both preview controls.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- At the last page, clamping makes the click an effective no-op for page position.
+- The page-selection routine has no local error or retry path.

@@ -1,67 +1,40 @@
 ﻿# Comparison
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and UI evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | frmTestBenchEditor |
-| Component path | frmTestBenchEditor.pnlMain.pnlTestOptions.pctrlMode.tsDC.grbxDC.rbtnDCComparision |
-| Control class | TRadioButton |
-| Caption | Comparison |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | rbtnDCComparisionClick |
-| Handler address | 012c64e0 |
-| Graph node | `resource:dfm:frmTestBenchEditor/frmTestBenchEditor.pnlMain.pnlTestOptions.pctrlMode.tsDC.grbxDC.rbtnDCComparision` |
-| Handler node | `function:012c64e0` |
-| Graph layer | UI |
+| Component path | `frmTestBenchEditor.pnlMain.pnlTestOptions.pctrlMode.tsDC.grbxDC.rbtnDCComparision` |
+| Control class | `TRadioButton` |
+| Handler | `rbtnDCComparisionClick` at `012c64e0` |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler requires an active file node in the circuit tree. It resets the transient, AC, and DC curve lists to `Default`. It then builds the DC reference-result path for the selected circuit. The path uses the `.corner` part when the DC corner-test option is selected and ends in `.refresult.dc`. If the result exists, the application parses it and fills the DC curve list. If the result is absent, the list stays at `Default` and this click path shows no local error message.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Comparison"] -->|OnClick| handler["FUN_012c64e0"]
-    handler --> call1["FUN_006e2530"]
-    handler --> call2["FUN_012ca200"]
+flowchart TD
+    control["DC Comparison option"] --> handler["rbtnDCComparisionClick at 012c64e0"]
+    handler --> selected{"Is an active file node selected?"}
+    selected -->|No| stop["Stop without a change"]
+    selected -->|Yes| reset["Reset all curve lists to Default"]
+    reset --> path["Build the DC reference-result path"]
+    path --> exists{"Does the result file exist?"}
+    exists -->|No| keep["Keep the DC list at Default"]
+    exists -->|Yes| fill["Parse the result and fill the DC curve list"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012C64E0__FUN_012c64e0.c](../../../DecompiledSources/Tina16/functions/00000000012C64E0__FUN_012c64e0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmTestBenchEditor.pnlMain.pnlTestOptions.pctrlMode.tsDC.grbxDC.rbtnDCComparision.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: moderate
-- Distinct outgoing calls: 2
-
-## Direct calls
-
-- `function:006e2530` — FUN_006e2530
-- `function:012ca200` — FUN_012ca200
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- [Recovered rbtnDCComparisionClick source](../../../DecompiledSources/Tina16/functions/00000000012C64E0__FUN_012c64e0.c)
+- [Recovered comparison-list loader](../../../DecompiledSources/Tina16/functions/00000000012CA200__FUN_012ca200.c)
+- The DFM resource supplies the control identity, caption, state, and event binding.
+- No extracted glyph is present for this control.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered control name uses the spelling `Comparision`; the visible caption is `Comparison`.

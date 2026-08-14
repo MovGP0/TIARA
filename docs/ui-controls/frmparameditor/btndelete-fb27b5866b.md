@@ -1,6 +1,6 @@
 ﻿# Delete
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source.
 
 ## Control
 
@@ -20,26 +20,37 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler removes the selected parameter row only when more than one editable
+row exists. It sets a form-owned update guard, moves each later row up by one
+position, and decreases the grid row count. It then refreshes the grid, gives
+focus to the grid, and clears the update guard.
+
+When only one editable row remains, the handler keeps that row and only runs the
+refresh and focus operations. It does not validate, save, commit, or close the
+editor. Its recovered path has no error-message branch.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Delete"] -->|OnClick| handler["FUN_0143bd70"]
-    handler --> call1["FUN_00848a70"]
-    handler --> call2["FUN_0084e3c0"]
-    handler --> call3["FUN_0084e4d0"]
-    handler --> call4["FUN_00f02610"]
+    deleteClick["Click Delete"] --> deleteHandler["btnDeleteClick"]
+    deleteHandler --> guardOn["Set the grid-update guard"]
+    guardOn --> canDelete{"Are two or more editable rows present?"}
+    canDelete -->|"No"| keepRow["Keep the last editable row"]
+    canDelete -->|"Yes"| moveRows["Move later rows up by one"]
+    moveRows --> shrinkGrid["Decrease the row count"]
+    keepRow --> refreshGrid["Refresh and focus the grid"]
+    shrinkGrid --> refreshGrid
+    refreshGrid --> guardOff["Clear the grid-update guard"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/000000000143BD70__FUN_0143bd70.c](../../../DecompiledSources/Tina16/functions/000000000143BD70__FUN_0143bd70.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Deletes the selected parameter row while preserving one editable row.
 - Current graph summary: Handles 1 Delphi UI event: frmParamEditor.pnlButtons.btnDelete.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Moves later rows up and reduces the row count when more than one editable row exists, then refreshes and focuses the grid.
+- Current graph evidence: `FUN_0143bd70` compares the grid's fixed-row count at `+0x4C0` with `RowCount - 1`. On the allowed branch, it copies later rows with `FUN_0084e3c0` and `FUN_0084e4d0` and calls `FUN_00848a70` with the reduced count.
 - Complexity: complex
 - Distinct outgoing calls: 4
 
@@ -67,5 +78,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The handler relies on the grid to keep the selected-row index valid.
+- No glyph or nearby-label evidence is available for this control.

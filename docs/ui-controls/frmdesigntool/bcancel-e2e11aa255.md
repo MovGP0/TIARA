@@ -1,6 +1,6 @@
 ﻿# bCancel
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command uses the common VCL close action.
 
 ## Control
 
@@ -20,14 +20,16 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler calls the common VCL form-close routine. For a modal form, that routine sets `mrCancel` (`2`). For a modeless form, it runs the normal close-query and close-action path. The recovered `bkCancel` button kind agrees with this behavior.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["bCancel"] -->|OnClick| handler["FUN_014987f0"]
-    handler --> call1["FUN_00805200"]
+flowchart TD
+    click["Click Cancel"] --> close["Call VCL form-close routine"]
+    close --> modal{"Form is modal?"}
+    modal -->|Yes| result["Set modal result to mrCancel"]
+    modal -->|No| query["Run close query and close action"]
 ```
 
 ## Handler evidence
@@ -62,4 +64,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The modeless close result depends on the form's virtual close-query and close-action methods.

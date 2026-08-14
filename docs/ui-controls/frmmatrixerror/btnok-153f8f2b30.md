@@ -1,6 +1,6 @@
 ﻿# btnOK
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed. The modeless close and release path is documented.
 
 ## Control
 
@@ -20,29 +20,58 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`btnOK` asks the Matrix Error form to close. The standard `bkOK` button path
+first writes modal result `1` to the parent form and then dispatches the custom
+handler. The recovered handler calls only the shared `TCustomForm.Close`
+implementation.
+
+Both recovered callers create this dialog and call `TCustomForm.Show`, which
+makes and activates a modeless form. The close routine therefore runs its
+modeless path. It first calls the form's virtual close-query method. If the
+query rejects closure, it returns and keeps the form open. If the query permits
+closure, it dispatches `FormClose`. This form handler changes the close action
+to value `2`, the Delphi `caFree` action. The close routine then calls the
+deferred form-release path.
+
+The handler does not validate data. It does not change the error summary or
+the text in `memoError`. It has no local error branch. A rejected virtual close
+query is the only proven no-close branch. No form-specific `OnCloseQuery`
+binding is present in the recovered resource.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["btnOK"] -->|OnClick| handler["FUN_00c88100"]
-    handler --> call1["FUN_00805200"]
+flowchart TD
+    control["Click the built-in OK button"] --> result["Copy modal result 1 to the form"]
+    result --> handler["Call TCustomForm.Close"]
+    handler --> query{"Virtual close query permits closure?"}
+    query -->|No| remain["Keep the form open"]
+    query -->|Yes| closeEvent["Dispatch FormClose"]
+    closeEvent --> action["Set close action to caFree"]
+    action --> release["Request deferred form release"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000000C88100__FUN_00c88100.c](../../../DecompiledSources/Tina16/functions/0000000000C88100__FUN_00c88100.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Matrix Error modeless close handler.
 - Current graph summary: Handles 1 Delphi UI event: frmMatrixError.btnOK.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Behavior: Calls the shared form-close routine. The recovered modeless path
+  checks whether closure is permitted, dispatches `FormClose`, and uses that
+  handler's `caFree` action to request deferred release.
+- Evidence: The handler source contains only a call to `FUN_00805200`. That
+  shared routine runs its virtual close query and close-action dispatch for a
+  modeless form. `FormClose` at `00C880C0` writes action value `2`, which selects
+  the release call. Callers `FUN_016fda80` and `FUN_016fe2a0` create
+  `TfrmMatrixError` and pass it to `FUN_008059a0`, the annotated
+  `TCustomForm.Show` function.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
 ## Direct calls
 
-- `function:00805200` — FUN_00805200
+- `function:00805200` — runs `TCustomForm.Close`, including the modal-result
+  branch and the modeless close-query and close-action branches.
 
 ## Resource evidence
 
@@ -61,5 +90,11 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- `bkOK` supplies modal result `1` through the recovered VCL kind and click
+  paths. This dialog is modeless, so that value does not end a modal loop. The
+  custom handler's explicit close request controls the observed lifetime path.
+- A class can override the virtual close-query method without a DFM event. The
+  recovered graph does not resolve a `TfrmMatrixError` override, so the article
+  keeps the possible rejection branch explicit and does not invent a reason.
+- The knowledge-graph JSON export was absent during review. The same graph node,
+  edge, layer, annotation, and resource checks used the canonical DuckDB graph.

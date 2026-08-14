@@ -1,6 +1,6 @@
 ﻿# MeretOK
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source and call-path review complete.
 
 ## Control
 
@@ -20,28 +20,29 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+This hidden button applies the hidden size edit. If the text starts with a digit, the handler parses it and limits the value to the range `6` through `16`. If the text is empty or starts with another character, it keeps the previous value. It writes the normalized value back, recalculates the truth-table dimensions and the `2^n` row count, and rebuilds the grid.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
+flowchart TD
     control["MeretOK"] -->|OnClick| handler["FUN_011ac4e0"]
-    handler --> call1["FUN_0040c770"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["Delphi UnicodeString array finalization helper"]
-    handler --> call4["FUN_00416780"]
-    handler --> call5["FUN_00416ad0"]
-    handler --> call6["FUN_0043f750"]
+    handler --> read["Read hidden size text"]
+    read --> digit{"Text starts with a digit?"}
+    digit -->|Yes| clamp["Parse and limit to 6 through 16"]
+    digit -->|No| retain["Keep previous size"]
+    clamp --> normalize["Write normalized size"]
+    retain --> normalize
+    normalize --> rebuild["Recalculate and rebuild truth table"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011AC4E0__FUN_011ac4e0.c](../../../DecompiledSources/Tina16/functions/00000000011AC4E0__FUN_011ac4e0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: tables_form.MeretOK.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Recovered role: Hidden truth-table size apply handler
+- Current graph summary: Normalizes a hidden size value to `6` through `16`, recalculates table geometry and row count, and rebuilds the truth table.
+- Current graph behavior: Parses the edit only when its first character is a digit. Otherwise, it retains the prior size value and writes that value back to the edit.
+- Current graph evidence: The resource marks `MeretOK`, the nearby `Meret:` label, and the associated edit as hidden. The handler reads the edit at form offset `0x6b0`, clamps the parsed global value, calculates `2^n`, and calls the table rebuild path.
 - Complexity: complex
 - Distinct outgoing calls: 11
 
@@ -76,5 +77,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered code does not identify the unit or user-facing name of the size value.
+- The nearby `Meret:` label is Hungarian resource evidence, but proximity alone does not define the setting.

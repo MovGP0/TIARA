@@ -1,6 +1,6 @@
 ﻿# Close
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and graph evidence.
 
 ## Control
 
@@ -20,24 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The click has two paths. When the preview busy flag at `+0x531` is clear, the handler calls the VCL form close pipeline. A modal form receives `mrCancel`; a modeless form uses its close query and close action. When the busy flag is set, the handler does not close the form. It requests cancellation on the active FastReport report object through `FUN_018ac910` and `FUN_01977630`.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Close"] -->|OnClick| handler["FUN_018afcb0"]
-    handler --> call1["FUN_00805200"]
-    handler --> call2["FUN_018ac910"]
+    control["Close button"] -->|OnClick| handler["CancelBClick"]
+    handler --> busy{"Is preview generation active?"}
+    busy -->|No| close["Run the VCL close pipeline"]
+    busy -->|Yes| cancel["Request cancellation on the active report"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000018AFCB0__FUN_018afcb0.c](../../../DecompiledSources/Tina16/functions/00000000018AFCB0__FUN_018afcb0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Closes an idle preview or cancels active FastReport generation.
 - Current graph summary: Handles 1 Delphi UI event: frxPreviewForm.ToolBar.CancelB.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Branches on the preview busy flag. It closes the form when idle and requests report cancellation when busy.
+- Current graph evidence: `FUN_018afcb0` tests byte `preview+0x531`. The clear branch calls annotated VCL `TCustomForm.Close` helper `FUN_00805200`. The set branch calls `FUN_018ac910`, which reaches the active report through VMT slot `+0x268` and passes one to `FUN_01977630`.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -63,5 +64,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The report cancellation helper has no local confirmation or error branch.
+- The VCL close pipeline can reject modeless closure through the form close query.

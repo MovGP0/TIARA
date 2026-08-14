@@ -1,6 +1,6 @@
 ﻿# ...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered handler and call path.
 
 ## Control
 
@@ -20,28 +20,29 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler opens the application's macro file dialog. If the user cancels it, the handler does nothing. If the user selects a file, the handler copies the dialog file name to the **File** field. It opens the selected macro, identifies the supported macro family from the recovered header text, and asks the corresponding macro handler to read its metadata. When that handler returns a non-empty name, the code copies it to the component **Name** field. It then applies the edited values to the selected Component Bar item and destroys the temporary macro handler.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["..."] -->|OnClick| handler["FUN_01b99090"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["Delphi UnicodeString array finalization helper"]
-    handler --> call4["FUN_0043ea00"]
-    handler --> call5["VCL control Unicode text reader"]
-    handler --> call6["VCL control text setter with change suppression"]
+flowchart TD
+    control["Click the File browse button"] --> dialog{"Did the user select a macro file?"}
+    dialog -- "No" --> noOp["Keep the current fields"]
+    dialog -- "Yes" --> file["Copy the path to the File field"]
+    file --> inspect["Open the macro and select its handler from the header"]
+    inspect --> name{"Did the macro provide a name?"}
+    name -- "Yes" --> setName["Copy the name to the Name field"]
+    name -- "No" --> apply["Apply the edited fields to the selected item"]
+    setName --> apply
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B99090__FUN_01b99090.c](../../../DecompiledSources/Tina16/functions/0000000001B99090__FUN_01b99090.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Selects a macro file and applies its path and metadata to the current Component Bar item.
 - Current graph summary: Handles 1 Delphi UI event: frmEditCompRack.pnlControls.pcItemProps.tsFileMacro.btnFileMacroBrowseFile.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: On dialog acceptance, copies the selected path, selects a handler for four recovered macro header types, reads macro metadata, copies a returned name when present, and applies the values to the selected item. Cancellation is a no-op.
+- Current graph evidence: The handler tests the global dialog's execute result, reads its file name with `FUN_00724270`, writes the file editor, passes that path to `FUN_017708f0`, constructs the returned handler, invokes its load method, copies `local_20[7]` to the name editor when non-empty, calls `FUN_01b96ae0` for the selected tree item, and destroys the temporary object. `FUN_017708f0` recognizes `Schematics Macro`, `Spice Macro`, `VHDL Macro`, and `VerilogAMS Macro` headers.
 - Complexity: complex
 - Distinct outgoing calls: 10
 
@@ -75,5 +76,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered code delegates file-format errors to the selected macro handler.

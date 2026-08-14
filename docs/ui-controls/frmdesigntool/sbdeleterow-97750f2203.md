@@ -1,6 +1,6 @@
 ﻿# Delete Row
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command protects the first row and confirms deletion of later rows.
 
 ## Control
 
@@ -20,13 +20,19 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+If the current row counter is `1`, the handler shows the localized `FirstRowCannotDelete` message. For a value greater than `1`, it shows the localized delete-row confirmation. Acceptance removes the selected row, shifts following rows upward, reduces the row count, and refreshes shared UI state. Decline leaves the table unchanged. A value less than `1` is a no-op.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Delete Row"] -->|OnClick| handler["FUN_014954d0"]
+flowchart TD
+    control["Click Delete Row"] --> count{"Current row counter"}
+    count -->|1| protected["Show first-row protection message"]
+    count -->|Less than 1| noop["Make no change"]
+    count -->|Greater than 1| confirm{"Confirm deletion?"}
+    confirm -->|No| keep["Keep all rows"]
+    confirm -->|Yes| handler["Remove selected row and shift later rows"]
+    handler --> refresh["Reduce count and refresh UI state"]
     handler --> call1["Delphi UnicodeString array finalization helper"]
     handler --> call2["FUN_0041ddd0"]
     handler --> call3["FUN_0080cc70"]
@@ -75,4 +81,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact captions of the confirmation buttons are not recovered.

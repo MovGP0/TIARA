@@ -1,6 +1,6 @@
-﻿# Check all
+﻿# Check All References
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for `TIARA-diz.6.7.1965`.
 
 ## Control
 
@@ -10,8 +10,7 @@
 | Component path | frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_localSettings.pctrl_localSettingst.ts_select.btn_selAllRefs |
 | Control class | TButton |
 | Caption | Check all |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | See Resource evidence below. |
 | Handler name | btn_selAllRefsClick |
 | Handler address | 012f83c0 |
 | Graph node | `resource:dfm:frmModelTestBenchEditor/frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_localSettings.pctrl_localSettingst.ts_select.btn_selAllRefs` |
@@ -20,50 +19,39 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+- Reads the block selected by the Choose block control.
+- For each local row of the current circuit, sets the reference according to that selected block.
+- Returns without changes unless the current item is a circuit, the record list exists, and the local-settings container has rows.
+- Refreshes the current circuit controls after the operation.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Check all"] -->|OnClick| handler["FUN_012f83c0"]
-    handler --> call1["FUN_006e2530"]
-    handler --> call2["FUN_013056e0"]
-    handler --> call3["FUN_01306a20"]
+flowchart TD
+    control["Check all"] --> handler["btn_selAllRefsClick (012f83c0)"]
+    handler --> valid{"Current circuit and rows exist?"}
+    valid -->|No| stop["Return"]
+    valid -->|Yes| block["Read chosen block"]
+    block --> set["Set its reference in every row"]
+    set --> refresh["Refresh controls"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012F83C0__FUN_012f83c0.c](../../../DecompiledSources/Tina16/functions/00000000012F83C0__FUN_012f83c0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_localSettings.pctrl_localSettingst.ts_select.btn_selAllRefs.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 3
-
-## Direct calls
-
-- `function:006e2530` — FUN_006e2530
-- `function:013056e0` — FUN_013056e0
-- `function:01306a20` — FUN_01306a20
+- Source: [FUN_012f83c0](../../../DecompiledSources/Tina16/functions/00000000012F83C0__FUN_012f83c0.c)
+- Recovered role: Set all reference selections for the chosen local block.
+- The nearby label identifies the controlling combo as Choose block.
+- FUN_012f83c0 passes operation 0 and the combo index to FUN_01306a20.
+- FUN_01306a20 iterates all local rows and writes the recovered checked value for the chosen reference field.
+- Relevant callee: [FUN_01306a20](../../../DecompiledSources/Tina16/functions/0000000001306A20__FUN_01306a20.c)
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Choose block: at distance 250.
+- Caption: `Check all`.
+- No extracted glyph is present for this control.
+- Nearby labels, when cited above, are candidates from the same parent and are used only with handler evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No runtime UI test was performed.
+- The explanation does not infer behavior from the caption, hint, or nearby labels alone.

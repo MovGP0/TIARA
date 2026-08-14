@@ -1,6 +1,6 @@
-﻿# Modify folder
+﻿# Modify Circuit Folder
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for `TIARA-diz.6.7.1950`.
 
 ## Control
 
@@ -10,8 +10,7 @@
 | Component path | frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSetRoot.btnModifyCircuitFolder |
 | Control class | TButton |
 | Caption | Modify folder |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | See Resource evidence below. |
 | Handler name | btnModifyCircuitFolderClick |
 | Handler address | 012f6e10 |
 | Graph node | `resource:dfm:frmModelTestBenchEditor/frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSetRoot.btnModifyCircuitFolder` |
@@ -20,56 +19,40 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+- Opens the recovered folder/text dialog with the current Circuit folder value.
+- After acceptance, writes the selected folder to the Circuit folder edit. Cancel keeps the old value.
+- After either result, synchronizes the edit controls' internal text buffers. It does not reload the circuit tree.
+- Use Reload files separately to reconcile the tree with the new folder.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Modify folder"] -->|OnClick| handler["FUN_012f6e10"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["VCL control Unicode text reader"]
-    handler --> call3["VCL control text setter with change suppression"]
-    handler --> call4["FUN_00b96980"]
-    handler --> call5["FUN_01303df0"]
+flowchart TD
+    control["Modify folder"] --> handler["btnModifyCircuitFolderClick (012f6e10)"]
+    handler --> accepted{"Folder accepted?"}
+    accepted -->|Yes| update["Update circuit-folder text"]
+    accepted -->|No| keep["Keep old text"]
+    update --> sync["Synchronize edit buffer"]
+    keep --> sync
+    sync --> stop["Do not reload files"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012F6E10__FUN_012f6e10.c](../../../DecompiledSources/Tina16/functions/00000000012F6E10__FUN_012f6e10.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSetRoot.btnModifyCircuitFolder.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 5
-
-## Direct calls
-
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:0064dd90` — VCL control Unicode text reader
-- `function:0064de00` — VCL control text setter with change suppression
-- `function:00b96980` — FUN_00b96980
-- `function:01303df0` — FUN_01303df0
+- Source: [FUN_012f6e10](../../../DecompiledSources/Tina16/functions/00000000012F6E10__FUN_012f6e10.c)
+- Recovered role: Replace the circuit-folder text after folder selection.
+- The nearest same-parent label is Circuit folder.
+- FUN_012f6e10 writes edit +0x7A0 only when FUN_00b96980 reports acceptance, then always calls FUN_01303df0.
+- FUN_01303df0 only copies current edit text to internal control buffers; it does not enumerate files.
+- Relevant callee: [FUN_01303df0](../../../DecompiledSources/Tina16/functions/0000000001303DF0__FUN_01303df0.c)
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Circuit folder at distance 366.
-- Rank 2: Result folder at distance 425.
-- Rank 3: Data file at distance 458.
+- Caption: `Modify folder`.
+- No extracted glyph is present for this control.
+- Nearby labels, when cited above, are candidates from the same parent and are used only with handler evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No runtime UI test was performed.
+- The explanation does not infer behavior from the caption, hint, or nearby labels alone.

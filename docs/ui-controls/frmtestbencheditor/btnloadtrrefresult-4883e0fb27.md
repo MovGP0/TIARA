@@ -1,67 +1,40 @@
 ﻿# Load reference
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and UI evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | frmTestBenchEditor |
-| Component path | frmTestBenchEditor.pnlMain.pnlTestOptions.pctrlMode.tsTR.grbxTR.btnLoadTRRefResult |
-| Control class | TButton |
-| Caption | Load reference |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | btnLoadTRRefResultClick |
-| Handler address | 012c5c70 |
-| Graph node | `resource:dfm:frmTestBenchEditor/frmTestBenchEditor.pnlMain.pnlTestOptions.pctrlMode.tsTR.grbxTR.btnLoadTRRefResult` |
-| Handler node | `function:012c5c70` |
-| Graph layer | UI |
+| Component path | `frmTestBenchEditor.pnlMain.pnlTestOptions.pctrlMode.tsTR.grbxTR.btnLoadTRRefResult` |
+| Control class | `TButton` |
+| Handler | `btnLoadTRRefResultClick` at `012c5c70` |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler requires an active file node in the circuit tree. If no active file exists, it stops. It builds the transient reference-result path below the selected result folder. It uses the selected circuit folder and file name, adds `.corner` when the transient corner-test option is selected, and adds `.refresult.tr`. If the file does not exist, the application shows `Result file doesn't exist`. If the file exists, the application parses it and opens the transient result viewer.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Load reference"] -->|OnClick| handler["FUN_012c5c70"]
-    handler --> call1["FUN_006e2530"]
-    handler --> call2["FUN_012cb590"]
+flowchart TD
+    control["Load transient reference"] --> handler["btnLoadTRRefResultClick at 012c5c70"]
+    handler --> selected{"Is an active file node selected?"}
+    selected -->|No| stop["Stop without a change"]
+    selected -->|Yes| path["Build the transient reference-result path"]
+    path --> exists{"Does the result file exist?"}
+    exists -->|No| error["Show Result file doesn't exist"]
+    exists -->|Yes| viewer["Parse the file and open the transient result viewer"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012C5C70__FUN_012c5c70.c](../../../DecompiledSources/Tina16/functions/00000000012C5C70__FUN_012c5c70.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmTestBenchEditor.pnlMain.pnlTestOptions.pctrlMode.tsTR.grbxTR.btnLoadTRRefResult.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: moderate
-- Distinct outgoing calls: 2
-
-## Direct calls
-
-- `function:006e2530` — FUN_006e2530
-- `function:012cb590` — FUN_012cb590
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- [Recovered btnLoadTRRefResultClick source](../../../DecompiledSources/Tina16/functions/00000000012C5C70__FUN_012c5c70.c)
+- [Recovered result-path builder](../../../DecompiledSources/Tina16/functions/00000000012CB590__FUN_012cb590.c)
+- [Recovered result-file loader](../../../DecompiledSources/Tina16/functions/00000000012CB240__FUN_012cb240.c)
+- The DFM resource supplies the control identity, caption, and event binding.
+- No extracted glyph is present for this control.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered code does not identify the user-facing class name of the transient result viewer.

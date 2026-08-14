@@ -1,6 +1,6 @@
 ﻿# Run
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. This main-panel Run button forwards to the advanced Run handler.
 
 ## Control
 
@@ -20,14 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler calls `FUN_01496950` without adding a branch or changing state first. The shared handler applies the license warning where applicable, validates parameters and limits, selects the current interpreter path, and starts execution only when the checks pass. The resource uses the same green-triangle glyph as the advanced Run control.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Run"] -->|OnClick| handler["FUN_01498bd0"]
-    handler --> call1["FUN_01496950"]
+flowchart TD
+    click["Click main Run"] --> forward["Forward to shared Run handler"]
+    forward --> validate["Validate parameters and limits"]
+    validate --> valid{"Checks passed?"}
+    valid -->|No| stop["Do not start execution"]
+    valid -->|Yes| run["Start selected interpreter path"]
 ```
 
 ## Handler evidence
@@ -63,4 +66,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- This forwarding handler has no independent error or no-op behavior.

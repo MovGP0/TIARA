@@ -1,6 +1,6 @@
-﻿# Apply setting to all circuits
+﻿# Apply Test Setting to All Circuits
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for `TIARA-diz.6.7.1971`.
 
 ## Control
 
@@ -10,8 +10,7 @@
 | Component path | frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_testSettings.btnApplyAll |
 | Control class | TButton |
 | Caption | Apply setting to all circuits |
-| Hint | Apply comparison settings (except reference values) to all circuits. |
-| Text | Not present in the recovered resource. |
+| Hint | See Resource evidence below. |
 | Handler name | btnApplyAllClick |
 | Handler address | 012f7e30 |
 | Graph node | `resource:dfm:frmModelTestBenchEditor/frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_testSettings.btnApplyAll` |
@@ -20,56 +19,38 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+- Scans every tree item and processes only circuit items.
+- Stores the current item state before it applies the selected test-mode radio value to that circuit record.
+- The recovered mode values are 0 for Do not run, 1 for Save reference, 2 for Comparison, and 3 for Run without comparison.
+- Reference values are not copied. This matches the control hint.
+- If the tree has no circuit items, the handler returns without an error.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Apply setting to all circuits"] -->|OnClick| handler["FUN_012f7e30"]
-    handler --> call1["FUN_004aeac0"]
-    handler --> call2["FUN_006dd6f0"]
-    handler --> call3["FUN_006decb0"]
-    handler --> call4["FUN_006df500"]
-    handler --> call5["FUN_012e5850"]
-    handler --> call6["FUN_012fb490"]
+flowchart TD
+    control["Apply setting to all circuits"] --> handler["btnApplyAllClick (012f7e30)"]
+    handler --> scan["Scan circuit items only"]
+    scan --> mode["Read selected test mode"]
+    mode --> store["Write mode code to each circuit"]
+    store --> done["Do not copy reference values"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012F7E30__FUN_012f7e30.c](../../../DecompiledSources/Tina16/functions/00000000012F7E30__FUN_012f7e30.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_testSettings.btnApplyAll.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 6
-
-## Direct calls
-
-- `function:004aeac0` — FUN_004aeac0
-- `function:006dd6f0` — FUN_006dd6f0
-- `function:006decb0` — FUN_006decb0
-- `function:006df500` — FUN_006df500
-- `function:012e5850` — FUN_012e5850
-- `function:012fb490` — FUN_012fb490
+- Source: [FUN_012f7e30](../../../DecompiledSources/Tina16/functions/00000000012F7E30__FUN_012f7e30.c)
+- Recovered role: Apply the selected test-mode setting to every circuit item.
+- The hint says: Apply comparison settings (except reference values) to all circuits.
+- FUN_012f7e30 tests item flag 0x20, calls FUN_012fb490, reads the test-mode radio states, and writes one of the four mode codes with FUN_012e5850.
+- The recovered decompilation repeats one radio-field read in the last branch, but the distinct radio handlers confirm the four stored codes.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Caption: `Apply setting to all circuits`.
+- No extracted glyph is present for this control.
+- Nearby labels, when cited above, are candidates from the same parent and are used only with handler evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No runtime UI test was performed.
+- The explanation does not infer behavior from the caption, hint, or nearby labels alone.

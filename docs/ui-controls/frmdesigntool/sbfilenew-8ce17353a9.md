@@ -1,6 +1,6 @@
 ﻿# New
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command confirms a new session and resets the editor and runtime only after acceptance.
 
 ## Control
 
@@ -20,19 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler gets the localized new-session message and shows a confirmation dialog. If the user accepts, `FUN_01493e40` clears the editor, resets its modified state and file name, replaces the interpreter runtime while preserving numerical and drawing settings, and refreshes the form. If the user declines, the handler leaves the current session unchanged. The recovered yellow-page glyph is consistent with the resource hint **New**.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["New"] -->|OnClick| handler["FUN_01497120"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_0041ddd0"]
-    handler --> call3["FUN_00b89270"]
-    handler --> call4["FUN_00b8e650"]
-    handler --> call5["FUN_01493b00"]
-    handler --> call6["FUN_01493e40"]
+flowchart TD
+    click["Click New"] --> confirm{"Accept new-session confirmation?"}
+    confirm -->|No| keep["Keep the current session"]
+    confirm -->|Yes| clear["Clear editor and file state"]
+    clear --> runtime["Replace runtime and preserve settings"]
+    runtime --> refresh["Refresh the Design Tool form"]
 ```
 
 ## Handler evidence
@@ -72,4 +70,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The confirmation helper's exact button captions are not recovered.

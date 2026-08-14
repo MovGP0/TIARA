@@ -1,6 +1,6 @@
 ﻿# F
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and graph evidence.
 
 ## Control
 
@@ -20,23 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler toggles the preview form's full-screen state. On entry, `FUN_018aff80` hides two form-owned bars, saves two current form-property bytes, applies full-screen window properties, maximizes the form, and sets the full-screen flag at `+0x852`. On exit, it restores the saved properties, clears the flag, and shows both bars again.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["F"] -->|OnClick| handler["FUN_018b0030"]
-    handler --> call1["FUN_018aff80"]
+    control["Full-screen button"] -->|OnClick| handler["FullScreenBtnClick"]
+    handler --> state{"Is full-screen mode active?"}
+    state -->|No| enter["Hide bars, save properties, and maximize"]
+    state -->|Yes| exit["Restore properties and show the bars"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000018B0030__FUN_018b0030.c](../../../DecompiledSources/Tina16/functions/00000000018B0030__FUN_018b0030.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Toggles the FastReport preview form between normal and full-screen display.
 - Current graph summary: Handles 1 Delphi UI event: frxPreviewForm.ToolBar.FullScreenBtn.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Saves normal form properties and hides two bars when full-screen starts; restores them when full-screen ends.
+- Current graph evidence: `FUN_018b0030` calls `FUN_018aff80`. That routine branches on form byte `+0x852`, changes visibility for controls at `+0x760` and `+0x6d8`, stores or restores bytes `+0x4d1` and `+0x4d2`, applies form-property setters, and toggles the full-screen byte.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The two hidden control fields are consistent with form-owned preview bars, but their recovered field names are not available.
+- The handler has no local error or recovery branch.

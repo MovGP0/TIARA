@@ -1,6 +1,6 @@
 ﻿# Less <<
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed. The collapsed detail state is documented.
 
 ## Control
 
@@ -20,41 +20,64 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`btnLess` collapses the detail area of the Matrix Error dialog. The handler
+uses the current `pnlMemo` geometry and applies these changes in order:
+
+1. It removes the bottom anchor from `pnlMemo`. The recovered DFM gives the
+   panel the left, top, and right anchors. The handler clears bit `8`, which is
+   the bottom-anchor bit.
+2. It sets the form's client height to `pnlMemo.Top - 5`. With the recovered
+   design-time position, the calculated client height is 88 pixels.
+3. It shows `btnMore`, hides `btnLess`, and hides `pnlMemo`.
+4. It sets the form border style to value `3`, the Delphi `bsDialog` value.
+
+The click does not change the error summary or the text in `memoError`. It does
+not close the dialog. There is no validation or error branch. The shared
+anchor, visibility, and border-style setters do not repeat their update when
+the requested value is already active.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Less <<"] -->|OnClick| handler["FUN_00c881a0"]
-    handler --> call1["FUN_0064c1a0"]
-    handler --> call2["FUN_0064dbe0"]
-    handler --> call3["FUN_007fdf10"]
-    handler --> call4["FUN_007ff680"]
+flowchart TD
+    control["Less <<"] -->|OnClick| anchors["Remove the bottom anchor from pnlMemo"]
+    anchors --> shrink["Set client height to pnlMemo.Top minus 5"]
+    shrink --> more["Show btnMore"]
+    more --> less["Hide btnLess"]
+    less --> panel["Hide pnlMemo"]
+    panel --> border["Set border style to bsDialog"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000000C881A0__FUN_00c881a0.c](../../../DecompiledSources/Tina16/functions/0000000000C881A0__FUN_00c881a0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Matrix Error detail-collapse handler.
 - Current graph summary: Handles 1 Delphi UI event: frmMatrixError.btnLess.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Behavior: Removes the detail panel's bottom anchor, reduces the client
+  height, switches the More and Less button visibility, hides the detail
+  panel, and restores a dialog border.
+- Evidence: The source clears bit `8` in control field `+0xB3`, passes
+  `pnlMemo.Top - 5` to the client-height setter, applies visibility values
+  `1`, `0`, and `0` to the three form fields, and passes `3` to the recovered
+  form border-style setter. The paired More handler applies the inverse state.
 - Complexity: complex
 - Distinct outgoing calls: 4
 
 ## Direct calls
 
-- `function:0064c1a0` — FUN_0064c1a0
-- `function:0064dbe0` — FUN_0064dbe0
-- `function:007fdf10` — FUN_007fdf10
-- `function:007ff680` — FUN_007ff680
+- `function:0064c1a0` — changes `TControl.Anchors` when the value differs.
+- `function:0064dbe0` — changes `TControl.Visible` when the value differs.
+- `function:007fdf10` — sets the form client height.
+- `function:007ff680` — changes the form border style when the value differs.
 
 ## Resource evidence
 
 - Kind: Not present in the recovered resource.
 - Modal result: Not present in the recovered resource.
 - Checked state: Not present in the recovered resource.
+- Initial visibility: Visible.
+- Controlled detail area: `pnlMemo`, which contains `memoError`.
+- Design-time `pnlMemo` geometry: `Top = 93`, `Height = 158`.
 - List items: Not present in the recovered resource.
 - Image reference: Not present in the recovered resource.
 - Extracted glyph: None.
@@ -67,5 +90,10 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The design-time geometry gives a collapsed client height of 88 pixels. The
+  handler uses the current runtime panel position, so display scaling can
+  change the final value.
+- The form field names are established by the paired handlers, DFM visibility
+  and anchor properties, and the geometry read from the panel field.
+- The knowledge-graph JSON export was absent during review. The same graph node,
+  edge, layer, annotation, and resource checks used the canonical DuckDB graph.

@@ -1,6 +1,6 @@
 ﻿# Save As...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,35 +20,41 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`TfrmStressReport.PMISaveAsClick` executes the form-owned `TSaveDialog`. It does not seed the dialog with the report's remembered file name before execution.
+
+Cancel leaves the remembered path unchanged and writes no file. After acceptance, the handler reads `SaveDialog.FileName`, assigns that complete Unicode path to form field `+0x700`, and passes it to the common report writer. The writer saves every current `lbMessages.Items` string in list order.
+
+The path assignment occurs before `SaveToFile`. If writing fails, the form still remembers the newly accepted path. A later **Save** retries that path while this report form remains open.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Save As..."] -->|OnClick| handler["FUN_012bc780"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString assignment helper"]
-    handler --> call3["FUN_00724270"]
-    handler --> call4["FUN_012bc820"]
+flowchart TD
+    saveAs["Choose Save As..."] --> handler["PMISaveAsClick at 012bc780"]
+    handler --> dialog["Execute the form SaveDialog"]
+    dialog --> accepted{"User accepts a path?"}
+    accepted -->|No| noOp["Keep old path and write nothing"]
+    accepted -->|Yes| path["Read FileName and remember the new path"]
+    path --> write["Save all visible message strings"]
+    write --> result["Keep new path for later Save commands"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000012BC780__FUN_012bc780.c](../../../DecompiledSources/Tina16/functions/00000000012BC780__FUN_012bc780.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Choose a new path and save all visible stress-report messages.
 - Current graph summary: Handles 1 Delphi UI event: frmStressReport.PopupMenu.PMISaveAs.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The checked-in graph does not yet contain the annotation prepared by this review.
+- Current graph evidence: The accepted branch reads `SaveDialog.FileName`, assigns it to form field `+0x700`, and calls the common `lbMessages.Items.SaveToFile` wrapper. Cancel bypasses all three operations.
 - Complexity: complex
 - Distinct outgoing calls: 4
 
 ## Direct calls
 
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:00724270` — FUN_00724270
-- `function:012bc820` — FUN_012bc820
+- [`function:00414480`](../../../DecompiledSources/Tina16/functions/0000000000414480__FUN_00414480.c) — finalizes the temporary file-name string.
+- [`function:00414ad0`](../../../DecompiledSources/Tina16/functions/0000000000414AD0__FUN_00414ad0.c) — assigns the accepted Unicode path to the form field.
+- [`function:00724270`](../../../DecompiledSources/Tina16/functions/0000000000724270__FUN_00724270.c) — reads `SaveDialog.FileName`.
+- [`function:012bc820`](../../../DecompiledSources/Tina16/functions/00000000012BC820__FUN_012bc820.c) — saves all visible message strings. Bead `.2025` owns its canonical annotation.
 
 ## Resource evidence
 
@@ -67,5 +73,9 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered DFM contains no Save-dialog filter, default extension, initial directory, title, file name, or options. The handler does not configure them. The available extensions and overwrite-prompt behavior are not established.
+- The selected path is not written to application settings or a project. It remains only in this report form until the form is released.
+- The common one-argument VCL `SaveToFile` path supplies no explicit encoding or byte-order-mark option.
+- The handler does not test whether the message list is empty. An accepted path can receive an empty file.
+- A write error has no local message, retry, rollback, or alternate path. The remembered-path assignment is not undone, and a partial file can remain.
+- No hint, glyph, or nearby label supplies more behavior evidence.

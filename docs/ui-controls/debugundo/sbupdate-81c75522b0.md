@@ -62,7 +62,7 @@ The complete graph has one `triggers` edge from `DebugUndo.sbUpdate` to `concept
 
 [Recovered DFM evidence](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json) stores `OnClick = sbUpdateClick` and `codeAddress = null`. The exporter first uses the event binding's address and then calls `resolve_event_handler` on the owning form class, as shown in [`TiaraUiEvidence.rs`](../../../analysis/undelphi/TiaraUiEvidence.rs). That fallback needs a parsed `TDebugUndo` class VMT and its published method table.
 
-A read-only byte search found exactly one ASCII `TDebugUndo` instance and one `sbUpdateClick` instance in each available artifact: the rebuilt runtime executable, the mapped runtime image, and the complete captured process dump. Both instances are inside the same `TPF0` DFM stream. There is no UTF-16 instance and no second class-name or method-name instance that can belong to Delphi class RTTI or a published method table. Therefore, no method-table entry can map `sbUpdateClick` to a code address in the recovered data.
+A read-only byte search found exactly one ASCII `TDebugUndo` instance and one `sbUpdateClick` instance in each available artifact: the rebuilt runtime executable, the mapped runtime image, and the complete captured process dump. Both instances are inside the same `TPF0` DFM stream. The class-name ShortString starts at mapped-image RVA `034192e0`, and no 64-bit pointer in the mapped image refers to it. The event method text starts at RVA `034194d8`; its preceding bytes encode the DFM `OnClick` property, not a Delphi published-method record. There is no UTF-16 instance and no second class-name or method-name instance that can belong to class RTTI or a published method table. Therefore, no recovered method-table entry can map `sbUpdateClick` to a code address.
 
 ### Decompiled sources and callers
 
@@ -94,5 +94,6 @@ These functions establish dispatch mechanics only. They do not establish the cus
 
 - The word **update** comes from the component identifier `sbUpdate`. It is not a recovered implementation claim.
 - The nearby labels are layout candidates only. Their identifier-like captions do not prove which values the handler reads or writes.
+- The checked rebuilt runtime has SHA-256 value `40A8F62B0B54C4C0609EF95129ACDEA1D25495E9C29B65716E2F8DFC521E2F26`. Its mapped image has SHA-256 value `EDDBE40C4493AB7CD4647CE766EFE2E50715EC6B41E735B48A973055BC17AC3E`.
 - No function annotation fragment is added because no application function address has a proven `TDebugUndo` responsibility.
 - Further analysis needs the binary module that owns the `TDebugUndo` VMT, a symbol or map file, or a new runtime capture that contains the class RTTI and published method table.

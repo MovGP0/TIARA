@@ -1,6 +1,6 @@
-﻿# Select all
+﻿# Select All Circuits
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for `TIARA-diz.6.7.1949`.
 
 ## Control
 
@@ -10,8 +10,7 @@
 | Component path | frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSelectors.btnSelectAll |
 | Control class | TButton |
 | Caption | Select all |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | See Resource evidence below. |
 | Handler name | btnSelectAllClick |
 | Handler address | 012f7530 |
 | Graph node | `resource:dfm:frmModelTestBenchEditor/frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSelectors.btnSelectAll` |
@@ -20,54 +19,34 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+- Scans all tree items and collects only items whose recovered item flag marks a circuit.
+- Applies that list as the tree multi-selection. Folder and root items are excluded.
+- An empty tree results in an empty selection without an error.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Select all"] -->|OnClick| handler["FUN_012f7530"]
-    handler --> call1["FUN_00410e60"]
-    handler --> call2["Nil-safe Delphi object destruction helper"]
-    handler --> call3["FUN_004ae7e0"]
-    handler --> call4["FUN_006decb0"]
-    handler --> call5["FUN_006df500"]
+flowchart TD
+    control["Select all"] --> handler["btnSelectAllClick (012f7530)"]
+    handler --> collect["Collect circuit items with flag 0x20"]
+    collect --> apply["Apply tree multi-selection"]
+    apply --> done["Folders remain excluded"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012F7530__FUN_012f7530.c](../../../DecompiledSources/Tina16/functions/00000000012F7530__FUN_012f7530.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSelectors.btnSelectAll.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 5
-
-## Direct calls
-
-- `function:00410e60` — FUN_00410e60
-- `function:00410f20` — Nil-safe Delphi object destruction helper
-- `function:004ae7e0` — FUN_004ae7e0
-- `function:006decb0` — FUN_006decb0
-- `function:006df500` — FUN_006df500
+- Source: [FUN_012f7530](../../../DecompiledSources/Tina16/functions/00000000012F7530__FUN_012f7530.c)
+- Recovered role: Select all circuit items in the testbench tree.
+- FUN_012f7530 tests item-data flag 0x20 for every tree item.
+- It passes the collected list to the tree's recovered multi-selection method.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Caption: `Select all`.
+- No extracted glyph is present for this control.
+- Nearby labels, when cited above, are candidates from the same parent and are used only with handler evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No runtime UI test was performed.
+- The explanation does not infer behavior from the caption, hint, or nearby labels alone.

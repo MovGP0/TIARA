@@ -1,6 +1,6 @@
 ﻿# Add Row
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command appends a default parameter row.
 
 ## Control
 
@@ -20,13 +20,15 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler increments the generated-name counter, builds `NewParam` plus that number, and appends a parameter-grid row. The new row uses the recovered default value text and sets both the minimum and maximum fields to `<none>`. It also advances the current row count.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Add Row"] -->|OnClick| handler["FUN_014953c0"]
+flowchart TD
+    control["Click Add Row"] --> number["Increment generated parameter number"]
+    number --> name["Build name NewParam plus number"]
+    name --> handler["Append row with default value and no limits"]
     handler --> call1["Delphi UnicodeString array finalization helper"]
     handler --> call2["FUN_00416ba0"]
     handler --> call3["FUN_01495150"]
@@ -69,4 +71,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not validate the generated name at insertion time.

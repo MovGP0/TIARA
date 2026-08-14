@@ -1,162 +1,60 @@
 ﻿# Next >
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and UI evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | fMacroWiz |
-| Component path | fMacroWiz.pBottom.bnext |
-| Control class | TButton |
-| Caption | Next > |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | bnextClick |
-| Handler address | 01c38d00 |
-| Graph node | `resource:dfm:fMacroWiz/fMacroWiz.pBottom.bnext` |
-| Handler node | `function:01c38d00` |
-| Graph layer | UI |
+| Component path | `fMacroWiz.pBottom.bnext` |
+| Control class | `TButton` |
+| Caption | `Next >` |
+| Handler | `bnextClick` at `01c38d00` |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+This handler is the forward state machine for the New Macro Wizard. Its action depends on the active page.
+
+- On Source, it validates the selected source. For a file or Web source, it loads the selected file, rejects a missing or empty file, and fills the model or subcircuit list.
+- On Subcircuit, it saves the selected model and prepares the shape filters and shape list.
+- On Shape, it generates a shape or loads the selected library shape. It then prepares the pin-pair data.
+- On Pair, it validates the pin mapping and fills the rename grid with SPICE pin names, shape pin names, and orientations.
+- On Rename, it prepares the macro data and opens the Save Macro dialog. A successful save creates the macro for the detected source type and opens the Finished page.
+
+The handler calls itself to skip pages that do not apply to the selected source or shape. It refreshes the page layout and the Back and Next state after processing. Validation can stop navigation and show messages. Recovered messages include `File not found!`, an empty-file error, and macro or shape validation errors.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Next >"] -->|OnClick| handler["FUN_01c38d00"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["FUN_004134c0"]
-    handler --> call3["Delphi UnicodeString array finalization helper"]
-    handler --> call4["Delphi UnicodeString assignment helper"]
-    handler --> call5["FUN_00414b50"]
-    handler --> call6["FUN_00416740"]
+flowchart TD
+    control["Next button"] --> handler["bnextClick at 01c38d00"]
+    handler --> page{"Which wizard page is active?"}
+    page -->|Source| source["Validate and load the selected source"]
+    page -->|Subcircuit| model["Save the model and prepare shapes"]
+    page -->|Shape| shape["Generate or load a shape and prepare pin pairs"]
+    page -->|Pair| pair["Validate pairs and prepare rename rows"]
+    page -->|Rename| create["Validate macro data and open Save Macro"]
+    source --> valid{"Did validation succeed?"}
+    model --> valid
+    shape --> valid
+    pair --> valid
+    create --> saved{"Was the macro saved?"}
+    valid -->|No| stay["Show the error and stay on the page"]
+    valid -->|Yes| skip{"Is the next page required?"}
+    skip -->|No| handler
+    skip -->|Yes| advance["Select the next page and refresh navigation"]
+    saved -->|No| stay
+    saved -->|Yes| finish["Select the Finished page"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C38D00__FUN_01c38d00.c](../../../DecompiledSources/Tina16/functions/0000000001C38D00__FUN_01c38d00.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: fMacroWiz.pBottom.bnext.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 92
-
-## Direct calls
-
-- `function:00410f20` — Nil-safe Delphi object destruction helper
-- `function:004134c0` — FUN_004134c0
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:00414b50` — FUN_00414b50
-- `function:00416740` — FUN_00416740
-- `function:004169a0` — FUN_004169a0
-- `function:00416ad0` — FUN_00416ad0
-- `function:00416db0` — FUN_00416db0
-- `function:00416dc0` — FUN_00416dc0
-- `function:00417580` — FUN_00417580
-- `function:00417740` — FUN_00417740
-- `function:00418590` — FUN_00418590
-- `function:00419260` — FUN_00419260
-- `function:0043e130` — FUN_0043e130
-- `function:0043e420` — FUN_0043e420
-- `function:0043f750` — FUN_0043f750
-- `function:00440a20` — FUN_00440a20
-- `function:00441a10` — FUN_00441a10
-- `function:0044d490` — FUN_0044d490
-- `function:00498310` — FUN_00498310
-- `function:00498350` — FUN_00498350
-- `function:004aeac0` — FUN_004aeac0
-- `function:004b6930` — FUN_004b6930
-- `function:0064c8e0` — FUN_0064c8e0
-- `function:0064dbe0` — FUN_0064dbe0
-- `function:0064dd90` — VCL control Unicode text reader
-- `function:0064de00` — VCL control text setter with change suppression
-- `function:0064fca0` — FUN_0064fca0
-- `function:006d78a0` — FUN_006d78a0
-- `function:006e7090` — FUN_006e7090
-- `function:006e7230` — FUN_006e7230
-- `function:0074b490` — FUN_0074b490
-- `function:007fdf50` — FUN_007fdf50
-- `function:008485d0` — FUN_008485d0
-- `function:00848a70` — FUN_00848a70
-- `function:0084e320` — FUN_0084e320
-- `function:0084e3e0` — FUN_0084e3e0
-- `function:00c3d330` — FUN_00c3d330
-- `function:00c3f420` — FUN_00c3f420
-- `function:014af1b0` — FUN_014af1b0
-- `function:015ee870` — FUN_015ee870
-- `function:015eedf0` — FUN_015eedf0
-- `function:019a45d0` — FUN_019a45d0
-- `function:019af120` — FUN_019af120
-- `function:01c22b80` — FUN_01c22b80
-- `function:01c230d0` — FUN_01c230d0
-- `function:01c230e0` — FUN_01c230e0
-- `function:01c23250` — FUN_01c23250
-- `function:01c232b0` — FUN_01c232b0
-- `function:01c232c0` — FUN_01c232c0
-- `function:01c23370` — FUN_01c23370
-- `function:01c233d0` — FUN_01c233d0
-- `function:01c23570` — FUN_01c23570
-- `function:01c26980` — FUN_01c26980
-- `function:01c271f0` — FUN_01c271f0
-- `function:01c273c0` — FUN_01c273c0
-- `function:01c273d0` — FUN_01c273d0
-- `function:01c27400` — FUN_01c27400
-- `function:01c27630` — FUN_01c27630
-- `function:01c276f0` — FUN_01c276f0
-- `function:01c27840` — FUN_01c27840
-- `function:01c284f0` — FUN_01c284f0
-- `function:01c28500` — FUN_01c28500
-- `function:01c28520` — FUN_01c28520
-- `function:01c28540` — FUN_01c28540
-- `function:01c28560` — FUN_01c28560
-- `function:01c28600` — FUN_01c28600
-- `function:01c370d0` — FUN_01c370d0
-- `function:01c38160` — FUN_01c38160
-- `function:01c38530` — FUN_01c38530
-- `function:01c386b0` — FUN_01c386b0
-- `function:01c38920` — FUN_01c38920
-- `function:01c38bf0` — FUN_01c38bf0
-- `function:01c38d00` — Handles 1 Delphi UI event: fMacroWiz.pBottom.bnext.OnClick.
-- `function:01c3b7c0` — Handles 1 Delphi UI event: fMacroWiz.pBottom.bprev.OnClick.
-- `function:01c3bc80` — FUN_01c3bc80
-- `function:01c3bee0` — Handles 1 Delphi UI event: fMacroWiz.pcMWiz.OnChange.
-- `function:01c3c010` — FUN_01c3c010
-- `function:01c3c270` — FUN_01c3c270
-- `function:01c3c530` — FUN_01c3c530
-- `function:01c3cb30` — FUN_01c3cb30
-- `function:01c3cbb0` — Handles 1 Delphi UI event: fMacroWiz.pcMWiz.tsSubCkt.cbSubCkt.OnChange.
-- `function:01c3cd90` — FUN_01c3cd90
-- `function:01c3d280` — FUN_01c3d280
-- `function:01c3d390` — FUN_01c3d390
-- `function:01c3d610` — Handles 2 Delphi UI events: fMacroWiz.pcMWiz.tsShape.rbAutoGen.OnClick, fMacroWiz.pcMWiz.tsShape.rbLoadFromLib.OnClick.
-- `function:01c3d9c0` — FUN_01c3d9c0
-- `function:01c3f800` — FUN_01c3f800
-- `function:01c3fe00` — FUN_01c3fe00
-- `function:01c41ab0` — FUN_01c41ab0
-- `function:01c43750` — Handles 1 Delphi UI event: fMacroWiz.pcMWiz.tsShape.gbFilter.cbShapeSS.OnClick.
-- `function:01d44920` — FUN_01d44920
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- [Recovered bnextClick source](../../../DecompiledSources/Tina16/functions/0000000001C38D00__FUN_01c38d00.c)
+- [Recovered page-skip decision](../../../DecompiledSources/Tina16/functions/0000000001C38920__FUN_01c38920.c)
+- [Recovered navigation-state refresh](../../../DecompiledSources/Tina16/functions/0000000001C38160__FUN_01c38160.c)
+- [Recovered macro creation and save path](../../../DecompiledSources/Tina16/functions/0000000001C41AB0__FUN_01c41ab0.c)
+- The DFM component tree supplies the Source, Subcircuit, Shape, Pair, Rename, and Finished page identities.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Several model and shape object types have no recovered Delphi class name. The article describes only the data flow that their callers establish.

@@ -1,6 +1,6 @@
 ﻿# A
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The control selects cursor A for the shared cursor controls.
 
 ## Control
 
@@ -20,20 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+When the A selector is down, `CursorASelectBtnClick` copies cursor A's active state to the shared `On` button. This makes the shared button show whether cursor A is enabled. The handler does not create, move, or remove a cursor.
+
+If the A selector is not down, the handler returns without a state change. It does not write persistent data and has no local error branch.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["A"] -->|OnClick| handler["FUN_01b59c70"]
-    handler --> call1["FUN_010f7e00"]
+flowchart TD
+    control["A<br/>FCursorASelectBtn"] -->|OnClick| handler["FUN_01b59c70<br/>CursorASelectBtnClick"]
+    handler --> sync["FUN_010f7e00<br/>read A selector state"]
+    sync --> selected{"A selector down?"}
+    selected -->|No| unchanged["Return without a state change"]
+    selected -->|Yes| copy["Copy cursor A active state<br/>to shared On button"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B59C70__FUN_01b59c70.c](../../../DecompiledSources/Tina16/functions/0000000001B59C70__FUN_01b59c70.c)
-- Recovered role: Not present in the recovered resource.
+- Review role: Select cursor A and synchronize the shared cursor-enable button.
 - Current graph summary: Handles 1 Delphi UI event: XYRecorderWin.CursorBox.FCursorASelectBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +66,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered code identifies cursor A and the active-state copy through form fields and the paired A and B handlers. The original Delphi field names for the controller bytes are not present.
+- A live UI test was not performed. The DFM binding and recovered handler path agree on the selection behavior.

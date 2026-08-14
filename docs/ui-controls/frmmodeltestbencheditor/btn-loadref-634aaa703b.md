@@ -1,6 +1,6 @@
-﻿# Load
+﻿# Load Reference
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for `TIARA-diz.6.7.1969`.
 
 ## Control
 
@@ -10,8 +10,7 @@
 | Component path | frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_references.btn_loadRef |
 | Control class | TButton |
 | Caption | Load |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | See Resource evidence below. |
 | Handler name | btn_loadRefClick |
 | Handler address | 012f8840 |
 | Graph node | `resource:dfm:frmModelTestBenchEditor/frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_references.btn_loadRef` |
@@ -20,62 +19,41 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+- Branches on the sibling reference-type radio buttons.
+- For Curve, a valid current circuit builds the simulation-specific `.refresult.tr`, `.refresult.dc`, or `.refresult.ac` path, with `.corner` when enabled, and loads it into the result view.
+- For Figure, builds `<circuit> Figure.jpg` under the circuit folder. It shows `Figure does not exist.` when the file is absent; otherwise it opens an image window titled for the circuit.
+- If neither branch is selected, or Curve has no valid circuit item, the handler returns without a message.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Load"] -->|OnClick| handler["FUN_012f8840"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_00416cd0"]
-    handler --> call3["FUN_00440a20"]
-    handler --> call4["FUN_00442f70"]
-    handler --> call5["VCL control Unicode text reader"]
-    handler --> call6["VCL control text setter with change suppression"]
+flowchart TD
+    control["Load reference"] --> handler["btn_loadRefClick (012f8840)"]
+    handler --> type{"Curve or Figure?"}
+    type -->|Curve| circuit{"Valid circuit?"}
+    circuit -->|Yes| curve["Load simulation-specific reference result"]
+    circuit -->|No| stop["Return"]
+    type -->|Figure| exists{"Figure JPG exists?"}
+    exists -->|No| error["Show missing-figure message"]
+    exists -->|Yes| image["Open reference image window"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012F8840__FUN_012f8840.c](../../../DecompiledSources/Tina16/functions/00000000012F8840__FUN_012f8840.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_references.btn_loadRef.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 12
-
-## Direct calls
-
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00416cd0` — FUN_00416cd0
-- `function:00440a20` — FUN_00440a20
-- `function:00442f70` — FUN_00442f70
-- `function:0064dd90` — VCL control Unicode text reader
-- `function:0064de00` — VCL control text setter with change suppression
-- `function:006e2530` — FUN_006e2530
-- `function:0072d730` — FUN_0072d730
-- `function:007fc180` — FUN_007fc180
-- `function:008059a0` — FUN_008059a0
-- `function:012e2da0` — FUN_012e2da0
-- `function:01301c40` — FUN_01301c40
+- Source: [FUN_012f8840](../../../DecompiledSources/Tina16/functions/00000000012F8840__FUN_012f8840.c)
+- Recovered role: Load the selected circuit's reference curve or reference figure.
+- The References group contains Curve and Figure radio buttons next to this Load button.
+- FUN_012f8840 reads those two radio states and calls FUN_01301c40 with reference mode for Curve.
+- The Figure branch verifies the JPG path before it creates and shows the image form.
+- Relevant callee: [FUN_01301c40](../../../DecompiledSources/Tina16/functions/0000000001301C40__FUN_01301c40.c)
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Caption: `Load`.
+- No extracted glyph is present for this control.
+- Nearby labels, when cited above, are candidates from the same parent and are used only with handler evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No runtime UI test was performed.
+- The explanation does not infer behavior from the caption, hint, or nearby labels alone.

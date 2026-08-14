@@ -67,6 +67,7 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - The DFM provides the handler name but no code address. RTTI and VMT resolution did not produce a function in the recovered range.
+- A manual scan of the rebuilt image and the live minidump found `TThreadControl` and `btnTest2Click` only in the DFM stream. It found no `TThreadControl` VMT, published-method record, or mapped code pointer for this handler.
 - A repository-wide search found no recovered `TThreadControl` or `btnTest2Click` implementation outside the resource evidence.
 - The generic caption supplies no specific behavior evidence.
 - A recovered address or an independent runtime trace is required before this control can receive a function annotation or a behavior claim.

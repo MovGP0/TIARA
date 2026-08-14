@@ -1,6 +1,6 @@
 ﻿# Button3
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed. The Memo2 resize behavior is documented.
 
 ## Control
 
@@ -20,50 +20,54 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler hides `Memo2`, sets its width to `100` pixels, sets its height to
+`200` pixels, and shows it again. The DFM size is `97 x 153`, so the first
+completed click makes the memo three pixels wider and 47 pixels taller than
+its design-time size.
+
+The final visible state is always true. If `Memo2` is already hidden, the first
+visibility request is a no-op. If it is visible, the handler hides it before
+the size changes. A repeated click requests the same size and visible state.
+
+The click does not change memo text, colors, selection, drawing records, or
+form size. There is no decision, validation, or local error branch.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Button3"] -->|OnClick| handler["FUN_011980e0"]
-    handler --> call1["FUN_0064cbf0"]
-    handler --> call2["FUN_0064cc50"]
-    handler --> call3["FUN_0064dbe0"]
+flowchart TD
+    control["Button3"] -->|OnClick| hideMemo["Hide Memo2"]
+    hideMemo --> width["Set Memo2 width to 100"]
+    width --> height["Set Memo2 height to 200"]
+    height --> showMemo["Show Memo2"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011980E0__FUN_011980e0.c](../../../DecompiledSources/Tina16/functions/00000000011980E0__FUN_011980e0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: kiiro_form.Button3.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Recovered role: Resizes `Memo2` through a hide-change-show sequence.
+- Input: None.
+- State change: `Memo2.Width = 100`, `Memo2.Height = 200`, and
+  `Memo2.Visible = true`.
+- Output: A visible `100 x 200` memo.
 - Complexity: complex
 - Distinct outgoing calls: 3
 
 ## Direct calls
 
-- `function:0064cbf0` — FUN_0064cbf0
-- `function:0064cc50` — FUN_0064cc50
-- `function:0064dbe0` — FUN_0064dbe0
+- `function:0064cbf0` - applies a new control width through the bounds path.
+- `function:0064cc50` - applies a new control height through the bounds path.
+- `function:0064dbe0` - changes `TControl.Visible` only when needed.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Target control: `Memo2`, a `TMemo` at `(592, 56)` with design-time size
+  `97 x 153`.
+- Kind, modal result, checked state, and list items: Not present.
+- Image reference and extracted glyph: None.
+- Nearby same-parent label: None.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The generic caption `Button3` does not identify a product command. The
+  recovered body proves only the `Memo2` layout test described here.

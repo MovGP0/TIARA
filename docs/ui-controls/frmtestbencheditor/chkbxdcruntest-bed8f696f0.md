@@ -1,64 +1,36 @@
 ﻿# Run test
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and UI evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | frmTestBenchEditor |
-| Component path | frmTestBenchEditor.pnlMain.pnlTestOptions.pctrlMode.tsDC.grbxDC.chkbxDCRunTest |
-| Control class | TCheckBox |
-| Caption | Run test |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | chkbxDCRunTestClick |
-| Handler address | 012c64a0 |
-| Graph node | `resource:dfm:frmTestBenchEditor/frmTestBenchEditor.pnlMain.pnlTestOptions.pctrlMode.tsDC.grbxDC.chkbxDCRunTest` |
-| Handler node | `function:012c64a0` |
-| Graph layer | UI |
+| Component path | `frmTestBenchEditor.pnlMain.pnlTestOptions.pctrlMode.tsDC.grbxDC.chkbxDCRunTest` |
+| Control class | `TCheckBox` |
+| Handler | `chkbxDCRunTestClick` at `012c64a0` |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The VCL check box changes its checked state. When Run test becomes cleared, the handler selects the DC `None` radio button. When Run test becomes selected, the handler makes no additional change. This handler does not start a test.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Run test"] -->|OnClick| handler["FUN_012c64a0"]
+flowchart TD
+    control["DC Run test check box"] --> toggle["VCL changes the checked state"]
+    toggle --> handler["chkbxDCRunTestClick at 012c64a0"]
+    handler --> checked{"Is Run test selected?"}
+    checked -->|Yes| keep["Keep the current DC result option"]
+    checked -->|No| none["Select the DC None option"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012C64A0__FUN_012c64a0.c](../../../DecompiledSources/Tina16/functions/00000000012C64A0__FUN_012c64a0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmTestBenchEditor.pnlMain.pnlTestOptions.pctrlMode.tsDC.grbxDC.chkbxDCRunTest.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: simple
-- Distinct outgoing calls: 0
-
-## Direct calls
-
-- No direct call edge is present in the recovered graph.
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- [Recovered chkbxDCRunTestClick source](../../../DecompiledSources/Tina16/functions/00000000012C64A0__FUN_012c64a0.c)
+- The DFM resource supplies the control identity, caption, initial state, and event binding.
+- No extracted glyph is present for this control.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Test execution starts through the separate Start test control, not through this immediate click handler.

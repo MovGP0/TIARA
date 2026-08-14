@@ -67,6 +67,7 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - The DFM provides the handler name but no code address. RTTI and VMT resolution did not produce a function in the recovered range.
+- A manual scan found no `TThreadControl` VMT or published-method record for this handler. The only additional `sbClearClick` record belongs to `TMCULogWindow`, so it cannot identify this control's handler.
 - A repository-wide search found no recovered `TThreadControl` or `sbClearClick` implementation outside the resource and glyph evidence.
 - The hint, glyph, and list-box context do not identify the clear scope or empty-state behavior.
 - A recovered address or an independent runtime trace is required before this control can receive a function annotation or a behavior claim.

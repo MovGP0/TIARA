@@ -1,6 +1,6 @@
 ﻿# Show template
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and graph evidence.
 
 ## Control
 
@@ -20,23 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler passes the active FastReport preview object to `FUN_018ab020`. That routine creates a temporary `TfrxComponent` container, copies each item from the current prepared-report collection into it, invokes `FUN_01976ca0`, clears the temporary collection, and destroys the container. The recovered `FUN_01976ca0` body returns without an operation. Therefore, the recovered path proves the temporary copy, but it does not prove a visible template window or a persistent state change.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Show template"] -->|OnClick| handler["FUN_018afe50"]
-    handler --> call1["FUN_018ab020"]
+    control["Show template menu item"] -->|OnClick| handler["Showtemplate1Click"]
+    handler --> copy["Copy prepared-report items to a temporary TfrxComponent"]
+    copy --> stub["Call recovered no-op FUN_01976ca0"]
+    stub --> cleanup["Clear and destroy the temporary container"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000018AFE50__FUN_018afe50.c](../../../DecompiledSources/Tina16/functions/00000000018AFE50__FUN_018afe50.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Builds and discards a temporary prepared-report component container for the Show template command.
 - Current graph summary: Handles 1 Delphi UI event: frxPreviewForm.HiddenMenu.Showtemplate1.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Copies the current prepared-report items to a temporary container, calls a recovered no-op routine, and then destroys the container.
+- Current graph evidence: `FUN_018afe50` calls `FUN_018ab020` with form field `+0x848`. `FUN_018ab020` iterates the current collection, adds each item to a temporary `TfrxComponent`, calls `FUN_01976ca0`, clears the collection, and destroys the container. `FUN_01976ca0` is one `RET` path in the recovered source.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered path does not establish why the command is named Show template.
+- The source does not show a dialog, error branch, or persistent output for this click.

@@ -1,6 +1,6 @@
 ﻿# StringGrid1
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source and call-path review complete.
 
 ## Control
 
@@ -20,22 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The recovered application handler only sets help context `2000`. It does not read the selected cell or change grid data. The Update action later reads the output column and commits the edited truth-table values.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
     control["StringGrid1"] -->|OnClick| handler["FUN_011ad480"]
+    handler --> topic["Set help context to 2000"]
+    topic --> later["Update later reads output cells"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011AD480__FUN_011ad480.c](../../../DecompiledSources/Tina16/functions/00000000011AD480__FUN_011ad480.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: tables_form.StringGrid1.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Recovered role: Truth-table grid help-context selector
+- Current graph summary: Sets the general truth-table help context when the grid receives a click.
+- Current graph behavior: Stores help context `2000` and does not read or write a grid cell.
+- Current graph evidence: The DFM binds `StringGrid1.OnClick` to `FUN_011ad480`. Its recovered body contains only the help-context store. The recovered Update handler separately reads the grid output column.
 - Complexity: simple
 - Distinct outgoing calls: 0
 
@@ -60,5 +62,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Cell selection and editing are VCL grid behavior and are not implemented in this handler.

@@ -1,6 +1,6 @@
 ﻿# ZoomCB
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and graph evidence.
 
 ## Control
 
@@ -20,28 +20,29 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler first ends any active find interaction and preserves the prior page marker. Combo row 6 selects FastReport fit-width mode, and row 7 selects whole-page mode. Other rows read the combo text, remove a percent sign and spaces, convert a nonempty value to a number, divide it by 100, and set a custom scale. The custom-scale setter enforces a minimum of 25 percent and clears fit mode. The handler then updates the combo, reselects the current page so both preview views redraw, and clears the saved page marker. Invalid nonempty numeric text reaches the converter without local error handling.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["ZoomCB"] -->|OnClick| handler["FUN_018af390"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_00414de0"]
-    handler --> call3["FUN_00416e20"]
-    handler --> call4["FUN_004170c0"]
-    handler --> call5["VCL control Unicode text reader"]
-    handler --> call6["FUN_0065b870"]
+    control["Zoom combo"] -->|OnClick| handler["ZoomCBClick"]
+    handler --> choice{"Which combo row is selected?"}
+    choice -->|6| fitWidth["Select fit-width mode"]
+    choice -->|7| wholePage["Select whole-page mode"]
+    choice -->|Other| parse["Parse percentage text and set custom scale"]
+    fitWidth --> redraw["Reselect current page and redraw views"]
+    wholePage --> redraw
+    parse --> redraw
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000018AF390__FUN_018af390.c](../../../DecompiledSources/Tina16/functions/00000000018AF390__FUN_018af390.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Applies a FastReport preview zoom mode or numeric zoom percentage from the zoom combo.
 - Current graph summary: Handles 1 Delphi UI event: frxPreviewForm.ToolBar.Sep3.ZoomCB.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Maps combo rows 6 and 7 to the two fit modes, or parses percentage text into a custom scale with a 25-percent minimum, then redraws the current page.
+- Current graph evidence: `FUN_018af390` reads the combo row from form field `+0x718`; exact rows 6 and 7 call `FUN_018a8d80` with modes 2 and 1. The other branch reads control text, removes delimiters, converts through `FUN_0180d800`, divides by 100, and calls `FUN_018a8d30`. `FUN_018a8d30` clamps values below 0.25 and clears fit mode. The handler finally calls `FUN_018a9020` for the current page.
 - Complexity: complex
 - Distinct outgoing calls: 10
 
@@ -75,5 +76,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The combo item strings are populated at runtime and are not present in the DFM; the fit-mode names come from the proven layout calculations in `FUN_018aba70`.
+- Invalid nonempty numeric text has no local catch, fallback, or retry branch.

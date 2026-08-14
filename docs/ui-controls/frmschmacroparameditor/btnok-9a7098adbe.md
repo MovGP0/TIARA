@@ -1,78 +1,59 @@
-﻿# btnOK
+﻿# OK
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and UI evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | frmSchMacroParamEditor |
-| Component path | frmSchMacroParamEditor.pnlButton1.btnOK |
-| Control class | TBitBtn |
-| Caption | Not present in the recovered resource. |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | btnOKClick |
-| Handler address | 0141bfc0 |
-| Graph node | `resource:dfm:frmSchMacroParamEditor/frmSchMacroParamEditor.pnlButton1.btnOK` |
-| Handler node | `function:0141bfc0` |
-| Graph layer | UI |
+| Component path | `frmSchMacroParamEditor.pnlButton1.btnOK` |
+| Control class | `TBitBtn` |
+| Button kind | `bkOK` |
+| Handler | `btnOKClick` at `0141bfc0` |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler first validates all nonempty names in the two-column parameter grid. It stops at the first invalid row and shows a localized message.
+
+The validation rejects these cases:
+
+- a reserved name, including `TEMP`, `TIME`, `GMIN`, `RNDR`, and `RNDC`;
+- a duplicate name;
+- a name whose first character is not a letter;
+- a name that contains a character other than a letter, digit, or underscore.
+
+Four additional reserved tokens are present in the recovered comparison table, but their text is not recovered. Empty name cells are skipped.
+
+If validation succeeds, the handler clears the output text and reads all grid rows. It includes only rows that have both a name and a value. It serializes each included row as a comma-separated `name=value` entry. It quotes an entry when its value contains a comma or quote, and it removes the final comma. The modal caller copies this output back to the schematic macro object only when the dialog returns result 1.
+
+If validation fails, the handler shows the relevant message and does not rebuild the output text. The `bkOK` resource establishes standard OK behavior, but the recovered handler does not explicitly clear the modal result. Therefore, this click path alone does not prove whether a validation error keeps the editor open.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["btnOK"] -->|OnClick| handler["FUN_0141bfc0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_00416cd0"]
-    handler --> call4["FUN_00416e20"]
-    handler --> call5["FUN_004170c0"]
-    handler --> call6["FUN_0043ea00"]
+flowchart TD
+    control["OK button"] --> handler["btnOKClick at 0141bfc0"]
+    handler --> validate["Validate every nonempty parameter name"]
+    validate --> valid{"Are all names valid and unique?"}
+    valid -->|No| message["Show the first validation message"]
+    message --> unknown["Dialog-close result is not proven by this handler"]
+    valid -->|Yes| clear["Clear the output parameter text"]
+    clear --> rows["Read rows with both a name and a value"]
+    rows --> encode["Serialize comma-separated name=value entries"]
+    encode --> accept{"Does the modal dialog return result 1?"}
+    accept -->|Yes| commit["Caller copies the serialized text to the macro object"]
+    accept -->|No| discard["Caller does not copy the edited text"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/000000000141BFC0__FUN_0141bfc0.c](../../../DecompiledSources/Tina16/functions/000000000141BFC0__FUN_0141bfc0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmSchMacroParamEditor.pnlButton1.btnOK.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 9
-
-## Direct calls
-
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00416cd0` — FUN_00416cd0
-- `function:00416e20` — FUN_00416e20
-- `function:004170c0` — FUN_004170c0
-- `function:0043ea00` — FUN_0043ea00
-- `function:0043eca0` — FUN_0043eca0
-- `function:0084e320` — FUN_0084e320
-- `function:0141c2f0` — FUN_0141c2f0
-
-## Resource evidence
-
-- Kind: bkOK
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- [Recovered btnOKClick source](../../../DecompiledSources/Tina16/functions/000000000141BFC0__FUN_0141bfc0.c)
+- [Recovered name-validation helper](../../../DecompiledSources/Tina16/functions/000000000141C2F0__FUN_0141c2f0.c)
+- [Recovered modal caller and accepted-result commit](../../../DecompiledSources/Tina16/functions/00000000014365E0__FUN_014365e0.c)
+- [Recovered grid loader](../../../DecompiledSources/Tina16/functions/000000000141BE80__FUN_0141be80.c)
+- The DFM resource identifies `ParamEditor` as a `TStringGrid` and the control as a `bkOK` button.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Four reserved-name strings do not have recovered text.
+- The handler does not expose an explicit modal-result reset on validation failure.

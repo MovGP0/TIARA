@@ -1,6 +1,6 @@
-﻿# Decrypt Circuits...
+﻿# Decrypt Circuits
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for `TIARA-diz.6.7.1939`.
 
 ## Control
 
@@ -10,8 +10,7 @@
 | Component path | frmModelTestBenchEditor.TestBenchEditorMenu.mnFile.mnDecryptCircuits |
 | Control class | TMenuItem |
 | Caption | Decrypt Circuits... |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | See Resource evidence below. |
 | Handler name | mnDecryptCircuitsClick |
 | Handler address | 012f5900 |
 | Graph node | `resource:dfm:frmModelTestBenchEditor/frmModelTestBenchEditor.TestBenchEditorMenu.mnFile.mnDecryptCircuits` |
@@ -20,74 +19,43 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+- Opens the Decrypt Circuits dialog. Cancel performs no batch work and does not save the dialog fields.
+- After acceptance, enumerates source-folder .TSC files. Each file that loads successfully is written as a new target .TSC file with the accepted prefix.
+- Updates a progress form and checks its cancel flag between files. Files already written stay on disk after cancellation.
+- After normal completion or progress cancellation, saves the source folder, target folder, and target prefix in TINA.INI. It does not show a per-file failure report or a final summary.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Decrypt Circuits..."] -->|OnClick| handler["FUN_012f5900"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["Delphi UnicodeString array finalization helper"]
-    handler --> call4["FUN_00414b50"]
-    handler --> call5["FUN_00416ba0"]
-    handler --> call6["FUN_00416cd0"]
+flowchart TD
+    control["Decrypt Circuits..."] --> handler["mnDecryptCircuitsClick (012f5900)"]
+    handler --> accepted{"Dialog accepted?"}
+    accepted -->|No| stop["Close without changes"]
+    accepted -->|Yes| files["Enumerate source .TSC files"]
+    files --> load{"Circuit loads?"}
+    load -->|Yes| write["Write prefixed target .TSC"]
+    load -->|No| next["Continue without a report"]
+    write --> cancel{"Progress canceled?"}
+    cancel -->|No| files
+    cancel -->|Yes| settings["Save dialog settings"]
+    next --> cancel
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012F5900__FUN_012f5900.c](../../../DecompiledSources/Tina16/functions/00000000012F5900__FUN_012f5900.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmModelTestBenchEditor.TestBenchEditorMenu.mnFile.mnDecryptCircuits.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 24
-
-## Direct calls
-
-- `function:00410f20` — Nil-safe Delphi object destruction helper
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00414b50` — FUN_00414b50
-- `function:00416ba0` — FUN_00416ba0
-- `function:00416cd0` — FUN_00416cd0
-- `function:00417580` — FUN_00417580
-- `function:00417740` — FUN_00417740
-- `function:00418590` — FUN_00418590
-- `function:00441230` — FUN_00441230
-- `function:00441290` — FUN_00441290
-- `function:004412c0` — FUN_004412c0
-- `function:00441920` — FUN_00441920
-- `function:00442f70` — FUN_00442f70
-- `function:007fc180` — FUN_007fc180
-- `function:008059a0` — FUN_008059a0
-- `function:0080cc70` — FUN_0080cc70
-- `function:012ea610` — FUN_012ea610
-- `function:012ea640` — FUN_012ea640
-- `function:012f4ad0` — FUN_012f4ad0
-- `function:012f5840` — FUN_012f5840
-- `function:014a16d0` — FUN_014a16d0
-- `function:014a74d0` — FUN_014a74d0
-- `function:0198b200` — FUN_0198b200
+- Source: [FUN_012f5900](../../../DecompiledSources/Tina16/functions/00000000012F5900__FUN_012f5900.c)
+- Recovered role: Coordinate the accepted Decrypt Circuits batch and persist its settings.
+- The dialog resource supplies source folder, target folder, target-prefix, and same-folder controls.
+- FUN_012f5900 tests ShowModal for 1, enumerates source\\*.tsc, loads each circuit, builds target\\stem+prefix+.tsc, and writes successful loads.
+- The handler reads the progress cancel byte between entries and writes DE_SourceFolder, DE_TargetFolder, and DE_TargetPrefix after the loop.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Caption: `Decrypt Circuits...`.
+- No extracted glyph is present for this control.
+- Nearby labels, when cited above, are candidates from the same parent and are used only with handler evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No runtime UI test was performed.
+- The explanation does not infer behavior from the caption, hint, or nearby labels alone.

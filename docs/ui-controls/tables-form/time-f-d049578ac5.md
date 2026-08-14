@@ -1,6 +1,6 @@
 ﻿# Show time diagram
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source and call-path review complete.
 
 ## Control
 
@@ -20,25 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler calculates `2^n`, where `n` is the current input-variable count, and stores the result as the truth-table row count. It then shows and activates the shared form that the control caption identifies as the time diagram. The click does not validate or commit grid edits.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
+flowchart TD
     control["Show time diagram"] -->|OnClick| handler["FUN_011ac1d0"]
-    handler --> call1["FUN_0040c770"]
-    handler --> call2["FUN_00526500"]
-    handler --> call3["FUN_008059a0"]
+    handler --> count["Calculate 2 to the variable-count power"]
+    count --> store["Store truth-table row count"]
+    store --> show["Show and activate time diagram form"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011AC1D0__FUN_011ac1d0.c](../../../DecompiledSources/Tina16/functions/00000000011AC1D0__FUN_011ac1d0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: tables_form.Time_f.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Recovered role: Truth-table time-diagram launcher
+- Current graph summary: Recalculates the truth-table row count and shows the time-diagram form.
+- Current graph behavior: Computes `2^n` from the shared input-variable count, stores it, and calls the annotated VCL form show-and-activate helper on a shared form instance.
+- Current graph evidence: The handler passes floating-point `2.0` and the model value at offset `0x764` to the recovered power path, stores the integer result, and passes the global form pointer to `TCustomForm.Show`. The control caption is `Show time diagram`, and the resource set includes `time_w_form` with caption `Time diagram`.
 - Complexity: complex
 - Distinct outgoing calls: 3
 
@@ -65,5 +65,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered global pointer does not preserve a Delphi field name.
+- The handler does not refresh or validate individual grid cells before it shows the form.

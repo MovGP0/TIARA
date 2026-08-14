@@ -1,6 +1,6 @@
 ﻿# Find
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and graph evidence.
 
 ## Control
 
@@ -20,24 +20,26 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The check button controls the preview find mode. The handler reads the button state at `+0x31a` and passes it to `FUN_018a9960`. That routine updates the preview find state, synchronizes the find UI and callbacks, and refreshes the preview only when the state changes. When the resulting find state is off, the handler calls a preview virtual method at offset `+600`; the recovered graph does not identify that method name.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Find"] -->|OnClick| handler["FUN_018af1c0"]
-    handler --> call1["FUN_018a9930"]
-    handler --> call2["FUN_018a9960"]
+    control["Find check button"] -->|OnClick| handler["FindBClick"]
+    handler --> setState["Set preview find mode from button state"]
+    setState --> enabled{"Is find mode enabled?"}
+    enabled -->|Yes| finish["Keep find UI active"]
+    enabled -->|No| virtualCall["Call the preview method at VMT offset 600"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000018AF1C0__FUN_018af1c0.c](../../../DecompiledSources/Tina16/functions/00000000018AF1C0__FUN_018af1c0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Synchronizes the FastReport preview find mode with the Find check button.
 - Current graph summary: Handles 1 Delphi UI event: frxPreviewForm.ToolBar.FindB.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Applies the button state to the preview find mode and invokes one additional preview method when find mode is off.
+- Current graph evidence: `FUN_018af1c0` reads byte `+0x31a` from form field `+0x6f8`, calls `FUN_018a9960`, tests the result through `FUN_018a9930`, and calls VMT offset `600` only for a false result. `FUN_018a9960` updates the find-state fields, child controls, callbacks, and repaint path.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -63,5 +65,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not identify the virtual method at offset `600`.
+- The state setter has no local error or rollback path.

@@ -1,6 +1,6 @@
 ﻿# Delete file
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered handler and call path.
 
 ## Control
 
@@ -20,28 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads the selected component-file tab. It does nothing when the first tab is selected or when no later tab is selected. For a later tab, it shows a confirmation message that includes the file name. If the user selects **No**, it keeps the file and the current UI state. If the user selects **Yes**, it deletes the file from disk, destroys and removes its loaded file object, removes its tab, selects the preceding tab, and reloads the Component Bar from that selection.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Delete file"] -->|OnClick| handler["FUN_01b9ad00"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["Delphi UnicodeString array finalization helper"]
-    handler --> call4["FUN_004412f0"]
-    handler --> call5["FUN_00442f70"]
-    handler --> call6["FUN_006d5120"]
+flowchart TD
+    control["Click Delete file"] --> handler["Read selected file-tab index"]
+    handler --> eligible{"Is the index greater than zero?"}
+    eligible -- "No" --> noOp["Keep the files and tabs"]
+    eligible -- "Yes" --> confirm{"Confirm deletion of the named file"}
+    confirm -- "No" --> noOp
+    confirm -- "Yes" --> remove["Delete the file and remove its loaded object and tab"]
+    remove --> reload["Select the preceding tab and reload the Component Bar"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B9AD00__FUN_01b9ad00.c](../../../DecompiledSources/Tina16/functions/0000000001B9AD00__FUN_01b9ad00.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Deletes a selected non-primary Component Bar file after confirmation.
 - Current graph summary: Handles 1 Delphi UI event: frmEditCompRack.pmnuIniFile.pmnuDeleteFile.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Rejects tab index zero, confirms a later file by name, deletes it from disk and the two UI collections, selects the preceding tab, and calls the reset handler.
+- Current graph evidence: The recovered handler checks the selected tab index for a value greater than zero, formats `%s will be deleted. Continue?`, requires message result 6, calls `FUN_004412f0` with the stored path, removes the matching loaded object and tab, selects index minus one, and calls `FUN_01b979d0`.
 - Complexity: complex
 - Distinct outgoing calls: 9
 
@@ -74,5 +74,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not expose the operating-system error that can occur if file deletion fails.

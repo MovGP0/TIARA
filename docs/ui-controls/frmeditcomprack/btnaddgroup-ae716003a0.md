@@ -1,6 +1,6 @@
 ﻿# Add &group
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered handler and call path.
 
 ## Control
 
@@ -20,28 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+If a tree item is selected, the handler first applies and validates its current editor values. It stops if that operation fails. It then hides the new-file panel, builds a group from the recovered default group record, inserts the group in the tree model, assigns no component icon to the new group, selects it, and refreshes the current file-tab state. The handler can add a group when no item is selected.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Add &group"] -->|OnClick| handler["FUN_01b98650"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_0064dbe0"]
-    handler --> call3["FUN_006d5120"]
-    handler --> call4["FUN_006d6380"]
-    handler --> call5["FUN_006dcbd0"]
-    handler --> call6["FUN_006dcca0"]
+flowchart TD
+    control["Click Add group"] --> selected{"Is an item selected?"}
+    selected -- "Yes" --> valid{"Can current edits be applied?"}
+    valid -- "No" --> noOp["Keep the tree unchanged"]
+    selected -- "No" --> build["Build the default group record"]
+    valid -- "Yes" --> build
+    build --> insert["Insert and select the new group"]
+    insert --> refresh["Refresh the current file-tab state"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B98650__FUN_01b98650.c](../../../DecompiledSources/Tina16/functions/0000000001B98650__FUN_01b98650.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Adds a default group to the Component Bar tree.
 - Current graph summary: Handles 1 Delphi UI event: frmEditCompRack.pnlToolBar.btnAddGroup.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Validates a selected item when present, hides the new-file panel, creates a group from the default group record, inserts it, sets its image indexes to -1, selects it, and refreshes the current tab.
+- Current graph evidence: The handler conditionally calls `FUN_01b96a50` for the selected node, calls `FUN_0064dbe0(panel, 0)`, derives the group value from `DAT_02110dd0`, constructs its record with `FUN_01b95080`, inserts it through `FUN_006def30`, assigns `0xffffffff` through the two image setters, and selects it with `FUN_01b97960`.
 - Complexity: complex
 - Distinct outgoing calls: 14
 
@@ -79,5 +79,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not expose a Delphi name for the serialized group-record type.

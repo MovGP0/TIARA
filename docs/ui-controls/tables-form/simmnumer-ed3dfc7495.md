@@ -1,6 +1,6 @@
 ﻿# Symmetry number
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source and call-path review complete.
 
 ## Control
 
@@ -20,22 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The recovered application handler only sets help context `2500`. Clicking the group surface does not change a symmetry-number check box and does not rebuild the truth table. The Fill action reads the child check boxes later.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
     control["Symmetry number"] -->|OnClick| handler["FUN_011ad3e0"]
+    handler --> topic["Set help context to 2500"]
+    topic --> done["Leave check states unchanged"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011AD3E0__FUN_011ad3e0.c](../../../DecompiledSources/Tina16/functions/00000000011AD3E0__FUN_011ad3e0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: tables_form.SpecialBox.simmNumer.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Recovered role: Symmetry-number group help-context selector
+- Current graph summary: Sets help context `2500` when the Symmetry number group surface receives a click.
+- Current graph behavior: Performs one shared help-context store and does not change the group or truth-table state.
+- Current graph evidence: The resource marks the group hidden by default. The recovered handler contains only a store of `0x9c4`, which is decimal `2500`, and a return.
 - Complexity: simple
 - Distinct outgoing calls: 0
 
@@ -60,5 +62,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The click handler does not identify a child check box. Each child has its own event.

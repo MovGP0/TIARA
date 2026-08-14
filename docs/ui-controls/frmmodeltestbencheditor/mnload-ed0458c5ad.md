@@ -1,6 +1,6 @@
-﻿# Load...
+﻿# Load Testbench
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for `TIARA-diz.6.7.1940`.
 
 ## Control
 
@@ -10,8 +10,7 @@
 | Component path | frmModelTestBenchEditor.TestBenchEditorMenu.mnFile.mnLoad |
 | Control class | TMenuItem |
 | Caption | Load... |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | See Resource evidence below. |
 | Handler name | mnLoadClick |
 | Handler address | 012f6060 |
 | Graph node | `resource:dfm:frmModelTestBenchEditor/frmModelTestBenchEditor.TestBenchEditorMenu.mnFile.mnLoad` |
@@ -20,57 +19,41 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+- Opens a file dialog for Model test bench (*.mtb). The initial folder comes from the saved TestBench setting.
+- Cancel leaves the current editor state unchanged.
+- After acceptance, resets the editor, loads the selected testbench, rebuilds its circuit tree and per-circuit settings, and enables the editing controls.
+- The loader accepts the current XML format and invokes a converter when the file does not start with an XML declaration. A missing or invalid file does not produce a message in the recovered load path.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Load..."] -->|OnClick| handler["FUN_012f6060"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString assignment helper"]
-    handler --> call3["FUN_00441640"]
-    handler --> call4["FUN_00724270"]
-    handler --> call5["FUN_00724420"]
-    handler --> call6["FUN_012fa2c0"]
+flowchart TD
+    control["Load..."] --> handler["mnLoadClick (012f6060)"]
+    handler --> accepted{"File selected?"}
+    accepted -->|No| stop["Keep current editor state"]
+    accepted -->|Yes| reset["Reset editor state"]
+    reset --> load["Load and convert .MTB when needed"]
+    load --> rebuild["Rebuild tree and settings"]
+    rebuild --> enable["Enable editor controls"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012F6060__FUN_012f6060.c](../../../DecompiledSources/Tina16/functions/00000000012F6060__FUN_012f6060.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmModelTestBenchEditor.TestBenchEditorMenu.mnFile.mnLoad.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 7
-
-## Direct calls
-
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:00441640` — FUN_00441640
-- `function:00724270` — FUN_00724270
-- `function:00724420` — FUN_00724420
-- `function:012fa2c0` — FUN_012fa2c0
-- `function:012fb520` — FUN_012fb520
+- Source: [FUN_012f6060](../../../DecompiledSources/Tina16/functions/00000000012F6060__FUN_012f6060.c)
+- Recovered role: Load a selected model testbench file into the editor.
+- FUN_012f6060 sets the dialog filter, derives the initial folder from TINA.INI, and tests the dialog result.
+- Only the accepted branch calls FUN_012fa2c0 and FUN_012fb520.
+- FUN_012fb520 reads testbench paths and options, resolves relative paths, rebuilds circuit state, and overrides the file timeout with Opt_Timeout from TINA.INI.
+- Relevant callee: [FUN_012fa2c0](../../../DecompiledSources/Tina16/functions/00000000012FA2C0__FUN_012fa2c0.c)
+- Relevant callee: [FUN_012fb520](../../../DecompiledSources/Tina16/functions/00000000012FB520__FUN_012fb520.c)
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Caption: `Load...`.
+- No extracted glyph is present for this control.
+- Nearby labels, when cited above, are candidates from the same parent and are used only with handler evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No runtime UI test was performed.
+- The explanation does not infer behavior from the caption, hint, or nearby labels alone.

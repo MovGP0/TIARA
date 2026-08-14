@@ -1,6 +1,6 @@
 ﻿# Erase
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The control clears the current recorder traces and rebuilds the display state.
 
 ## Control
 
@@ -20,20 +20,27 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`EraseBtnClick` prepares command `0x539` and calls the erase-command routine. In local mode, that routine marks an erase request, runs common acquisition cleanup, removes the channel plot attachments that apply to recorder plot mode `2`, reapplies the plot mode, and invokes the recorder update path.
+
+If acquisition is active, the update path processes the current acquisition state and can continue the capture after the display reset. In remote mode, the command is forwarded instead of applied locally. The recovered path does not delete a disk file or write persistent settings.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Erase"] -->|OnClick| handler["FUN_01b58d30"]
-    handler --> call1["FUN_01b58d60"]
+flowchart TD
+    control["Erase<br/>EraseBtn"] -->|OnClick| handler["FUN_01b58d30<br/>EraseBtnClick"]
+    handler --> command["FUN_01b58d60<br/>process command 0x539"]
+    command --> route{"Local control mode?"}
+    route -->|No| remote["Forward erase command"]
+    route -->|Yes| detach["FUN_010f6af0<br/>remove recorder plot entries"]
+    detach --> plot["Reapply plot mode"]
+    plot --> update["FUN_01b57b40<br/>update or continue acquisition"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B58D30__FUN_01b58d30.c](../../../DecompiledSources/Tina16/functions/0000000001B58D30__FUN_01b58d30.c)
-- Recovered role: Not present in the recovered resource.
+- Review role: Clear recorder plot attachments and refresh or continue the acquisition display.
 - Current graph summary: Handles 1 Delphi UI event: XYRecorderWin.StorageGroupBox.EraseBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +68,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered function names do not identify a user-visible storage object. The source proves removal of plot attachments and an acquisition/display update, so this article does not claim deletion of saved data.
+- A live UI or hardware test was not performed.

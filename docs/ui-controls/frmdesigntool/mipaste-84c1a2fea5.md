@@ -1,6 +1,6 @@
 ﻿# Paste
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command pastes into the main editor or forwards paste to the focused control.
 
 ## Control
 
@@ -20,13 +20,16 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler selects the advanced layout and compares the focused window with the Design Tool editor target. When the editor owns focus, it uses the SynEdit paste path, which accepts standard text and SynEdit block-mode clipboard data and records Undo information. Otherwise it sends `WM_PASTE` (`0x302`) to the current focused window. A read-only editor or unavailable text format is a no-op on the SynEdit path.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Paste"] -->|OnClick| handler["FUN_01499010"]
+flowchart TD
+    control["Choose Paste"] --> expand["Select advanced editor layout"]
+    expand --> target{"Main editor owns focus?"}
+    target -->|Yes| handler["Paste clipboard text with SynEdit Undo data"]
+    target -->|No| forward["Send WM_PASTE to focused window"]
     handler --> call1["FUN_0065b870"]
     handler --> call2["FUN_00bf9d90"]
     handler --> call3["FUN_0149a5d0"]
@@ -66,4 +69,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The forwarded control decides whether it accepts `WM_PASTE`.

@@ -1,6 +1,6 @@
 ﻿# Auto
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The control automatically scales the plotted recorder channels.
 
 ## Control
 
@@ -20,25 +20,31 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`AutoBtnClick` enumerates the recorder's channel rows. For each row that has both a plot curve and recorded data, it creates a temporary range-analysis object for the current Y/T or Y/X mode. It reads the data bounds, derives a five-division scale, asks the acquisition backend to normalize the scale value and scale index, stores the channel's vertical sensitivity, and resets its vertical position to zero.
+
+In Y/X mode, the handler also derives the shared horizontal scale from the accumulated range and resets the horizontal position to zero. It then updates the plot axes, reapplies the plot mode, and rebuilds or removes channel plot attachments to match their enabled state. Rows without both required objects are skipped. The handler changes runtime view and channel scale state only.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Auto"] -->|OnClick| handler["FUN_01b59d80"]
-    handler --> call1["FUN_0040c850"]
-    handler --> call2["Nil-safe Delphi object destruction helper"]
-    handler --> call3["FUN_004113f0"]
-    handler --> call4["FUN_00b90440"]
-    handler --> call5["FUN_00b90620"]
-    handler --> call6["FUN_010f67e0"]
+flowchart TD
+    control["Auto<br/>AutoBtn"] -->|OnClick| handler["FUN_01b59d80<br/>AutoBtnClick"]
+    handler --> rows["Enumerate recorder channels"]
+    rows --> usable{"Curve and recorded data present?"}
+    usable -->|No| next["Skip row"]
+    usable -->|Yes| bounds["Measure data bounds<br/>for Y/T or Y/X mode"]
+    bounds --> vertical["Set vertical scale;<br/>reset vertical position"]
+    vertical --> mode{"Y/X mode?"}
+    mode -->|Yes| horizontal["Set shared horizontal scale;<br/>reset horizontal position"]
+    mode -->|No| refresh["Update axes and channel plots"]
+    horizontal --> refresh
+    next --> refresh
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B59D80__FUN_01b59d80.c](../../../DecompiledSources/Tina16/functions/0000000001B59D80__FUN_01b59d80.c)
-- Recovered role: Not present in the recovered resource.
+- Review role: Compute automatic channel and axis scales from recorded curve bounds.
 - Current graph summary: Handles 1 Delphi UI event: XYRecorderWin.StorageGroupBox.AutoBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -74,5 +80,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Names for the temporary range-analysis classes and backend virtual methods are not recovered. Their returned minima, maxima, scale index, and scale value establish the autoscale role.
+- The source does not show an error dialog or rollback branch. A called virtual method can still raise an exception to its caller.
+- A live UI or hardware test was not performed.

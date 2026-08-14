@@ -1,6 +1,6 @@
 ﻿# Find...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command opens the Find dialog for the main editor.
 
 ## Control
 
@@ -20,13 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler selects the advanced editor layout, enables the recovered Find menu state, and opens the shared search dialog in find mode. It seeds that dialog from saved search options and from the current selection or word when configured. If the user accepts, it stores the new options and performs the search when search text is available.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Find..."] -->|OnClick| handler["FUN_014990d0"]
+flowchart TD
+    control["Choose Find..."] --> expand["Select advanced editor layout"]
+    expand --> open["Open search dialog in find mode"]
+    open --> accepted{"Dialog accepted?"}
+    accepted -->|No| stop["Do not start a search"]
+    accepted -->|Yes| handler["Store options and search for entered text"]
     handler --> call1["FUN_007e2da0"]
     handler --> call2["FUN_0149a5d0"]
     handler --> call3["FUN_0149b1b0"]
@@ -66,4 +70,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- A missing search string prevents the shared helper from executing a search.

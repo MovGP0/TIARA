@@ -1,6 +1,6 @@
 ﻿# Add
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source.
 
 ## Control
 
@@ -20,28 +20,36 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler inserts one empty row after the selected grid row. It first sets a
+form-owned update guard. It then moves each later row down by one position,
+increases the row count, clears the name and value cells in the new row, and
+sets the row's third-column flag. Finally, it refreshes the grid, gives focus to
+the grid, and clears the update guard.
+
+The handler does not validate, save, or commit the parameter list. It does not
+close the editor. Its recovered path has no error-message branch.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Add"] -->|OnClick| handler["FUN_0143bc50"]
-    handler --> call1["FUN_00848a70"]
-    handler --> call2["FUN_0084e3c0"]
-    handler --> call3["FUN_0084e3e0"]
-    handler --> call4["FUN_0084e4d0"]
-    handler --> call5["FUN_00f02610"]
-    handler --> call6["FUN_0143d630"]
+    addClick["Click Add"] --> addHandler["btnAddClick"]
+    addHandler --> guardOn["Set the grid-update guard"]
+    guardOn --> moveRows["Move later rows down by one"]
+    moveRows --> addRow["Increase the row count"]
+    addRow --> clearCells["Clear the new name and value cells"]
+    clearCells --> setFlag["Set the new row flag"]
+    setFlag --> refreshGrid["Refresh and focus the grid"]
+    refreshGrid --> guardOff["Clear the grid-update guard"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/000000000143BC50__FUN_0143bc50.c](../../../DecompiledSources/Tina16/functions/000000000143BC50__FUN_0143bc50.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Inserts an empty parameter row after the selected row.
 - Current graph summary: Handles 1 Delphi UI event: frmParamEditor.pnlButtons.btnAdd.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Moves later grid rows down, adds and clears one row, sets its third-column flag, and refreshes the grid.
+- Current graph evidence: `FUN_0143bc50` reads the grid row count and selected row at offsets `+0x4E0` and `+0x4AC`. It copies rows with `FUN_0084e3c0` and `FUN_0084e4d0`, increases the count with `FUN_00848a70`, clears columns 0 and 1 with `FUN_0084e3e0`, and sets column 2 through `FUN_0143d630`.
 - Complexity: complex
 - Distinct outgoing calls: 6
 
@@ -71,5 +79,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not identify a Delphi name for the third-column flag.
+- No glyph or nearby-label evidence is available for this control.

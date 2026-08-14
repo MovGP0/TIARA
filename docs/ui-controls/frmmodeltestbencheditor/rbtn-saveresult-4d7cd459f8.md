@@ -1,6 +1,6 @@
-﻿# Save reference
+﻿# Save Circuit as Reference
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for `TIARA-diz.6.7.1976`.
 
 ## Control
 
@@ -10,8 +10,7 @@
 | Component path | frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_testSettings.rbtn_saveResult |
 | Control class | TRadioButton |
 | Caption | Save reference |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | See Resource evidence below. |
 | Handler name | rbtn_saveResultClick |
 | Handler address | 012f7db0 |
 | Graph node | `resource:dfm:frmModelTestBenchEditor/frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_testSettings.rbtn_saveResult` |
@@ -20,54 +19,36 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+- If the current tree item maps to a circuit record, writes test-mode code 1.
+- Refreshes the test-setting control state.
+- It does not write a result file on click. The later test run interprets the stored mode.
+- A missing item or root item produces no record change.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Save reference"] -->|OnClick| handler["FUN_012f7db0"]
-    handler --> call1["FUN_004aeac0"]
-    handler --> call2["FUN_006dd6f0"]
-    handler --> call3["FUN_006e2530"]
-    handler --> call4["FUN_012e5850"]
-    handler --> call5["FUN_01306350"]
+flowchart TD
+    control["Save reference"] --> handler["rbtn_saveResultClick (012f7db0)"]
+    handler --> valid{"Current circuit exists?"}
+    valid -->|No| stop["Return"]
+    valid -->|Yes| mode["Store test mode 1"]
+    mode --> refresh["Refresh test-setting controls"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012F7DB0__FUN_012f7db0.c](../../../DecompiledSources/Tina16/functions/00000000012F7DB0__FUN_012f7db0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_testSettings.rbtn_saveResult.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 5
-
-## Direct calls
-
-- `function:004aeac0` — FUN_004aeac0
-- `function:006dd6f0` — FUN_006dd6f0
-- `function:006e2530` — FUN_006e2530
-- `function:012e5850` — FUN_012e5850
-- `function:01306350` — FUN_01306350
+- Source: [FUN_012f7db0](../../../DecompiledSources/Tina16/functions/00000000012F7DB0__FUN_012f7db0.c)
+- Recovered role: Set the current circuit test mode to Save reference.
+- The control caption and its dedicated handler provide the mode meaning.
+- FUN_012f7db0 requires a selected node with a positive circuit index, calls FUN_012e5850(record, 1), then FUN_01306350.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Caption: `Save reference`.
+- No extracted glyph is present for this control.
+- Nearby labels, when cited above, are candidates from the same parent and are used only with handler evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No runtime UI test was performed.
+- The explanation does not infer behavior from the caption, hint, or nearby labels alone.

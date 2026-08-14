@@ -1,6 +1,6 @@
 ﻿# PdfB
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and graph evidence.
 
 ## Control
 
@@ -20,23 +20,27 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler checks the configured PDF-export component at form field `+0x858`. A null component causes a no-op. When the component is available, the handler passes it to the common FastReport export routine. That routine also does nothing while preview generation is active. Otherwise, it selects the current page, exports through the supplied component, and refreshes the preview state.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["PdfB"] -->|OnClick| handler["FUN_018b0040"]
-    handler --> call1["FUN_018aa5e0"]
+    control["PDF export button"] -->|OnClick| handler["PdfBClick"]
+    handler --> configured{"Is a PDF-export component configured?"}
+    configured -->|No| noop["Do nothing"]
+    configured -->|Yes| busy{"Is preview generation active?"}
+    busy -->|Yes| noop
+    busy -->|No| export["Export the current prepared report through the component"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000018B0040__FUN_018b0040.c](../../../DecompiledSources/Tina16/functions/00000000018B0040__FUN_018b0040.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Starts PDF export through the configured FastReport export component.
 - Current graph summary: Handles 1 Delphi UI event: frxPreviewForm.ToolBar.PdfB.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Uses the configured PDF-export component only when it exists and the preview is idle; otherwise it returns without output.
+- Current graph evidence: `FUN_018b0040` tests form field `+0x858` and passes the nonzero object to `FUN_018aa5e0`. The common routine tests busy byte `preview+0x531`, selects the current page, invokes the prepared-report export method with the supplied component, and signals a preview update.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +65,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The DFM marks the button as initially hidden, and the recovered handler does not show how the export component is configured.
+- The handler has no local error, retry, or success-confirmation path.

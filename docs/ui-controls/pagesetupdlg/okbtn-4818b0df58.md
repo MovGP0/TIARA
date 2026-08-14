@@ -57,6 +57,27 @@ flowchart TD
 - No direct call edge is present. A call tree cannot start without a recovered
   handler address.
 
+## Manual runtime recovery
+
+The rebuilt PE has one `TPageSetupDlg` byte sequence. It starts at raw offset
+`0x34DAD85`, directly after the `TPF0` marker at `0x34DAD80`. Thus, this
+sequence is the DFM object-class field, not a Delphi VMT class-name record.
+The same DFM stream contains `cbPaperSizeChange` at `0x34DB1E1` and
+`rgOrientationClick` at `0x34DB280`. Neither name occurs in another location
+in the rebuilt PE. The captured runtime image and process dump have the same
+single DFM occurrence for each name.
+
+The first code-region `PageSetupDlg` name is a different item. A published
+script-method record at raw offset `0x149F6CF` maps that name to
+[`FUN_018aaa40`](../../../DecompiledSources/Tina16/functions/00000000018AAA40__FUN_018aaa40.c).
+The function creates the class reference at `0189ae80`. The
+published-method pointer at `0189ade8` leads to table `0189b6f2`, whose seven
+methods are `FormShow`, `FormHide`, `PortraitRBClick`, `SizeCBClick`,
+`WidthEChange`, `FormKeyDown`, and `EditorKeyPress`. Its class name is
+`TfrxPageSettingsForm`. It is a FastReport page-settings form and is not the
+DFM class `TPageSetupDlg`. This check rejects the only address-backed
+`PageSetupDlg` name as a false match.
+
 ## Resource evidence
 
 - Kind: bkOK
@@ -76,9 +97,19 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- The DFM provides the `OKBtnClick` name but no address.
-- RTTI and VMT resolution did not find this method for `TPageSetupDlg`.
+- The DFM provides the `OKBtnClick` name but no address. This method name is
+  common to many unrelated forms, so its byte matches cannot identify this
+  handler without the missing `TPageSetupDlg` class anchor.
+- The rebuilt PE, runtime image, and process dump do not contain a separate
+  `TPageSetupDlg` RTTI class-name record. They contain the name only in the
+  DFM stream. Therefore, the VMT and its published-method table cannot be
+  identified by the proven class-name method.
+- The address-backed script method named `PageSetupDlg` constructs
+  `TfrxPageSettingsForm`, not `TPageSetupDlg`, and cannot supply this event
+  address.
 - The recovered graph has no function node, source file, outgoing call, glyph,
   or function annotation for this binding.
-- A later recovery must identify the handler address and inspect its source and
-  relevant callees before it can describe application behavior.
+- A later recovery needs a mapped module or runtime capture that contains the
+  `TPageSetupDlg` VMT or another address-backed reference to that exact class.
+  It must then map `OKBtnClick` to executable code before source and callee
+  review can start.

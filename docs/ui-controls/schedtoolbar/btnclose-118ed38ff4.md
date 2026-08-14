@@ -72,12 +72,22 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- A repository-wide search of the recovered sources and analysis text found no
-  `TSchedToolBar`, `SchedToolBar`, `btnCloseClick`, or `Leave Macro` match outside
-  the extracted UI-resource documentation.
+- A manual scan found the only `TSchedToolBar` short string at virtual address
+  `038F7238` in the DFM stream. No 64-bit pointer in the captured process memory
+  references this string. Thus, the string does not identify a recovered VMT.
+- The full process dump contains ten `btnCloseClick` text occurrences. Six are
+  valid published-method records. They resolve to only three code addresses.
+  The enclosing method-table and VMT pointers identify these methods as
+  `TfrmPowerDissipationReport.btnCloseClick` at `01336960`,
+  `TERCForm.btnCloseClick` at `014B78C0`, and `TLOM.btnCloseClick` at `01983570`.
+  The other four occurrences are DFM property values and are not method records.
+- The scan covered all 1,513 captured memory ranges and all 111 loaded modules.
+  It found no `TSchedToolBar` VMT and no fourth published `btnCloseClick` method.
+  Therefore, none of the three recovered code addresses belongs to this control.
 - The form's `OnShow` handler is also unresolved, so it cannot supply a verified
   lifecycle or shared-state path for this control.
 - The caption alone does not prove a close, hide, save, prompt, or macro-state
   operation.
-- A code address or an independently verified runtime trace is required before
-  this control can receive a function annotation or a specific behavior claim.
+- A runtime capture that contains the registered `TSchedToolBar` class, or an
+  independently verified execution trace, is required before this control can
+  receive a function annotation or a specific behavior claim.

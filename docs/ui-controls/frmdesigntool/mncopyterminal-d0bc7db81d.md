@@ -1,6 +1,6 @@
 ﻿# Copy
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command copies all terminal text to the clipboard.
 
 ## Control
 
@@ -20,13 +20,16 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler first selects the complete terminal range, from line 1 and column 1 to the final character. It then copies that selection as standard clipboard text and includes SynEdit selection-mode data. An empty terminal results in no clipboard text.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Copy"] -->|OnClick| handler["FUN_01498de0"]
+flowchart TD
+    click["Choose terminal Copy"] --> select["Select all terminal text"]
+    select --> empty{"Selection empty?"}
+    empty -->|Yes| stop["Do not access clipboard"]
+    empty -->|No| handler["Copy text and SynEdit selection mode"]
     handler --> call1["FUN_00bf1d60"]
     handler --> call2["FUN_00bfa390"]
 ```
@@ -64,4 +67,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- This command replaces the user's previous terminal selection with the full range.

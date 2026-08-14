@@ -1,6 +1,6 @@
-﻿# Comparison
+﻿# Compare Circuit Results
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for `TIARA-diz.6.7.1975`.
 
 ## Control
 
@@ -10,8 +10,7 @@
 | Component path | frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_testSettings.rbtn_comparision |
 | Control class | TRadioButton |
 | Caption | Comparison |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | See Resource evidence below. |
 | Handler name | rbtn_comparisionClick |
 | Handler address | 012f7bd0 |
 | Graph node | `resource:dfm:frmModelTestBenchEditor/frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_testSettings.rbtn_comparision` |
@@ -20,60 +19,40 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+- If the current tree item maps to a circuit record, writes test-mode code 2.
+- For a circuit item, can load its comparison result state when the form guard permits it.
+- Then refreshes the data display, local settings, and test-setting controls. It initializes reference data when the record has none.
+- A missing item or root item produces no record change.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Comparison"] -->|OnClick| handler["FUN_012f7bd0"]
-    handler --> call1["FUN_004aeac0"]
-    handler --> call2["FUN_006dd6f0"]
-    handler --> call3["FUN_006e2530"]
-    handler --> call4["FUN_012e5850"]
-    handler --> call5["FUN_012e6020"]
-    handler --> call6["FUN_01301140"]
+flowchart TD
+    control["Comparison"] --> handler["rbtn_comparisionClick (012f7bd0)"]
+    handler --> valid{"Current circuit exists?"}
+    valid -->|No| stop["Return"]
+    valid -->|Yes| mode["Store test mode 2"]
+    mode --> guard{"Refresh guard clear?"}
+    guard -->|Yes| load["Load comparison state"]
+    guard -->|No| refresh["Refresh data and controls"]
+    load --> refresh
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012F7BD0__FUN_012f7bd0.c](../../../DecompiledSources/Tina16/functions/00000000012F7BD0__FUN_012f7bd0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_testSettings.rbtn_comparision.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 10
-
-## Direct calls
-
-- `function:004aeac0` — FUN_004aeac0
-- `function:006dd6f0` — FUN_006dd6f0
-- `function:006e2530` — FUN_006e2530
-- `function:012e5850` — FUN_012e5850
-- `function:012e6020` — FUN_012e6020
-- `function:01301140` — FUN_01301140
-- `function:01304bb0` — FUN_01304bb0
-- `function:013056e0` — FUN_013056e0
-- `function:013060b0` — FUN_013060b0
-- `function:01306350` — FUN_01306350
+- Source: [FUN_012f7bd0](../../../DecompiledSources/Tina16/functions/00000000012F7BD0__FUN_012f7bd0.c)
+- Recovered role: Set the current circuit test mode to Comparison and refresh its data.
+- The control caption and its dedicated handler provide the mode meaning.
+- FUN_012f7bd0 writes code 2 through FUN_012e5850 and conditionally calls FUN_01301140 for a circuit item.
+- The non-guarded branch calls the data and control refresh routines and can call FUN_013060b0.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Caption: `Comparison`.
+- No extracted glyph is present for this control.
+- Nearby labels, when cited above, are candidates from the same parent and are used only with handler evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No runtime UI test was performed.
+- The explanation does not infer behavior from the caption, hint, or nearby labels alone.

@@ -1,73 +1,37 @@
 ﻿# < Back
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and UI evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | fMacroWiz |
-| Component path | fMacroWiz.pBottom.bprev |
-| Control class | TButton |
-| Caption | < Back |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | bprevClick |
-| Handler address | 01c3b7c0 |
-| Graph node | `resource:dfm:fMacroWiz/fMacroWiz.pBottom.bprev` |
-| Handler node | `function:01c3b7c0` |
-| Graph layer | UI |
+| Component path | `fMacroWiz.pBottom.bprev` |
+| Control class | `TButton` |
+| Caption | `< Back` |
+| Handler | `bprevClick` at `01c3b7c0` |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler selects the preceding wizard page: Source from Subcircuit, Subcircuit from Shape, Shape from Pair, or Pair from Rename. It calls itself when a candidate page does not apply to the current source or shape, so the wizard can skip that page in reverse. It then refreshes the form layout and navigation buttons and clears one internal transition flag. It has no local error path.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["< Back"] -->|OnClick| handler["FUN_01c3b7c0"]
-    handler --> call1["FUN_006d78a0"]
-    handler --> call2["FUN_01c38160"]
-    handler --> call3["FUN_01c38920"]
-    handler --> call4["FUN_01c3b7c0"]
-    handler --> call5["FUN_01c3bee0"]
+flowchart TD
+    control["Back button"] --> handler["bprevClick at 01c3b7c0"]
+    handler --> previous["Select the preceding candidate page"]
+    previous --> required{"Is that page required?"}
+    required -->|No| handler
+    required -->|Yes| refresh["Refresh the layout and navigation state"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C3B7C0__FUN_01c3b7c0.c](../../../DecompiledSources/Tina16/functions/0000000001C3B7C0__FUN_01c3b7c0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: fMacroWiz.pBottom.bprev.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 4
-
-## Direct calls
-
-- `function:006d78a0` — FUN_006d78a0
-- `function:01c38160` — FUN_01c38160
-- `function:01c38920` — FUN_01c38920
-- `function:01c3b7c0` — Handles 1 Delphi UI event: fMacroWiz.pBottom.bprev.OnClick.
-- `function:01c3bee0` — Handles 1 Delphi UI event: fMacroWiz.pcMWiz.OnChange.
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- [Recovered bprevClick source](../../../DecompiledSources/Tina16/functions/0000000001C3B7C0__FUN_01c3b7c0.c)
+- [Recovered page-skip decision](../../../DecompiledSources/Tina16/functions/0000000001C38920__FUN_01c38920.c)
+- [Recovered navigation-state refresh](../../../DecompiledSources/Tina16/functions/0000000001C38160__FUN_01c38160.c)
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered name of the cleared transition flag is not available.

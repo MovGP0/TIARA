@@ -1,6 +1,6 @@
 ﻿# F
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command applies an accepted font selection to both editors.
 
 ## Control
 
@@ -20,14 +20,16 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler copies the main editor font into the form's font dialog and executes the dialog. If the user accepts, it copies the selected font to the main editor and the terminal editor. If the user cancels, neither editor receives the dialog font. The caption **F** and hint **Set Editor Font** identify the control; the data flow proves the affected editors.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["F"] -->|OnClick| handler["FUN_0149a5e0"]
-    handler --> call1["FUN_00bf2c10"]
+flowchart TD
+    click["Click Set Editor Font"] --> preload["Copy main editor font to the font dialog"]
+    preload --> accepted{"Font dialog accepted?"}
+    accepted -->|No| keep["Keep both editor fonts"]
+    accepted -->|Yes| apply["Apply selected font to main and terminal editors"]
 ```
 
 ## Handler evidence
@@ -62,4 +64,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The handler does not compare the selected font with the current font before it applies it.

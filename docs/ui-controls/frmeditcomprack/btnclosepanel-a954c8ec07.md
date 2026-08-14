@@ -1,6 +1,6 @@
 ﻿# btnClosePanel
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered handler, resource, and glyph.
 
 ## Control
 
@@ -20,23 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler hides the new-file panel. It does not create a file and it does not change the entered name. The recovered cross glyph agrees with the close action, but the handler call is the primary evidence.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["btnClosePanel"] -->|OnClick| handler["FUN_01b9ace0"]
-    handler --> call1["FUN_0064dbe0"]
+    control["Click the cross button"] --> handler["Set the new-file panel to hidden"]
+    handler --> done["Return to the file tabs"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B9ACE0__FUN_01b9ace0.c](../../../DecompiledSources/Tina16/functions/0000000001B9ACE0__FUN_01b9ace0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Closes the Component Bar new-file panel.
 - Current graph summary: Handles 1 Delphi UI event: frmEditCompRack.pnlBrowser.pnlBrowserShowIcons.pnlNewIni.btnClosePanel.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Sets the panel at form offset `0x810` to not visible.
+- Current graph evidence: The handler calls the recovered VCL visibility setter `FUN_0064dbe0` with the object at `param_1 + 0x810` and value 0. The extracted glyph is a cross.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +61,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered handler does not clear the file-name field.

@@ -1,6 +1,6 @@
 ﻿# Save
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command saves terminal lines to a selected Python file.
 
 ## Control
 
@@ -20,13 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler temporarily configures the shared Save dialog with default extension `py` and filter `Python file|*.py`. If the user selects a path, it writes the terminal editor's line collection to that file. It then restores the dialog's Interpreter-file extension and filter on both acceptance and Cancel. Cancel writes no terminal file.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Save"] -->|OnClick| handler["FUN_01498e10"]
+flowchart TD
+    control["Choose terminal Save"] --> configure["Set Save dialog to Python files"]
+    configure --> dialog["Open Save dialog"]
+    dialog --> selected{"Path selected?"}
+    selected -->|Yes| handler["Write terminal lines to selected file"]
+    selected -->|No| restore["Write no file"]
+    handler --> restore["Restore Interpreter-file dialog settings"]
     handler --> call1["Delphi UnicodeString clear and finalization helper"]
     handler --> call2["Delphi UnicodeString assignment helper"]
     handler --> call3["FUN_00724270"]
@@ -68,4 +73,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The handler does not add or remove a `.py` suffix itself; dialog behavior controls that detail.

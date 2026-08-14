@@ -1,6 +1,6 @@
-﻿# Reload files
+﻿# Reload Circuit Files
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for `TIARA-diz.6.7.1951`.
 
 ## Control
 
@@ -10,8 +10,7 @@
 | Component path | frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSetRoot.btnReloadFiles |
 | Control class | TButton |
 | Caption | Reload files |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | See Resource evidence below. |
 | Handler name | btnReloadFilesClick |
 | Handler address | 012f6eb0 |
 | Graph node | `resource:dfm:frmModelTestBenchEditor/frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSetRoot.btnReloadFiles` |
@@ -20,81 +19,39 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+- If the Circuit folder text is empty, returns without changing the tree.
+- Enumerates the folder's direct `*.*` entries and keeps files with a case-insensitive `.TSC` extension.
+- Adds missing circuit items and removes circuit items whose filenames are no longer present. It does not delete disk files.
+- Sorts the tree, selects its root, and rebuilds per-circuit state. The recovered handler does not recurse into subfolders.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Reload files"] -->|OnClick| handler["FUN_012f6eb0"]
-    handler --> call1["FUN_00410e60"]
-    handler --> call2["Nil-safe Delphi object destruction helper"]
-    handler --> call3["Delphi UnicodeString clear and finalization helper"]
-    handler --> call4["Delphi UnicodeString array finalization helper"]
-    handler --> call5["FUN_00416ad0"]
-    handler --> call6["FUN_00416db0"]
+flowchart TD
+    control["Reload files"] --> handler["btnReloadFilesClick (012f6eb0)"]
+    handler --> folder{"Circuit folder is nonempty?"}
+    folder -->|No| stop["Keep current tree"]
+    folder -->|Yes| scan["Enumerate direct .TSC files"]
+    scan --> add["Add missing circuit items"]
+    add --> remove["Remove stale circuit items"]
+    remove --> rebuild["Sort, select root, and rebuild state"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012F6EB0__FUN_012f6eb0.c](../../../DecompiledSources/Tina16/functions/00000000012F6EB0__FUN_012f6eb0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSetRoot.btnReloadFiles.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 29
-
-## Direct calls
-
-- `function:00410e60` — FUN_00410e60
-- `function:00410f20` — Nil-safe Delphi object destruction helper
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00416ad0` — FUN_00416ad0
-- `function:00416db0` — FUN_00416db0
-- `function:00417580` — FUN_00417580
-- `function:00417740` — FUN_00417740
-- `function:0043e420` — FUN_0043e420
-- `function:00441230` — FUN_00441230
-- `function:00441290` — FUN_00441290
-- `function:004412c0` — FUN_004412c0
-- `function:004414c0` — FUN_004414c0
-- `function:00441a10` — FUN_00441a10
-- `function:004ae7e0` — FUN_004ae7e0
-- `function:004aeac0` — FUN_004aeac0
-- `function:0064dd90` — VCL control Unicode text reader
-- `function:006decb0` — FUN_006decb0
-- `function:006ded10` — FUN_006ded10
-- `function:006dee70` — FUN_006dee70
-- `function:006df4b0` — FUN_006df4b0
-- `function:006df500` — FUN_006df500
-- `function:006df690` — FUN_006df690
-- `function:006df710` — FUN_006df710
-- `function:006e1e60` — FUN_006e1e60
-- `function:006e23c0` — FUN_006e23c0
-- `function:006e24b0` — FUN_006e24b0
-- `function:012f2410` — FUN_012f2410
-- `function:01303240` — FUN_01303240
+- Source: [FUN_012f6eb0](../../../DecompiledSources/Tina16/functions/00000000012F6EB0__FUN_012f6eb0.c)
+- Recovered role: Reconcile circuit-tree items with .TSC files in the circuit folder.
+- The nearest same-parent label is Circuit folder.
+- FUN_012f6eb0 searches circuit-folder\\*.*, compares `.TSC` names with existing flag-0x20 tree items, and applies additions and removals.
+- The final calls sort/select the tree and call FUN_01303240 with mode 3.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Circuit folder at distance 379.
-- Rank 2: Result folder at distance 396.
-- Rank 3: Data file at distance 429.
+- Caption: `Reload files`.
+- No extracted glyph is present for this control.
+- Nearby labels, when cited above, are candidates from the same parent and are used only with handler evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No runtime UI test was performed.
+- The explanation does not infer behavior from the caption, hint, or nearby labels alone.

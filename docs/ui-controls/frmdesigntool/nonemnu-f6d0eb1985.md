@@ -1,6 +1,6 @@
 ﻿# None
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command removes the configured border.
 
 ## Control
 
@@ -20,14 +20,14 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler checks **None**, clears **Solid** and **Dotted**, and writes border mode `0` to form field `+0xbd8`. It does not change the background mode or color and does not directly repaint the editor.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["None"] -->|OnClick| handler["FUN_0149a940"]
-    handler --> call1["FUN_007e2d20"]
+flowchart TD
+    click["Choose None"] --> checks["Check None; clear Solid and Dotted"]
+    checks --> mode["Set border mode to 0"]
 ```
 
 ## Handler evidence
@@ -62,4 +62,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The original Delphi enum name for border value `0` is not recovered.

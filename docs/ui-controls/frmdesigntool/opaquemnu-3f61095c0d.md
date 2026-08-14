@@ -1,6 +1,6 @@
 ﻿# Opaque...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command selects opaque background mode and optionally changes its color.
 
 ## Control
 
@@ -20,13 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler unchecks **Transparent**, checks **Opaque...**, and writes background mode `1` to form field `+0xbd0`. It creates a color dialog, loads the current color from `+0xbd4`, and executes the dialog. Acceptance copies the selected color back to `+0xbd4`. Cancel keeps the old color, but it does not undo opaque mode or the menu checks.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Opaque..."] -->|OnClick| handler["FUN_0149a8b0"]
+flowchart TD
+    control["Choose Opaque..."] --> checks["Check Opaque and clear Transparent"]
+    checks --> mode["Set background mode to 1"]
+    mode --> dialog["Open color dialog with current color"]
+    dialog --> accepted{"Color accepted?"}
+    accepted -->|No| keep["Keep old color and opaque mode"]
+    accepted -->|Yes| handler["Store selected background color"]
     handler --> call1["Nil-safe Delphi object destruction helper"]
     handler --> call2["FUN_00724d70"]
     handler --> call3["FUN_007e2d20"]
@@ -66,4 +71,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- This menu handler updates form state; it does not directly repaint the editor.

@@ -1,6 +1,6 @@
-﻿# Run current circuit
+﻿# Run Current Circuit
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for `TIARA-diz.6.7.1978`.
 
 ## Control
 
@@ -10,8 +10,7 @@
 | Component path | frmModelTestBenchEditor.pnlMain.pnlTestOptions.rbtn_runCurrent |
 | Control class | TRadioButton |
 | Caption | Run current circuit |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | See Resource evidence below. |
 | Handler name | rbtn_runCurrentClick |
 | Handler address | 012fef10 |
 | Graph node | `resource:dfm:frmModelTestBenchEditor/frmModelTestBenchEditor.pnlMain.pnlTestOptions.rbtn_runCurrent` |
@@ -20,54 +19,37 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+- Clears the current-only run marker on every circuit record.
+- Then sets that marker on the current circuit record.
+- It does not start a test. Start test later consumes the stored scope.
+- The final selected-record lookup has no null or root-item guard; the surrounding UI must keep a valid circuit selected.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Run current circuit"] -->|OnClick| handler["FUN_012fef10"]
-    handler --> call1["FUN_004aeac0"]
-    handler --> call2["FUN_006dd6f0"]
-    handler --> call3["FUN_006e2530"]
-    handler --> call4["FUN_012e5830"]
+flowchart TD
+    control["Run current circuit"] --> handler["rbtn_runCurrentClick (012fef10)"]
+    handler --> clear["Clear marker on every circuit"]
+    clear --> selected["Get selected circuit record"]
+    selected --> mark["Set its current-only marker"]
+    mark --> done["Do not start a test"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012FEF10__FUN_012fef10.c](../../../DecompiledSources/Tina16/functions/00000000012FEF10__FUN_012fef10.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmModelTestBenchEditor.pnlMain.pnlTestOptions.rbtn_runCurrent.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 4
-
-## Direct calls
-
-- `function:004aeac0` — FUN_004aeac0
-- `function:006dd6f0` — FUN_006dd6f0
-- `function:006e2530` — FUN_006e2530
-- `function:012e5830` — FUN_012e5830
+- Source: [FUN_012fef10](../../../DecompiledSources/Tina16/functions/00000000012FEF10__FUN_012fef10.c)
+- Recovered role: Mark only the selected circuit for the next current-circuit run.
+- The radio caption defines the user-visible scope.
+- FUN_012fef10 iterates the record list and calls FUN_012e5830(record, 0), then calls FUN_012e5830(selectedRecord, 1).
+- FUN_012e5830 writes record byte +9 only.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: (To abort all simulation processes press CTRL+ALT+END.) at distance 218.
-- Rank 2: Test mode at distance 255.
-- Rank 3: Manufacturer: at distance 720.
+- Caption: `Run current circuit`.
+- No extracted glyph is present for this control.
+- Nearby labels, when cited above, are candidates from the same parent and are used only with handler evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No runtime UI test was performed.
+- The explanation does not infer behavior from the caption, hint, or nearby labels alone.

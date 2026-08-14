@@ -1,6 +1,6 @@
-﻿# Deselect all
+﻿# Deselect All Circuits
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for `TIARA-diz.6.7.1947`.
 
 ## Control
 
@@ -10,8 +10,7 @@
 | Component path | frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSelectors.btnDeselectAll |
 | Control class | TButton |
 | Caption | Deselect all |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | See Resource evidence below. |
 | Handler name | btnDeselectAllClick |
 | Handler address | 012f75e0 |
 | Graph node | `resource:dfm:frmModelTestBenchEditor/frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSelectors.btnDeselectAll` |
@@ -20,45 +19,33 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+- Calls the circuit tree's recovered clear-selection method.
+- It does not remove tree items or circuit files.
+- It has no empty-tree error branch.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Deselect all"] -->|OnClick| handler["FUN_012f75e0"]
+flowchart TD
+    control["Deselect all"] --> handler["btnDeselectAllClick (012f75e0)"]
+    handler --> clear["Clear tree selection"]
+    clear --> done["Keep all tree items and files"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012F75E0__FUN_012f75e0.c](../../../DecompiledSources/Tina16/functions/00000000012F75E0__FUN_012f75e0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSelectors.btnDeselectAll.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: simple
-- Distinct outgoing calls: 0
-
-## Direct calls
-
-- No direct call edge is present in the recovered graph.
+- Source: [FUN_012f75e0](../../../DecompiledSources/Tina16/functions/00000000012F75E0__FUN_012f75e0.c)
+- Recovered role: Clear the circuit-tree multi-selection.
+- FUN_012f75e0 makes one virtual call on the tree at form offset +0x700 with argument 1.
+- The neighboring Select all and Invert selection handlers use separate tree multi-selection methods.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Caption: `Deselect all`.
+- No extracted glyph is present for this control.
+- Nearby labels, when cited above, are candidates from the same parent and are used only with handler evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No runtime UI test was performed.
+- The explanation does not infer behavior from the caption, hint, or nearby labels alone.

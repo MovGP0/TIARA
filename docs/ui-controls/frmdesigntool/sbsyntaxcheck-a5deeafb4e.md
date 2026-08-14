@@ -1,6 +1,6 @@
 ﻿# Syntax Check
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command validates the program and reports the syntax-check result.
 
 ## Control
 
@@ -20,13 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler applies the same recovered line-count license warning as Run, then checks whether the current interface can be processed. In interface mode `1`, it reads the editor text, initializes the program object, transfers parameter values, prepares the program in check mode, and reports the result with mode `1`. The other interface uses the alternate check path, also with mode `1`. Invalid parameter names, expressions, or limits stop the check.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Syntax Check"] -->|OnClick| handler["FUN_0149a680"]
+flowchart TD
+    control["Click Syntax Check"] --> license["Report applicable license warning"]
+    license --> validate["Validate parameters and prepare source"]
+    validate --> valid{"Checks passed?"}
+    valid -->|No| stop["Stop and report validation result"]
+    valid -->|Yes| handler["Run syntax check and report mode 1 result"]
     handler --> call1["FUN_004134c0"]
     handler --> call2["Delphi UnicodeString array finalization helper"]
     handler --> call3["FUN_0041ddd0"]
@@ -79,4 +83,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact presentation of the final result is inside the shared result handler.

@@ -1,6 +1,6 @@
 ﻿# D&efault
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered handler and reset path.
 
 ## Control
 
@@ -20,27 +20,27 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+If a tree item is selected, the handler first applies and validates its current editor values. It stops if that operation fails. The handler then gets the first loaded Component Bar file, builds the application help-directory path `COMPREGY.bak`, and loads that backup file into the first file object. It temporarily disables the normal tree-state cleanup, calls the reset handler to rebuild the editor from the loaded backup, and restores cleanup for later resets.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["D&efault"] -->|OnClick| handler["FUN_01b99360"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_00416cd0"]
-    handler --> call3["FUN_006e2530"]
-    handler --> call4["FUN_01b96a50"]
-    handler --> call5["FUN_01b979d0"]
+flowchart TD
+    control["Click Default"] --> selected{"Is an item selected?"}
+    selected -- "Yes" --> valid{"Can current edits be applied?"}
+    valid -- "No" --> noOp["Keep the current configuration"]
+    selected -- "No" --> load["Load COMPREGY.bak into the first file object"]
+    valid -- "Yes" --> load
+    load --> reset["Rebuild the editor through the reset path"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B99360__FUN_01b99360.c](../../../DecompiledSources/Tina16/functions/0000000001B99360__FUN_01b99360.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Loads the factory Component Bar backup and rebuilds the editor.
 - Current graph summary: Handles 1 Delphi UI event: frmEditCompRack.pnlToolBar.btnDefault.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Validates a selected item, loads `COMPREGY.bak` into the first file object, suppresses normal cleanup for this transition, calls the reset handler, and restores cleanup.
+- Current graph evidence: The handler conditionally requires `FUN_01b96a50`, gets index zero from the file-object list at `0x880`, builds a path from the application help directory plus `COMPREGY` and `.bak`, calls the object's load virtual method at `0xd8`, sets flag `0x8a8` to zero, calls `FUN_01b979d0`, and sets the flag back to one.
 - Complexity: complex
 - Distinct outgoing calls: 5
 
@@ -69,5 +69,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- This handler changes the in-memory first file object. The OK handler performs the file-save loop.

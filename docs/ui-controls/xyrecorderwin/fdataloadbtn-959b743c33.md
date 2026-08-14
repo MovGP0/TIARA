@@ -1,6 +1,6 @@
 ﻿# FDataLoadBtn
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The recovered click path is a no-op for XYRecorderWin.
 
 ## Control
 
@@ -20,20 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The button does not load data in the recovered executable. `DataLoadBtnClick` calls `FUN_010f7e80`, which invokes form virtual-method slot `+0x558`. The recovered `TXYRecorderWin` VMT maps this slot to `FUN_01b583b0`.
+
+`FUN_01b583b0` is one `RET` instruction followed by alignment bytes. It does not open a file dialog, read data, change plot state, report an error, or write persistent state.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["FDataLoadBtn"] -->|OnClick| handler["FUN_01b5a130"]
-    handler --> call1["FUN_010f7e80"]
+flowchart TD
+    control["Load glyph<br/>FDataLoadBtn"] -->|OnClick| handler["FUN_01b5a130<br/>DataLoadBtnClick"]
+    handler --> dispatcher["FUN_010f7e80<br/>virtual data-load dispatch"]
+    dispatcher -->|"TXYRecorderWin VMT +0x558"| disabled["FUN_01b583b0<br/>single RET"]
+    disabled --> unchanged["Return with data, plot,<br/>and persistent state unchanged"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B5A130__FUN_01b5a130.c](../../../DecompiledSources/Tina16/functions/0000000001B5A130__FUN_01b5a130.c)
-- Recovered role: Not present in the recovered resource.
+- Review role: Dispatch a disabled XY Recorder data-load command.
 - Current graph summary: Handles 1 Delphi UI event: XYRecorderWin.DataBox.FDataLoadBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +65,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The embedded plot-and-inward-arrow glyph suggests import direction, but the source and VMT prove that this form's operation is disabled.
+- The class VMT is based at `01b54868`. Its class-name pointer at `01b547e0` identifies `TXYRecorderWin`; the `+0x558` entry at `01b54dc0` contains `01b583b0`. The target bytes start with `C3`.
+- A live UI test was not performed. Other analyzer forms can map the shared dispatcher to a different method.

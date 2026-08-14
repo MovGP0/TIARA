@@ -1,6 +1,6 @@
 ﻿# &Reset
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered handler and reload path.
 
 ## Control
 
@@ -20,28 +20,31 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler hides the new-file panel and changes the application cursor to its busy state. It reloads the Component Bar image list, clears and repopulates the icon selector with every available image index, and clears the current editable tree state when the reset flag permits that operation. If a Component Bar file is loaded, it parses the file for the selected tab back into the tree. It then selects the first tree item and restores the normal cursor. Thus, current unsaved editor changes are discarded and the selected backing file becomes the UI state again.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Reset"] -->|OnClick| handler["FUN_01b979d0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_0043f750"]
-    handler --> call3["FUN_0064dbe0"]
-    handler --> call4["FUN_006d5120"]
-    handler --> call5["FUN_008088b0"]
-    handler --> call6["FUN_00c85d40"]
+flowchart TD
+    control["Click Reset"] --> busy["Hide the new-file panel and show the busy cursor"]
+    busy --> icons["Reload the image list and rebuild the icon selector"]
+    icons --> clear{"Is tree cleanup enabled?"}
+    clear -- "Yes" --> clearTree["Clear current editable tree state"]
+    clear -- "No" --> loaded{"Is a file loaded?"}
+    clearTree --> loaded
+    loaded -- "Yes" --> parse["Parse the selected tab file into the tree"]
+    loaded -- "No" --> select["Select the first available item"]
+    parse --> select
+    select --> cursor["Restore the normal cursor"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B979D0__FUN_01b979d0.c](../../../DecompiledSources/Tina16/functions/0000000001B979D0__FUN_01b979d0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Reloads Component Bar UI state from the selected backing file.
 - Current graph summary: Handles 1 Delphi UI event: frmEditCompRack.pnlToolBar.btnReset.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Hides the new-file panel, uses a busy cursor, refreshes the image list and icon selector, conditionally clears the current tree, parses the selected loaded file, selects the first item, and restores the cursor.
+- Current graph evidence: The handler calls `FUN_0064dbe0(panel, 0)`, sets cursor value `0xfff5`, resolves the image list through `FUN_00c85d40`, clears and repopulates the icon combo items from its count, calls `FUN_01b951f0` when flag `0x8a8` is set, gets the selected file object from list `0x880`, passes it to parser `FUN_01b95260`, selects item zero with `FUN_01b97960`, and restores cursor value 0.
 - Complexity: complex
 - Distinct outgoing calls: 9
 
@@ -74,5 +77,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The parser supports group, component, include-file, and related serialized record forms. Their complete file-format grammar is outside this click article.

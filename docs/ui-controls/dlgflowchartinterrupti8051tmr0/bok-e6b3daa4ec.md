@@ -1,6 +1,6 @@
 ﻿# bOK
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and UI evidence.
 
 ## Control
 
@@ -20,28 +20,37 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler saves four form settings. It reads the selected `Cb_TMOD0` item and stores the Timer0 mode index at form field `+0xb18`. It reads the checked states of `RadioCLK` and `RadioTR0` and stores them as `0` or `1` at `+0xb20` and `+0xb24`. These values record the system-clock selection and the TR0 gating selection. The form's `OnShow` handler uses the reverse path to restore the same combo-box and radio-button states.
+
+The handler then reads the `eReload` text and asks `FUN_00f60f00` whether it uses a supported integer format. For valid text, `FUN_00f60f70` converts the text to a 32-bit integer, and the handler stores the result at `+0xb1c`.
+
+For invalid text, the handler builds a localized message with the key `HDLStrings.Msg_FC_NotValidInt` and the entered text. `FUN_00fc2a60` shows the message and sets the form validation-error flag at `+0x750`. `FormCloseQuery` rejects that close request and then clears the flag. This path leaves the previous reload field unchanged, but it has already saved the mode and both radio-button states.
+
+The click handler checks the integer format only. The separate `eReload.OnExit` handler applies the mode-dependent reload limit, but that range check is not part of this handler.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
     control["bOK"] -->|OnClick| handler["FUN_00fc2ad0"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00416cd0"]
-    handler --> call3["FUN_0041ddd0"]
-    handler --> call4["VCL control Unicode text reader"]
-    handler --> call5["FUN_00b89270"]
-    handler --> call6["FUN_00b8e650"]
+    handler --> saveSelections["Save mode, clock-source, and gating selections"]
+    saveSelections --> readReload["Read the eReload text"]
+    readReload --> validInteger{"Supported integer format?"}
+    validInteger -->|Yes| parseReload["FUN_00f60f70: parse the reload value"]
+    parseReload --> saveReload["Save the reload value at +0xb1c"]
+    saveReload --> continueClose["Return and allow the bkOK close request"]
+    validInteger -->|No| buildError["Build the localized invalid-integer message"]
+    buildError --> showError["FUN_00fc2a60: show error and set close-block flag"]
+    showError --> blockClose["FormCloseQuery rejects this close request"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000000FC2AD0__FUN_00fc2ad0.c](../../../DecompiledSources/Tina16/functions/0000000000FC2AD0__FUN_00fc2ad0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: 8051 Timer0 selection and reload-value commit handler.
 - Current graph summary: Handles 1 Delphi UI event: dlgFlowchartInterrupti8051Tmr0.bOK.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Not yet annotated. The recovered handler saves three Timer0 selections, validates and saves the reload integer, or reports an invalid integer and blocks the close request.
+- Current graph evidence: The handler reads controls at form offsets `+0x710`, `+0x6e0`, `+0x6f0`, and `+0x6b8`; it stores fields `+0xb18` through `+0xb24`. `FormShow` copies these stored values back to `Cb_TMOD0`, both radio-button pairs, and `eReload`. The failure path uses `HDLStrings.Msg_FC_NotValidInt`, and `FormCloseQuery` consumes the flag set by `FUN_00fc2a60`.
 - Complexity: complex
 - Distinct outgoing calls: 9
 
@@ -75,5 +84,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The original Delphi names of form fields `+0xb18` through `+0xb24` and `+0x750` are not recovered.
+- The handler does not enforce a reload range. `eReload.OnExit` uses the current mode to select an 8-bit or 16-bit limit.
+- The recovered click handler does not directly close the dialog. The resource identifies `bOK` as `bkOK`, and `FormCloseQuery` controls whether the close request can finish.

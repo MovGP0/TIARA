@@ -1,6 +1,6 @@
 ﻿# &Show icons
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered handler and VCL call path.
 
 ## Control
 
@@ -20,24 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads the check-box state. When the box is clear, it removes the form's image list from the Component Bar tree and sets the tree indent to 1. When the box is selected, it assigns the form's cached image list to the tree. The recovered resource selects the box by default, and form creation calls this handler to apply that initial state.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Show icons"] -->|OnClick| handler["FUN_01b99300"]
-    handler --> call1["FUN_006e2350"]
-    handler --> call2["FUN_006e4390"]
+flowchart TD
+    control["Change Show icons"] --> checked{"Is the box selected?"}
+    checked -- "Yes" --> attach["Assign the cached image list to the tree"]
+    checked -- "No" --> detach["Remove the tree image list"]
+    detach --> indent["Set the tree indent to 1"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B99300__FUN_01b99300.c](../../../DecompiledSources/Tina16/functions/0000000001B99300__FUN_01b99300.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Shows or hides icons in the Component Bar tree.
 - Current graph summary: Handles 1 Delphi UI event: frmEditCompRack.pnlBrowser.pnlBrowserShowIcons.chkShowBrowserIcons.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Assigns the cached image list when checked. When unchecked, it assigns no image list and sets indent 1.
+- Current graph evidence: The handler reads the check-box state by virtual call on the field at `0x7f0`. Its clear branch calls `FUN_006e4390(tree, 0)` and `FUN_006e2350(tree, 1)`. Its selected branch calls `FUN_006e4390(tree, imageListAt0x8a0)`. `FUN_006e4390` manages the tree image-list change link, and `FUN_006e2350` sends tree-view message `0x1107`, the indent setter.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -63,5 +64,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The handler does not change the stored component data.

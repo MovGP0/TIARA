@@ -1,6 +1,6 @@
 ﻿# Y/T
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The control changes the recorder to Y/T plotting mode.
 
 ## Control
 
@@ -20,25 +20,29 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+If the recorder is already in Y/T mode, `YTSpeedBtnClick` returns without changing state. Otherwise, it requests Y/T mode from the acquisition backend. If the backend rejects the request, the handler restores the Y/X button state and returns.
+
+For an accepted change, the handler stops an active acquisition before it changes the axes. It selects backend mode `0`, changes the horizontal-scale label to `Time/Div`, changes the plot-mode byte to `0x0B`, restores and normalizes the stored time scale, updates the scale editor and plot range, removes plot entries for the old mode, reapplies the plot mode, and invalidates both cursor caches. The click changes runtime acquisition and display state only.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Y/T"] -->|OnClick| handler["FUN_01b5a710"]
-    handler --> call1["VCL control text setter with change suppression"]
-    handler --> call2["FUN_0082a6c0"]
-    handler --> call3["FUN_00b90440"]
-    handler --> call4["FUN_010c0d70"]
-    handler --> call5["FUN_010e7b90"]
-    handler --> call6["FUN_010f6af0"]
+flowchart TD
+    control["Y/T<br/>YTSpeedBtn"] -->|OnClick| handler["FUN_01b5a710<br/>YTSpeedBtnClick"]
+    handler --> current{"Already in Y/T mode?"}
+    current -->|Yes| unchanged["Return without a change"]
+    current -->|No| request["Request backend mode 0"]
+    request --> accepted{"Mode accepted?"}
+    accepted -->|No| restore["Restore Y/X button state"]
+    accepted -->|Yes| stop["Stop active acquisition if necessary"]
+    stop --> axes["Set Time/Div and plot mode 0x0B"]
+    axes --> rebuild["Update range, rebuild plot,<br/>invalidate cursors"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B5A710__FUN_01b5a710.c](../../../DecompiledSources/Tina16/functions/0000000001B5A710__FUN_01b5a710.c)
-- Recovered role: Not present in the recovered resource.
+- Review role: Switch the recorder from Y/X to Y/T plotting and rebuild its axes.
 - Current graph summary: Handles 1 Delphi UI event: XYRecorderWin.XChannelGroupBox.YTSpeedBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -74,5 +78,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered backend method can reject the requested mode, but the reason and user notification behavior are not visible in this handler.
+- A live UI or hardware test was not performed. No file or persistent-setting write is present.

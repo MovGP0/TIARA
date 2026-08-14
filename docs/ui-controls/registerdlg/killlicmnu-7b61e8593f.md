@@ -59,6 +59,16 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
+## Manual RTTI/VMT recovery result
+
+The successful manual recovery pattern for `TdlgFlowchartInterruptAVRext0` was applied to this form. That class has a second class-name copy for RTTI, a qword from VMT offset `-0x88` to its length-prefixed class name, and a published-method-table pointer at VMT offset `-0x98`.
+
+`TRegisterDlg` has a different result. The mapped runtime image, rebuilt executable, and complete process dump each contain only one exact ASCII `TRegisterDlg` string. In the mapped image, this string is at `038f1e8d`, after the length byte `0x0c`, inside the embedded `TPF0` form stream. No qword in the mapped image points to `038f1e8c` or `038f1e8d`. Thus, this copy is not an address-backed VMT class-name target.
+
+`KillLicMnuClick`, `ExportLicMnuClick`, `ImportLicMnuClick`, `InitTrMediaMnuClick`, `EmailLBClick`, and `WebLBClick` also occur only in this form stream. `CancelBtnClick` and `OKBtnClick` occur for other classes, but no recovered `TRegisterDlg` VMT can assign any common-name entry to this form. All 14 recovered events on the class remain addressless in the graph.
+
+Therefore, the available artifacts supply no `TRegisterDlg` VMT base, no VMT `-0x98` published-method-table pointer, and no method record that maps this handler name to executable code. An exact handler address cannot be assigned without another module, symbol map, or runtime capture that contains the missing class RTTI.
+
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.

@@ -1,6 +1,6 @@
 ﻿# Schematic diagram
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source, UI resources, and the graph call path.
 
 ## Control
 
@@ -20,28 +20,30 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler selects the Schematic diagram help context. If the variable count is less than two, it shows a localized input error and stops. Otherwise, it processes the current logic function. A shared parse-error flag stops the remaining work without another local message. When processing succeeds, the handler clears the recalculation flag. For fewer than six variables, it shows and activates the Quine-McCluskey form and the Schematic diagram form. For six or more variables, it combines two localized strings and shows a limit message instead of opening these forms.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Schematic diagram"] -->|OnClick| handler["FUN_01b360c0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_00416740"]
-    handler --> call4["FUN_00416ba0"]
-    handler --> call5["FUN_008059a0"]
-    handler --> call6["FUN_0080d2f0"]
+flowchart TD
+    control["Schematic diagram button"] --> context["Set Schematic diagram help context"]
+    context --> minimum{"At least 2 variables?"}
+    minimum -->|No| inputError["Show localized input error"]
+    minimum -->|Yes| calculate["Process the current logic function"]
+    calculate --> parsed{"Parse succeeded?"}
+    parsed -->|No| stop["Stop without opening forms"]
+    parsed -->|Yes| limit{"Fewer than 6 variables?"}
+    limit -->|Yes| show["Show Quine-McCluskey and Schematic diagram forms"]
+    limit -->|No| limitError["Show localized size-limit message"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B360C0__FUN_01b360c0.c](../../../DecompiledSources/Tina16/functions/0000000001B360C0__FUN_01b360c0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Calculates and shows a schematic for a supported logic function.
 - Current graph summary: Handles 1 Delphi UI event: introduction_form.gbMethod.Netw_d.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The click validates the minimum count, processes the function, and opens the minimization and schematic forms only after a successful parse and for fewer than six variables.
+- Current graph evidence: `FUN_01b360c0` tests count field `+0x764`, calls `FUN_01b2d120`, tests parse flag `DAT_02110d19`, and passes `PTR_DAT_02004ae8` and `PTR_DAT_02001a00` to the VCL form show-and-activate helper only when the count is less than six.
 - Complexity: complex
 - Distinct outgoing calls: 9
 
@@ -74,5 +76,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not resolve the localized error text. It does not identify the indirect framework callback that receives `3` and then `0`.

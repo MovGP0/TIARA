@@ -1,6 +1,6 @@
 ﻿# Symmetric
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source and call-path review complete.
 
 ## Control
 
@@ -20,23 +20,30 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler prepares the symmetric-function preset. It caches the nine symmetry-number check boxes, shows the Symmetry number group, and shows only check boxes `0` through the current input-variable count. It hides higher-number check boxes. It clears the loaded-table flag and sets help context `2500`. It does not select a symmetry number or rebuild the grid.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
+flowchart TD
     control["Symmetric"] -->|OnClick| handler["FUN_011ad0b0"]
-    handler --> call1["FUN_0064dbe0"]
+    handler --> cache["Cache symmetry check-box controls"]
+    cache --> range["Compare each number with variable count"]
+    range --> visible{"Number is in range?"}
+    visible -->|Yes| show["Show check box"]
+    visible -->|No| hide["Hide check box"]
+    show --> group["Show Symmetry number group"]
+    hide --> group
+    group --> topic["Set help context to 2500"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011AD0B0__FUN_011ad0b0.c](../../../DecompiledSources/Tina16/functions/00000000011AD0B0__FUN_011ad0b0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: tables_form.SpecialBox.RadioSymm.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Recovered role: Symmetric truth-table preset selector
+- Current graph summary: Shows the applicable symmetry-number choices and prepares symmetric mode for Fill.
+- Current graph behavior: Makes check boxes `0` through the input-variable count visible, hides higher values, shows the group, clears the loaded-table flag, and sets help context `2500`.
+- Current graph evidence: The handler reads the nine child controls, compares their zero-based positions with the model value at offset `0x764`, and calls the annotated VCL visibility setter for each control and the parent group.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +68,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- This handler does not change any symmetry-number check state.
+- The separate Fill handler reads the checked values and applies them to truth rows.

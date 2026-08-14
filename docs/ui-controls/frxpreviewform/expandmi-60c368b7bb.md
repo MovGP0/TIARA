@@ -1,6 +1,6 @@
 ﻿# Expand all
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and graph evidence.
 
 ## Control
 
@@ -20,26 +20,27 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler starts a preview update, obtains the prepared-report component collection, and checks every item for the required FastReport class. For each eligible item whose flag at `+0x250` is set, it sets the expanded-state byte at `+0x251`. If at least one item changes, it refreshes the preview. It always ends the preview update and passes whether a change occurred. An already expanded collection causes no extra refresh work.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Expand all"] -->|OnClick| handler["FUN_018b05b0"]
-    handler --> call1["FUN_004113d0"]
-    handler --> call2["FUN_004aeac0"]
-    handler --> call3["FUN_018af290"]
-    handler --> call4["FUN_01951400"]
+    control["Expand all menu item"] -->|OnClick| handler["ExpandAllClick"]
+    handler --> scan["Scan eligible prepared-report components"]
+    scan --> changed{"Did a collapsed item change?"}
+    changed -->|Yes| refresh["Refresh the preview"]
+    changed -->|No| finish["End update without extra refresh"]
+    refresh --> finish
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000018B05B0__FUN_018b05b0.c](../../../DecompiledSources/Tina16/functions/00000000018B05B0__FUN_018b05b0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Expands all eligible prepared-report components in the FastReport preview.
 - Current graph summary: Handles 1 Delphi UI event: frxPreviewForm.RightMenu.ExpandMI.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Sets the expanded-state byte on eligible items and refreshes the preview only when at least one item changes.
+- Current graph evidence: `FUN_018b05b0` iterates the collection returned through `FUN_018af290` and `FUN_01951400`, type-checks each item, tests item byte `+0x250`, writes one to `+0x251`, and records a changed flag. Only the changed branch performs the additional preview refresh.
 - Complexity: complex
 - Distinct outgoing calls: 4
 
@@ -67,5 +68,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered class name for the eligible collection item is not available.
+- The handler has no local error, retry, or rollback path.

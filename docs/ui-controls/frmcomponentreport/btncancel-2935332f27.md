@@ -1,6 +1,6 @@
 ﻿# btnCancel
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source.
 
 ## Control
 
@@ -20,29 +20,39 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The click handler requests that the Component Report form close. It does not read
+the grid and it does not change a component.
+
+The shared VCL close routine handles the result. For a modal form, it sets modal
+result 2 (`mrCancel`). For a modeless form, it runs the close-query and close-action
+pipeline. This form has no recovered `OnCloseQuery` handler. Its recovered
+`FormClose` handler selects the release action, so a modeless close releases the
+form. No error message or retry path is present in `btnCancelClick`.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["btnCancel"] -->|OnClick| handler["FUN_01bb6500"]
-    handler --> call1["FUN_00805200"]
+    cancelClick["Click Cancel"] --> cancelHandler["btnCancelClick"]
+    cancelHandler --> closeForm["Run the VCL close pipeline"]
+    closeForm --> formMode{"Is the form modal?"}
+    formMode -->|"Yes"| modalCancel["Set mrCancel"]
+    formMode -->|"No"| releaseForm["Run FormClose and release the form"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001BB6500__FUN_01bb6500.c](../../../DecompiledSources/Tina16/functions/0000000001BB6500__FUN_01bb6500.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Closes the Component Report without applying grid edits.
 - Current graph summary: Handles 1 Delphi UI event: frmComponentReport.pnlButtons.btnCancel.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Calls the shared VCL form-close routine and returns.
+- Current graph evidence: `FUN_01bb6500` contains only a call to `FUN_00805200`. The resource identifies this control as `bkCancel`; `FormClose` at 01BB5EA0 sets the close action to release.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
 ## Direct calls
 
-- `function:00805200` — FUN_00805200
+- `function:00805200` — Runs the VCL form close-query and close-action pipeline.
 
 ## Resource evidence
 
@@ -61,5 +71,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source proves that the handler does not apply grid values. It does not prove how an exception from the VCL close pipeline would be presented.

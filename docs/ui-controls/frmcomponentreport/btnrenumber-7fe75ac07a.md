@@ -1,6 +1,6 @@
 ﻿# &Renumber
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source.
 
 ## Control
 
@@ -20,31 +20,46 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The click handler runs the shared component-renumber operation for the report
+model. That operation traverses eligible components, prepares renumber records,
+and runs the renumber interaction. If the operation sets its completion flag, it
+notifies dependent editor windows that the model changed.
+
+When the renumber operation returns, the handler always clears the report's
+backing string list and rebuilds the list and the two-column grid from the same
+model. This rebuild also occurs when the renumber interaction does not set its
+completion flag. The handler ignores the Boolean result from the rebuild helper.
+Therefore, a stopped duplicate-name resolution can leave a partially rebuilt
+report. The handler does not close the form and has no local error handler.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["&Renumber"] -->|OnClick| handler["FUN_01bb6510"]
-    handler --> call1["FUN_019acdc0"]
-    handler --> call2["FUN_01bb5f00"]
+    renumberClick["Click Renumber"] --> renumberHandler["btnRenumberClick"]
+    renumberHandler --> renumberModel["Run component renumber operation"]
+    renumberModel --> changed{"Completion flag set?"}
+    changed -->|"Yes"| notifyEditors["Notify dependent editor windows"]
+    changed -->|"No"| clearReport["Clear the report list"]
+    notifyEditors --> clearReport
+    clearReport --> rebuildReport["Rebuild the list and grid from the model"]
+    rebuildReport --> keepOpen["Keep the report open"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001BB6510__FUN_01bb6510.c](../../../DecompiledSources/Tina16/functions/0000000001BB6510__FUN_01bb6510.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Renumbers report components and rebuilds the report grid.
 - Current graph summary: Handles 1 Delphi UI event: frmComponentReport.pnlButtons.btnRenumber.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Calls the shared renumber workflow, clears the report list, and rebuilds the report from its model.
+- Current graph evidence: `FUN_01bb6510` passes form field `+0x6F0` to `FUN_019acdc0`, clears the list at `+0x6E8` through virtual slot `+0x90`, and calls `FUN_01bb5f00` with the same model.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
 ## Direct calls
 
-- `function:019acdc0` — FUN_019acdc0
-- `function:01bb5f00` — FUN_01bb5f00
+- `function:019acdc0` — Traverses eligible components, runs the shared renumber interaction, and sends a model-change notification when its completion flag is set.
+- `function:01bb5f00` — Rebuilds the Component Report list and grid from a component model.
 
 ## Resource evidence
 
@@ -63,5 +78,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not identify the numbering order or the exact values assigned by the shared renumber interaction.
+- The handler does not inspect the rebuild result, and it has no local rollback path.

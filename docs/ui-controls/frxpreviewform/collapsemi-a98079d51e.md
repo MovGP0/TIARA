@@ -1,6 +1,6 @@
 ﻿# Collapse all
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and graph evidence.
 
 ## Control
 
@@ -20,27 +20,27 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler starts a preview update, obtains the prepared-report component collection, and checks every item for the required FastReport class. For each eligible item whose flag at `+0x250` is set, it clears the expanded-state byte at `+0x251`. If at least one item changes, it refreshes the preview, selects page 1, and performs the additional collapse refresh. It always ends the preview update and passes whether a change occurred. An already collapsed collection causes no page-selection or extra refresh work.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Collapse all"] -->|OnClick| handler["FUN_018b0440"]
-    handler --> call1["FUN_004113d0"]
-    handler --> call2["FUN_004aeac0"]
-    handler --> call3["FUN_018ab560"]
-    handler --> call4["FUN_018af290"]
-    handler --> call5["FUN_01951400"]
+    control["Collapse all menu item"] -->|OnClick| handler["CollapseAllClick"]
+    handler --> scan["Scan eligible prepared-report components"]
+    scan --> changed{"Did an expanded item change?"}
+    changed -->|Yes| refresh["Refresh preview and select page 1"]
+    changed -->|No| finish["End update without extra refresh"]
+    refresh --> finish
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000018B0440__FUN_018b0440.c](../../../DecompiledSources/Tina16/functions/00000000018B0440__FUN_018b0440.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Collapses all eligible prepared-report components in the FastReport preview.
 - Current graph summary: Handles 1 Delphi UI event: frxPreviewForm.RightMenu.CollapseMI.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Clears the expanded-state byte on eligible items and refreshes the preview only when at least one item changes.
+- Current graph evidence: `FUN_018b0440` iterates the collection returned through `FUN_018af290` and `FUN_01951400`, type-checks each item, tests item byte `+0x250`, writes zero to `+0x251`, and records a changed flag. Only the changed branch refreshes and calls `FUN_018ab560` with page 1.
 - Complexity: complex
 - Distinct outgoing calls: 5
 
@@ -69,5 +69,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered class name for the eligible collection item is not available.
+- The handler has no local error, retry, or rollback path.

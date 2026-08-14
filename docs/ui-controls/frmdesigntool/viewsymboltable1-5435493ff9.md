@@ -1,6 +1,6 @@
 ﻿# View symbol table
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command creates or refreshes the shared symbol-table viewer and shows it next to the Design Tool.
 
 ## Control
 
@@ -20,13 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+If the shared symbol-table form does not exist, the handler creates it and assigns the current interpreter runtime. It then clears and repopulates symbol data, refreshes the viewer, positions it relative to the Design Tool form, and shows it. Later clicks reuse the same viewer instance and refresh its content.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["View symbol table"] -->|OnClick| handler["FUN_01498800"]
+flowchart TD
+    control["Choose View symbol table"] --> exists{"Shared viewer exists?"}
+    exists -->|No| create["Create viewer and assign current runtime"]
+    exists -->|Yes| refresh["Refresh symbol data"]
+    create --> refresh
+    refresh --> position["Position viewer next to Design Tool"]
+    position --> handler["Show viewer"]
     handler --> call1["FUN_007fc180"]
     handler --> call2["FUN_007fd7d0"]
     handler --> call3["FUN_008059a0"]
@@ -75,4 +80,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not prove whether a previously hidden viewer keeps user-resized dimensions.

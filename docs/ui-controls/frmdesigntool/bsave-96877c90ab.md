@@ -1,6 +1,6 @@
 ﻿# Save && Close
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command validates, saves the current design-tool data, and closes the form on success.
 
 ## Control
 
@@ -20,13 +20,20 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler validates the parameter table and, when required, updates calculated min/max values. If the active schematic state requires placement, it calls the same handler as **Add to schematic**. It then serializes the current editor and configuration to the active design-tool object, refreshes form state, and closes the form. A validation failure stops before save and close.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Save && Close"] -->|OnClick| handler["FUN_01498370"]
+flowchart TD
+    control["Click Save and Close"] --> validate["Validate parameters and limits"]
+    validate --> valid{"Validation passed?"}
+    valid -->|No| keep["Keep the form open"]
+    valid -->|Yes| place{"Placement update required?"}
+    place -->|Yes| add["Run Add to schematic path"]
+    place -->|No| handler["Serialize current editor and configuration"]
+    add --> handler
+    handler --> close["Refresh state and close the form"]
     handler --> call1["FUN_00805200"]
     handler --> call2["FUN_01497210"]
     handler --> call3["FUN_01498190"]
@@ -72,4 +79,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The predicate that selects the placement update is recovered only as a shared application-state query.

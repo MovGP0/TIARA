@@ -1,6 +1,6 @@
 ﻿# Update
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source and call-path review complete.
 
 ## Control
 
@@ -20,28 +20,33 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads each output cell in the truth table. It accepts `0` and `1`. It replaces any other first character with `1` in the grid. For each `1` row, it records the row, marks the output state, and builds a Boolean minterm from the input cells and variable names. If no row is `1`, it builds a fallback expression that pairs each variable with its complement. It writes the final expression to the shared function editors, hides three related forms, and sets help context `2600`.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
+flowchart TD
     control["Update"] -->|OnClick| handler["FUN_011ac750"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_00414b50"]
-    handler --> call4["FUN_00414de0"]
-    handler --> call5["FUN_00416ad0"]
-    handler --> call6["FUN_00416cd0"]
+    handler --> read["Read next output cell"]
+    read --> valid{"First character is 0 or 1?"}
+    valid -->|No| force["Replace output with 1"]
+    valid -->|Yes| test{"Output is 1?"}
+    force --> test
+    test -->|Yes| term["Record row and append minterm"]
+    test -->|No| clear["Mark row as false"]
+    term --> more{"More rows?"}
+    clear --> more
+    more -->|Yes| read
+    more -->|No| write["Write expression and hide related forms"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011AC750__FUN_011ac750.c](../../../DecompiledSources/Tina16/functions/00000000011AC750__FUN_011ac750.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: tables_form.GroupBox1.UpdateBtn.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Recovered role: Truth-table output commit and Boolean-expression builder
+- Current graph summary: Normalizes truth-table outputs, records the true rows, builds the Boolean expression, updates shared editors, and hides related result forms.
+- Current graph behavior: Treats an output whose first character is not `0` or `1` as `1`. It derives minterms from the input cells for true rows and updates the shared Boolean-function state.
+- Current graph evidence: The handler reads and writes `StringGrid1` cells through `FUN_0084e320` and `FUN_0084e3e0`, tests UTF-16 characters `0x30` and `0x31`, updates the true-row flag and index arrays, writes two editor controls, and calls the annotated form-hide helper three times.
 - Complexity: complex
 - Distinct outgoing calls: 15
 
@@ -80,5 +85,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Recovered string constants do not expose the Boolean operator glyphs in the C output.
+- The handler does not show an error message for an invalid output cell. It changes that cell to `1`.

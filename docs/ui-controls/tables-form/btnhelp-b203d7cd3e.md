@@ -1,6 +1,6 @@
 ﻿# &Help
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source and call-path review complete.
 
 ## Control
 
@@ -20,25 +20,29 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler builds a path to `logiconv.chm` in the application help directory. It asks the localization helper for a language-specific file and uses the original file when the localized file does not exist. It then opens the current shared help-context topic. The click does not change the truth table.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
+flowchart TD
     control["&Help"] -->|OnClick| handler["FUN_011ad1d0"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00416cd0"]
-    handler --> call3["FUN_01b1def0"]
+    handler --> path["Build logiconv.chm path"]
+    path --> resolver["Resolve localized help file"]
+    resolver --> available{"Localized file exists?"}
+    available -->|Yes| localized["Use localized file"]
+    available -->|No| original["Use original file"]
+    localized --> dispatch["Open current help-context topic"]
+    original --> dispatch
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011AD1D0__FUN_011ad1d0.c](../../../DecompiledSources/Tina16/functions/00000000011AD1D0__FUN_011ad1d0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: tables_form.GroupBox1.BtnHelp.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Recovered role: Truth-table contextual-help dispatcher
+- Current graph summary: Builds the `logiconv.chm` path, selects an existing localized variant, and opens the current truth-table help topic.
+- Current graph behavior: Uses the shared help-context value without changing it, then dispatches the topic through the application help service.
+- Current graph evidence: The handler contains the literal `logiconv.chm`, calls the annotated localized-help resolver, and passes the shared help-context value and resolved path to the help service. The extracted two-frame question-mark glyph supports the Help caption.
 - Complexity: complex
 - Distinct outgoing calls: 3
 
@@ -65,5 +69,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The topic depends on the last help-context value that another truth-table control set.
+- The recovered handler does not inspect a result from the help service.

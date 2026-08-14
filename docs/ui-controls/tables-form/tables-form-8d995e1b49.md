@@ -1,6 +1,6 @@
 ﻿# The truth table
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source and call-path review complete.
 
 ## Control
 
@@ -20,13 +20,15 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler sets the shared help-context value to `2000`. This prepares the general truth-table help topic. It does not open help, change the grid, or change the Boolean function.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
     control["The truth table"] -->|OnClick| handler["FUN_011ad4a0"]
+    handler --> topic["Set help context to 2000"]
+    topic --> done["Leave truth-table state unchanged"]
 ```
 
 ## Handler evidence
@@ -60,5 +62,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered code does not give a human-readable title for help-context value `2000`.
+- The handler does not dispatch the help request. The separate Help handler uses the shared value.

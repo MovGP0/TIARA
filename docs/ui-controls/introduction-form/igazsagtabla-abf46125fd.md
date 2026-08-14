@@ -1,6 +1,6 @@
 ﻿# Truth table
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source, UI resources, and the graph call path.
 
 ## Control
 
@@ -20,28 +20,27 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler selects the Truth table help context. If the current variable count is less than two, it loads localized error text and a title and shows a message. It does not calculate or open the result form in that branch. For two or more variables, it sets the shared operation flag, brackets the calculation with a framework callback, and processes the current function through the shared Logic Design calculation routine. It then clears the recalculation flag, clears the operation flag, and calls the VCL show-and-activate helper twice for the truth-table form.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Truth table"] -->|OnClick| handler["FUN_01b35d30"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00416740"]
-    handler --> call3["FUN_008059a0"]
-    handler --> call4["FUN_0080d2f0"]
-    handler --> call5["FUN_00b89270"]
-    handler --> call6["FUN_00b8e520"]
+flowchart TD
+    control["Truth table button"] --> context["Set Truth table help context"]
+    context --> count{"At least 2 variables?"}
+    count -->|No| error["Show localized input error"]
+    count -->|Yes| calculate["Process the current logic function"]
+    calculate --> clean["Clear recalculation state"]
+    clean --> show["Show and activate the Truth table form"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B35D30__FUN_01b35d30.c](../../../DecompiledSources/Tina16/functions/0000000001B35D30__FUN_01b35d30.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Calculates and shows the truth table for the current logic function.
 - Current graph summary: Handles 1 Delphi UI event: introduction_form.gbMethod.Igazsagtabla.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The click rejects fewer than two variables. Otherwise, it calculates the current function and shows the truth-table output form.
+- Current graph evidence: `FUN_01b35d30` tests form field `+0x764`, calls `FUN_01b2d120` only in the accepted branch, clears flag `+0x7c0`, and passes `PTR_DAT_020048c8` to the annotated VCL form show-and-activate helper.
 - Complexity: complex
 - Distinct outgoing calls: 7
 
@@ -72,5 +71,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not resolve the localized error text. The indirect framework callback that receives `3` and then `0` also has no recovered responsibility.

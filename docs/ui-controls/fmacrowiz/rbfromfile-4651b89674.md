@@ -1,78 +1,41 @@
 ﻿# From file
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and UI evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | fMacroWiz |
-| Component path | fMacroWiz.pcMWiz.tsSource.pSourceEmpty.rbFromFile |
-| Control class | TRadioButton |
-| Caption | From file |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | rbSourceClick |
-| Handler address | 01c3c2e0 |
-| Graph node | `resource:dfm:fMacroWiz/fMacroWiz.pcMWiz.tsSource.pSourceEmpty.rbFromFile` |
-| Handler node | `function:01c3c2e0` |
-| Graph layer | UI |
+| Component path | `fMacroWiz.pcMWiz.tsSource.pSourceEmpty.rbFromFile` |
+| Control class | `TRadioButton` |
+| Caption | `From file` |
+| Handler | `rbSourceClick` at `01c3c2e0` |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Selecting this radio button sets source type 3. The shared handler enables the file-name editor and its local browse button and disables the Web browse button. It checks the current file extension and selects the supported storage row for that source format. It also discards any previously parsed source and resets later model and shape selections. Next is available only when the macro name is not empty and the selected file exists.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["From file"] -->|OnClick| handler["FUN_01c3c2e0"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["VCL control text setter with change suppression"]
-    handler --> call4["FUN_01c38160"]
-    handler --> call5["FUN_01c38530"]
-    handler --> call6["FUN_01c3c010"]
+flowchart TD
+    control["From file radio button"] --> handler["Shared source handler at 01c3c2e0"]
+    handler --> mode["Select source type 3: local file"]
+    mode --> inputs["Enable the file editor and local browse button"]
+    inputs --> extension["Classify the selected file extension"]
+    extension --> storage["Select the supported storage row"]
+    storage --> reset["Discard parsed source and reset later selections"]
+    reset --> valid{"Do the macro name and file exist?"}
+    valid --> navigation["Set Next availability"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C3C2E0__FUN_01c3c2e0.c](../../../DecompiledSources/Tina16/functions/0000000001C3C2E0__FUN_01c3c2e0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 4 Delphi UI events: fMacroWiz.pcMWiz.tsSource.pSourceEmpty.rbEmptyCircuit.OnClick, fMacroWiz.pcMWiz.tsSource.pSourceEmpty.rbCurrentCircuit.OnClick, fMacroWiz.pcMWiz.tsSource.pSourceEmpty.rbFromFile.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 9
-
-## Direct calls
-
-- `function:00410f20` — Nil-safe Delphi object destruction helper
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:0064de00` — VCL control text setter with change suppression
-- `function:01c38160` — FUN_01c38160
-- `function:01c38530` — FUN_01c38530
-- `function:01c3c010` — FUN_01c3c010
-- `function:01c3c2a0` — FUN_01c3c2a0
-- `function:01c3c530` — FUN_01c3c530
-- `function:01c3ff70` — FUN_01c3ff70
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: File downloaded press Next at distance 189.
+- [Recovered shared source handler](../../../DecompiledSources/Tina16/functions/0000000001C3C2E0__FUN_01c3c2e0.c)
+- [Recovered source-type reader](../../../DecompiledSources/Tina16/functions/0000000001C3C010__FUN_01c3c010.c)
+- [Recovered extension classifier](../../../DecompiledSources/Tina16/functions/0000000001C3FF70__FUN_01c3ff70.c)
+- [Recovered navigation-state refresh](../../../DecompiledSources/Tina16/functions/0000000001C38160__FUN_01c38160.c)
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Some supported extensions use recovered numeric source-type values whose Delphi enum names are not available.

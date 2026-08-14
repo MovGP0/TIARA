@@ -1,6 +1,6 @@
 ﻿# Hide Parameters
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The checkbox collapses or restores the parameter panel height.
 
 ## Control
 
@@ -20,14 +20,15 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads the checkbox state. When the box is checked, it sets the parameter panel height to 3 pixels. When the box is clear, it restores the height saved during form initialization at form offset `+0x918`. The handler does not change parameter values.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Hide Parameters"] -->|OnClick| handler["FUN_014987a0"]
-    handler --> call1["FUN_0064cc50"]
+flowchart TD
+    click["Change Hide Parameters"] --> checked{"Checkbox checked?"}
+    checked -->|Yes| collapse["Set parameter panel height to 3 pixels"]
+    checked -->|No| restore["Restore the saved panel height"]
 ```
 
 ## Handler evidence
@@ -62,4 +63,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source proves a height change. It does not prove that the panel is made invisible.

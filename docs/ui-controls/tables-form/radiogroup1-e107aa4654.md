@@ -1,6 +1,6 @@
 ﻿# Function
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source and call-path review complete.
 
 ## Control
 
@@ -20,22 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The recovered application handler only sets help context `2200`. It does not read the selected radio-group item, change the true-row list, or rebuild the grid. The function preset handlers and the Fill action perform those changes.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
     control["Function"] -->|OnClick| handler["FUN_011ad3d0"]
+    handler --> topic["Set help context to 2200"]
+    topic --> done["Leave truth-table model unchanged"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011AD3D0__FUN_011ad3d0.c](../../../DecompiledSources/Tina16/functions/00000000011AD3D0__FUN_011ad3d0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: tables_form.SpecialBox.RadioGroup1.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Recovered role: Function-group help-context selector
+- Current graph summary: Sets help context `2200` when the Function group receives a click.
+- Current graph behavior: Performs one shared help-context store and does not read or write truth-table state.
+- Current graph evidence: The DFM binds `RadioGroup1.OnClick` to `FUN_011ad3d0`. The recovered body contains only a store of `0x898`, which is decimal `2200`, and a return.
 - Complexity: simple
 - Distinct outgoing calls: 0
 
@@ -60,5 +62,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered resource does not expose the radio-group item strings.
+- The handler does not show which item generated the click.

@@ -1,6 +1,6 @@
-﻿# Start test
+﻿# Start Model Test
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for `TIARA-diz.6.7.1955`.
 
 ## Control
 
@@ -10,8 +10,7 @@
 | Component path | frmModelTestBenchEditor.pnlMain.pnlTestOptions.btnStartTest |
 | Control class | TButton |
 | Caption | Start test |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | See Resource evidence below. |
 | Handler name | btnStartTestClick |
 | Handler address | 012f7fc0 |
 | Graph node | `resource:dfm:frmModelTestBenchEditor/frmModelTestBenchEditor.pnlMain.pnlTestOptions.btnStartTest` |
@@ -20,60 +19,44 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+- Returns without action when the circuit tree has no selected item.
+- Stores current circuit edits, then calls the normal Save path. For a Noname testbench, that path can open the save dialog.
+- Validates required reference curves for circuits in Comparison mode. If validation fails or is canceled, it does not start the worker.
+- After validation, writes report description metadata when the circuit folder exists, hides the editor, and starts a model-test worker with the saved testbench path.
+- The recovered handler does not receive a success value from Save. A canceled first-time save is therefore not an explicit stop condition in this handler.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Start test"] -->|OnClick| handler["FUN_012f7fc0"]
-    handler --> call1["FUN_006decb0"]
-    handler --> call2["FUN_006e2530"]
-    handler --> call3["FUN_00805990"]
-    handler --> call4["FUN_012f3470"]
-    handler --> call5["FUN_012fc960"]
-    handler --> call6["FUN_01302300"]
+flowchart TD
+    control["Start test"] --> handler["btnStartTestClick (012f7fc0)"]
+    handler --> selected{"Tree item selected?"}
+    selected -->|No| stop["Return"]
+    selected -->|Yes| save["Store edits and save testbench"]
+    save --> valid{"Comparison references valid?"}
+    valid -->|No| stop2["Do not start worker"]
+    valid -->|Yes| report["Write report description metadata"]
+    report --> worker["Hide editor and start test worker"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012F7FC0__FUN_012f7fc0.c](../../../DecompiledSources/Tina16/functions/00000000012F7FC0__FUN_012f7fc0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmModelTestBenchEditor.pnlMain.pnlTestOptions.btnStartTest.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 8
-
-## Direct calls
-
-- `function:006decb0` — FUN_006decb0
-- `function:006e2530` — FUN_006e2530
-- `function:00805990` — FUN_00805990
-- `function:012f3470` — FUN_012f3470
-- `function:012fc960` — FUN_012fc960
-- `function:01302300` — FUN_01302300
-- `function:01303bc0` — FUN_01303bc0
-- `function:013056e0` — FUN_013056e0
+- Source: [FUN_012f7fc0](../../../DecompiledSources/Tina16/functions/00000000012F7FC0__FUN_012f7fc0.c)
+- Recovered role: Validate, save, and start the configured model test.
+- The nearby form label says CTRL+ALT+END aborts all simulation processes; it is a UI instruction, not handler logic.
+- FUN_012f7fc0 checks selected count, calls FUN_013056e0, FUN_012fc960(mode 0), and tests FUN_01303bc0.
+- The accepted validation path calls FUN_01302300, hides the editor, and calls FUN_012f3470, which creates and starts the worker.
+- Relevant callee: [FUN_01303bc0](../../../DecompiledSources/Tina16/functions/0000000001303BC0__FUN_01303bc0.c)
+- Relevant callee: [FUN_01302300](../../../DecompiledSources/Tina16/functions/0000000001302300__FUN_01302300.c)
+- Relevant callee: [FUN_012f3470](../../../DecompiledSources/Tina16/functions/00000000012F3470__FUN_012f3470.c)
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: 1
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: (To abort all simulation processes press CTRL+ALT+END.) at distance 197.
-- Rank 2: Test mode at distance 274.
-- Rank 3: Manufacturer: at distance 741.
+- Caption: `Start test`.
+- No extracted glyph is present for this control.
+- Nearby labels, when cited above, are candidates from the same parent and are used only with handler evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No runtime UI test was performed.
+- The explanation does not infer behavior from the caption, hint, or nearby labels alone.

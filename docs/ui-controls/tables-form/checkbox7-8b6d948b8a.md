@@ -1,6 +1,6 @@
 ﻿# 6
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source and call-path review complete.
 
 ## Control
 
@@ -20,22 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+This check box represents symmetry number `6`. The recovered application handler only sets help context `2500`. It does not rebuild the table. When Fill runs, it reads this checked state and selects rows whose low-eight-bit set-bit count is `6`.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
     control["6"] -->|OnClick| handler["FUN_011ad450"]
+    handler --> topic["Set help context to 2500"]
+    topic --> fill["Fill later reads checked state"]
+    fill --> rows["Apply rows with set-bit count 6"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011AD450__FUN_011ad450.c](../../../DecompiledSources/Tina16/functions/00000000011AD450__FUN_011ad450.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: tables_form.SpecialBox.simmNumer.CheckBox7.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Recovered role: Symmetry-number 6 help-context selector
+- Current graph summary: Sets the symmetry help context after the number-6 check state changes.
+- Current graph behavior: Stores help context `2500`. Fill later reads this control and uses it for rows whose set-bit count is `6`.
+- Current graph evidence: The resource caption is `6`. The click handler contains only a store of `0x9c4`. The Fill handler reads CheckBox7 and compares it with the annotated low-eight-bit set-bit count for each row index.
 - Complexity: simple
 - Distinct outgoing calls: 0
 
@@ -60,5 +63,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The click handler does not itself read the checked state or write a grid cell.

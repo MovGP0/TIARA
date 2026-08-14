@@ -1,4 +1,4 @@
-# Cancel
+﻿# Cancel
 
 > Analysis status: The standard VCL cancel request is recovered. The custom handler and final form outcome remain unresolved.
 
@@ -73,7 +73,16 @@ This context identifies a voltage-and-current grid dialog. It does not prove wha
 
 The graph contains one `triggers` edge from the button resource to the unresolved handler concept. The concept has no address, recovered function node, outgoing call edge, or handler source file.
 
-A read-only search found `TSpiceAskVoltagesDlg` once in each captured runtime image, rebuilt image, and process dump. That occurrence belongs to the embedded form resource; no second class-name instance identifies a VMT and published-method table. The recovered C source also has no class-name or handler-name reference that can map `CancelBtnClick` to an address.
+A read-only search found `TSpiceAskVoltagesDlg` once in each captured runtime image, rebuilt image, and process dump. That occurrence belongs to the embedded form resource. In the mapped runtime image, its length-prefixed string starts at virtual address `03931204`. A search for the 64-bit pointer to that address found no reference, so it does not identify a VMT class-name slot.
+
+A second scan did not depend on the class-name slot. It tested every aligned Delphi VMT self-pointer in the mapped runtime image and decoded published-field tables. It selected candidates that contain all five fields recovered for this form: `BtnPanel`, `CancelBtn`, `HelpBtn`, `Panel`, and `StringGrid`. Only two valid VMTs matched:
+
+- `TAskVoltagesDlg` at `00f4c1b0`, whose method table maps `CancelBtnClick` to `00f51340`.
+- `TTinaAskVoltagesDlg` at `012b5010`, whose method table maps `CancelBtnClick` to `012b6310`.
+
+No third VMT matches the Spice form's published fields. A separate published-method scan found 15 distinct valid `CancelBtnClick` code addresses. These addresses are the complete set already resolved to 16 controls in the DFM evidence; the two Percentage controls share one address. `RegisterDlg`, `SpiceAskVoltagesDlg`, and `TransferMediaFrm` remain the three unresolved controls with this handler name. Other occurrences are serialized DFM text and fail the method-entry size and code-pointer checks.
+
+These results do not establish that the custom handler is absent. The missing form class can be in an uncaptured module, and the handler can be inherited from a class whose relationship to this DFM is not recovered. Neither case supplies an exact address. The recovered C source also has no class-name or handler-name reference that can map this `CancelBtnClick` binding to one of the valid addresses.
 
 ## Inputs, outputs, and limits
 
@@ -92,5 +101,4 @@ A read-only search found `TSpiceAskVoltagesDlg` once in each captured runtime im
 
 - `bkCancel` proves the framework cancel request. It does not prove the custom rollback or cleanup behavior.
 - No caller or modal-result consumer for this form is recovered, so the final returned value is not assigned to an application action.
-- Recovering the custom behavior requires an address-backed VMT or published-method mapping for `TSpiceAskVoltagesDlg`.
-
+- Recovering the custom behavior requires an address-backed VMT, published-method mapping, or live event-method pair for `TSpiceAskVoltagesDlg`. The rebuilt main-module image supplies none of these identities.

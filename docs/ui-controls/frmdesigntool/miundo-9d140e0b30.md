@@ -1,6 +1,6 @@
 ﻿# Undo
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command expands the editor area and reverses one logical SynEdit Undo group.
 
 ## Control
 
@@ -20,13 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler selects the advanced editor layout and calls the SynEdit Undo routine. That routine returns immediately for a read-only editor. Otherwise it reverses one logical group, restores recorded text, caret, selection, and selection mode as applicable, and creates reciprocal Redo data. An empty Undo stack is a content no-op.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Undo"] -->|OnClick| handler["FUN_01498d70"]
+flowchart TD
+    control["Choose Undo"] --> expand["Select advanced editor layout"]
+    expand --> allowed{"Editor is writable and Undo data exists?"}
+    allowed -->|No| stop["Make no content change"]
+    allowed -->|Yes| handler["Reverse one logical Undo group"]
+    handler --> redo["Create reciprocal Redo data"]
     handler --> call1["FUN_00c00ff0"]
     handler --> call2["FUN_0149a5d0"]
 ```
@@ -64,4 +68,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Group boundaries and same-reason merging are decided by the shared SynEdit Undo routine.

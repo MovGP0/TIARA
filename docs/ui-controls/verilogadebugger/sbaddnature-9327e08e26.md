@@ -1,6 +1,6 @@
 ﻿# Add Voltage/Current
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,28 +20,33 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler creates the shared `TGetName` form. It changes the dialog caption to `Add Voltage/Current`, the prompt to `Voltage/Current:`, and the hint label to `Hint: V(p,n)`, then shows the dialog modally. Cancel destroys the dialog and keeps the requested-name list unchanged.
+
+For an accepted nonempty value, the handler adds the string to the requested voltage/current list only if the list does not already contain it. If the Debug main tab and Voltage/Currents subtab are active, it rebuilds the visible voltage/current tree. The shared debugger refresh runs after accepted, duplicate, empty, and cancelled paths.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Add Voltage/Current"] -->|OnClick| handler["FUN_010a5240"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_006d8150"]
-    handler --> call4["FUN_007fc180"]
-    handler --> call5["FUN_010a0460"]
-    handler --> call6["FUN_010a04c0"]
+flowchart TD
+    control["Click Add Voltage/Current"] -->|"OnClick"| dialog["Show configured TGetName dialog"]
+    dialog --> accepted{"Accepted nonempty value?"}
+    accepted -->|"No"| refresh["Refresh without a list change"]
+    accepted -->|"Yes"| duplicate{"Value already requested?"}
+    duplicate -->|"Yes"| refresh
+    duplicate -->|"No"| add["Append requested voltage/current"]
+    add --> visible{"Voltage/Currents tab active?"}
+    visible -->|"Yes"| rebuild["Rebuild the visible tree"]
+    visible -->|"No"| refresh
+    rebuild --> refresh
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000010A5240__FUN_010a5240.c](../../../DecompiledSources/Tina16/functions/00000000010A5240__FUN_010a5240.c)
-- Recovered role: Add Voltage/Current dialog construction and handling
+- Recovered role: Prompts for and adds a unique requested voltage or current expression.
 - Current graph summary: Creates and runs the Add Voltage/Current dialog, adds its prompt and hint label, and processes an accepted value. Handles 1 Delphi UI event: VerilogADebugger.pnClient.pnMessages.pnDebug.pcDebug.tsDebug.pcDebugPages.tsVoltageCurrents.Panel1.Panel2.Panel4.sbAddNature.OnClick.
-- Current graph behavior: Creates and runs the Add Voltage/Current dialog, adds its prompt and hint label, and processes an accepted value.
-- Current graph evidence: The function passes Add Voltage/Current, Voltage/Current:, and Hint: V(p,n) literals to dialog construction helpers.
+- Current graph behavior: Configures and shows `TGetName`, appends an accepted nonduplicate string to the requested voltage/current list, conditionally rebuilds the active tree, and refreshes the debugger.
+- Current graph evidence: The handler passes `Add Voltage/Current`, `Voltage/Current:`, and `Hint: V(p,n)` to the dialog helpers. It copies the accepted text through [`FUN_010a06c0`](../../../DecompiledSources/Tina16/functions/00000000010A06C0__FUN_010a06c0.c), calls [`FUN_010a5040`](../../../DecompiledSources/Tina16/functions/00000000010A5040__FUN_010a5040.c), and uses page indexes Debug `1` and Voltage/Currents `3` before it calls `FUN_010a4ab0`.
 - Complexity: complex
 - Distinct outgoing calls: 11
 
@@ -67,6 +72,7 @@ flowchart LR
 - List items: Not present in the recovered resource.
 - Image reference: Not present in the recovered resource.
 - Extracted glyph: [`0494_VerilogADebugger_VerilogADebugger_pnClient_pnMessages_pnDebug_pcDebug_tsDebug_pcDebugPages_tsVoltageCurrents_Pane_Glyph_Data.png`](../../../glyph/0494_VerilogADebugger_VerilogADebugger_pnClient_pnMessages_pnDebug_pcDebug_tsDebug_pcDebugPages_tsVoltageCurrents_Pane_Glyph_Data.png)
+- The 20 by 18 glyph is a green plus. It supports the add operation; the handler strings and list update establish the voltage/current target.
 
 ## Nearby label candidates
 
@@ -76,5 +82,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The handler itself checks only for a nonempty and nonduplicate string. It does not parse or validate the voltage/current expression on this path.
+- The visible-tree rebuild reads the current resolved list, which can differ from the requested list. The recovery does not prove when the debugger engine resolves a new request.
+- No local exception handler or user-visible add failure is present.

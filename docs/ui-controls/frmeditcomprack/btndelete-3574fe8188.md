@@ -1,6 +1,6 @@
 ﻿# &Delete
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered handler and call path.
 
 ## Control
 
@@ -20,28 +20,29 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads the selected Component Bar tree item. It does nothing when there is no selection or when the selected serialized item starts with `%`, which marks an include-file item. For another item, it hides the new-file panel and shows the localized delete-confirmation message. If the user selects **Yes**, it clears the item state recursively for the item and its children, removes the item from the tree model, and refreshes the current file-tab state. If the user selects **No**, it keeps the item.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Delete"] -->|OnClick| handler["FUN_01b98570"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_0064dbe0"]
-    handler --> call3["FUN_006e2530"]
-    handler --> call4["FUN_0072d440"]
-    handler --> call5["FUN_00b89270"]
-    handler --> call6["FUN_00b8e520"]
+flowchart TD
+    control["Click Delete button"] --> selected{"Is an item selected?"}
+    selected -- "No" --> noOp["Keep the tree unchanged"]
+    selected -- "Yes" --> include{"Does the item start with percent?"}
+    include -- "Yes" --> noOp
+    include -- "No" --> confirm{"Confirm item deletion"}
+    confirm -- "No" --> noOp
+    confirm -- "Yes" --> remove["Clear the item subtree and remove it"]
+    remove --> refresh["Refresh the current file-tab state"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B98570__FUN_01b98570.c](../../../DecompiledSources/Tina16/functions/0000000001B98570__FUN_01b98570.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Deletes a selected editable Component Bar item after confirmation.
 - Current graph summary: Handles 2 Delphi UI events: frmEditCompRack.pnlToolBar.btnDelete.OnClick, frmEditCompRack.pmnuNav.mnDelete.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Ignores no selection and `%` include-file items, confirms other deletions, recursively clears item state, removes the selected tree node, and refreshes the current tab.
+- Current graph evidence: The handler gets the selected node with `FUN_006e2530`, rejects it when `FUN_01b95150` finds leading character `0x25`, loads string resource `0x83c`, requires dialog result 6, and calls `FUN_01b984f0`. That callee calls recursive `FUN_01b98470`, removes the node from the tree collection, and marks the current tab state.
 - Complexity: complex
 - Distinct outgoing calls: 8
 
@@ -73,5 +74,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not expose the localized text of resource `0x83c`.

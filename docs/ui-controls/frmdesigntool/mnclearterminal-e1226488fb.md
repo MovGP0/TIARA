@@ -1,6 +1,6 @@
 ﻿# Clear
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command clears terminal lines and inserts a fresh prompt.
 
 ## Control
 
@@ -20,14 +20,15 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler clears the terminal editor's line collection, appends the recovered prompt text `>>>  `, and moves the terminal position to the end through `FUN_0149b8c0`. It does not ask for confirmation and does not change the main program editor.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Clear"] -->|OnClick| handler["FUN_01498da0"]
-    handler --> call1["FUN_0149b8c0"]
+flowchart TD
+    click["Choose terminal Clear"] --> clear["Clear terminal line collection"]
+    clear --> prompt["Append prompt >>>"]
+    prompt --> caret["Move terminal position to the end"]
 ```
 
 ## Handler evidence
@@ -62,4 +63,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The command does not preserve previous terminal text in an application-level buffer.

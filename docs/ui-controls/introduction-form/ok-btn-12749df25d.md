@@ -1,6 +1,6 @@
 ﻿# Minterm/Maxterm
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source, UI resources, and the graph call path.
 
 ## Control
 
@@ -20,28 +20,26 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler selects the Minterm/Maxterm help context. If the variable count is less than two, it loads localized error text and a title and shows a message. It does not open the output form in that branch. For two or more variables, it first shows and activates the Minterm/Maxterm form. It then brackets the shared Logic Design calculation with an indirect framework callback and processes the current function. The handler has no local parse-result test after the calculation.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Minterm/Maxterm"] -->|OnClick| handler["FUN_01b34e50"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00416740"]
-    handler --> call3["FUN_008059a0"]
-    handler --> call4["FUN_0080d2f0"]
-    handler --> call5["FUN_00b89270"]
-    handler --> call6["FUN_00b8e520"]
+flowchart TD
+    control["Minterm and Maxterm button"] --> context["Set Minterm and Maxterm help context"]
+    context --> count{"At least 2 variables?"}
+    count -->|No| error["Show localized input error"]
+    count -->|Yes| show["Show and activate Minterm and Maxterm form"]
+    show --> calculate["Process the current logic function"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B34E50__FUN_01b34e50.c](../../../DecompiledSources/Tina16/functions/0000000001B34E50__FUN_01b34e50.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Opens and updates the Minterm/Maxterm output for the current logic function.
 - Current graph summary: Handles 1 Delphi UI event: introduction_form.gbMethod.OK_btn.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The click rejects fewer than two variables. Otherwise, it shows the Minterm/Maxterm form and runs the common function calculation.
+- Current graph evidence: `FUN_01b34e50` tests field `+0x764`, passes `PTR_DAT_02001d60` to the annotated VCL form show-and-activate helper, and then calls `FUN_01b2d120` with the form and recalculation flag.
 - Complexity: complex
 - Distinct outgoing calls: 7
 
@@ -72,5 +70,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not resolve the localized error text. The handler has no local branch that says how the already visible form responds to a calculation error.

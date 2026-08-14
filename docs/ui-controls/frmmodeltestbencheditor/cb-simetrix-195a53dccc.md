@@ -1,6 +1,6 @@
-﻿# SIMetrix
+﻿# Include SIMetrix Result
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for `TIARA-diz.6.7.1959`.
 
 ## Control
 
@@ -10,8 +10,7 @@
 | Component path | frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_globalSettings.cB_SIMetrix |
 | Control class | TCheckBox |
 | Caption | SIMetrix |
-| Hint | Add spice result as pictures to the resport. |
-| Text | Not present in the recovered resource. |
+| Hint | See Resource evidence below. |
 | Handler name | cB_SIMetrixClick |
 | Handler address | 012f7aa0 |
 | Graph node | `resource:dfm:frmModelTestBenchEditor/frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_globalSettings.cB_SIMetrix` |
@@ -20,54 +19,33 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+- Finds the per-circuit record for the current tree item.
+- Writes the SIMetrix checked state to that record.
+- The handler has no null or root-item guard. The surrounding UI must keep it available only for a valid circuit.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["SIMetrix"] -->|OnClick| handler["FUN_012f7aa0"]
-    handler --> call1["FUN_004aeac0"]
-    handler --> call2["FUN_006dd6f0"]
-    handler --> call3["FUN_006e2530"]
-    handler --> call4["FUN_012e5810"]
+flowchart TD
+    control["SIMetrix"] --> handler["cB_SIMetrixClick (012f7aa0)"]
+    handler --> record["Get current circuit record"]
+    record --> state["Store SIMetrix checked state"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012F7AA0__FUN_012f7aa0.c](../../../DecompiledSources/Tina16/functions/00000000012F7AA0__FUN_012f7aa0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_globalSettings.cB_SIMetrix.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 4
-
-## Direct calls
-
-- `function:004aeac0` — FUN_004aeac0
-- `function:006dd6f0` — FUN_006dd6f0
-- `function:006e2530` — FUN_006e2530
-- `function:012e5810` — FUN_012e5810
+- Source: [FUN_012f7aa0](../../../DecompiledSources/Tina16/functions/00000000012F7AA0__FUN_012f7aa0.c)
+- Recovered role: Store the selected circuit's SIMetrix-result option.
+- The hint says the option adds a SPICE result as a picture to the report.
+- FUN_012f7aa0 maps the current node index to the record list and passes check box +0xA60 state to FUN_012e5810.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: true
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: [s] at distance 189.
-- Rank 2: [s] at distance 214.
-- Rank 3: Start time at distance 314.
+- Caption: `SIMetrix`.
+- No extracted glyph is present for this control.
+- Nearby labels, when cited above, are candidates from the same parent and are used only with handler evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No runtime UI test was performed.
+- The explanation does not infer behavior from the caption, hint, or nearby labels alone.

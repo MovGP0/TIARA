@@ -1,6 +1,6 @@
 ﻿# Whole Page
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and graph evidence.
 
 ## Control
 
@@ -20,24 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler subtracts `0.25` from the current custom zoom scale at preview offset `+0x558`. The scale setter clamps the result to a minimum of `0.25`, clears fit mode, and refreshes preview layout. The handler then runs the zoom-combo synchronization path, which reselects the current page and redraws both preview views. At 25 percent, another click remains at 25 percent.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Whole Page"] -->|OnClick| handler["FUN_018af250"]
-    handler --> call1["FUN_018a8d30"]
-    handler --> call2["FUN_018af390"]
+    control["Zoom-out button"] -->|OnClick| handler["ZoomMinusBClick"]
+    handler --> decrease["Subtract 25 percentage points"]
+    decrease --> clamp{"Is the result below 25 percent?"}
+    clamp -->|Yes| minimum["Use 25 percent"]
+    clamp -->|No| apply["Use the decreased scale"]
+    minimum --> redraw["Clear fit mode and redraw current page"]
+    apply --> redraw
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000018AF250__FUN_018af250.c](../../../DecompiledSources/Tina16/functions/00000000018AF250__FUN_018af250.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Decreases the FastReport preview zoom by 25 percentage points with a 25-percent minimum.
 - Current graph summary: Handles 1 Delphi UI event: frxPreviewForm.ToolBar.ZoomMinusB.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Subtracts 0.25 from the custom scale, clamps it to 0.25, clears fit mode, and synchronizes the zoom combo and current-page redraw.
+- Current graph evidence: `FUN_018af250` reads double `preview+0x558`, subtracts `0.25`, passes the value to `FUN_018a8d30`, and calls `FUN_018af390`. `FUN_018a8d30` stores the scale, replaces a value below `0.25` with `0.25`, clears mode byte `+0x560`, and refreshes layout.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -63,5 +67,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered DFM caption says Whole Page, but the handler body proves a 25-percentage-point zoom decrease; the article follows the code path.
+- The handler has no local error or rollback path.

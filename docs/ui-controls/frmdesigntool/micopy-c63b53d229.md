@@ -1,6 +1,6 @@
 ﻿# Copy
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command expands the editor area and copies its current selection.
 
 ## Control
 
@@ -20,13 +20,16 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler first selects the advanced editor layout. It then copies the main editor selection to the standard clipboard and adds SynEdit selection-mode data. An empty selection is a clipboard no-op.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Copy"] -->|OnClick| handler["FUN_01498fe0"]
+flowchart TD
+    control["Choose Copy"] --> expand["Select advanced editor layout"]
+    expand --> selected{"Selection is empty?"}
+    selected -->|Yes| stop["Do not access clipboard"]
+    selected -->|No| handler["Copy text and SynEdit selection mode"]
     handler --> call1["FUN_00bf1d60"]
     handler --> call2["FUN_0149a5d0"]
 ```
@@ -64,4 +67,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Clipboard failures are handled inside the shared SynEdit command; this handler has no rollback.

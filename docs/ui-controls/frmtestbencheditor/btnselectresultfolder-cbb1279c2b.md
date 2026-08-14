@@ -1,72 +1,36 @@
 ﻿# Select folder
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and UI evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | frmTestBenchEditor |
-| Component path | frmTestBenchEditor.pnlMain.pnlFileSelector.pnlSetRoot.btnSelectResultFolder |
-| Control class | TButton |
-| Caption | Select folder |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | btnSelectResultFolderClick |
-| Handler address | 012c5850 |
-| Graph node | `resource:dfm:frmTestBenchEditor/frmTestBenchEditor.pnlMain.pnlFileSelector.pnlSetRoot.btnSelectResultFolder` |
-| Handler node | `function:012c5850` |
-| Graph layer | UI |
+| Component path | `frmTestBenchEditor.pnlMain.pnlFileSelector.pnlSetRoot.btnSelectResultFolder` |
+| Control class | `TButton` |
+| Handler | `btnSelectResultFolderClick` at `012c5850` |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads the current result-folder text and opens a folder selector with that value. If the user accepts, it replaces the result-folder text. If the user cancels, it keeps the prior text. It does not create the folder, load a result, or run a test.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Select folder"] -->|OnClick| handler["FUN_012c5850"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["VCL control Unicode text reader"]
-    handler --> call3["VCL control text setter with change suppression"]
-    handler --> call4["FUN_00b96980"]
+flowchart TD
+    control["Select result folder button"] --> current["Read the current result folder"]
+    current --> dialog["Open the folder selector"]
+    dialog --> accepted{"Was a folder selected?"}
+    accepted -->|No| keep["Keep the prior result-folder text"]
+    accepted -->|Yes| update["Replace the result-folder text"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012C5850__FUN_012c5850.c](../../../DecompiledSources/Tina16/functions/00000000012C5850__FUN_012c5850.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmTestBenchEditor.pnlMain.pnlFileSelector.pnlSetRoot.btnSelectResultFolder.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 4
-
-## Direct calls
-
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:0064dd90` — VCL control Unicode text reader
-- `function:0064de00` — VCL control text setter with change suppression
-- `function:00b96980` — FUN_00b96980
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Result folder at distance 294.
-- Rank 2: Circuit folder at distance 346.
+- [Recovered btnSelectResultFolderClick source](../../../DecompiledSources/Tina16/functions/00000000012C5850__FUN_012c5850.c)
+- The DFM resource supplies the control identity, caption or state, and event binding.
+- No extracted glyph is present for this control.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The handler does not test whether the selected folder is writable.

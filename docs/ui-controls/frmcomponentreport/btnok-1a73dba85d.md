@@ -1,6 +1,6 @@
 ﻿# btnOK
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source.
 
 ## Control
 
@@ -20,28 +20,43 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler applies the edited footprint-name data from the report grid. For
+each data row, it gets the associated component record and reads both grid
+cells. It normalizes the component name strings, combines the edited values,
+and sends them through `FUN_01bb77f0`. That helper scans the report model and
+updates records that have the same component kind and name but a different
+component number. The handler also writes the new strings to the row's direct
+component record.
+
+After all rows are processed, the handler requests an application refresh. If
+the report model exists, it notifies dependent windows of the model change. It
+then closes the form through the VCL close pipeline. When the grid has no data
+rows, it skips the row-update loop but still refreshes and closes the form. No
+explicit validation message, retry, save-to-file call, or rollback path appears
+in the recovered handler.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["btnOK"] -->|OnClick| handler["FUN_01bb61c0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_00416ad0"]
-    handler --> call4["FUN_00416ba0"]
-    handler --> call5["FUN_00416db0"]
-    handler --> call6["FUN_00416dc0"]
+    okClick["Click OK"] --> okHandler["btnOKClick"]
+    okHandler --> hasRows{"Does the grid have data rows?"}
+    hasRows -->|"Yes"| readRow["Read the component record and two grid cells"]
+    readRow --> applyValues["Apply edited footprint strings to matching records"]
+    applyValues --> moreRows{"Are more rows available?"}
+    moreRows -->|"Yes"| readRow
+    moreRows -->|"No"| refreshApp["Refresh the application and notify dependent windows"]
+    hasRows -->|"No"| refreshApp
+    refreshApp --> closeForm["Close the Component Report"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001BB61C0__FUN_01bb61c0.c](../../../DecompiledSources/Tina16/functions/0000000001BB61C0__FUN_01bb61c0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Applies edited footprint-name data, refreshes the application, and closes the Component Report.
 - Current graph summary: Handles 1 Delphi UI event: frmComponentReport.pnlButtons.btnOK.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Reads each report row, updates the direct and matching component records, refreshes dependent UI state, and closes the form.
+- Current graph evidence: `FUN_01bb61c0` reads rows from grid field `+0x6D0` and component records from list field `+0x6E8`, passes the two row strings to `FUN_01bb77f0`, writes strings to the direct record, calls the application refresh path and `FUN_0199e310`, then calls `FUN_00805200`.
 - Complexity: complex
 - Distinct outgoing calls: 14
 
@@ -60,7 +75,7 @@ flowchart LR
 - `function:00848870` — FUN_00848870
 - `function:0084e320` — FUN_0084e320
 - `function:0199e310` — FUN_0199e310
-- `function:01bb77f0` — FUN_01bb77f0
+- `function:01bb77f0` — Scans the report model and propagates the two edited strings to matching component records.
 
 ## Resource evidence
 
@@ -79,5 +94,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The form caption identifies these values as footprint-name data, but the recovered field names for the two grid columns are not available.
+- The handler has no explicit validation or local rollback block. The recovered source does not prove how a lower-level string or grid exception appears to the user.

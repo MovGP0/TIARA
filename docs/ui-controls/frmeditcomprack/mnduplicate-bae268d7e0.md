@@ -1,6 +1,6 @@
 ﻿# D&uplicate
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered shared handler and sender branch.
 
 ## Control
 
@@ -20,28 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The shared handler first requires a selected tree item and valid current editor values. For this menu sender, it requests a duplicate. It does nothing if the selected item is a group. For a component, it copies the selected item's name, secondary value, and type into a new serialized component record, inserts the record in the same tree context, copies or resolves its icon index, selects the new item, and refreshes the current file-tab state.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["D&uplicate"] -->|OnClick| handler["FUN_01b98160"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00414b50"]
-    handler --> call3["FUN_0064dbe0"]
-    handler --> call4["FUN_006d5120"]
-    handler --> call5["FUN_006d6380"]
-    handler --> call6["FUN_006dcbd0"]
+flowchart TD
+    control["Click Duplicate"] --> selected{"Is a valid item selected?"}
+    selected -- "No" --> noOp["Keep the tree unchanged"]
+    selected -- "Yes" --> group{"Is the selected item a group?"}
+    group -- "Yes" --> noOp
+    group -- "No" --> copy["Copy the selected component fields"]
+    copy --> insert["Insert and select the duplicate component"]
+    insert --> refresh["Refresh the current file-tab state"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B98160__FUN_01b98160.c](../../../DecompiledSources/Tina16/functions/0000000001B98160__FUN_01b98160.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Adds a default or duplicate Component Bar component according to the sender and Shift state.
 - Current graph summary: Handles 2 Delphi UI events: frmEditCompRack.pnlToolBar.btnAdd.OnClick, frmEditCompRack.pmnuNav.mnDuplicate.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Requires a selected item and valid editor state. The Duplicate sender forces the copy branch and rejects group items. The toolbar sender copies only with Shift; otherwise it builds the default component. Both branches insert, select, and mark the new item.
+- Current graph evidence: The handler compares `Sender` with the menu-item field, tests group records with `FUN_01b95130` for leading `[`, otherwise tests Shift state, copies three fields from a component only in the duplicate branch, uses `DAT_02110dc8` in the default branch, inserts through `FUN_006dee70`, sets the icon index, and selects the returned item with `FUN_01b97960`.
 - Complexity: complex
 - Distinct outgoing calls: 17
 
@@ -82,5 +82,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not expose a Delphi name for the serialized component-record type.

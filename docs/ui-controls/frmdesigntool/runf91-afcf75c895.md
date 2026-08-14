@@ -1,6 +1,6 @@
 ﻿# Run F9
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. This menu command forwards to the same execution handler as both Run buttons.
 
 ## Control
 
@@ -20,14 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler calls `FUN_01496950` directly. The shared handler applies the license warning where applicable, validates parameter names, expressions, and limits, selects the current interface path, and starts execution only when all required checks pass. The caption includes the recovered F9 shortcut text, but keyboard routing is outside this OnClick handler.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Run F9"] -->|OnClick| handler["FUN_01498bc0"]
-    handler --> call1["FUN_01496950"]
+flowchart TD
+    click["Choose Run F9"] --> forward["Forward to shared Run handler"]
+    forward --> validate["Validate parameters and limits"]
+    validate --> valid{"Checks passed?"}
+    valid -->|No| stop["Do not start execution"]
+    valid -->|Yes| run["Start selected interpreter path"]
 ```
 
 ## Handler evidence
@@ -62,4 +65,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- This forwarding handler has no independent error or no-op behavior.

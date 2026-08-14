@@ -1,6 +1,7 @@
 ﻿# sbBrowseShape
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed. The selection and cancel paths are
+> supported by the recovered handler and form state.
 
 ## Control
 
@@ -20,26 +21,41 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The click creates and shows the recovered shape-selection dialog. If the user
+cancels the dialog, the handler does not change the wizard.
+
+If the dialog returns modal result `1`, the handler checks the selected row. A
+row index of `-1` also leaves the wizard unchanged. For a valid row, the
+handler reads two values from the selected list item:
+
+- It copies the displayed value to the read-only `Shape` edit.
+- It copies the selected item's associated string at offset `0x20` to the
+  wizard field at `+0x768`.
+
+The OK handler later uses both values to find the selected shape in the
+component catalog. The browse handler does not create or save a component.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
+flowchart TD
     control["sbBrowseShape"] -->|OnClick| handler["FUN_01bc2650"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString assignment helper"]
-    handler --> call3["VCL control text setter with change suppression"]
-    handler --> call4["FUN_00c86a90"]
+    handler --> dialog["Create and show the shape-selection dialog"]
+    dialog --> accepted{"Modal result is 1"}
+    accepted -->|No| unchanged["Keep the current shape selection"]
+    accepted -->|Yes| selected{"A list row is selected"}
+    selected -->|No| unchanged
+    selected -->|Yes| display["Copy the row text to the Shape edit"]
+    display --> identity["Store the row's associated shape string"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001BC2650__FUN_01bc2650.c](../../../DecompiledSources/Tina16/functions/0000000001BC2650__FUN_01bc2650.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Shape-selection dialog handler.
 - Current graph summary: Handles 1 Delphi UI event: frmPCBOnlyCompWizard.gbxComponent.sbBrowseShape.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The checked-in graph does not yet contain a curated behavior description for this function.
+- Current graph evidence: The resource trigger resolves directly to this handler. The recovered body calls the dialog constructor and VCL text and string setters.
 - Complexity: complex
 - Distinct outgoing calls: 4
 
@@ -49,6 +65,10 @@ flowchart LR
 - `function:00414ad0` — Delphi UnicodeString assignment helper
 - `function:0064de00` — VCL control text setter with change suppression
 - `function:00c86a90` — FUN_00c86a90
+
+`FUN_00c86a90` constructs the dialog class identified by
+`PTR_FUN_00c85fc8`. The handler calls its modal method and reads the selected
+row and its associated object only after result `1`.
 
 ## Resource evidence
 
@@ -69,5 +89,10 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered class name for the selection dialog is not available. The
+  handler data flow and the `Shape` edit prove its purpose.
+- The associated value stored at wizard offset `0x768` is a string from the
+  selected row's object. The source does not expose its original Delphi field
+  name.
+- The ellipsis glyph agrees with a browse action, but it is not used as the
+  implementation evidence.

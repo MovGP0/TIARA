@@ -1,82 +1,43 @@
 ﻿# Browse
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source, resource, and glyph evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | fMacroWiz |
-| Component path | fMacroWiz.pcMWiz.tsSource.pSourceEmpty.sbSourceBrowseWeb |
-| Control class | TSpeedButton |
-| Caption | Browse |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | sbSourceBrowseWebClick |
-| Handler address | 01c3c860 |
-| Graph node | `resource:dfm:fMacroWiz/fMacroWiz.pcMWiz.tsSource.pSourceEmpty.sbSourceBrowseWeb` |
-| Handler node | `function:01c3c860` |
-| Graph layer | UI |
+| Component path | `fMacroWiz.pcMWiz.tsSource.pSourceEmpty.sbSourceBrowseWeb` |
+| Control class | `TSpeedButton` |
+| Caption | `Browse` |
+| Handler | `sbSourceBrowseWebClick` at `01c3c860` |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler opens a modal URL browser that uses `openfromweb.ini` for history and the last URL. If the browser returns success, the handler discards the prior parsed source and resets later model and shape selections. It copies each returned file path to the wizard's Web-source field, so the last returned path remains selected, and tests whether that file exists. It updates the downloaded-file status from that test. If no valid file is available, it shows `Error loading library!` or the error text returned by the operation. It refreshes Next availability after both success and cancellation.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Browse"] -->|OnClick| handler["FUN_01c3c860"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["Delphi UnicodeString array finalization helper"]
-    handler --> call4["Delphi UnicodeString assignment helper"]
-    handler --> call5["FUN_00416ba0"]
-    handler --> call6["FUN_00440a20"]
+flowchart TD
+    control["Browse button for Web source"] --> handler["sbSourceBrowseWebClick at 01c3c860"]
+    handler --> browser["Open the INI-backed URL browser"]
+    browser --> accepted{"Did the browser return success?"}
+    accepted -->|No| refresh["Refresh Next availability"]
+    accepted -->|Yes| reset["Discard parsed source and reset later selections"]
+    reset --> files["Store returned file paths and test existence"]
+    files --> valid{"Does the selected downloaded file exist?"}
+    valid -->|Yes| refresh
+    valid -->|No| error["Show the returned error or Error loading library!"]
+    error --> refresh
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C3C860__FUN_01c3c860.c](../../../DecompiledSources/Tina16/functions/0000000001C3C860__FUN_01c3c860.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: fMacroWiz.pcMWiz.tsSource.pSourceEmpty.sbSourceBrowseWeb.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 13
-
-## Direct calls
-
-- `function:00410f20` — Nil-safe Delphi object destruction helper
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:00416ba0` — FUN_00416ba0
-- `function:00440a20` — FUN_00440a20
-- `function:004b6930` — FUN_004b6930
-- `function:0064dbe0` — FUN_0064dbe0
-- `function:0064de00` — VCL control text setter with change suppression
-- `function:0072d730` — FUN_0072d730
-- `function:01c1de60` — FUN_01c1de60
-- `function:01c38160` — FUN_01c38160
-- `function:01c38530` — FUN_01c38530
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: [`0173_fMacroWiz_fMacroWiz_pcMWiz_tsSource_pSourceEmpty_sbSourceBrowseWeb_Glyph_Data.png`](../../../glyph/0173_fMacroWiz_fMacroWiz_pcMWiz_tsSource_pSourceEmpty_sbSourceBrowseWeb_Glyph_Data.png)
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: File downloaded press Next at distance 104.
+- [Recovered Web browse handler](../../../DecompiledSources/Tina16/functions/0000000001C3C860__FUN_01c3c860.c)
+- [Recovered modal URL browser helper](../../../DecompiledSources/Tina16/functions/0000000001C1DE60__FUN_01c1de60.c)
+- [Extracted folder glyph](../../../glyph/0173_fMacroWiz_fMacroWiz_pcMWiz_tsSource_pSourceEmpty_sbSourceBrowseWeb_Glyph_Data.png)
+- The caption and glyph support browse intent. The handler proves the Web-source and downloaded-file behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The helper is a generic browser. The recovered code does not identify a fixed Web host.

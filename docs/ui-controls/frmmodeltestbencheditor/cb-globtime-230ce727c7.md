@@ -1,6 +1,6 @@
-﻿# Use custom global comparison range
+﻿# Use Custom Global Comparison Range
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for `TIARA-diz.6.7.1961`.
 
 ## Control
 
@@ -10,8 +10,7 @@
 | Component path | frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_globalSettings.cB_globTime |
 | Control class | TCheckBox |
 | Caption | Use custom global comparison range |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | See Resource evidence below. |
 | Handler name | cB_globTimeClick |
 | Handler address | 012f7980 |
 | Graph node | `resource:dfm:frmModelTestBenchEditor/frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_globalSettings.cB_globTime` |
@@ -20,54 +19,34 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+- Finds the per-circuit record for the current tree item.
+- Writes the check box state to the record's custom global comparison-range field.
+- The handler does not copy the Start time or End time texts. Their change handlers manage those values.
+- The handler has no null or root-item guard.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Use custom global comparison range"] -->|OnClick| handler["FUN_012f7980"]
-    handler --> call1["FUN_004aeac0"]
-    handler --> call2["FUN_006dd6f0"]
-    handler --> call3["FUN_006e2530"]
-    handler --> call4["FUN_012e5790"]
+flowchart TD
+    control["Use custom global comparison range"] --> handler["cB_globTimeClick (012f7980)"]
+    handler --> record["Get current circuit record"]
+    record --> state["Store custom-range checked state"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012F7980__FUN_012f7980.c](../../../DecompiledSources/Tina16/functions/00000000012F7980__FUN_012f7980.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_globalSettings.cB_globTime.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 4
-
-## Direct calls
-
-- `function:004aeac0` — FUN_004aeac0
-- `function:006dd6f0` — FUN_006dd6f0
-- `function:006e2530` — FUN_006e2530
-- `function:012e5790` — FUN_012e5790
+- Source: [FUN_012f7980](../../../DecompiledSources/Tina16/functions/00000000012F7980__FUN_012f7980.c)
+- Recovered role: Store the selected circuit's custom global comparison-range option.
+- Nearby labels identify Start time and End time, but proximity alone does not define the field.
+- FUN_012f7980 maps the current node index to the record list and passes check box +0x8A0 state to FUN_012e5790.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Number of samples at distance 27.
-- Rank 2: Start time at distance 41.
-- Rank 3: Simulation type at distance 52.
+- Caption: `Use custom global comparison range`.
+- No extracted glyph is present for this control.
+- Nearby labels, when cited above, are candidates from the same parent and are used only with handler evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No runtime UI test was performed.
+- The explanation does not infer behavior from the caption, hint, or nearby labels alone.

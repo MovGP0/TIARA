@@ -1,6 +1,6 @@
 ﻿# Add to schematic
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command builds design-tool text and adds or updates it in the active schematic.
 
 ## Control
 
@@ -20,13 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads the title and starts a text list with the title plus a blank separator. For each non-empty parameter row, it adds assignment text in the form `name := value` and includes recovered min/max text when present. It then either creates a schematic text object or updates the active design-tool object, applies the current title font, positions the object, marks the model changed, and refreshes the editor.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Add to schematic"] -->|OnClick| handler["FUN_01498400"]
+flowchart TD
+    control["Click Add to schematic"] --> collect["Collect title, separator, and non-empty parameter assignments"]
+    collect --> target{"Existing placement target available?"}
+    target -->|No| handler["Create schematic text object"]
+    target -->|Yes| update["Update and position active design-tool object"]
+    handler --> refresh["Mark changed and refresh schematic state"]
+    update --> refresh
     handler --> call1["Nil-safe Delphi object destruction helper"]
     handler --> call2["Delphi UnicodeString clear and finalization helper"]
     handler --> call3["Delphi UnicodeString array finalization helper"]
@@ -79,4 +84,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact user-visible Undo label of the created schematic action is not proven.

@@ -1,6 +1,6 @@
 ﻿# Hide text
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed. The TextArea1 visibility toggle is documented.
 
 ## Control
 
@@ -20,48 +20,62 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads a global Boolean that controls text display. It sets the
+button caption for the next action, toggles the Boolean, and applies the new
+value to `TextArea1.Visible`.
+
+- When the old value is false, it keeps or sets the caption to `Hide text`,
+  changes the value to true, and shows `TextArea1`.
+- When the old value is true, it sets the caption to `Show text`, changes the
+  value to false, and hides `TextArea1`.
+
+The recovered initial resource has a `Hide text` caption and a hidden
+`TextArea1`. The zero-initialized flag makes the first click show the memo and
+keep `Hide text` as the next-action caption. Later clicks alternate the two
+states.
+
+The text setter and visibility setter do not repeat their internal update when
+the requested value is already active. The click does not clear or edit the
+memo text and does not change the stored drawing steps.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Hide text"] -->|OnClick| handler["FUN_011976a0"]
-    handler --> call1["FUN_0064dbe0"]
-    handler --> call2["VCL control text setter with change suppression"]
+flowchart TD
+    control["Hide text or Show text"] -->|OnClick| oldState{"Is the old display flag true?"}
+    oldState -->|No| showCaption["Set caption to Hide text"]
+    showCaption --> showText["Set flag true and show TextArea1"]
+    oldState -->|Yes| hideCaption["Set caption to Show text"]
+    hideCaption --> hideText["Set flag false and hide TextArea1"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011976A0__FUN_011976a0.c](../../../DecompiledSources/Tina16/functions/00000000011976A0__FUN_011976a0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: kiiro_form.gomb.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Recovered role: Toggles `TextArea1` visibility and the next-action caption.
+- Input: Global display flag `DAT_01f29ce0`.
+- State changes: Inverts the flag, changes `TextArea1.Visible`, and changes the
+  `gomb` caption when required.
+- Output: A shown or hidden text memo with the opposite action in the button
+  caption.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
 ## Direct calls
 
-- `function:0064dbe0` — FUN_0064dbe0
-- `function:0064de00` — VCL control text setter with change suppression
+- `function:0064dbe0` - changes `TControl.Visible` when the value differs.
+- `function:0064de00` - changes VCL control text when the value differs.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Target control: `TextArea1`, a hidden `TMemo` at `(16, 24)` with size
+  `233 x 201` in the DFM. Form creation changes its runtime size to `320 x 320`.
+- Initial button caption: `Hide text`.
+- Kind, modal result, checked state, and list items: Not present.
+- Image reference and extracted glyph: None.
+- Nearby same-parent label: None.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The form stores the visibility state in a process-global byte, not in the
+  button or memo. This article does not assign a missing Delphi field name.

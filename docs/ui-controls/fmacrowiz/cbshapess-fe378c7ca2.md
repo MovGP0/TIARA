@@ -1,67 +1,42 @@
 ﻿# Show suggested shapes only.
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and UI evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | fMacroWiz |
-| Component path | fMacroWiz.pcMWiz.tsShape.gbFilter.cbShapeSS |
-| Control class | TCheckBox |
-| Caption | Show suggested shapes only. |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | rbShapeSSClick |
-| Handler address | 01c43750 |
-| Graph node | `resource:dfm:fMacroWiz/fMacroWiz.pcMWiz.tsShape.gbFilter.cbShapeSS` |
-| Handler node | `function:01c43750` |
-| Graph layer | UI |
+| Component path | `fMacroWiz.pcMWiz.tsShape.gbFilter.cbShapeSS` |
+| Control class | `TCheckBox` |
+| Caption | `Show suggested shapes only.` |
+| Initial checked state | `true` |
+| Handler | `rbShapeSSClick` at `01c43750` |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The check box first changes its normal VCL checked state. The handler enables the shape-search editor, pin filter, and shape-type filter. It then rebuilds the available shape list. The rebuild reads this check box through the suggested-shape helper and applies its value with the other search and filter inputs. It tries to keep the prior shape selection; otherwise, it selects the first matching shape. The handler then refreshes the wizard navigation state.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Show suggested shapes only."] -->|OnClick| handler["FUN_01c43750"]
-    handler --> call1["FUN_01c3dc60"]
+flowchart TD
+    control["Suggested-shapes check box"] --> handler["rbShapeSSClick at 01c43750"]
+    handler --> enable["Enable the search, pin, and type filters"]
+    enable --> rebuild["Rebuild the shape list with the checked state"]
+    rebuild --> restore{"Is the prior shape still present?"}
+    restore -->|Yes| prior["Restore the prior selection"]
+    restore -->|No| first["Select the first matching shape"]
+    prior --> refresh["Refresh navigation"]
+    first --> refresh
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001C43750__FUN_01c43750.c](../../../DecompiledSources/Tina16/functions/0000000001C43750__FUN_01c43750.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: fMacroWiz.pcMWiz.tsShape.gbFilter.cbShapeSS.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: simple
-- Distinct outgoing calls: 1
-
-## Direct calls
-
-- `function:01c3dc60` — FUN_01c3dc60
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: true
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: ( Notice: If you can't find the shape you are looking for, uncheck this checkbox. ) at distance 34.
-- Rank 2: Search: at distance 64.
-- Rank 3: Number of pins at distance 106.
+- [Recovered click handler](../../../DecompiledSources/Tina16/functions/0000000001C43750__FUN_01c43750.c)
+- [Recovered shape-list rebuild](../../../DecompiledSources/Tina16/functions/0000000001C3DC60__FUN_01c3dc60.c)
+- [Recovered suggested-shape state reader](../../../DecompiledSources/Tina16/functions/0000000001C3D590__FUN_01c3d590.c)
+- The nearby notice tells the user to clear this check box when a shape is not in the suggested results. The handler and filter code, not the notice alone, prove the behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered predicate that marks an individual shape as suggested has no Delphi name.

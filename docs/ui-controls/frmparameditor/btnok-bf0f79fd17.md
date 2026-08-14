@@ -1,6 +1,6 @@
 ﻿# btnOK
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source.
 
 ## Control
 
@@ -20,28 +20,53 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler validates every editable row. Validation rejects an empty name or
+value, a reserved name, a duplicate name, a name that does not start with a
+letter, and a name that contains a character other than a letter, digit, or
+underscore. The validator displays the applicable error message. On failure,
+the handler sets the form's modal result to zero, so the standard `bkOK` action
+does not close the editor.
+
+After successful validation, the handler rebuilds the parameter text and the
+form-owned parameter string list. Each grid row becomes a name-and-value
+assignment. The third-column row flag decides whether the assignment is a
+visible line or belongs in a block delimited by `@ Configuration begin` and
+`.@ Configuration end`. If the editor is attached to an existing schematic
+text object, the handler replaces that object's text and refreshes its former
+and new drawing bounds. It then refreshes other compatible parameter objects in
+the open document.
+
+The successful path transfers the form's working parameter-object list to the
+current application runtime and clears the form's pointer to that list. It also
+recalculates a global aggregate from a numeric field in each parameter object
+and copies the first object to a global current-parameter record when the list
+is not empty. The exact business names of that aggregate and record are not
+recovered. The standard `bkOK` modal result then closes the editor.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["btnOK"] -->|OnClick| handler["FUN_0143b640"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["Delphi UnicodeString array finalization helper"]
-    handler --> call4["FUN_00416cd0"]
-    handler --> call5["FUN_0043ea00"]
-    handler --> call6["FUN_004aeac0"]
+    okClick["Click OK"] --> okHandler["btnOKClick"]
+    okHandler --> validate{"Are all parameter rows valid?"}
+    validate -->|"No"| vetoClose["Show the error and set ModalResult to zero"]
+    validate -->|"Yes"| buildText["Build assignments and the configuration block"]
+    buildText --> hasTarget{"Is an existing parameter text object attached?"}
+    hasTarget -->|"Yes"| updateTarget["Replace its text and refresh its bounds"]
+    hasTarget -->|"No"| refreshOthers["Refresh compatible parameter objects"]
+    updateTarget --> refreshOthers
+    refreshOthers --> commitList["Transfer the working parameter list to the runtime"]
+    commitList --> deriveState["Recalculate derived global parameter state"]
+    deriveState --> accept["Keep the standard OK modal result"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/000000000143B640__FUN_0143b640.c](../../../DecompiledSources/Tina16/functions/000000000143B640__FUN_0143b640.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Validates and commits the edited global parameter set.
 - Current graph summary: Handles 1 Delphi UI event: frmParamEditor.pnlButton1.btnOK.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Validates all rows, rebuilds parameter text, updates existing parameter objects, transfers the working parameter objects to runtime state, and recalculates derived global state.
+- Current graph evidence: `FUN_0143b640` gates the commit on `FUN_0143ca80` and writes zero to form offset `+0x508` on failure. On success, it reads grid columns through `FUN_0084e320`, reads the third-column flag through `FUN_0143d610`, updates the attached object at `+0x738` through `FUN_0149ec30`, calls `FUN_0143d700`, replaces the runtime list at `+0x470` with the form list at `+0x730`, and derives global values from each copied parameter object.
 - Complexity: complex
 - Distinct outgoing calls: 16
 
@@ -81,5 +106,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Four reserved-name constants do not have recovered text. The source also names `TEMP`, `TIME`, `GMIN`, `RNDR`, and `RNDC` explicitly.
+- The recovered source does not identify Delphi names for the third-column flag, the derived aggregate, or the copied global record.
+- No glyph or nearby-label evidence is available for this control.

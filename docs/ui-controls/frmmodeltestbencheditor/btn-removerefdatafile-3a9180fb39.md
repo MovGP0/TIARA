@@ -1,6 +1,6 @@
-﻿# Remove data file
+﻿# Remove Reference Data File
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for `TIARA-diz.6.7.1953`.
 
 ## Control
 
@@ -10,8 +10,7 @@
 | Component path | frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSetRoot.btn_removeRefDataFile |
 | Control class | TButton |
 | Caption | Remove data file |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | See Resource evidence below. |
 | Handler name | btn_removeRefDataFileClick |
 | Handler address | 012f8340 |
 | Graph node | `resource:dfm:frmModelTestBenchEditor/frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSetRoot.btn_removeRefDataFile` |
@@ -20,59 +19,37 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+- Clears the loaded reference-data model and cached objects.
+- Rebuilds per-circuit data state and refreshes the selected circuit controls.
+- Clears the Data file edit.
+- The handler does not show a confirmation and does not delete a file from disk.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Remove data file"] -->|OnClick| handler["FUN_012f8340"]
-    handler --> call1["VCL control text setter with change suppression"]
-    handler --> call2["FUN_006e2530"]
-    handler --> call3["FUN_012ddec0"]
-    handler --> call4["FUN_01303240"]
-    handler --> call5["FUN_01303ee0"]
-    handler --> call6["FUN_01304bb0"]
+flowchart TD
+    control["Remove data file"] --> handler["btn_removeRefDataFileClick (012f8340)"]
+    handler --> clear["Clear loaded reference-data model"]
+    clear --> rebuild["Rebuild circuit data state"]
+    rebuild --> refresh["Refresh selected circuit"]
+    refresh --> text["Clear Data file text"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012F8340__FUN_012f8340.c](../../../DecompiledSources/Tina16/functions/00000000012F8340__FUN_012f8340.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmModelTestBenchEditor.pnlMain.pnlFileSelector.pnlSetRoot.btn_removeRefDataFile.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 7
-
-## Direct calls
-
-- `function:0064de00` — VCL control text setter with change suppression
-- `function:006e2530` — FUN_006e2530
-- `function:012ddec0` — FUN_012ddec0
-- `function:01303240` — FUN_01303240
-- `function:01303ee0` — FUN_01303ee0
-- `function:01304bb0` — FUN_01304bb0
-- `function:013056e0` — FUN_013056e0
+- Source: [FUN_012f8340](../../../DecompiledSources/Tina16/functions/00000000012F8340__FUN_012f8340.c)
+- Recovered role: Clear the reference-data file association and derived editor state.
+- The nearest same-parent label is Data file.
+- FUN_012f8340 calls the data-model clear, circuit-state rebuild, cache cleanup, and selected-node refresh routines before clearing edit +0x7D8.
+- There is no filesystem delete call in the recovered handler.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Data file at distance 378.
-- Rank 2: Result folder at distance 411.
-- Rank 3: Circuit folder at distance 470.
+- Caption: `Remove data file`.
+- No extracted glyph is present for this control.
+- Nearby labels, when cited above, are candidates from the same parent and are used only with handler evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No runtime UI test was performed.
+- The explanation does not infer behavior from the caption, hint, or nearby labels alone.

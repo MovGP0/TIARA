@@ -1,6 +1,6 @@
 ﻿# Clear
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed. The text and drawing-step reset is documented.
 
 ## Control
 
@@ -20,46 +20,61 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The click handler delegates to `FUN_01196f70` with the current form. That
+helper clears `TextArea1.Text`, resets the current drawing-step index and the
+stored drawing-step count to zero, and invalidates the form so that it paints
+again.
+
+The paint handler reads these counters and stored step arrays. After the reset,
+its step-rendering loop has no stored entries to draw. The separate fixed test
+graphics in the paint handler are outside this Clear command and can still be
+painted.
+
+The click does not change the global text-visibility flag, the `gomb` caption,
+or `TextArea1.Visible`. It does not change `Memo1` or `Memo2`. Repeated clicks
+keep the text and counters empty and request another repaint. There is no
+decision, validation, or local error branch.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Clear"] -->|OnClick| handler["FUN_01197690"]
-    handler --> call1["FUN_01196f70"]
+flowchart TD
+    control["Clear"] -->|OnClick| helper["FUN_01196f70"]
+    helper --> clearText["Clear TextArea1 text"]
+    clearText --> resetSteps["Reset drawing-step index and count to zero"]
+    resetSteps --> repaint["Invalidate the form for repaint"]
+    repaint --> emptyLoop["Next paint has no stored step entries"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001197690__FUN_01197690.c](../../../DecompiledSources/Tina16/functions/0000000001197690__FUN_01197690.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: kiiro_form.torolj.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Handler source: [DecompiledSources/Tina16/functions/0000000001197690__FUN_01197690.c](../../../DecompiledSources/Tina16/functions/0000000001197690__FUN_01197690.c)
+- Reset helper: [DecompiledSources/Tina16/functions/0000000001196F70__FUN_01196f70.c](../../../DecompiledSources/Tina16/functions/0000000001196F70__FUN_01196f70.c)
+- Paint consumer: [DecompiledSources/Tina16/functions/0000000001196FB0__FUN_01196fb0.c](../../../DecompiledSources/Tina16/functions/0000000001196FB0__FUN_01196fb0.c)
+- Recovered role: Clears the text and stored drawing-step state.
+- Input: Current form instance.
+- State changes: Empty `TextArea1.Text`; set `DAT_01f29ce4` and
+  `DAT_01f29ce8` to zero; request repaint.
+- Output: No stored step entries on the next paint.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
-## Direct calls
+## Direct call
 
-- `function:01196f70` — FUN_01196f70
+- `function:01196f70` - performs the text, counter, and repaint reset.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Cleared control: `TextArea1`, a `TMemo` that is initially hidden in the DFM.
+- Related control: `gomb`, caption `Hide text`, controls only visibility.
+- Kind, modal result, checked state, and list items: Not present.
+- Image reference and extracted glyph: None.
+- Nearby same-parent label: None.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Ghidra omits the unchanged form argument at the wrapper call site. The helper
+  reads form field `+0x6c0`, which the DFM and form-create routine establish as
+  `TextArea1`.
+- The stored arrays do not have recovered Delphi field names. Their writer and
+  paint consumer establish their text, color, size, and count roles.

@@ -1,6 +1,6 @@
 ﻿# Save
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,31 +20,43 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`TfrmStressReport.PMISaveClick` tests the report's remembered file-name string at form offset `+0x700`.
+
+- If the string is empty, Save delegates to the same handler as **Save As...**. The Save dialog must accept a path before a file is written.
+- If the string is nonempty, Save does not open the dialog. It writes directly to that remembered path.
+
+The common writer reads `lbMessages.Items` and calls its one-argument `SaveToFile` method. It saves every visible stress-message string in list order. It does not save only the selected rows, the hidden message-to-component mapping, component objects, or schematic selection state.
+
+The remembered path is form-local state. A successful Save does not change it. A new path is assigned only by **Save As...**, and the path is discarded when this report form is released.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Save"] -->|OnClick| handler["FUN_012bc750"]
-    handler --> call1["FUN_012bc780"]
-    handler --> call2["FUN_012bc820"]
+flowchart TD
+    save["Choose Save"] --> handler["PMISaveClick at 012bc750"]
+    handler --> known{"Remembered file name is nonempty?"}
+    known -->|No| saveAs["Run Save As path"]
+    saveAs --> accepted{"Save dialog accepts a path?"}
+    accepted -->|No| noOp["Return without writing"]
+    accepted -->|Yes| write["Save all visible message strings"]
+    known -->|Yes| write
+    write --> file["Write to the remembered path"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000012BC750__FUN_012bc750.c](../../../DecompiledSources/Tina16/functions/00000000012BC750__FUN_012bc750.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Save all visible stress-report messages to the remembered file.
 - Current graph summary: Handles 1 Delphi UI event: frmStressReport.PopupMenu.PMISave.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The checked-in graph does not yet contain the annotations prepared by this review.
+- Current graph evidence: The handler branches on form string `+0x700`. It calls Save As when that string is empty and otherwise passes it to the common `lbMessages.Items.SaveToFile` wrapper.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
 ## Direct calls
 
-- `function:012bc780` — Handles 1 Delphi UI event: frmStressReport.PopupMenu.PMISaveAs.OnClick.
-- `function:012bc820` — FUN_012bc820
+- [`function:012bc780`](../../../DecompiledSources/Tina16/functions/00000000012BC780__FUN_012bc780.c) — executes Save As when no report file name is remembered.
+- [`function:012bc820`](../../../DecompiledSources/Tina16/functions/00000000012BC820__FUN_012bc820.c) — passes `lbMessages.Items` and the target path to the VCL one-argument `SaveToFile` method.
 
 ## Resource evidence
 
@@ -63,5 +75,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The handler does not test whether the visible list is empty. Saving an empty list can create an empty output file.
+- The one-argument VCL [`SaveToFile`](../../../DecompiledSources/Tina16/functions/00000000004B4900__FUN_004b4900.c) call supplies no explicit encoding or byte-order-mark option. These details depend on the list-box Items object's current or default encoding.
+- Direct Save does not perform a separate existence test or overwrite question. Any applicable file-system or VCL behavior remains outside this handler.
+- A write error has no local message, retry, rollback, or alternate path. A failed save can leave a partial file.
+- No hint, glyph, or nearby label supplies more behavior evidence.

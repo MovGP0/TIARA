@@ -1,6 +1,6 @@
 ﻿# sbAHNone
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered shared handler, sender branch, paint path, glyph, and nearby label.
 
 ## Control
 
@@ -20,22 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The button sets the shared arrow-head and background color field to sentinel `-2`. It then repaints both previews as an X. The nearby recovered label states that the arrow-head X means **same as border color**. The extracted red-X glyph agrees with this state. The handler does not open a dialog and has no failure branch.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["sbAHNone"] -->|OnClick| handler["FUN_00c5b9e0"]
+    control["Click the arrow-head X button"] --> clear["Set the shared head and fill color to sentinel -2"]
+    clear --> repaint["Repaint both previews as an X"]
+    repaint --> meaning["Arrow-head X means use the border color"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000000C5B9E0__FUN_00c5b9e0.c](../../../DecompiledSources/Tina16/functions/0000000000C5B9E0__FUN_00c5b9e0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Clears the border color or shared background and arrow-head color according to Sender.
 - Current graph summary: Handles 3 Delphi UI events: frmShapeProps.gbBorder.sbFrNone.OnClick, frmShapeProps.gbBackground.sbBdNone.OnClick, frmShapeProps.gbArrowHead.sbAHNone.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The border None sender writes sentinel -2 to the border field and repaints the border preview. The background and arrow-head None senders write the same sentinel to their shared field and repaint both previews. There is no dialog or conditional failure path.
+- Current graph evidence: The handler compares Sender with the field at form offset `0x6e0`, which DFM field order and the adjacent EditColor sender offsets identify as `sbFrNone`. That branch writes `0xfffffffe` to `0x7e0` and invalidates `pbFrColor`. The other bound senders write `0xfffffffe` to `0x7e4` and invalidate `pbBdColor` and `pbAHColor`. `PaintColor` draws two diagonals instead of a solid fill when its selected value equals -2. The DFM label below the arrow-head color says `(X = same as border color)`.
 - Complexity: simple
 - Distinct outgoing calls: 0
 
@@ -62,5 +64,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered code proves one shared background and arrow-head color field. It does not show whether that coupling is a product rule or a legacy limitation.

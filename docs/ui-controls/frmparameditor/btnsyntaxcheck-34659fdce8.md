@@ -1,6 +1,6 @@
 ﻿# Syntax check
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source.
 
 ## Control
 
@@ -20,28 +20,53 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler first runs the same row validator as OK and Add to schematic. On a
+validation error, the validator displays the applicable message and the handler
+returns without a partial check.
+
+After successful validation, the handler clears a form-owned temporary syntax
+list. For each grid row, it creates an expression record from the parameter name
+and value. It also builds records from a form-owned auxiliary name-and-value
+list when the current editor context allows them. The handler then asks the
+application to prepare the current schematic expression environment. When a
+current analysis object and its expression collection are available, it adds
+those symbols too.
+
+Finally, it creates a parser/evaluator object for each temporary parameter that
+has expression text, evaluates the expression against the complete temporary
+list and the collected context, and stores the returned result in that
+parameter record. The click does not copy these temporary records to the global
+parameter list, modify the grid, save the schematic, or close the editor. The
+recovered handler contains no explicit success message. Parser errors can leave
+the handler through the called parser path; no local recovery branch is present.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Syntax check"] -->|OnClick| handler["FUN_0143c210"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["FUN_004144d0"]
-    handler --> call4["Delphi UnicodeString array finalization helper"]
-    handler --> call5["FUN_00415dd0"]
-    handler --> call6["FUN_00416880"]
+    syntaxClick["Click Syntax check"] --> syntaxHandler["btnSyntaxCheckClick"]
+    syntaxHandler --> validate{"Are all parameter rows valid?"}
+    validate -->|"No"| showError["Show the validation error and return"]
+    validate -->|"Yes"| buildRows["Build temporary records from the grid"]
+    buildRows --> addAux["Add allowed auxiliary symbols"]
+    addAux --> addContext["Add available schematic symbols"]
+    addContext --> nextExpression{"Does a temporary record have expression text?"}
+    nextExpression -->|"No"| skipRecord["Skip that record"]
+    nextExpression -->|"Yes"| evaluate["Parse and evaluate the expression"]
+    skipRecord --> moreRecords{"Are more records present?"}
+    evaluate --> storeResult["Store the evaluation result in the temporary record"]
+    storeResult --> moreRecords
+    moreRecords -->|"Yes"| nextExpression
+    moreRecords -->|"No"| returnOnly["Return without committing or closing"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/000000000143C210__FUN_0143c210.c](../../../DecompiledSources/Tina16/functions/000000000143C210__FUN_0143c210.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Validates and evaluates parameter expressions in a temporary context.
 - Current graph summary: Handles 1 Delphi UI event: frmParamEditor.pnlButtons.btnSyntaxCheck.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Validates the grid, builds temporary parameter records, adds auxiliary and schematic symbols, and evaluates each non-empty expression without committing the records.
+- Current graph evidence: `FUN_0143c210` gates the path on `FUN_0143ca80`, clears the list at form offset `+0x720`, builds records from grid columns 0 and 1, adds entries from the list at `+0x710`, and asks `FUN_013fd880` to prepare the current schematic context. It adds symbols from an available current analysis object, then creates `FUN_016a6a40` parser objects and stores the `FUN_016a9290` result at record offset `+0x28`.
 - Complexity: complex
 - Distinct outgoing calls: 28
 
@@ -93,5 +118,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not identify the exact user-visible form of a parser error.
+- The business name of the form-owned auxiliary list at `+0x710` is not recovered.
+- No glyph or nearby-label evidence is available for this control.

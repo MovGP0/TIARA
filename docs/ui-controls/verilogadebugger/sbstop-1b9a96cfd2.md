@@ -1,6 +1,6 @@
 ﻿# Stop
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,28 +20,35 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler sets local stop-request byte `+0xa2b`, clears continuous-run byte `+0xa29`, and sets engine stop byte `+0x13a19`. It makes no direct function call and does not wait for an acknowledgement.
+
+The simulation loop checks the engine stop byte at monitored source positions. When it sees the request, it updates debugger state, resets any Run Until target, changes the status to `Stopped`, sets wait flag `+0x1a78`, and pumps VCL messages until Run or Step clears that flag. Thus, Stop is an asynchronous request that takes effect at the next recovered debugger stop point.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Stop"] -->|OnClick| handler["FUN_010a5650"]
+flowchart TD
+    control["Click Stop"] -->|"OnClick"| handler["TVerilogADebugger.sbStopClick"]
+    handler --> request["Set local and engine stop flags"]
+    request --> observe["Simulation loop observes request"]
+    observe --> update["Refresh debugger and set status Stopped"]
+    update --> wait["Wait for Run or Step"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000010A5650__FUN_010a5650.c](../../../DecompiledSources/Tina16/functions/00000000010A5650__FUN_010a5650.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Requests that the running debugger stop at its next monitored source position.
 - Current graph summary: Handles 1 Delphi UI event: VerilogADebugger.pnToolbar.sbStop.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Sets the debugger and engine stop flags and clears continuous-run state; the simulation loop later enters its stopped wait.
+- Current graph evidence: The handler writes form bytes `+0xa2b=1` and `+0xa29=0`, then writes engine byte `+0x13a19=1`. Simulation loop [`FUN_01631c60`](../../../DecompiledSources/Tina16/functions/0000000001631C60__FUN_01631c60.c) tests that engine byte, updates the debugger, sets wait flag `+0x1a78`, writes status `Stopped`, and pumps messages while it waits.
 - Complexity: simple
 - Distinct outgoing calls: 0
 
-## Direct calls
+## Direct and state-based paths
 
 - No direct call edge is present in the recovered graph.
+- The handler communicates with the simulation loop through the stop bytes and wait state.
 
 ## Resource evidence
 
@@ -51,6 +58,7 @@ flowchart LR
 - List items: Not present in the recovered resource.
 - Image reference: Not present in the recovered resource.
 - Extracted glyph: [`0502_VerilogADebugger_VerilogADebugger_pnToolbar_sbStop_Glyph_Data.png`](../../../glyph/0502_VerilogADebugger_VerilogADebugger_pnToolbar_sbStop_Glyph_Data.png)
+- The 32 by 16 resource contains normal and disabled square Stop glyphs. The state writes and simulation-loop reader establish the stop operation.
 
 ## Nearby label candidates
 
@@ -61,5 +69,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The click does not stop synchronously. The exact delay depends on when the simulation loop reaches its next monitored position.
+- The handler does not check for a nil engine pointer. UI enabled-state management is outside this handler.
+- No local error message or acknowledgement is present.

@@ -1,6 +1,6 @@
 ﻿# Replace...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command opens the Replace dialog for the main editor.
 
 ## Control
 
@@ -20,13 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler selects the advanced editor layout and opens the shared search dialog in replace mode. It seeds saved search, replace, direction, scope, and option values. If the user accepts, it stores the new settings and starts the shared search-or-replace operation when search text is available.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Replace..."] -->|OnClick| handler["FUN_01499100"]
+flowchart TD
+    control["Choose Replace..."] --> expand["Select advanced editor layout"]
+    expand --> open["Open search dialog in replace mode"]
+    open --> accepted{"Dialog accepted?"}
+    accepted -->|No| stop["Do not replace text"]
+    accepted -->|Yes| handler["Store options and start replace operation"]
     handler --> call1["FUN_0149a5d0"]
     handler --> call2["FUN_0149b1b0"]
 ```
@@ -64,4 +68,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The shared SynEdit search path controls prompts and individual replacement decisions.

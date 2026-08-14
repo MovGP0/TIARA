@@ -1,6 +1,6 @@
 ﻿# F=true
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source and call-path review complete.
 
 ## Control
 
@@ -20,23 +20,27 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler prepares the constant-true preset. It clears the prior true-row count, hides the Symmetry number group, and records every data-row index as true. It clears the loaded-table flag and sets help context `2400`. It does not repopulate the grid. The Fill action applies the prepared row list later.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
+flowchart TD
     control["F=true"] -->|OnClick| handler["FUN_011acff0"]
-    handler --> call1["FUN_0064dbe0"]
+    handler --> clear["Clear prior true-row count"]
+    clear --> hide["Hide Symmetry number group"]
+    hide --> rows["Record every data row as true"]
+    rows --> topic["Set help context to 2400"]
+    topic --> wait["Wait for Fill to rebuild grid"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011ACFF0__FUN_011acff0.c](../../../DecompiledSources/Tina16/functions/00000000011ACFF0__FUN_011acff0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: tables_form.SpecialBox.RadioF1.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Recovered role: Constant-true truth-table preset selector
+- Current graph summary: Selects every truth-table data row, hides symmetry controls, and prepares the constant-true preset for Fill.
+- Current graph behavior: Resets the true-row count, adds every grid data-row index to the selected list, clears the loaded-table flag, and sets help context `2400`.
+- Current graph evidence: The resource caption is `F=true`. The handler calls the annotated VCL visibility setter with the Symmetry number group and false, then loops over `StringGrid1.RowCount - 1` and records each zero-based row index.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +65,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- This handler does not write grid cells. The separate Fill handler consumes the prepared state.

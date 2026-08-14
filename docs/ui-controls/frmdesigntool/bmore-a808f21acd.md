@@ -1,6 +1,6 @@
 ﻿# Less...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The button toggles the advanced Design Tool panel.
 
 ## Control
 
@@ -20,14 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler inverts the saved expanded-state byte and passes it to `FUN_01498900`. That helper shows or hides the advanced panel, changes the form height, and changes the button caption between the localized **More...** and **Less...** text. Repeated clicks alternate the two states.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Less..."] -->|OnClick| handler["FUN_014988e0"]
-    handler --> call1["FUN_01498900"]
+flowchart TD
+    click["Click More or Less"] --> invert["Invert expanded state"]
+    invert --> expanded{"New state is expanded?"}
+    expanded -->|Yes| show["Show advanced panel and set caption to Less..."]
+    expanded -->|No| hide["Hide advanced panel and set caption to More..."]
+    show --> resize["Resize the form"]
+    hide --> resize
 ```
 
 ## Handler evidence
@@ -63,4 +67,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The bootstrap captured **Less...**; the handler also assigns **More...**.

@@ -1,6 +1,6 @@
 ﻿# Stop
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The control stops XY Recorder acquisition and restores the stopped display state.
 
 ## Control
 
@@ -20,25 +20,27 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`StopBtnClick` clears the recorder's active flag, keeps the Stop speed button down, and invokes the acquisition backend's stop operation. It then performs the common acquisition cleanup. An optional instrument object also receives its stop or finish virtual call.
+
+For the normal recorder mode, the handler retains the latest completed curve when one is available, processes each enabled channel through the form's plot-attachment method, and refreshes the stopped result. Finally, it re-enables the two acquisition-setting controls that the Start path disables. The recovered handler has no file-write or persistent-setting operation.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Stop"] -->|OnClick| handler["FUN_01b58c00"]
-    handler --> call1["FUN_004113f0"]
-    handler --> call2["FUN_0082a6c0"]
-    handler --> call3["FUN_010e1b10"]
-    handler --> call4["FUN_010e4410"]
-    handler --> call5["FUN_01b580b0"]
-    handler --> call6["FUN_01cc6020"]
+flowchart TD
+    control["Stop<br/>FStopBtn"] -->|OnClick| handler["FUN_01b58c00<br/>StopBtnClick"]
+    handler --> inactive["Clear active flag and<br/>stop acquisition backend"]
+    inactive --> cleanup["FUN_010e4410<br/>common acquisition cleanup"]
+    cleanup --> result{"Completed result available<br/>in normal mode?"}
+    result -->|Yes| channels["FUN_01b580b0<br/>refresh enabled channels"]
+    result -->|No| controls["Re-enable acquisition settings"]
+    channels --> controls
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B58C00__FUN_01b58c00.c](../../../DecompiledSources/Tina16/functions/0000000001B58C00__FUN_01b58c00.c)
-- Recovered role: Not present in the recovered resource.
+- Review role: Stop acquisition, preserve the completed result when available, and restore controls.
 - Current graph summary: Handles 1 Delphi UI event: XYRecorderWin.StorageGroupBox.FStopBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -72,5 +74,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The backend and optional instrument virtual-method names are not recovered. Their roles follow from the active-state transition and the surrounding start, callback, and cleanup paths.
+- A live hardware test was not performed. No file or persistent preference write is present in the handler.

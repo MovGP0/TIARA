@@ -1,6 +1,6 @@
 ﻿# Open
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and graph evidence.
 
 ## Control
 
@@ -20,27 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+When the preview is idle, the handler opens a file dialog for FastReport prepared-report files (`*.fp3`). Cancel leaves the preview unchanged. After a selection, the load path clears the current preview, shows the localized loading state, loads the selected prepared report, selects page 1, refreshes the preview, and ends the update. The click handler then updates the form text from the loaded report title, or uses a localized fallback when no title is available. A click while generation is active is a no-op.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Open"] -->|OnClick| handler["FUN_018af0f0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["VCL control text setter with change suppression"]
-    handler --> call3["FUN_0180bfe0"]
-    handler --> call4["FUN_018aa2d0"]
-    handler --> call5["FUN_018af290"]
+    control["Open button"] -->|OnClick| handler["OpenBClick"]
+    handler --> idle{"Is the preview idle?"}
+    idle -->|No| noop["Do nothing"]
+    idle -->|Yes| choose{"Was an FP3 file selected?"}
+    choose -->|No| finish["Keep the current preview"]
+    choose -->|Yes| load["Load the prepared report and select page 1"]
+    load --> title["Refresh preview and update the form text"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000018AF0F0__FUN_018af0f0.c](../../../DecompiledSources/Tina16/functions/00000000018AF0F0__FUN_018af0f0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Opens a FastReport FP3 prepared-report file in the preview.
 - Current graph summary: Handles 1 Delphi UI event: frxPreviewForm.ToolBar.OpenB.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Opens an `*.fp3` picker while idle, loads an accepted file, selects page 1, refreshes the preview, and updates the form text from report metadata or a localized fallback.
+- Current graph evidence: `FUN_018af0f0` calls `FUN_018aa2d0`. That callee checks busy byte `+0x531`, creates an open dialog with filter ` (*.fp3)|*.fp3`, and only on an accepted result calls `FUN_018aa470`. The load helper clears the view, loads the selected path through the prepared-report virtual method, selects page 1, and refreshes. The handler then reads a report string at nested offset `+0x240/+0x38` and calls the VCL text setter.
 - Complexity: complex
 - Distinct outgoing calls: 5
 
@@ -69,5 +70,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source has no local exception, retry, or rollback block for a failed file load.
+- The exact localized fallback form text is not recovered.

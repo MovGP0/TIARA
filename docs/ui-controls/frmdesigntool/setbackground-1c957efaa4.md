@@ -1,6 +1,6 @@
 ﻿# Set Background
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The recovered handler opens the background popup at a point below the tool panel.
 
 ## Control
 
@@ -20,15 +20,15 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler clears a popup state byte, calculates a point two pixels below the tool panel, converts that point to screen coordinates, and opens the background popup at that position. The popup commands make the actual background and border changes. The small down-arrow glyph agrees with this popup action but is not the primary evidence.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Set Background"] -->|OnClick| handler["FUN_01493a30"]
-    handler --> call1["FUN_00498310"]
-    handler --> call2["FUN_0064d1f0"]
+flowchart TD
+    click["Click Set Background"] --> point["Calculate a point below the tool panel"]
+    point --> screen["Convert the point to screen coordinates"]
+    screen --> popup["Open the background popup menu"]
 ```
 
 ## Handler evidence
@@ -64,4 +64,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- This click does not change the background or border by itself. A later popup-menu command does that work.

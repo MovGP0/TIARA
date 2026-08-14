@@ -1,82 +1,39 @@
 ﻿# New
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and UI evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | frmTestBenchEditor |
-| Component path | frmTestBenchEditor.TestBenchEditorMenu.mnFile.mnNew |
-| Control class | TMenuItem |
-| Caption | New |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | mnNewClick |
-| Handler address | 012c4cc0 |
-| Graph node | `resource:dfm:frmTestBenchEditor/frmTestBenchEditor.TestBenchEditorMenu.mnFile.mnNew` |
-| Handler node | `function:012c4cc0` |
-| Graph layer | UI |
+| Component path | `frmTestBenchEditor.TestBenchEditorMenu.mnFile.mnNew` |
+| Control class | `TMenuItem` |
+| Handler | `mnNewClick` at `012c4cc0` |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler opens a folder selector with the current circuit folder. If the user cancels, it makes no change. If the user accepts, it resets the editor, writes the selected folder to both the circuit-folder and result-folder fields, clears the file tree, creates a new root node, and scans for `.TSC` files. The `Recurse subfolders` check box controls recursive scanning. It rebuilds the tree and enables the related folder and test controls.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["New"] -->|OnClick| handler["FUN_012c4cc0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["VCL control Unicode text reader"]
-    handler --> call3["VCL control text setter with change suppression"]
-    handler --> call4["FUN_006dee70"]
-    handler --> call5["FUN_006df690"]
-    handler --> call6["FUN_006df710"]
+flowchart TD
+    control["New menu item"] --> folder["Open the circuit-folder selector"]
+    folder --> accepted{"Was a folder selected?"}
+    accepted -->|No| noop["Keep the current editor state"]
+    accepted -->|Yes| reset["Reset the editor and set both folders"]
+    reset --> scan["Scan for TSC circuit files"]
+    scan --> tree["Build and enable the test-case tree"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012C4CC0__FUN_012c4cc0.c](../../../DecompiledSources/Tina16/functions/00000000012C4CC0__FUN_012c4cc0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmTestBenchEditor.TestBenchEditorMenu.mnFile.mnNew.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 13
-
-## Direct calls
-
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:0064dd90` — VCL control Unicode text reader
-- `function:0064de00` — VCL control text setter with change suppression
-- `function:006dee70` — FUN_006dee70
-- `function:006df690` — FUN_006df690
-- `function:006df710` — FUN_006df710
-- `function:006e1e60` — FUN_006e1e60
-- `function:006e23c0` — FUN_006e23c0
-- `function:006e24b0` — FUN_006e24b0
-- `function:00b96980` — FUN_00b96980
-- `function:012c28a0` — FUN_012c28a0
-- `function:012c7130` — FUN_012c7130
-- `function:012c7620` — FUN_012c7620
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- [Recovered mnNewClick source](../../../DecompiledSources/Tina16/functions/00000000012C4CC0__FUN_012c4cc0.c)
+- [Recovered editor reset](../../../DecompiledSources/Tina16/functions/00000000012C7130__FUN_012c7130.c)
+- [Recovered TSC folder scan](../../../DecompiledSources/Tina16/functions/00000000012C7620__FUN_012c7620.c)
+- The DFM resource supplies the control identity, caption or state, and event binding.
+- No extracted glyph is present for this control.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The folder selector implementation does not expose a separate validation message for an unreadable folder.

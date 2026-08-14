@@ -1,6 +1,6 @@
-﻿# Add spice result
+﻿# Add SPICE Result
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for `TIARA-diz.6.7.1960`.
 
 ## Control
 
@@ -10,8 +10,7 @@
 | Component path | frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_globalSettings.cB_addSpiceRes |
 | Control class | TCheckBox |
 | Caption | Add spice result |
-| Hint | Add spice result as pictures to the resport. |
-| Text | Not present in the recovered resource. |
+| Hint | See Resource evidence below. |
 | Handler name | cB_addSpiceResClick |
 | Handler address | 012f7920 |
 | Graph node | `resource:dfm:frmModelTestBenchEditor/frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_globalSettings.cB_addSpiceRes` |
@@ -20,54 +19,33 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+- Finds the per-circuit record for the current tree item.
+- Writes the Add spice result checked state to that record.
+- The handler has no null or root-item guard. The surrounding UI must keep it available only for a valid circuit.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Add spice result"] -->|OnClick| handler["FUN_012f7920"]
-    handler --> call1["FUN_004aeac0"]
-    handler --> call2["FUN_006dd6f0"]
-    handler --> call3["FUN_006e2530"]
-    handler --> call4["FUN_012e57b0"]
+flowchart TD
+    control["Add spice result"] --> handler["cB_addSpiceResClick (012f7920)"]
+    handler --> record["Get current circuit record"]
+    record --> state["Store add-result checked state"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012F7920__FUN_012f7920.c](../../../DecompiledSources/Tina16/functions/00000000012F7920__FUN_012f7920.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_globalSettings.cB_addSpiceRes.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 4
-
-## Direct calls
-
-- `function:004aeac0` — FUN_004aeac0
-- `function:006dd6f0` — FUN_006dd6f0
-- `function:006e2530` — FUN_006e2530
-- `function:012e57b0` — FUN_012e57b0
+- Source: [FUN_012f7920](../../../DecompiledSources/Tina16/functions/00000000012F7920__FUN_012f7920.c)
+- Recovered role: Store the selected circuit's add-SPICE-result option.
+- The hint says the option adds a SPICE result as a picture to the report.
+- FUN_012f7920 maps the current node index to the record list and passes check box +0xA48 state to FUN_012e57b0.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: true
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: [s] at distance 233.
-- Rank 2: [s] at distance 258.
-- Rank 3: Simulation type at distance 301.
+- Caption: `Add spice result`.
+- No extracted glyph is present for this control.
+- Nearby labels, when cited above, are candidates from the same parent and are used only with handler evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No runtime UI test was performed.
+- The explanation does not infer behavior from the caption, hint, or nearby labels alone.

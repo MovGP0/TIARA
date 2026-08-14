@@ -1,6 +1,6 @@
 ﻿# Zoom
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and graph evidence.
 
 ## Control
 
@@ -20,24 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler adds `0.25` to the current custom zoom scale at preview offset `+0x558`. The scale setter stores the result, clears fit mode, and refreshes preview layout. The handler then runs the zoom-combo synchronization path, which reselects the current page and redraws both preview views. The recovered path does not impose a maximum zoom.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Zoom"] -->|OnClick| handler["FUN_018af210"]
-    handler --> call1["FUN_018a8d30"]
-    handler --> call2["FUN_018af390"]
+    control["Zoom-in button"] -->|OnClick| handler["ZoomPlusBClick"]
+    handler --> increase["Add 25 percentage points"]
+    increase --> apply["Store custom scale and clear fit mode"]
+    apply --> redraw["Synchronize zoom combo and redraw current page"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000018AF210__FUN_018af210.c](../../../DecompiledSources/Tina16/functions/00000000018AF210__FUN_018af210.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Increases the FastReport preview zoom by 25 percentage points.
 - Current graph summary: Handles 1 Delphi UI event: frxPreviewForm.ToolBar.ZoomPlusB.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Adds 0.25 to the custom scale, clears fit mode, and synchronizes the zoom combo and current-page redraw.
+- Current graph evidence: `FUN_018af210` reads double `preview+0x558`, adds `0.25`, passes the value to `FUN_018a8d30`, and calls `FUN_018af390`. `FUN_018a8d30` stores the scale, clears mode byte `+0x560`, and refreshes layout. The minimum clamp cannot affect an increment from a valid scale.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -63,5 +64,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered handler does not impose or report a maximum zoom value.
+- The handler has no local error or rollback path.

@@ -1,6 +1,6 @@
 ﻿# Edit
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and graph evidence.
 
 ## Control
 
@@ -20,23 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler asks the FastReport preview to edit the current prepared page. The callee gets the page for the current one-based page number. A missing page causes a no-op. For an available page, it selects one of two editor classes from the page type, copies the page into a temporary report container, and opens the editor. Only an accepted editor result replaces the current prepared page and refreshes the preview. Cancel leaves the original page in place. The temporary report container is destroyed on both paths.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Edit"] -->|OnClick| handler["FUN_018afbb0"]
-    handler --> call1["FUN_018aae70"]
+    control["Edit button"] -->|OnClick| handler["DesignerBClick"]
+    handler --> page{"Is a current prepared page available?"}
+    page -->|No| noop["Do nothing"]
+    page -->|Yes| edit["Copy the page and open its editor"]
+    edit --> accepted{"Was the edit accepted?"}
+    accepted -->|Yes| apply["Replace the page and refresh the preview"]
+    accepted -->|No| keep["Keep the original page"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000018AFBB0__FUN_018afbb0.c](../../../DecompiledSources/Tina16/functions/00000000018AFBB0__FUN_018afbb0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Opens an editor for the current prepared page and applies accepted changes.
 - Current graph summary: Handles 1 Delphi UI event: frxPreviewForm.ToolBar.DesignerB.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Copies the current page to a temporary editor context. An accepted result replaces that page and refreshes the preview; a missing page or canceled edit does not change it.
+- Current graph evidence: `FUN_018afbb0` passes preview field `+0x848` to `FUN_018aae70`. That callee gets page `currentPage-1`, branches on the page class, creates an editor object and temporary report, calls the editor, tests `FUN_01976e80`, and only on a nonzero result replaces the current page and signals a changed preview.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +66,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not expose the two editor class names.
+- The handler has no local exception, retry, or rollback block.

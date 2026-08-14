@@ -1,6 +1,6 @@
 ﻿# Margins
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and graph evidence.
 
 ## Control
 
@@ -20,23 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+When the preview is idle and a current prepared page exists, the handler creates the FastReport page-settings dialog. It supplies the current page and active report, then shows the dialog. An accepted result updates the current prepared page and refreshes the preview through one of two apply paths selected by the dialog state. Cancel, an active generation, or a missing current page leaves the preview unchanged. The dialog object is destroyed after use.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Margins"] -->|OnClick| handler["FUN_018af6b0"]
-    handler --> call1["FUN_018aaa40"]
+    control["Margins button"] -->|OnClick| handler["PageSettingsBClick"]
+    handler --> available{"Is the preview idle with a current page?"}
+    available -->|No| noop["Do nothing"]
+    available -->|Yes| dialog["Open page settings for the current page"]
+    dialog --> accepted{"Was the dialog accepted?"}
+    accepted -->|No| keep["Keep the current page"]
+    accepted -->|Yes| apply["Apply page settings and refresh the preview"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000018AF6B0__FUN_018af6b0.c](../../../DecompiledSources/Tina16/functions/00000000018AF6B0__FUN_018af6b0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Opens page settings for the current prepared page and applies accepted changes.
 - Current graph summary: Handles 1 Delphi UI event: frxPreviewForm.ToolBar.PageSettingsB.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Shows a page-settings dialog only while idle and with a current page; accepted changes update the prepared page and preview, while cancel is a no-op.
+- Current graph evidence: `FUN_018af6b0` passes preview field `+0x848` to `FUN_018aaa40`. That callee tests busy byte `+0x531`, gets page `currentPage-1`, creates the dialog class at `PTR_FUN_0189ae80`, assigns the page and report, tests modal result one, applies the accepted page through the prepared-report replacement or refresh path, and destroys the dialog.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +66,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not identify the dialog's internal state that selects the two accepted apply paths.
+- The handler has no local exception, retry, or rollback block.

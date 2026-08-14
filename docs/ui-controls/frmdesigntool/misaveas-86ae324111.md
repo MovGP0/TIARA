@@ -1,6 +1,6 @@
 ﻿# Save As...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command writes the current editor and configuration to a selected file.
 
 ## Control
 
@@ -20,13 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler selects the advanced editor layout and opens the configured Save dialog. If the user selects a path, it writes the current editor text plus numerical, math, drawing, and interface configuration through `FUN_010cd780`, then resets the editor's modified state. Cancel makes no file or editor-state change.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Save As..."] -->|OnClick| handler["FUN_014993c0"]
+flowchart TD
+    control["Choose Save As..."] --> dialog["Open Save dialog"]
+    dialog --> chosen{"Path selected?"}
+    chosen -->|No| stop["Do not write a file"]
+    chosen -->|Yes| handler["Write editor text and configuration"]
+    handler --> clean["Reset modified state"]
     handler --> call1["Delphi UnicodeString clear and finalization helper"]
     handler --> call2["FUN_00724270"]
     handler --> call3["FUN_00c0dad0"]
@@ -70,4 +74,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The serializer writes different configuration text for the recovered interface modes.

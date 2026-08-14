@@ -1,6 +1,6 @@
 ﻿# Button2
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed. The Memo1-to-Memo2 test is documented.
 
 ## Control
 
@@ -20,56 +20,76 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler clears `Memo2`, reads `Memo1.Lines.Count`, and copies the `Memo1`
+lines to `Memo2` in index order. When the loop reaches zero-based index `3`, it
+first replaces that `Memo1` line with the fixed text `VALTOZTATAS`. The copied
+fourth line therefore has this new value, and `Memo1` also keeps the change.
+
+After the copy, the handler uses the text of zero-based line `1` to select the
+second line in `Memo2`. It gets that selected text, changes the `Memo2`
+background to Delphi `clAqua` (`0x00ffff00`), changes the font color to
+`clRed` (`0x000000ff`), and appends the selected second-line text as one more
+line. It then finds and selects the original second line again.
+
+A repeated click clears and rebuilds `Memo2`; it does not accumulate more than
+one added copy of the second line. The fixed fourth-line assignment is repeated
+when that line exists. The handler does not change `TextArea1` or the drawing
+state.
+
+The source has no local guard before it reads line index `1`. If `Memo1` has
+fewer than two lines, the recovered handler does not establish a successful
+result. The underlying line-list method controls that error path. If there are
+two or three lines, the copy and selection path can run, but there is no fourth
+line to replace.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Button2"] -->|OnClick| handler["FUN_01197d10"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_004170c0"]
-    handler --> call4["FUN_005fc860"]
-    handler --> call5["VCL control Unicode text reader"]
-    handler --> call6["FUN_0064e030"]
+flowchart TD
+    control["Button2"] -->|OnClick| clearMemo["Clear Memo2"]
+    clearMemo --> fourthLine{"Does Memo1 line index 3 exist?"}
+    fourthLine -->|Yes| replaceLine["Set Memo1 line 3 to VALTOZTATAS"]
+    fourthLine -->|No| copyLines["Copy all Memo1 lines to Memo2"]
+    replaceLine --> copyLines
+    copyLines --> secondLine["Use Memo2 line index 1"]
+    secondLine --> selectLine["Select the second line"]
+    selectLine --> colors["Set background to clAqua<br/>and font to clRed"]
+    colors --> appendLine["Append a copy of the selected line"]
+    appendLine --> reselect["Select the original second line again"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001197D10__FUN_01197d10.c](../../../DecompiledSources/Tina16/functions/0000000001197D10__FUN_01197d10.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: kiiro_form.Button2.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- String search: [DecompiledSources/Tina16/functions/00000000004170C0__FUN_004170c0.c](../../../DecompiledSources/Tina16/functions/00000000004170C0__FUN_004170c0.c)
+- Recovered role: Copies and formats memo test lines.
+- Input: Current `Memo1.Lines`.
+- State changes: Can replace `Memo1` line index `3`; rebuilds, colors, and
+  selects text in `Memo2`.
+- Output: A colored `Memo2` copy with one added copy of the second line.
 - Complexity: complex
 - Distinct outgoing calls: 6
 
 ## Direct calls
 
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:004170c0` — FUN_004170c0
-- `function:005fc860` — FUN_005fc860
-- `function:0064dd90` — VCL control Unicode text reader
-- `function:0064e030` — FUN_0064e030
+- `function:00414480` and `function:00414560` - finalize temporary strings.
+- `function:004170c0` - finds a line string in the complete memo text from a
+  one-based start position.
+- `function:005fc860` - changes the memo font color when it differs.
+- `function:0064dd90` - reads the complete memo text.
+- `function:0064e030` - changes the memo background color when it differs.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Source control: `Memo1`, a `TMemo` at `(480, 56)`, size `97 x 153`.
+- Target control: `Memo2`, a `TMemo` at `(592, 56)`, size `97 x 153`.
+- Kind, modal result, checked state, and list items: Not present.
+- Image reference and extracted glyph: None.
+- Nearby same-parent label: None.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The source proves zero-based line indexes through the loop and the direct
+  `TStrings` accesses. It does not name the button purpose beyond this test.
+- The exact exception or partial state for a missing second line is not
+  recovered. This article does not invent that result.

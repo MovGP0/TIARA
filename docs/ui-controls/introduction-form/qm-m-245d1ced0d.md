@@ -1,6 +1,6 @@
 ﻿# Quine-McCluskey method
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source, UI resources, and the graph call path.
 
 ## Control
 
@@ -20,28 +20,27 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler selects the Quine-McCluskey help context. If the variable count is less than two, it shows a localized error and stops. Otherwise, it sets the shared operation flag and brackets the common Logic Design calculation with an indirect framework callback. It processes the current function, clears the recalculation flag, clears the operation flag, and shows and activates the Quine-McCluskey form. The handler has no local parse-result test before it opens the form.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Quine-McCluskey method"] -->|OnClick| handler["FUN_01b35fa0"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00416740"]
-    handler --> call3["FUN_008059a0"]
-    handler --> call4["FUN_0080d2f0"]
-    handler --> call5["FUN_00b89270"]
-    handler --> call6["FUN_00b8e520"]
+flowchart TD
+    control["Quine-McCluskey button"] --> context["Set Quine-McCluskey help context"]
+    context --> count{"At least 2 variables?"}
+    count -->|No| error["Show localized input error"]
+    count -->|Yes| calculate["Process the current logic function"]
+    calculate --> clean["Clear recalculation and operation state"]
+    clean --> show["Show and activate Quine-McCluskey form"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B35FA0__FUN_01b35fa0.c](../../../DecompiledSources/Tina16/functions/0000000001B35FA0__FUN_01b35fa0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Calculates and shows Quine-McCluskey results for the current logic function.
 - Current graph summary: Handles 1 Delphi UI event: introduction_form.gbMethod.QM_m.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The click rejects fewer than two variables. Otherwise, it calculates the function and opens the Quine-McCluskey result form.
+- Current graph evidence: `FUN_01b35fa0` tests field `+0x764`, calls `FUN_01b2d120`, clears field `+0x7c0`, and passes `PTR_DAT_02004ae8` to the annotated VCL form show-and-activate helper.
 - Complexity: complex
 - Distinct outgoing calls: 7
 
@@ -72,5 +71,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not resolve the localized error text. The click handler does not test the shared parse-error flag before it opens the result form.

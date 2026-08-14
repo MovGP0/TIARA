@@ -1,6 +1,6 @@
 ﻿# OutlineB
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and graph evidence.
 
 ## Control
 
@@ -20,23 +20,27 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The check button controls the outline pane. The handler passes the button state to `FUN_018a8dc0`. The setter shows or hides the outline control, updates the related pane, runs the preview layout callback, and synchronizes the button state. Turning the outline on hides the thumbnail pane. A state change refreshes the preview; a repeated state avoids that final refresh.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["OutlineB"] -->|OnClick| handler["FUN_018b01e0"]
-    handler --> call1["FUN_018a8dc0"]
+    control["Outline check button"] -->|OnClick| handler["OutlineBClick"]
+    handler --> apply["Set outline-pane visibility from button state"]
+    apply --> on{"Is the outline enabled?"}
+    on -->|Yes| exclusive["Hide the thumbnail pane"]
+    on -->|No| layout["Keep the thumbnail state"]
+    exclusive --> layout["Update layout and synchronized controls"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000018B01E0__FUN_018b01e0.c](../../../DecompiledSources/Tina16/functions/00000000018B01E0__FUN_018b01e0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Toggles the FastReport preview outline pane and keeps it exclusive with thumbnails.
 - Current graph summary: Handles 1 Delphi UI event: frxPreviewForm.ToolBar.OutlineB.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Shows or hides the outline pane from the check-button state, hides thumbnails when outline is enabled, synchronizes controls, and refreshes after a state change.
+- Current graph evidence: `FUN_018b01e0` reads button byte `+0x31a` from form field `+0x7d8` and calls `FUN_018a8dc0`. That callee updates controls at preview offsets `+0x500` and `+0x538`, invokes a layout callback, disables the control at `+0x540` when enabling outline, synchronizes the form button, and calls `FUN_018aba70` only when the state differs.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +65,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The DFM has no recovered caption for this button; the field name and state path identify the outline control.
+- The handler has no local error or rollback path.

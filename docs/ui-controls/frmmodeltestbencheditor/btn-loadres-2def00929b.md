@@ -1,6 +1,6 @@
-﻿# Load
+﻿# Load Test or SPICE Result
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for `TIARA-diz.6.7.1970`.
 
 ## Control
 
@@ -10,8 +10,7 @@
 | Component path | frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_results.btn_loadRes |
 | Control class | TButton |
 | Caption | Load |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | See Resource evidence below. |
 | Handler name | btn_loadResClick |
 | Handler address | 012f8b00 |
 | Graph node | `resource:dfm:frmModelTestBenchEditor/frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_results.btn_loadRes` |
@@ -20,64 +19,41 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+- Branches on the Test result, LTspice result, PSpice result, and SIMetrix result radio buttons.
+- For Test result, a valid current circuit loads the simulation-specific `.testresult.tr`, `.testresult.dc`, or `.testresult.ac` file, with `.corner` when enabled.
+- For a SPICE result, builds a PNG path with the selected simulator suffix. It shows `Spice result does not exist.` when the file is absent; otherwise it opens an image window titled for the circuit.
+- If no result type is selected, or Test result has no valid circuit item, the handler returns without a message.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Load"] -->|OnClick| handler["FUN_012f8b00"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_00414b50"]
-    handler --> call4["FUN_00416cd0"]
-    handler --> call5["FUN_00440a20"]
-    handler --> call6["FUN_00442f70"]
+flowchart TD
+    control["Load result"] --> handler["btn_loadResClick (012f8b00)"]
+    handler --> type{"Test or SPICE result?"}
+    type -->|Test| circuit{"Valid circuit?"}
+    circuit -->|Yes| test["Load simulation-specific test result"]
+    circuit -->|No| stop["Return"]
+    type -->|SPICE| exists{"Selected result PNG exists?"}
+    exists -->|No| error["Show missing-result message"]
+    exists -->|Yes| image["Open SPICE result image"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012F8B00__FUN_012f8b00.c](../../../DecompiledSources/Tina16/functions/00000000012F8B00__FUN_012f8b00.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmModelTestBenchEditor.pnlMain.pnlTestOptions.grB_results.btn_loadRes.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 14
-
-## Direct calls
-
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00414b50` — FUN_00414b50
-- `function:00416cd0` — FUN_00416cd0
-- `function:00440a20` — FUN_00440a20
-- `function:00442f70` — FUN_00442f70
-- `function:0064dd90` — VCL control Unicode text reader
-- `function:0064de00` — VCL control text setter with change suppression
-- `function:006e2530` — FUN_006e2530
-- `function:0072d730` — FUN_0072d730
-- `function:007fc180` — FUN_007fc180
-- `function:008059a0` — FUN_008059a0
-- `function:012e2da0` — FUN_012e2da0
-- `function:01301c40` — FUN_01301c40
+- Source: [FUN_012f8b00](../../../DecompiledSources/Tina16/functions/00000000012F8B00__FUN_012f8b00.c)
+- Recovered role: Load the selected circuit's test result or SPICE result image.
+- The Results group contains the four recovered radio controls next to this Load button.
+- FUN_012f8b00 reads their distinct checked states and calls FUN_01301c40 with test-result mode for Test result.
+- The SPICE branches use `-LTSpice`, `-PSpice`, or ` (SIMetrix format)-graph` before `.png`.
+- Relevant callee: [FUN_01301c40](../../../DecompiledSources/Tina16/functions/0000000001301C40__FUN_01301c40.c)
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Caption: `Load`.
+- No extracted glyph is present for this control.
+- Nearby labels, when cited above, are candidates from the same parent and are used only with handler evidence.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No runtime UI test was performed.
+- The explanation does not infer behavior from the caption, hint, or nearby labels alone.

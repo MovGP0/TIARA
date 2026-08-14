@@ -1,6 +1,6 @@
 ﻿# FPrevCurveBtn
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The control selects the following curve-list entry for the selected cursor.
 
 ## Control
 
@@ -20,20 +20,29 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`PrevCurveBtnClick` sends command `0x53B` with direction value `1`. In local mode, the command acts on cursor A when the A selector is down and on cursor B otherwise. The cursor helper finds the selected cursor's current curve, adds one to its curve-list index, and wraps from the last entry to index `0`.
+
+If the plot mode is not eligible, the selected cursor has no curve, or the current curve is not in the list, the curve does not change. After a successful selection, the helper preserves the cursor position, attaches the cursor to the replacement curve, updates cursor state, and refreshes the cursor readouts. In remote mode, the command is forwarded instead of applied locally.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["FPrevCurveBtn"] -->|OnClick| handler["FUN_01b59c40"]
-    handler --> call1["FUN_010f6d40"]
+flowchart TD
+    control["Up-arrow glyph<br/>FPrevCurveBtn"] -->|OnClick| handler["FUN_01b59c40<br/>PrevCurveBtnClick"]
+    handler --> command["FUN_010f6d40<br/>command 0x53B, direction 1"]
+    command --> route["FUN_010f6d70<br/>local or remote route"]
+    route -->|Remote| remote["Forward curve command"]
+    route -->|Local| find["FUN_010e7ef0<br/>find selected cursor curve"]
+    find --> eligible{"Eligible curve found?"}
+    eligible -->|No| unchanged["Keep current curve"]
+    eligible -->|Yes| next["Select index plus one;<br/>wrap to first entry"]
+    next --> update["Attach cursor and refresh readouts"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B59C40__FUN_01b59c40.c](../../../DecompiledSources/Tina16/functions/0000000001B59C40__FUN_01b59c40.c)
-- Recovered role: Not present in the recovered resource.
+- Review role: Move the selected cursor to the next curve-list index with wraparound.
 - Current graph summary: Handles 1 Delphi UI event: XYRecorderWin.CursorBox.FPrevCurveBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +70,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The Delphi handler name says `Prev`, while the recovered direction-one path adds one to the list index. This article states the proven index operation and does not infer the list's visual sort order.
+- A live UI test was not performed. The embedded up-arrow glyph supports navigation direction but does not establish the index operation by itself.

@@ -1,6 +1,6 @@
 ﻿# Dotted
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command selects dotted border mode.
 
 ## Control
 
@@ -20,14 +20,14 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler clears the checks for **None** and **Solid**, checks **Dotted**, and writes border mode `2` to form field `+0xbd8`. It does not directly repaint the editor. Repeated selection leaves the same exclusive state.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Dotted"] -->|OnClick| handler["FUN_0149a9c0"]
-    handler --> call1["FUN_007e2d20"]
+flowchart TD
+    click["Choose Dotted"] --> checks["Clear None and Solid; check Dotted"]
+    checks --> mode["Set border mode to 2"]
 ```
 
 ## Handler evidence
@@ -62,4 +62,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The original Delphi enum name for border value `2` is not recovered.

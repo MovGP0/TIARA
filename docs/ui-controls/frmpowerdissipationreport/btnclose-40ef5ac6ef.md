@@ -1,6 +1,6 @@
 ﻿# btnClose
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,29 +20,37 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`TfrmPowerDissipationReport.btnCloseClick` calls the shared VCL `TCustomForm.Close` routine. It does not save or export the report before it requests closure.
+
+The Power Dissipation Report is shown as a modeless form. The shared close routine runs the normal close-query and close-action pipeline. If closure is permitted, this form's [`FormClose`](../../../DecompiledSources/Tina16/functions/0000000001335860__FUN_01335860.c) handler sets the action to `2`, the VCL `caFree` action. The VCL therefore releases the form instead of only hiding it.
+
+During destruction, [`FormDestroy`](../../../DecompiledSources/Tina16/functions/0000000001335BB0__FUN_01335bb0.c) clears the form-owned component list, releases it, clears the sort-state array, and sets the global report-form reference to null. A later report request can create a new form.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["btnClose"] -->|OnClick| handler["FUN_01336960"]
-    handler --> call1["FUN_00805200"]
+flowchart TD
+    close["Choose the built-in Close button"] --> handler["btnCloseClick at 01336960"]
+    handler --> pipeline["Run TCustomForm.Close"]
+    pipeline --> query{"Close query permits closure?"}
+    query -->|No| remain["Keep the report open"]
+    query -->|Yes| action["FormClose selects caFree"]
+    action --> destroy["Release form data and clear global form reference"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001336960__FUN_01336960.c](../../../DecompiledSources/Tina16/functions/0000000001336960__FUN_01336960.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Close and release the modeless Power Dissipation Report form.
 - Current graph summary: Handles 1 Delphi UI event: frmPowerDissipationReport.pnlButtons.btnClose.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The checked-in graph does not yet contain the annotation prepared by this review.
+- Current graph evidence: The handler consists of one call to the shared VCL close pipeline. The form's OnClose handler selects `caFree`, and its destroy handler clears the report form's owned state and global reference.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
 ## Direct calls
 
-- `function:00805200` — FUN_00805200
+- [`function:00805200`](../../../DecompiledSources/Tina16/functions/0000000000805200__FUN_00805200.c) — runs the VCL close-query and close-action pipeline.
 
 ## Resource evidence
 
@@ -61,5 +69,7 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The form has no recovered `OnCloseQuery` event binding. The shared VCL routine still honors its virtual close-query result; a rejected query keeps the report open.
+- Close does not export, commit, or copy report data. Unsaved sort, checkbox, and grid display state is discarded when the form is released.
+- The handler has no local message, retry, or exception branch. VCL application-level handling remains the error boundary.
+- The `bkClose` resource kind supports the visible intent. No separate glyph, hint, or nearby label supplies behavior evidence.

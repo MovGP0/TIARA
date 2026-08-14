@@ -1,6 +1,6 @@
 ﻿# Open...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command confirms replacement, opens a design-tool file, and loads its text and settings.
 
 ## Control
 
@@ -20,13 +20,19 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler selects the advanced editor layout and asks for new-session confirmation. If accepted, it opens the configured file dialog. File-dialog acceptance clears the main editor, reads the selected file, parses its configuration into the runtime settings, loads the remaining program text, and resets the editor's modified state. Declining either dialog leaves the current document unchanged.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Open..."] -->|OnClick| handler["FUN_01499150"]
+flowchart TD
+    control["Choose Open..."] --> confirm{"Accept new-session confirmation?"}
+    confirm -->|No| keep["Keep current document"]
+    confirm -->|Yes| dialog["Open file dialog"]
+    dialog --> chosen{"File selected?"}
+    chosen -->|No| keep
+    chosen -->|Yes| handler["Load program text and configuration"]
+    handler --> clean["Reset modified state"]
     handler --> call1["Nil-safe Delphi object destruction helper"]
     handler --> call2["Delphi UnicodeString clear and finalization helper"]
     handler --> call3["Delphi UnicodeString array finalization helper"]
@@ -78,4 +84,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Parsing failures are handled by the shared file parser; this handler has no transaction rollback.

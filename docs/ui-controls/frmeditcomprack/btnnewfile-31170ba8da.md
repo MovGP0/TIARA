@@ -1,6 +1,6 @@
 ﻿# New file
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered handler and call path.
 
 ## Control
 
@@ -20,23 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler shows the new-file panel. The panel contains the file-name field, the **Private** and **Shared** location choices, the create button, and the close button. This toolbar button and the **New file** menu item use the same handler and have the same effect.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["New file"] -->|OnClick| handler["FUN_01b9a3e0"]
-    handler --> call1["FUN_0064dbe0"]
+    control["Click New file button"] --> handler["Set the new-file panel to visible"]
+    handler --> ready["Wait for a file name and location choice"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B9A3E0__FUN_01b9a3e0.c](../../../DecompiledSources/Tina16/functions/0000000001B9A3E0__FUN_01b9a3e0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Opens the Component Bar new-file panel.
 - Current graph summary: Handles 2 Delphi UI events: frmEditCompRack.pnlToolBar.btnNewFile.OnClick, frmEditCompRack.pmnuIniFile.pmnuNewFile.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Sets the panel at form offset `0x810` to visible.
+- Current graph evidence: The handler calls the recovered VCL visibility setter `FUN_0064dbe0` with the object at `param_1 + 0x810` and value 1. Form creation uses that same object with value 0 to hide it initially.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +61,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- This click does not create a file. The create button performs that operation.

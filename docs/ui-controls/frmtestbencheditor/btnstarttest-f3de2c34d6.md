@@ -1,75 +1,40 @@
 ﻿# Start test!
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and UI evidence.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
-| Form | frmTestBenchEditor |
-| Component path | frmTestBenchEditor.pnlMain.pnlTestOptions.btnStartTest |
-| Control class | TButton |
-| Caption | Start test! |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
-| Handler name | btnStartTestClick |
-| Handler address | 012c6a50 |
-| Graph node | `resource:dfm:frmTestBenchEditor/frmTestBenchEditor.pnlMain.pnlTestOptions.btnStartTest` |
-| Handler node | `function:012c6a50` |
-| Graph layer | UI |
+| Component path | `frmTestBenchEditor.pnlMain.pnlTestOptions.btnStartTest` |
+| Control class | `TButton` |
+| Handler | `btnStartTestClick` at `012c6a50` |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler starts only when the test-case tree contains at least one item. It applies the current form options to the active tree node, saves the configuration to its current path or prompts for a name when required, invokes a recovered form helper, and creates and starts the test runner with the saved configuration path and a timestamp identifier. The button also has modal result 1. If the tree is empty, the handler does nothing.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Start test!"] -->|OnClick| handler["FUN_012c6a50"]
-    handler --> call1["FUN_006decb0"]
-    handler --> call2["FUN_006e2530"]
-    handler --> call3["FUN_00805990"]
-    handler --> call4["FUN_012c4640"]
-    handler --> call5["FUN_012c7ae0"]
-    handler --> call6["FUN_012c8ae0"]
+flowchart TD
+    control["Start test button"] --> cases{"Does the tree contain a test case?"}
+    cases -->|No| noop["Do nothing"]
+    cases -->|Yes| apply["Apply current options to the active node"]
+    apply --> save["Save the test-bench configuration"]
+    save --> runner["Create the timestamped test runner"]
+    runner --> start["Start the test run"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000012C6A50__FUN_012c6a50.c](../../../DecompiledSources/Tina16/functions/00000000012C6A50__FUN_012c6a50.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: frmTestBenchEditor.pnlMain.pnlTestOptions.btnStartTest.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 6
-
-## Direct calls
-
-- `function:006decb0` — FUN_006decb0
-- `function:006e2530` — FUN_006e2530
-- `function:00805990` — FUN_00805990
-- `function:012c4640` — FUN_012c4640
-- `function:012c7ae0` — FUN_012c7ae0
-- `function:012c8ae0` — FUN_012c8ae0
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: 1
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- [Recovered btnStartTestClick source](../../../DecompiledSources/Tina16/functions/00000000012C6A50__FUN_012c6a50.c)
+- [Recovered option-copy helper](../../../DecompiledSources/Tina16/functions/00000000012C7AE0__FUN_012c7ae0.c)
+- [Recovered XML configuration writer](../../../DecompiledSources/Tina16/functions/00000000012C8AE0__FUN_012c8ae0.c)
+- [Recovered test-runner start helper](../../../DecompiledSources/Tina16/functions/00000000012C4640__FUN_012c4640.c)
+- The DFM resource supplies the control identity, caption or state, and event binding.
+- No extracted glyph is present for this control.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact purpose of the intermediate form helper at `00805990` is not recovered. The handler also does not check whether a prompted save was canceled before it continues to the runner call.

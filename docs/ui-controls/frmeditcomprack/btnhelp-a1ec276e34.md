@@ -1,6 +1,6 @@
 ﻿# &Help
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered handler and help-file resolver.
 
 ## Control
 
@@ -20,25 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler builds the path to `TINA.CHM` in the application help directory. It then selects an existing language-specific file variant when one is available; otherwise, it keeps the base file path. Finally, it sends Component Bar help context `0x47C` to the application's help service.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["&Help"] -->|OnClick| handler["FUN_01b99790"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00416cd0"]
-    handler --> call3["FUN_01b1def0"]
+    control["Click Help"] --> path["Build the TINA.CHM path"]
+    path --> locale["Use an existing language-specific variant when available"]
+    locale --> topic["Open help context 0x47C"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B99790__FUN_01b99790.c](../../../DecompiledSources/Tina16/functions/0000000001B99790__FUN_01b99790.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Opens the Component Bar topic in the TINA help file.
 - Current graph summary: Handles 1 Delphi UI event: frmEditCompRack.pnlControls.pnlButtons.btnHelp.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Resolves `TINA.CHM` through the language-specific help-file helper and dispatches help context `0x47C`.
+- Current graph evidence: The handler concatenates the application help directory with recovered literal `TINA.CHM`, calls annotated helper `FUN_01b1def0`, and invokes the global help service with constant `0x47c` and the resolved path. Form creation also assigns help context `0x47c` to this form.
 - Complexity: complex
 - Distinct outgoing calls: 3
 
@@ -65,5 +64,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact topic title is not present in the recovered handler.

@@ -1,6 +1,6 @@
 ﻿# On
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The control enables or disables the selected recorder channel.
 
 ## Control
 
@@ -20,21 +20,29 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`ChannelOnBtnClick` reads the selected row from `FChannelBox`. If no row is selected, it returns without a state change. Otherwise, it sends the `On` button state to the acquisition backend for that channel and compares the requested state with the channel object's active byte.
+
+When a change to off is required, the handler clears the active byte, removes the channel's primary and secondary plot entries, and redraws the plot. When a change to on is required, it calls the form's channel-attachment virtual method to add and refresh the channel. If the channel already has the requested state, no plot operation is repeated.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["On"] -->|OnClick| handler["FUN_01b58560"]
-    handler --> call1["FUN_010e8e30"]
-    handler --> call2["FUN_010f6740"]
+flowchart TD
+    control["On<br/>FChannelOnBtn"] -->|OnClick| handler["FUN_01b58560<br/>ChannelOnBtnClick"]
+    handler --> selected{"Channel row selected?"}
+    selected -->|No| unchanged["Return without a state change"]
+    selected -->|Yes| backend["Send requested state<br/>to acquisition backend"]
+    backend --> differs{"State differs?"}
+    differs -->|No| done["Keep current plot state"]
+    differs -->|Enable| attach["Attach and refresh channel plot"]
+    differs -->|Disable| remove["FUN_010f6740<br/>remove channel plot entries"]
+    remove --> redraw["FUN_010e8e30<br/>redraw plot"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B58560__FUN_01b58560.c](../../../DecompiledSources/Tina16/functions/0000000001B58560__FUN_01b58560.c)
-- Recovered role: Not present in the recovered resource.
+- Review role: Apply the On state to the selected recorder channel and its plot entries.
 - Current graph summary: Handles 1 Delphi UI event: XYRecorderWin.YChannelGroupBox.FChannelOnBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -64,5 +72,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The channel-attachment operation is an indirect form virtual call at slot `+0x550`; its original Delphi name is not recovered. The paired detach helper and channel active byte establish its role.
+- A live UI or hardware test was not performed. The handler changes runtime channel and plot state only.

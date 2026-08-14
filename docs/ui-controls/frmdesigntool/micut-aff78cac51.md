@@ -1,6 +1,6 @@
 ﻿# Cut
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The command expands the editor area and cuts its current selection.
 
 ## Control
 
@@ -20,13 +20,16 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler selects the advanced editor layout, then runs the SynEdit cut command. A read-only editor or empty selection is a no-op. Otherwise the command copies text and selection-mode data to the clipboard and deletes the selection inside one Undo group.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Cut"] -->|OnClick| handler["FUN_01498fb0"]
+flowchart TD
+    control["Choose Cut"] --> expand["Select advanced editor layout"]
+    expand --> allowed{"Editor writable and selection non-empty?"}
+    allowed -->|No| stop["Make no editor change"]
+    allowed -->|Yes| handler["Copy selection and delete it in one Undo group"]
     handler --> call1["FUN_00bf1e50"]
     handler --> call2["FUN_0149a5d0"]
 ```
@@ -64,4 +67,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Clipboard publication occurs before deletion in the recovered SynEdit helper.

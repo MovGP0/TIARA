@@ -1,17 +1,17 @@
-﻿# &Delete
+﻿# Delete mapping
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed: the handler removes the selected node-mapping row and compacts the remaining payloads.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
 | Form | PcbForm |
+| Form caption | PCB information for SPICE macro components |
 | Component path | PcbForm.Panel1.BtnRemove |
 | Control class | TBitBtn |
 | Caption | &Delete |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | Not present |
 | Handler name | BtnRemoveClick |
 | Handler address | 00ed2090 |
 | Graph node | `resource:dfm:PcbForm/PcbForm.Panel1.BtnRemove` |
@@ -20,60 +20,36 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+1. The handler requires a selected node-map row. It shifts later mapping payloads upward while preserving each destination row's ordinal prefix, then deletes the final duplicate row.
+2. It keeps the same selection index when another row occupies it; otherwise, it selects the preceding row. It persists the definition through `FUN_00ed3300` and refreshes controls and the 3D preview.
+3. A missing selection is a no-op.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Delete"] -->|OnClick| handler["FUN_00ed2090"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00416ad0"]
-    handler --> call3["FUN_00416dc0"]
-    handler --> call4["FUN_00416e20"]
-    handler --> call5["FUN_004170c0"]
-    handler --> call6["FUN_00ea9ca0"]
+flowchart TD
+    control["PcbForm.Panel1.BtnRemove"] -->|OnClick| handler["FUN_00ed2090"]
+    handler --> decision{"A node-mapping row is selected?"}
+    decision -->|Yes| action["Shift later payloads up and delete the last row"]
+    decision -->|No| noop["Leave the node map unchanged"]
+    action --> outcome["Persist the definition and refresh the UI"]
+    noop --> outcome
 ```
 
-## Handler evidence
+## Handler and call-path evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000000ED2090__FUN_00ed2090.c](../../../DecompiledSources/Tina16/functions/0000000000ED2090__FUN_00ed2090.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: PcbForm.Panel1.BtnRemove.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 8
+- [`FUN_00ed2090`](../../../DecompiledSources/Tina16/functions/0000000000ED2090__FUN_00ed2090.c) — Remove a PCB node mapping.
+- [`FUN_00ed3300`](../../../DecompiledSources/Tina16/functions/0000000000ED3300__FUN_00ed3300.c) — persist the selected PCB definition.
+- [`FUN_00ecbca0`](../../../DecompiledSources/Tina16/functions/0000000000ECBCA0__FUN_00ecbca0.c) — refresh PCB form control availability.
 
-## Direct calls
+## Resource and glyph evidence
 
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00416ad0` — FUN_00416ad0
-- `function:00416dc0` — FUN_00416dc0
-- `function:00416e20` — FUN_00416e20
-- `function:004170c0` — FUN_004170c0
-- `function:00ea9ca0` — FUN_00ea9ca0
-- `function:00ecbca0` — FUN_00ecbca0
-- `function:00ed3300` — FUN_00ed3300
+- Recovered form resource: [`ui-evidence.json`](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json).
 
-## Resource evidence
+## Inputs, outputs, and limits
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
+- Input: an OnClick event from `PcbForm.Panel1.BtnRemove`, plus the current form selections and state described above.
+- State change: Removes the selected node-mapping payload, compacts later rows, selects a surviving row, persists the definition, and refreshes the UI.
+- Error or no-op behavior: The decision branches above identify the recovered validation, cancel, confirmation, boundary, or no-op path.
+- Analysis limit: The row-prefix and payload delimiters have no recovered Delphi names.
 
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Part: at distance 93.
-- Rank 2: Swapped nodes at distance 99.
-- Rank 3: Node list: at distance 190.
-
-## Analysis limits
-
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.

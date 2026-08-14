@@ -1,6 +1,6 @@
 ﻿# FNextCurveBtn
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered next-curve command descriptor, wrap route, and local-or-remote dispatch reviewed.
 
 ## Control
 
@@ -20,14 +20,19 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler builds shared cursor-curve command `0x53B` with direction field 0. In local mode, the dispatcher changes the curve assigned to the currently selected cursor through the descending-index route: current index minus one, with wrap to the last curve. It then refreshes cursor readouts. In remote mode, it forwards the command instead.
+
+The extracted glyph points upward. The recovered collection order explains why the internal descending-index route is presented as **Next**.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["FNextCurveBtn"] -->|OnClick| handler["FUN_012b16b0"]
-    handler --> call1["FUN_010f6d10"]
+flowchart TD
+    control["Click Next curve"] --> request["Build command 0x53B with direction 0"]
+    request --> remote{"Remote mode?"}
+    remote -->|Yes| forward["Forward the command"]
+    remote -->|No| select["Select current index minus one, wrapping to the last curve"]
+    select --> refresh["Refresh cursor readouts"]
 ```
 
 ## Handler evidence
@@ -62,4 +67,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The original Delphi enum name for direction 0 is not recovered.

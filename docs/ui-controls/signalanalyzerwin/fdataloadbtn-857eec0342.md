@@ -1,6 +1,6 @@
 ﻿# FDataLoadBtn
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed: the click dispatches the form's data-load operation.
 
 ## Control
 
@@ -20,20 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler calls `FUN_010f7e80`. That wrapper invokes virtual form slot `+0x558`, which is the operation paired with the Data Load control.
+
+The plot-and-left-arrow glyph and the paired save path support the load direction. The recovered graph does not resolve the concrete override, so the file selection, data format, and error behavior remain unknown.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["FDataLoadBtn"] -->|OnClick| handler["FUN_0138cc00"]
-    handler --> call1["FUN_010f7e80"]
+    control["Data Load button"] -->|OnClick| handler["DataLoadBtnClick"]
+    handler --> wrapper["FUN_010f7e80"]
+    wrapper --> load["Form virtual data-load operation +0x558"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/000000000138CC00__FUN_0138cc00.c](../../../DecompiledSources/Tina16/functions/000000000138CC00__FUN_0138cc00.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Dispatches the SignalAnalyzerWin virtual data-load operation.
 - Current graph summary: Handles 1 Delphi UI event: SignalAnalyzerWin.DataBox.FDataLoadBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +64,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The concrete implementation of virtual slot `+0x558` is not resolved in the recovered graph.
+- The source does not prove a file dialog, supported format, destination, or load error behavior.

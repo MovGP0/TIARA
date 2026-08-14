@@ -1,6 +1,6 @@
 ﻿# Run
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,23 +20,35 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_0151f270` starts only when active-operation byte `+0x7ed` is clear. It prepares the recovered command record and calls `FUN_0151f2b0`.
+
+The start core requires both a channel list and a trigger-pattern list. Missing input resets the Run/Stop button state and shows a recovered application message. It also returns when an operation is already active, command validation is rejected, or the circuit check fails. A valid path sets the active and stop-request bytes, builds the pattern matrix from the current groups, configures the analyzer engine, starts acquisition through engine slot `+0x170`, creates or updates the buffered curve at `+0x880`, rebuilds channel indexes and routing, maps the engine result to form status, and restores the final Run/Stop state.
+
+The operation can pump the UI while the engine call is active, which gives the Stop handler a path to set the stop-request state. The recovered start path has no transaction or rollback. An exception after partial setup can leave earlier runtime changes.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Run"] -->|OnClick| handler["FUN_0151f270"]
-    handler --> call1["FUN_0151f2b0"]
+flowchart TD
+    Click["Click Run"] --> Handler["FUN_0151f270"]
+    Handler --> Idle{"Active byte +0x7ed clear?"}
+    Idle -->|No| NoOp["Return"]
+    Idle -->|Yes| Inputs{"Channels and patterns available?"}
+    Inputs -->|No| Message["Reset buttons and show message"]
+    Inputs -->|Yes| Validate{"Command and circuit valid?"}
+    Validate -->|No| Abort["Return without acquisition"]
+    Validate -->|Yes| Configure["Build patterns and configure engine"]
+    Configure --> Acquire["Run engine acquisition +0x170"]
+    Acquire --> Result["Update curve, channels, routing, and status"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/000000000151F270__FUN_0151f270.c](../../../DecompiledSources/Tina16/functions/000000000151F270__FUN_0151f270.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Start a Logic Analyzer acquisition with the current channel and trigger configuration.
 - Current graph summary: Handles 1 Delphi UI event: LogicAnalyzerWin.MeasurementGroupBox.FStartBtn.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The wrapper enters the guarded form-specific acquisition core.
+- Current graph evidence: `FUN_0151f2b0`, pattern preparation, engine dispatch, curve creation, and channel-refresh calls establish the start sequence.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +73,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Several engine, validation, and UI calls are indirect. The article states only effects established by their surrounding data flow.
+- The exact recovered message text and every engine status value are not decoded here.

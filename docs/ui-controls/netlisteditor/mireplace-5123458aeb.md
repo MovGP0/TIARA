@@ -1,6 +1,6 @@
 ﻿# &Replace...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The one-call handler and recovered dialog execution slot establish the action.
 
 ## Control
 
@@ -20,19 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01532580` executes the dialog object at form offset `+0x8c0` through its virtual method at VMT offset `+0xa8`. The neighboring Find and Open handlers use the same slot for dialog execution.
+
+The wrapper ignores the dialog result. Search and replacement behavior, validation, and messages are implemented by the dialog's event handlers, not this click wrapper.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Replace..."] -->|OnClick| handler["FUN_01532580"]
+flowchart TD
+    control["Click Replace"] --> handler["FUN_01532580"]
+    handler --> dialog["Execute Replace dialog"]
+    dialog --> done["Return after dialog closes"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001532580__FUN_01532580.c](../../../DecompiledSources/Tina16/functions/0000000001532580__FUN_01532580.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Opens the Replace dialog.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MEdit.MIReplace.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -60,5 +64,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The Replace dialog's internal event flow is outside this handler.
+- The wrapper does not expose a replacement count or success result.

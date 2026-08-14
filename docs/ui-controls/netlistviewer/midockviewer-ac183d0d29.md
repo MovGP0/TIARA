@@ -1,6 +1,6 @@
 ﻿# Dock Netlist Viewer
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the recovered handler, synchronized menu state, and host docking path.
 
 ## Control
 
@@ -20,21 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The menu item toggles its checked state and applies the same state to the host application's matching Netlist Viewer menu item. It then calls the host docking helper with that new state. The host helper attaches or detaches the viewer, updates related host controls, and preserves or restores the floating bounds as needed. Repeating the click reverses the state; there is no local error or rollback branch.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Dock Netlist Viewer"] -->|OnClick| handler["FUN_014b5780"]
-    handler --> call1["FUN_007e2d20"]
-    handler --> call2["FUN_01c8a4d0"]
+flowchart TD
+    control["Choose Dock Netlist Viewer"] --> handler["FUN_014b5780"]
+    handler --> toggle["Invert local checked state"]
+    toggle --> sync["Copy state to host menu item"]
+    sync --> dock{"New checked state requests docking?"}
+    dock -->|Yes| attach["Attach viewer to host layout"]
+    dock -->|No| detach["Restore floating viewer state"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000014B5780__FUN_014b5780.c](../../../DecompiledSources/Tina16/functions/00000000014B5780__FUN_014b5780.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Toggle Netlist Viewer docking and synchronize host menu state.
 - Current graph summary: Handles 1 Delphi UI event: NetlistViewer.MainMenu.MFile.MIDockViewer.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -63,5 +66,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The host docking routine contains additional layout state whose original Delphi field names are not recovered.
+- The local handler does not persist the checked value directly.

@@ -1,6 +1,6 @@
 ﻿# Print Pre&view
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,22 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The recovered handler returns immediately without opening a preview or changing state.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Print Pre&view"] -->|OnClick| handler["FUN_01c87b20"]
+flowchart TD
+    control["Print Pre&view"] -->|"OnClick"| handler["mnPrintPreviewClick (01c87b20)"]
+    handler --> return["Return without state change"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C87B20__FUN_01c87b20.c](../../../DecompiledSources/Tina16/functions/0000000001C87B20__FUN_01c87b20.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: No-op Print Preview handler.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.mnPrintPreview.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The recovered handler returns immediately without opening a preview or changing state.
+- Current graph evidence: FUN_01c87b20 contains only a return and has zero outgoing graph calls.
 - Complexity: simple
 - Distinct outgoing calls: 0
 
@@ -60,5 +61,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The resource does not explain why the command is inactive.
+

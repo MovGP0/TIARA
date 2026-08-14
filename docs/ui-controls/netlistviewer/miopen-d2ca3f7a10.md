@@ -1,6 +1,6 @@
 ﻿# &Open...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the recovered handler, unsaved-change guard, and file-dialog path.
 
 ## Control
 
@@ -20,25 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The menu item first uses the same unsaved-change guard as New. If the guard permits the operation, it opens `TOpenDialog`. Canceling either prompt or file dialog preserves the current document. After a file is selected, the handler loads it into `Memo`, marks the loaded document modified, resets the associated netlist state, clears the recovered status text, and clears the message list. File-read errors follow the normal Delphi exception path.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Open..."] -->|OnClick| handler["FUN_014b52c0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["VCL control text setter with change suppression"]
-    handler --> call3["FUN_00724270"]
-    handler --> call4["FUN_00c0dad0"]
-    handler --> call5["FUN_014b4510"]
-    handler --> call6["FUN_019953b0"]
+flowchart TD
+    control["Choose Open"] --> guard{"Unsaved-change guard permits open?"}
+    guard -->|No| stop["Keep current document"]
+    guard -->|Yes| dialog{"OpenDialog returns a file?"}
+    dialog -->|No| stop
+    dialog -->|Yes| load["Load file into Memo and mark it modified"]
+    load --> reset["Reset netlist state, status text, and messages"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000014B52C0__FUN_014b52c0.c](../../../DecompiledSources/Tina16/functions/00000000014B52C0__FUN_014b52c0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Load a netlist file after the unsaved-change guard.
 - Current graph summary: Handles 1 Delphi UI event: NetlistViewer.MainMenu.MFile.MIOpen.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -71,5 +70,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The handler has no local file-read recovery branch.
+- The loaded document is explicitly marked modified in the recovered source.

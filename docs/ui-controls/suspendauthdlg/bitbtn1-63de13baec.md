@@ -1,6 +1,6 @@
 ﻿# BitBtn1
 
-> Analysis status: Pending individual source review.
+> Analysis status: Blocked by an unresolved event-handler address.
 
 ## Control
 
@@ -20,29 +20,36 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The recovered DFM stream binds `SuspendAuthDlg.BitBtn1.OnClick` to the method name `BitBtn1Click`. The checked-in extractor could not resolve a code address from this event binding or from the `TSuspendAuthDlg` published-method table. The graph therefore contains an unresolved handler concept, not a recovered function.
+
+The form caption is `Upload license to the Internet`. The form also contains the `OrderNumEB` editor and a warning that the program cannot be used after pressing OK until the license is downloaded again. The button has the built-in kind `bkOK`. These resources establish the dialog context and the button's OK presentation. They do not prove that the handler reads the order number, validates it, contacts a server, uploads or removes a license, closes the dialog, or reports an error.
+
+No recovered source establishes the input checks, network endpoint, state change, success result, failure result, or no-op behavior of `BitBtn1Click`.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["BitBtn1"] -->|OnClick| handler["BitBtn1Click"]
-    handler -.-> unresolved["Recovered address not established"]
+flowchart TD
+    control["BitBtn1<br/>DFM Kind = bkOK"] -->|"OnClick"| binding["Handler name: BitBtn1Click"]
+    binding --> address{"Code address resolved?"}
+    address -->|"No"| gap["No recovered function source or callee path"]
+    gap --> unknown["License and network effects remain unknown"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/resources/dfm/ui-evidence.json](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json)
-- Recovered role: Not present in the recovered resource.
+- Extractor: [analysis/undelphi/TiaraUiEvidence.rs](../../../analysis/undelphi/TiaraUiEvidence.rs)
+- Recovered role: Unknown because no handler function was resolved.
 - Current graph summary: Unresolved Delphi event handler TSuspendAuthDlg.BitBtn1Click, referenced by 1 UI event.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Unknown.
+- Current graph evidence: The trigger edge preserves the DFM method name, but its handler address is null.
 - Complexity: simple
-- Distinct outgoing calls: Not present in the recovered resource.
+- Distinct outgoing calls: None. The handler node is an unresolved concept.
 
 ## Direct calls
 
-- No direct call edge is present in the recovered graph.
+- No direct call edge is present. A call tree cannot start without a recovered handler address.
 
 ## Resource evidence
 
@@ -62,5 +69,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The DFM provides the `BitBtn1Click` name but no code address.
+- RTTI and VMT resolution did not find a published method address for this event. The `FormCreate` and `FormHelp` events on the same `TSuspendAuthDlg` class also remain unresolved.
+- The graph has no function node, source file, outgoing call, extracted glyph, network endpoint, or function annotation for this binding.
+- A schema-complete function annotation cannot be created without an address and evidence-backed scalar fields.
+- A later recovery must identify the handler address and inspect its source and relevant callees before it can describe application behavior.

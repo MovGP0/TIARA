@@ -1,6 +1,6 @@
 ﻿# &No template
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the recovered handler, template-mode peer, OK consumer, and form resources.
 
 ## Control
 
@@ -20,22 +20,29 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler disables the template browse button and the template-path label. It does not clear the stored template path, change the label text, or change the board width and height values.
+
+The later OK handler checks the **Use board template** radio state. With **No template** selected, it does not add the stored template path to the new-project launch arguments. It still adds the current board dimensions and units.
+
+Repeated clicks only apply the same disabled states again.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&No template"] -->|OnClick| handler["FUN_01bb2d20"]
+flowchart TD
+    control["No template"] -->|OnClick| handler["FUN_01bb2d20"]
+    handler --> disable["Disable template browse<br/>and the template-path label"]
+    disable --> retain["Keep the stored path and dimensions"]
+    retain -.-> accept["OK omits the template path<br/>but keeps dimensions and units"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001BB2D20__FUN_01bb2d20.c](../../../DecompiledSources/Tina16/functions/0000000001BB2D20__FUN_01bb2d20.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Disable template-file input for manual PCB board dimensions.
 - Current graph summary: Handles 1 Delphi UI event: PCBWizard.pnlTemplate.rbBoardSize.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Disables the template browse control and template-path label without changing their stored data or the board dimensions.
+- Current graph evidence: `FUN_01bb2d20` calls the enabled-state setter with false for form fields `0x718` and `0x710`. The form resource identifies the corresponding controls as `sbBrowseTemplate` and `lblTemplate`. `FUN_01bb2d60` reads the separate radio field at `0x708` before it considers the stored template path and always includes the current dimensions in new-project arguments.
 - Complexity: simple
 - Distinct outgoing calls: 0
 
@@ -62,5 +69,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered calls are virtual enabled-state operations, so the graph has no direct call edge for them.
+- The handler does not validate or reset the board dimensions.

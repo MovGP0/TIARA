@@ -1,6 +1,6 @@
 ﻿# &Save
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and UI evidence.
 
 ## Control
 
@@ -20,24 +20,34 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler checks the file-name field at form offset `0x738`. If this field is empty, it runs the same Save As handler that the **Save As...** menu item uses. If the field already contains a name, it writes the current grid to that file without opening the dialog again.
+
+The write helper creates a text output, writes the heading `Nodes` and `Values`, and then loops through all current grid rows. It reads columns 0 and 1, formats both fields, writes one line for each row, and closes the output. Runtime I/O checks follow file setup, open, header output, each row, and close. The helper does not catch an I/O error locally.
+
+If Save forwards to Save As and the user cancels the file dialog, no file is written and the stored name stays unchanged.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Save"] -->|OnClick| handler["FUN_012b8880"]
-    handler --> call1["FUN_012b5de0"]
-    handler --> call2["FUN_012b88b0"]
+flowchart TD
+    saveClick["Click Save"] --> saveHandler["PMISaveClick at 012b8880"]
+    saveHandler --> hasPath{"Is a file name stored at offset 0x738?"}
+    hasPath -->|No| saveAsHandler["Run PMISaveAsClick"]
+    saveAsHandler --> dialogAccepted{"Did the user accept the file dialog?"}
+    dialogAccepted -->|No| noWrite["Keep the old state and do not write"]
+    dialogAccepted -->|Yes| storePath["Store the selected file name"]
+    hasPath -->|Yes| writeGrid["Write the current grid to the stored file"]
+    storePath --> writeGrid
+    writeGrid --> ioCheck["Check I/O status and close the output"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000012B8880__FUN_012b8880.c](../../../DecompiledSources/Tina16/functions/00000000012B8880__FUN_012b8880.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Save the displayed node and value grid to the stored file, or request a file name first.
 - Current graph summary: Handles 1 Delphi UI event: TinaAskVoltagesDlg.PopupMenu.PMISave.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Tests the stored file name at `0x738`. A missing name forwards to `FUN_012b88b0`. An existing name goes to `FUN_012b5de0`, which writes the two grid columns as text.
+- Current graph evidence: `FUN_012b8880` has the two file-name branches. `FUN_012b5de0` opens the supplied name, writes the `Nodes` and `Values` header, loops through columns 0 and 1 for every grid row, and closes the output with I/O checks.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -63,5 +73,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered file-dialog resource does not expose its displayed filter text.
+- The write path uses runtime I/O checks. The recovered helper does not catch or replace their errors.

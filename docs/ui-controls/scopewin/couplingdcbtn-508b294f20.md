@@ -1,6 +1,6 @@
 ﻿# DC
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered exclusive coupling selection and backend selector call reviewed.
 
 ## Control
 
@@ -20,13 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The three coupling buttons share speed-button group 10, so selecting **DC** releases the other coupling button. The handler sends fixed selector value 1 to virtual slot `+0x140` on the scope backend at form field `+0xdb8`.
+
+The code contains no validation, redraw call, or local error branch. The resource caption maps this control to DC. The original enum name and the backend implementation of selector 1 are not recovered.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["DC"] -->|OnClick| handler["FUN_012af6c0"]
+flowchart TD
+    control["Click DC"] --> group["Select DC in coupling group 10"]
+    group --> backend["Send coupling selector 1 to the scope backend"]
+    backend --> finish["Return without a separate redraw"]
 ```
 
 ## Handler evidence
@@ -61,4 +65,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The virtual backend target is unresolved; the recovered code proves selector 1, but not its device-level implementation.

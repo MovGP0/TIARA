@@ -1,6 +1,6 @@
 ﻿# Leave Macro
 
-> Analysis status: Pending individual source review.
+> Analysis status: Unresolved after individual resource, graph, and recovered-source review.
 
 ## Control
 
@@ -20,14 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The recovered DFM proves that a click dispatches `TSchedToolBar.btnCloseClick`. The
+RTTI evidence preserves the method name, but it does not resolve a code address in
+the recovered function range. The graph therefore has no handler function, source
+file, direct calls, or field accesses that can establish the runtime effect.
+
+The caption suggests that the control leaves a macro, but the available evidence
+does not establish whether the handler closes or hides the toolbar, changes the
+active macro, saves data, or asks for confirmation. The resource has no action,
+modal result, button kind, default or cancel state, hint, or glyph that supplies
+more evidence. Inputs, decisions, state changes, outputs, error handling, and
+no-op behavior remain unknown.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Leave Macro"] -->|OnClick| handler["btnCloseClick"]
-    handler -.-> unresolved["Recovered address not established"]
+    control["Leave Macro"] -->|"OnClick from DFM"| handler["TSchedToolBar.btnCloseClick"]
+    handler -.-> gap["Code address not resolved"]
+    gap -.-> unknown["Runtime effect remains unknown"]
 ```
 
 ## Handler evidence
@@ -35,8 +46,8 @@ flowchart LR
 - Source: [DecompiledSources/Tina16/resources/dfm/ui-evidence.json](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json)
 - Recovered role: Not present in the recovered resource.
 - Current graph summary: Unresolved Delphi event handler TSchedToolBar.btnCloseClick, referenced by 1 UI event.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Not available because the handler is not resolved to a function.
+- Current graph evidence: DFM event binding and Delphi RTTI method name only.
 - Complexity: simple
 - Distinct outgoing calls: Not present in the recovered resource.
 
@@ -61,5 +72,12 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- A repository-wide search of the recovered sources and analysis text found no
+  `TSchedToolBar`, `SchedToolBar`, `btnCloseClick`, or `Leave Macro` match outside
+  the extracted UI-resource documentation.
+- The form's `OnShow` handler is also unresolved, so it cannot supply a verified
+  lifecycle or shared-state path for this control.
+- The caption alone does not prove a close, hide, save, prompt, or macro-state
+  operation.
+- A code address or an independently verified runtime trace is required before
+  this control can receive a function annotation or a specific behavior claim.

@@ -1,7 +1,5 @@
 ﻿# Select &ASM...
 
-> Analysis status: Pending individual source review.
-
 ## Control
 
 | Property | Recovered value |
@@ -20,28 +18,42 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler configures the shared open dialog for `*.asm` and `*.s` files. It shows the dialog and makes no file-list change when the user cancels.
+
+After acceptance, it stores the selected file name, sets form byte `+0xFA8`, refreshes the mode-dependent buttons, and clears the staged ASM, HEX, and LST lists.
+
+The next path depends on global compiler option byte `PTR_DAT_020030c0[0x0C]`:
+
+- When the byte is clear, the handler adds the selected source path to the ASM list. It keeps the current ASM-input mode.
+- When the byte is set, the handler copies the source to the working `flash_rom.asm` path and calls `VHDL_DLL2.DLL::_compile_asm`. The compiler mode comes from the MPLAB-selection helper.
+- If compilation fails, it shows the recovered compiler text and line number. It then adds the original selected file to the ASM list.
+- If compilation succeeds, it changes the internal mode to HEX/LST, stages `flash_rom.hex` and `flash_rom.lst`, and stores both generated file names.
+
+The handler then clears an old flowchart session when required and records the resulting mode as the current snapshot. The exact user-facing name of global option byte `0x0C` is not recovered.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Select &ASM..."] -->|OnClick| handler["FUN_01418330"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["FUN_004144d0"]
-    handler --> call4["Delphi UnicodeString array finalization helper"]
-    handler --> call5["Delphi UnicodeString assignment helper"]
-    handler --> call6["FUN_00415dd0"]
+flowchart TD
+    Control["Select ASM click"] --> Filter["Set ASM or S open-dialog filter"]
+    Filter --> Dialog{"Open dialog accepted?"}
+    Dialog -->|No| NoChange["Keep staged files unchanged"]
+    Dialog -->|Yes| Reset["Store selected name<br/>and clear ASM, HEX, LST lists"]
+    Reset --> Compile{"Global precompile branch enabled?"}
+    Compile -->|No| StageAsm["Add selected path to ASM list"]
+    Compile -->|Yes| Run["Compile working flash_rom.asm"]
+    Run --> Result{"Compile succeeded?"}
+    Result -->|No| Error["Show error and line;<br/>stage original ASM path"]
+    Result -->|Yes| Outputs["Switch to HEX/LST mode;<br/>stage flash_rom.hex and flash_rom.lst"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001418330__FUN_01418330.c](../../../DecompiledSources/Tina16/functions/0000000001418330__FUN_01418330.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Select an MCU ASM source and optionally precompile it to HEX/LST outputs.
 - Current graph summary: Handles 1 Delphi UI event: MCUAsmSelector.bSelectASM.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Runs the ASM file dialog, resets staged inputs after acceptance, and either stages the source or calls the external assembler and stages its outputs.
+- Current graph evidence: The handler guards changes with the dialog result, calls `_compile_asm` only in the global-option branch, tests the returned success byte, and assigns `flash_rom.hex` and `flash_rom.lst` only on success.
 - Complexity: complex
 - Distinct outgoing calls: 19
 
@@ -84,5 +96,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- [Click handler `FUN_01418330`](../../../DecompiledSources/Tina16/functions/0000000001418330__FUN_01418330.c) proves the dialog guard, staging reset, external compile branch, and success or failure results.
+- [Dialog-filter helper `FUN_01417f80`](../../../DecompiledSources/Tina16/functions/0000000001417F80__FUN_01417f80.c) proves the `*.asm` and `*.s` filters.
+- [Compiler-mode helper `FUN_015ff5b0`](../../../DecompiledSources/Tina16/functions/00000000015FF5B0__FUN_015ff5b0.c) proves that the first assembler argument selects MPLAB-backed mode only when configured and installed.
+- [External `_compile_asm` import](../../../DecompiledSources/Tina16/functions/0000000000E02960__VHDL_DLL2.DLL___compile_asm.c) proves the external-library boundary.
+- The recovered path does not define the broader settings name for option byte `0x0C`. It also does not validate generated output contents after the assembler reports success.

@@ -1,6 +1,6 @@
 ﻿# B&ring Forward
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for TIARA-diz.6.7.1528.
 
 ## Control
 
@@ -11,61 +11,34 @@
 | Control class | TMenuItem |
 | Caption | B&ring Forward |
 | Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | mnBringForwardClick |
 | Handler address | 0179dad0 |
 | Graph node | `resource:dfm:ShapeEdit/ShapeEdit.MainMenu.Edit.mnBringForward` |
 | Handler node | `function:0179dad0` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Scans the drawing list from back to front. When a selected object has an unselected object immediately after it, the handler swaps the pair. Each eligible selected object moves forward by one layer, and the editor is redrawn.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["B&ring Forward"] -->|OnClick| handler["FUN_0179dad0"]
-    handler --> call1["FUN_004aea00"]
-    handler --> call2["FUN_004aeac0"]
-    handler --> call3["FUN_004aee80"]
-    handler --> call4["FUN_0064e770"]
+flowchart TD
+    control["B&ring Forward"] --> handler["mnBringForwardClick at 0179dad0"]
+    handler --> step1["Scan adjacent objects back to front"]
+    handler --> step2["Selected before unselected: swap"]
+    handler --> step3["Redraw editor"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/000000000179DAD0__FUN_0179dad0.c](../../../DecompiledSources/Tina16/functions/000000000179DAD0__FUN_0179dad0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: ShapeEdit.MainMenu.Edit.mnBringForward.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 4
-
-## Direct calls
-
-- `function:004aea00` — FUN_004aea00
-- `function:004aeac0` — FUN_004aeac0
-- `function:004aee80` — FUN_004aee80
-- `function:0064e770` — FUN_0064e770
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
+- Handler source: [000000000179DAD0__FUN_0179dad0.c](../../../DecompiledSources/Tina16/functions/000000000179DAD0__FUN_0179dad0.c)
 - Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Recovered path: The handler reads selection byte +0x21 for adjacent list entries, calls the list exchange method for selected/unselected pairs, then invalidates the editor.
+- Resource context: The recovered TMenuItem resource uses caption `B&ring Forward`.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No additional implementation gap was found in the recovered click path.
+- The caption, hint, and glyph support control identity only. They do not replace the recovered handler and callee evidence.
+

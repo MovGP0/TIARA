@@ -1,6 +1,6 @@
 ﻿# Change Value
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for mnChangePeriphValueClick.
 
 ## Control
 
@@ -20,19 +20,19 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler derives the selected peripheral path from the current source, peripheral group, and item. It reads the current value through `_Dbg_XMC_GetPeriphValue`, initializes a value-edit dialog with that value and a composed name, and opens it. Canceling performs no write. On acceptance it reads the edited value, writes it through `_Dbg_XMC_SetPeriphValue`, and refreshes the active display.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Change Value"] -->|OnClick| handler["FUN_0108de70"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["FUN_004144d0"]
-    handler --> call3["FUN_00415980"]
-    handler --> call4["FUN_004425e0"]
-    handler --> call5["FUN_00442620"]
-    handler --> call6["FUN_007fc180"]
+flowchart TD
+    control["Change Value"] -->|OnClick| handler["TMCUProjectForm.mnChangePeriphValueClick<br/>FUN_0108de70"]
+    handler --> read["Resolve peripheral path<br/>Read current MCU value"]
+    read --> dialog["Open value editor with current value"]
+    dialog --> accepted{"Accepted?"}
+    accepted -->|No| noOp["Do not write peripheral"]
+    accepted -->|Yes| write["Write edited value to MCU backend"]
+    write --> refresh["Refresh active display"]
 ```
 
 ## Handler evidence
@@ -76,7 +76,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

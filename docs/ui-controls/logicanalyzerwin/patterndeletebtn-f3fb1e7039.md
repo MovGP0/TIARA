@@ -1,6 +1,6 @@
 ﻿# Del
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,28 +20,32 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01521090` reads the selected pattern index from `PatternEditBox` at `+0xd70`. It deletes only when the index is valid and another entry follows the selected entry. This protects the last list item, so a one-item list is a silent no-op.
+
+After deletion, the handler renumbers the remaining editable entries, reads the replacement item at the same index, and copies its text to `PatternEdit` at `+0xe38`. The combo's item list is the selected pattern group's list assigned by the group-change path, so the mutation affects that runtime group collection.
+
+The click does not delete a channel or the selected channel group. It has no confirmation, undo record, file write, local exception handler, or rollback. A stale selected index is passed to list operations without an extra local range check beyond the initial conditions.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Del"] -->|OnClick| handler["FUN_01521090"]
-    handler --> call1["FUN_0040e840"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["Delphi UnicodeString array finalization helper"]
-    handler --> call4["FUN_00414de0"]
-    handler --> call5["FUN_004169a0"]
-    handler --> call6["VCL control text setter with change suppression"]
+flowchart TD
+    Click["Click pattern Del"] --> Handler["FUN_01521090"]
+    Handler --> Selected{"Valid selection with a following item?"}
+    Selected -->|No| NoOp["Keep pattern list unchanged"]
+    Selected -->|Yes| Delete["Delete selected pattern"]
+    Delete --> Number["Renumber remaining editable entries"]
+    Number --> Replace["Select replacement text at same index"]
+    Replace --> Edit["Update PatternEdit text"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001521090__FUN_01521090.c](../../../DecompiledSources/Tina16/functions/0000000001521090__FUN_01521090.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Delete the selected nonfinal Logic Analyzer trigger pattern.
 - Current graph summary: Handles 1 Delphi UI event: LogicAnalyzerWin.TriggerBox.PatternDeleteBtn.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler deletes a guarded pattern-list entry, renumbers the list, and refreshes the edit text.
+- Current graph evidence: The list count, selected-index branch, deletion call, renumber loop, and text update establish the behavior.
 - Complexity: complex
 - Distinct outgoing calls: 6
 
@@ -72,5 +76,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The protected final item's application meaning is not named in the recovered source.
+- The nearby Pattern label supports control context only. It does not establish deletion semantics by itself.

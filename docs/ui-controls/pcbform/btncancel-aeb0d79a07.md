@@ -1,17 +1,17 @@
-﻿# BtnCancel
+﻿# Cancel
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed: the handler discards the PCB-library working copies by reloading every registered library.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
 | Form | PcbForm |
+| Form caption | PCB information for SPICE macro components |
 | Component path | PcbForm.BtnCancel |
 | Control class | TBitBtn |
-| Caption | Not present in the recovered resource. |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Caption | Not present |
+| Hint | Not present |
 | Handler name | BtnCancelClick |
 | Handler address | 00ed25b0 |
 | Graph node | `resource:dfm:PcbForm/PcbForm.BtnCancel` |
@@ -20,46 +20,37 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+1. The custom handler calls `FUN_00eaeb60`. That helper visits every entry in the global PCB-library collection and calls `FUN_00eae880` for each entry.
+2. `FUN_00eae880` saves the entry's original source identifier, destroys the current working object, constructs a new object from that source, and replaces the collection entry. This discards unsaved edits across all loaded PCB libraries.
+3. The recovered `bkCancel` resource also supplies the standard cancel action. The custom handler does not validate the current component or save a library.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["BtnCancel"] -->|OnClick| handler["FUN_00ed25b0"]
-    handler --> call1["FUN_00eaeb60"]
+flowchart TD
+    control["PcbForm.BtnCancel"] -->|OnClick| handler["FUN_00ed25b0"]
+    handler --> decision{"Reload each registered library?"}
+    decision -->|Yes| action["Replace working object from its original source"]
+    decision -->|No| noop["No library entries to reload"]
+    action --> outcome["Return through the standard cancel button path"]
+    noop --> outcome
 ```
 
-## Handler evidence
+## Handler and call-path evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000000ED25B0__FUN_00ed25b0.c](../../../DecompiledSources/Tina16/functions/0000000000ED25B0__FUN_00ed25b0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: PcbForm.BtnCancel.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: simple
-- Distinct outgoing calls: 1
+- [`FUN_00ed25b0`](../../../DecompiledSources/Tina16/functions/0000000000ED25B0__FUN_00ed25b0.c) — Discard PCB library working changes.
+- [`FUN_00eaeb60`](../../../DecompiledSources/Tina16/functions/0000000000EAEB60__FUN_00eaeb60.c) — reload every PCB library working copy.
+- [`FUN_00eae880`](../../../DecompiledSources/Tina16/functions/0000000000EAE880__FUN_00eae880.c) — replace one working library object from its original source.
 
-## Direct calls
+## Resource and glyph evidence
 
-- `function:00eaeb60` — FUN_00eaeb60
+- Button semantics: bkCancel.
+- Recovered form resource: [`ui-evidence.json`](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json).
 
-## Resource evidence
+## Inputs, outputs, and limits
 
-- Kind: bkCancel
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
+- Input: an OnClick event from `PcbForm.BtnCancel`, plus the current form selections and state described above.
+- State change: Reloads every registered PCB library from its original source so unsaved form edits are discarded.
+- Error or no-op behavior: The decision branches above identify the recovered validation, cancel, confirmation, boundary, or no-op path.
+- Analysis limit: The recovered source does not show the caller that consumes the final modal result.
 
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
-
-## Analysis limits
-
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.

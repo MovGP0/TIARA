@@ -1,6 +1,6 @@
 ﻿# Save As...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for sbSaveFileClick.
 
 ## Control
 
@@ -20,15 +20,16 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler opens the save dialog stored at form field `+0x770`. Canceling the dialog is a no-op. On acceptance it reads the selected path and dispatches the active editor's virtual save-as operation with that path. The handler has no local validation, success message, or exception recovery, so errors from the dialog or editor propagate to their existing handlers.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Save As..."] -->|OnClick| handler["FUN_01085910"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_00724270"]
+flowchart TD
+    control["Save As..."] -->|OnClick| handler["TMCUProjectForm.sbSaveFileClick<br/>FUN_01085910"]
+    handler --> dialog{"Save As path accepted?"}
+    dialog -->|No| noOp["Keep current file path"]
+    dialog -->|Yes| save["Pass selected path to active editor save-as"]
 ```
 
 ## Handler evidence
@@ -61,7 +62,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

@@ -1,6 +1,6 @@
 ﻿# S&ave As...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered Save As path.
 
 ## Control
 
@@ -20,23 +20,30 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The click delegates to `FUN_01125df0`. It selects the user-defined save dialog
+for mode `8` and the piecewise-linear save dialog otherwise, seeds that dialog
+with the current file name, and waits for a result. Cancel leaves the file name,
+document, and modified state unchanged. On acceptance, it stores the selected
+path, writes the active editor object to that path, and clears the modified state.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["S&ave As..."] -->|OnClick| handler["FUN_01125470"]
-    handler --> call1["FUN_01125df0"]
+    control["Save As"] -->|"OnClick"| handler["FUN_01125470"]
+    handler --> dialog["Show mode-specific save dialog"]
+    dialog --> accepted{"Path accepted?"}
+    accepted -->|"No"| unchanged["Keep current name and modified state"]
+    accepted -->|"Yes"| write["Store path, write document, clear modified state"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001125470__FUN_01125470.c](../../../DecompiledSources/Tina16/functions/0000000001125470__FUN_01125470.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Save the active editable signal document under a selected name.
 - Current graph summary: Handles 1 Delphi UI event: SignalEditorDlg.PopupMenu.pmiSaveAs.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Delegates to the mode-specific save-dialog path.
+- Current graph evidence: `FUN_01125470` wraps `FUN_01125df0`; the callee branches on mode `8` and checks each dialog result before writing.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +68,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not expose the dialog filters or lower-level file-write errors.
+- Cancel is a verified no-op for the stored document path.

@@ -1,6 +1,6 @@
 ﻿# pbEditor
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for TIARA-diz.6.7.1608.
 
 ## Control
 
@@ -9,56 +9,35 @@
 | Form | ShapeEdit |
 | Component path | ShapeEdit.scbEditor.pbEditor |
 | Control class | TPaintBox |
-| Caption | Not present in the recovered resource. |
+| Caption | pbEditor |
 | Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | xMouseClick |
 | Handler address | 01794dc0 |
 | Graph node | `resource:dfm:ShapeEdit/ShapeEdit.scbEditor.pbEditor` |
 | Handler node | `function:01794dc0` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Returns immediately. It performs no call, branch, state write, or redraw.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["pbEditor"] -->|OnClick| handler["FUN_01794dc0"]
+flowchart TD
+    control["pbEditor"] --> handler["xMouseClick at 01794dc0"]
+    handler --> step1["Receive click"]
+    handler --> step2["Return without action"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001794DC0__FUN_01794dc0.c](../../../DecompiledSources/Tina16/functions/0000000001794DC0__FUN_01794dc0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: ShapeEdit.scbEditor.pbEditor.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: simple
-- Distinct outgoing calls: 0
-
-## Direct calls
-
-- No direct call edge is present in the recovered graph.
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
+- Handler source: [0000000001794DC0__FUN_01794dc0.c](../../../DecompiledSources/Tina16/functions/0000000001794DC0__FUN_01794dc0.c)
 - Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Recovered path: The recovered function at 01794dc0 contains one return instruction, and the graph has no outgoing call from it.
+- Resource context: The recovered TPaintBox resource uses caption `pbEditor`.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No additional implementation gap was found in the recovered click path.
+- The caption, hint, and glyph support control identity only. They do not replace the recovered handler and callee evidence.
+

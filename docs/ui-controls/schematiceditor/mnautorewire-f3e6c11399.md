@@ -1,6 +1,6 @@
 ﻿# Auto Wi&re
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,23 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler toggles the main menu item's checked state and copies the new value to the matching popup item. Sender is unused, so both controls change the same shared option.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Auto Wi&re"] -->|OnClick| handler["FUN_01c849a0"]
-    handler --> call1["FUN_007e2d20"]
+flowchart TD
+    control["Auto Wi&re"] -->|"OnClick"| handler["mnAutoReWireClick (01c849a0)"]
+    handler --> current{"Current checked or visible state"}
+    current -->|"Off"| enable["Set Auto Wire and synchronize menu checks: enable"]
+    current -->|"On"| disable["Set Auto Wire and synchronize menu checks: disable"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C849A0__FUN_01c849a0.c](../../../DecompiledSources/Tina16/functions/0000000001C849A0__FUN_01c849a0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Toggle automatic rewiring.
 - Current graph summary: Handles 2 Delphi UI events: SchematicEditor.MainMenu.Insert.mnAutoReWire.OnClick, SchematicEditor.SchPopup.pmAutoReWire.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler toggles the main menu item's checked state and copies the new value to the matching popup item. Sender is unused, so both controls change the same shared option.
+- Current graph evidence: The recovered body negates one menu checked byte and writes the value to both paired menu-item fields. Two DFM events resolve to the handler.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The downstream rewiring consumer is outside this click path.
+

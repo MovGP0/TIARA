@@ -1,6 +1,6 @@
 ﻿# dB
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed: the click switches the displayed coordinate data set.
 
 ## Control
 
@@ -20,22 +20,26 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler gets the base display data and an optional alternate data object. If the alternate object is absent, it clears this button's Down state.
+
+When alternate data exists, the button's Down state selects which object's caption, High value, and Low value are copied to the display controls. The nearby High and Low labels support the two numeric field assignments. The handler does not persist the selection.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["dB"] -->|OnClick| handler["FUN_0138c870"]
-    handler --> call1["VCL control text setter with change suppression"]
-    handler --> call2["FUN_0082a6c0"]
-    handler --> call3["FUN_00b90440"]
+flowchart TD
+    control["Display-coordinate button"] -->|OnClick| handler["DisplayCoordChangeBtnClick"]
+    handler --> alternate{"Alternate data available?"}
+    alternate -->|No| clear["Clear button Down state"]
+    alternate -->|Yes| state{"Button Down?"}
+    state -->|No| base["Show base caption, High, and Low"]
+    state -->|Yes| alt["Show alternate caption, High, and Low"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/000000000138C870__FUN_0138c870.c](../../../DecompiledSources/Tina16/functions/000000000138C870__FUN_0138c870.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Switches the coordinate caption and High/Low values between base and alternate display data.
 - Current graph summary: Handles 1 Delphi UI event: SignalAnalyzerWin.DisplayGroupBox.DisplayCoordChangeBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -66,5 +70,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not name the two coordinate systems.
+- The click updates displayed controls only; no persistence or backend write is visible.

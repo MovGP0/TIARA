@@ -1,6 +1,6 @@
 ﻿# Step Over
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for sbStepOverClick.
 
 ## Control
 
@@ -20,16 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler disables the current run-control state, clears the MCU aborted flag, and clears the auxiliary execution marker. If the backend reports that stepping is unavailable, local mode sets the pending-step flag and calls the step-over helper. The helper receives the original event argument, so any sender-sensitive detail is inside that callee and is not recovered here. A busy or disallowed backend produces no step.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Step Over"] -->|OnClick| handler["FUN_010887e0"]
-    handler --> call1["VHDL_DLL2.DLL::_MCU_SetAborted"]
-    handler --> call2["FUN_00f81d20"]
-    handler --> call3["FUN_01088180"]
+flowchart TD
+    control["Step Over"] -->|OnClick| handler["TMCUProjectForm.sbStepOverClick<br/>FUN_010887e0"]
+    handler --> reset["Disable run state<br/>Clear MCU aborted flag"]
+    reset --> allowed{"Backend allows step?"}
+    allowed -->|No| noOp["Do not start a step"]
+    allowed -->|Yes| step["Set local pending-step flag when needed<br/>Run step-over helper"]
 ```
 
 ## Handler evidence
@@ -63,7 +64,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

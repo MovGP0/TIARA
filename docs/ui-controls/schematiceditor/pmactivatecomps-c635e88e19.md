@@ -1,6 +1,6 @@
 ﻿# Activate components
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,28 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+If editing is allowed and selected components are available, the handler creates an undo action, activates the selected components, commits and redraws the change, and refreshes the editor. A failed permission or selection guard leaves the schematic unchanged.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Activate components"] -->|OnClick| handler["FUN_01c71ed0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_0041ddd0"]
-    handler --> call3["FUN_017baeb0"]
-    handler --> call4["FUN_017bb120"]
-    handler --> call5["FUN_017bb400"]
-    handler --> call6["FUN_01993e20"]
+flowchart TD
+    control["Activate components"] -->|"OnClick"| handler["pmActivateCompsClick (01c71ed0)"]
+    handler --> guard{"Editing allowed and components selected?"}
+    guard -->|"No"| noChange["Leave components unchanged"]
+    guard -->|"Yes"| action["Create undo action and activate selected components"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C71ED0__FUN_01c71ed0.c](../../../DecompiledSources/Tina16/functions/0000000001C71ED0__FUN_01c71ed0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Activate selected schematic components.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.SchPopup.pmActivateComps.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: If editing is allowed and selected components are available, the handler creates an undo action, activates the selected components, commits and redraws the change, and refreshes the editor. A failed permission or selection guard leaves the schematic unchanged.
+- Current graph evidence: The recovered handler tests the shared command guard and selection state, calls the undo helper, iterates or delegates over the selected set with the activation mode, then calls commit, redraw, and refresh helpers. The popup caption is Activate components.
 - Complexity: complex
 - Distinct outgoing calls: 9
 
@@ -74,5 +71,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The component activation flag is recovered by use rather than by a Delphi field name.
+

@@ -1,6 +1,6 @@
 ﻿# Copy
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the recovered handler and SynEdit clipboard path.
 
 ## Control
 
@@ -20,20 +20,22 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The toolbar button calls the same branch-free handler as the **Copy** menu item. It copies a nonempty `Memo` selection to the standard clipboard and adds SynEdit selection-mode data. An empty selection is a no-op. It does not change the document or its modified state.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Copy"] -->|OnClick| handler["FUN_014b58a0"]
-    handler --> call1["FUN_00bf1d60"]
+flowchart TD
+    control["Click Copy toolbar button"] --> handler["FUN_014b58a0"]
+    handler --> selection{"Memo selection is nonempty?"}
+    selection -->|No| noop["Return without clipboard access"]
+    selection -->|Yes| copy["Copy text and SynEdit selection mode"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000014B58A0__FUN_014b58a0.c](../../../DecompiledSources/Tina16/functions/00000000014B58A0__FUN_014b58a0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Copy the selected Netlist Viewer text.
 - Current graph summary: Handles 2 Delphi UI events: NetlistViewer.BtnPanel.CopyButton.OnClick, NetlistViewer.MainMenu.MEdit.MICopy.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The toolbar glyph supports the copy intent but does not prove a different target or branch.
+- The shared handler does not inspect `Sender`.

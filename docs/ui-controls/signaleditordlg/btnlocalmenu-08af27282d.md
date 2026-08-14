@@ -1,6 +1,6 @@
 ﻿# Menu
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered popup-menu positioning path.
 
 ## Control
 
@@ -20,24 +20,29 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads the Menu button's horizontal position, converts the button's
+client coordinates to screen coordinates, adds two pixels to the recovered X
+coordinate, and invokes the form popup menu at that point. It does not execute a
+menu command itself; the selected `TMenuItem` owns the later action. The nearby
+ErrorLine label is not an input to this position calculation.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Menu"] -->|OnClick| handler["FUN_01126300"]
-    handler --> call1["FUN_00498310"]
-    handler --> call2["FUN_0064d1f0"]
+    control["Menu"] -->|"OnClick"| handler["FUN_01126300"]
+    handler --> local["Read button client position"]
+    local --> screen["Convert to screen coordinates"]
+    screen --> popup["Show PopupMenu at X plus 2"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001126300__FUN_01126300.c](../../../DecompiledSources/Tina16/functions/0000000001126300__FUN_01126300.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Open the editor popup menu next to the local Menu button.
 - Current graph summary: Handles 1 Delphi UI event: SignalEditorDlg.pnlNotebook.pctrlMode.tsUserDefined.pnlLocalMenu.btnLocalMenu.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Computes screen coordinates and invokes the popup-menu virtual method.
+- Current graph evidence: The handler reads button field `+0x98`, calls the client-to-screen helper, adds `2` to X, and calls the object at form offset `+0x6b8`.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -63,5 +68,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The handler does not choose a menu item or execute a file, test, or options action.
+- The nearby ErrorLine label is only a layout candidate.

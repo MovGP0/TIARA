@@ -1,6 +1,6 @@
 ﻿# Copy
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source, call-path, state, and error evidence reviewed.
 
 ## Control
 
@@ -20,28 +20,33 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The click copies the selected component definition under a new component name.
+
+The handler reads the selected Component list value and opens [`FUN_00ebd270`](../../../DecompiledSources/Tina16/functions/0000000000EBD270__FUN_00ebd270.c) with that name as the initial value. If a non-empty name returns, it tests whether the `DigitalICs` backend already contains that name. A duplicate shows localized message `0x846` and stops.
+
+For a unique name, the handler reads the selected component's stored definition, writes the same definition under the new name, adds and selects the normalized new name in the Component list, rebuilds the Footprint list and action state, and marks the active library entry for later persistence.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Copy"] -->|OnClick| handler["FUN_00ec4fe0"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["Delphi UnicodeString assignment helper"]
-    handler --> call3["FUN_0043e130"]
-    handler --> call4["FUN_0043ea00"]
-    handler --> call5["FUN_00442f70"]
-    handler --> call6["FUN_0072d440"]
+flowchart TD
+    control["Copy component"] -->|OnClick| handler["FUN_00ec4fe0"]
+    handler --> prompt["Prompt with the selected component name"]
+    prompt --> name{"Non-empty name returned?"}
+    name -->|No| noChange["Keep the library unchanged"]
+    name -->|Yes| duplicate{"Name already exists?"}
+    duplicate -->|Yes| error["Show localized message 0x846"]
+    duplicate -->|No| copy["Store the selected definition under the new name"]
+    copy --> refresh["Select it, rebuild footprints, and mark the library"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000000EC4FE0__FUN_00ec4fe0.c](../../../DecompiledSources/Tina16/functions/0000000000EC4FE0__FUN_00ec4fe0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Copies the selected PCB component definition under a new unique name.
 - Current graph summary: Handles 1 Delphi UI event: PcbForm4.Panel2.BtnCloneComponent.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Prompts for a name seeded from the selected component. A duplicate name shows localized message 0x846. A unique name receives the selected component definition, is added and selected in the Component list, and triggers dependent-list and action refreshes.
+- Current graph evidence: FUN_00ec4fe0 reads the selected component string, calls FUN_00ebd270, checks backend existence in DigitalICs, reads the old definition, writes it with the returned name, updates the component list, calls FUN_00ec1150 and FUN_00ec0380, and marks the active library entry.
 - Complexity: complex
 - Distinct outgoing calls: 13
 
@@ -77,7 +82,13 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 - Rank 1: Component list: at distance 240.
 - Rank 2: Footprint list: at distance 420.
 
+## No-op and error behavior
+
+- Cancel or an empty returned name makes no change.
+- A duplicate name shows localized message `0x846` and makes no copy.
+- The handler has no local recovery for backend read or write failures.
+
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The localized duplicate message text is not recovered.
+- Name normalization occurs in helper calls; the exact normalization rules are not fully recovered.

@@ -1,6 +1,6 @@
 ﻿# &Noise Analysis...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The setup return branch and recovered noise result publisher establish the flow.
 
 ## Control
 
@@ -20,23 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01533ae0` saves analysis context and calls `FUN_014f6590` with the active circuit. A zero return passes the produced data and recovered global result-mask byte to `FUN_013d8d70`. That publisher can create `Output noise`, `Input noise`, `Total noise`, and `Signal to Noise` result sets according to mask bits, then refreshes the result UI.
+
+A nonzero setup return skips publication. The handler restores the prior context on both branches.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Noise Analysis..."] -->|OnClick| handler["FUN_01533ae0"]
-    handler --> call1["FUN_013d8d70"]
-    handler --> call2["FUN_014f6590"]
-    handler --> call3["FUN_0152fca0"]
-    handler --> call4["FUN_0152fd80"]
+flowchart TD
+    control["Click Noise Analysis"] --> handler["FUN_01533ae0"]
+    handler --> prepare["Save analysis context"]
+    prepare --> setup["FUN_014f6590 noise setup"]
+    setup --> zero{"Return is zero?"}
+    zero -->|Yes| publish["Publish selected noise result sets"]
+    zero -->|No| skip["Skip result publication"]
+    publish --> restore["Restore prior context"]
+    skip --> restore
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001533AE0__FUN_01533ae0.c](../../../DecompiledSources/Tina16/functions/0000000001533AE0__FUN_01533ae0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Runs noise-analysis setup and publishes selected noise results on success.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MAnalysis.MINoiseAnalysis.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -67,5 +72,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact meanings of nonzero setup returns are not recovered.
+- The result-mask byte has no recovered Delphi field name.

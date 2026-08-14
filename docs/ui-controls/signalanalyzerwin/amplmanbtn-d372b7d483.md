@@ -1,6 +1,6 @@
 ﻿# Man
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed: the click selects manual amplitude range control.
 
 ## Control
 
@@ -20,19 +20,22 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler calls the analyzer backend through virtual slot `+0xA8` with mode value `1`. The nearby Range label agrees with the amplitude-range context.
+
+The handler contains no local decision, display update, or error branch. Those behaviors, if any, are inside the backend operation.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Man"] -->|OnClick| handler["FUN_0138beb0"]
+    control["Manual button"] -->|OnClick| handler["AmplManBtnClick"]
+    handler -->|mode 1| backend["Set manual amplitude range"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/000000000138BEB0__FUN_0138beb0.c](../../../DecompiledSources/Tina16/functions/000000000138BEB0__FUN_0138beb0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Selects manual amplitude range control in the analyzer backend.
 - Current graph summary: Handles 1 Delphi UI event: SignalAnalyzerWin.MeasurementGroupBox.AmplitudeBox.AmplManBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -60,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not expose the Delphi name of backend virtual slot `+0xA8`.
+- Backend validation and hardware error behavior are not present in this handler.

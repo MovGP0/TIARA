@@ -1,6 +1,6 @@
 ﻿# Start
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered handler, both minimization initializers, and their calculation callees.
 
 ## Control
 
@@ -20,24 +20,31 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler starts Quine-McCluskey minimization for the current mode and inputs. It stores help-context ID `0x1004`, sets a recovered run field, hides the Prime Implicant Table, and copies the selected Minterm or Maxterm index list into the input memo.
+
+The handler selects one of two calculation paths from the configured variable count. Counts below seven use `FUN_011a23d0`: this path shows the Stop control and enables the related model control after the call returns. Larger counts use `FUN_011a32b0`. Both paths clear work state, read and clamp the variable count, parse the comma-separated index list, skip duplicate and out-of-range values, build implicant groups, and run the matching combination engine. Later calls publish result and detail views, including the Prime Implicant Table and time diagram.
+
+The parser has recovered scan limits of 128 tokens in the smaller path and 255 tokens in the larger path. The exact behavior for malformed numeric text is not recovered. The custom handler does not save settings and has no local error dialog.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Start"] -->|OnClick| handler["FUN_011a4d50"]
-    handler --> call1["FUN_0064dbe0"]
-    handler --> call2["VCL control text setter with change suppression"]
-    handler --> call3["FUN_00805990"]
-    handler --> call4["FUN_011a23d0"]
-    handler --> call5["FUN_011a32b0"]
+flowchart TD
+    control["Click Start"] --> handler["TQM_form.BtnOkClick"]
+    handler --> prepare["Set run state, hide the table, and load mode input"]
+    prepare --> count{"Variable count below 7?"}
+    count -->|Yes| visual["Show Stop and run the smaller visual path"]
+    count -->|No| batch["Run the larger batch path"]
+    visual --> parse["Clamp variables and parse valid unique indices"]
+    batch --> parse
+    parse --> minimize["Build and combine implicant groups"]
+    minimize --> output["Publish result and detail views"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011A4D50__FUN_011a4d50.c](../../../DecompiledSources/Tina16/functions/00000000011A4D50__FUN_011a4d50.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Start Quine-McCluskey minimization for the current inputs.
 - Current graph summary: Handles 1 Delphi UI event: QM_form.GroupBox1.BtnOk.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -70,5 +77,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Names for the work arrays and recovered run field are not available.
+- The recovered source does not establish the precise result for malformed numeric input.

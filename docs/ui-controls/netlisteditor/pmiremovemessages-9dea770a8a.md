@@ -1,6 +1,6 @@
 ﻿# &Remove messages
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The one-call handler and matching reset callers establish the message-list clear action.
 
 ## Control
 
@@ -20,19 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01534470` invokes the zero-argument virtual method at VMT offset `+0x278` on the control at form offset `+0x930`, which the form resource identifies as the message list. The New and Open reset paths call the same slot on the same field before rebuilding editor state.
+
+The recovered VCL method name is not present. The call shape and repeated reset use establish removal of all displayed messages; the handler has no selection branch or confirmation.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Remove messages"] -->|OnClick| handler["FUN_01534470"]
+flowchart TD
+    control["Click Remove messages"] --> handler["FUN_01534470"]
+    handler --> clear["Call message-list virtual method at +0x278"]
+    clear --> done["Displayed messages removed"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001534470__FUN_01534470.c](../../../DecompiledSources/Tina16/functions/0000000001534470__FUN_01534470.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Clears the Netlist Editor message list.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.ListBoxPopup.pmiRemoveMessages.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -60,5 +64,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact VCL method name at slot `+0x278` is not recovered.
+- The handler clears the displayed list; it does not prove deletion of any persisted diagnostic store.

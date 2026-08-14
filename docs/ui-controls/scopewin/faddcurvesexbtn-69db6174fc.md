@@ -1,6 +1,6 @@
 ﻿# Probe
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered probe glyph, shared probe dispatcher, curve snapshot, and no-data branch reviewed.
 
 ## Control
 
@@ -20,14 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The resource marks this **Probe** button disabled by default and gives it a probe glyph. Its handler delegates to the shared analyzer probe routine.
+
+When acquisition is inactive, the routine enters the common probe-selection path directly. When acquisition is active and the current curve contains points, it copies the current curve into a temporary list, preserves curve type and name metadata, sends that snapshot through the form's add-curve callback, and then enters the probe-selection path. If acquisition is active but no usable current curve exists, it shows localized message 0x854 and turns the acquisition state off.
+
+The exact probe-selection dialog or schematic interaction after the shared dispatcher is not recovered.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Probe"] -->|OnClick| handler["FUN_012b23a0"]
-    handler --> call1["FUN_010fbe80"]
+flowchart TD
+    control["Click Probe"] --> running{"Acquisition is active?"}
+    running -->|No| probe["Enter the shared probe-selection path"]
+    running -->|Yes| data{"Current curve has data points?"}
+    data -->|Yes| snapshot["Snapshot curve data and metadata"]
+    snapshot --> add["Send the snapshot through the form add-curve callback"]
+    add --> probe
+    data -->|No| message["Show localized message 0x854 and turn acquisition off"]
 ```
 
 ## Handler evidence
@@ -62,4 +71,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The resource starts this control disabled, and the recovered path does not show which state later enables it.

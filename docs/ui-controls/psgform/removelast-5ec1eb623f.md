@@ -1,6 +1,6 @@
 ﻿# &Remove Last
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,28 +20,32 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_013f8bf0` removes the last working moment/level point only when the sequence contains more than one point. This guard preserves the required first point. A one-point sequence is a silent no-op.
+
+For a valid removal, the handler moves the AttributeGrid selection to the first data cell, removes the last two editor rows, removes the final model record, rebuilds the alternating row labels, and restores localized placeholders after the new end of the sequence.
+
+The handler does not adjust the repeat-from index. If that index now exceeds the shorter sequence, OK reports a settings error and does not apply the sequence.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Remove Last"] -->|OnClick| handler["FUN_013f8bf0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_008483b0"]
-    handler --> call3["FUN_00848a30"]
-    handler --> call4["FUN_0084e3e0"]
-    handler --> call5["FUN_00b0adf0"]
-    handler --> call6["FUN_00b89270"]
+flowchart TD
+    Click["Click Remove Last"] --> Handler["FUN_013f8bf0"]
+    Handler --> Count{"More than one point?"}
+    Count -->|No| NoOp["Return and preserve first point"]
+    Count -->|Yes| Select["Select first data cell"]
+    Select --> Editors["Remove two trailing grid editors"]
+    Editors --> Model["Remove final model point"]
+    Model --> Labels["Rebuild labels and placeholders"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000013F8BF0__FUN_013f8bf0.c](../../../DecompiledSources/Tina16/functions/00000000013F8BF0__FUN_013f8bf0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Remove the last editable pulse point while preserving the first point.
 - Current graph summary: Handles 1 Delphi UI event: PsgForm.RemoveLast.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Guards on model count greater than one, removes two AttributeGrid editor rows and one model record, then refreshes labels and placeholders.
+- Current graph evidence: The source tests model count at `+0x10`, calls `FUN_00b0adf0` twice, calls `FUN_01d3bac0` once, and derives the new placeholder start from twice the remaining model count.
 - Complexity: complex
 - Distinct outgoing calls: 9
 
@@ -51,11 +55,11 @@ flowchart LR
 - `function:008483b0` — FUN_008483b0
 - `function:00848a30` — FUN_00848a30
 - `function:0084e3e0` — FUN_0084e3e0
-- `function:00b0adf0` — FUN_00b0adf0
+- `function:00b0adf0` — removes the last attached AttributeGrid editor row.
 - `function:00b89270` — FUN_00b89270
 - `function:00b8e520` — FUN_00b8e520
-- `function:013f76a0` — FUN_013f76a0
-- `function:01d3bac0` — FUN_01d3bac0
+- `function:013f76a0` — rebuilds moment and level row labels for the remaining points.
+- `function:01d3bac0` — removes the final record from the working sequence.
 
 ## Resource evidence
 
@@ -74,5 +78,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The handler does not clamp or clear the repeat-from index after removal.
+- The distant **Repeat from:** label is not used as proof of the removal behavior.

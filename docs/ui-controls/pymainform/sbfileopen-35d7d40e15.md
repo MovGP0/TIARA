@@ -1,6 +1,6 @@
 ﻿# Open file
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered open dialog, editor load, stored paths, and title update reviewed.
 
 ## Control
 
@@ -20,17 +20,19 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler opens `OpenDialog`. Cancel is a no-op. On acceptance, it loads the selected file into the main editor, stores the selected path as both the current and baseline path fields, and updates the window caption with the current file name.
+
+The handler does not validate Python or CSV syntax. It has no local catch, retry, or custom load-error branch.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Open file"] -->|OnClick| handler["FUN_0146f570"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["Delphi UnicodeString assignment helper"]
-    handler --> call3["FUN_00724270"]
-    handler --> call4["FUN_0146fe10"]
+flowchart TD
+    control["Click Open file"] --> accepted{"User accepts OpenDialog?"}
+    accepted -->|No| noAction["Keep the current document"]
+    accepted -->|Yes| load["Load the selected file into the editor"]
+    load --> paths["Store current and baseline paths"]
+    paths --> title["Update the window caption"]
 ```
 
 ## Handler evidence
@@ -68,4 +70,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The original Delphi names of form path fields +0x7f0 and +0x7e8 are not recovered.

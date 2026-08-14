@@ -1,6 +1,6 @@
 ﻿# &Time Function...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The setup return branch and recovered AC Time Function result publisher establish the flow.
 
 ## Control
 
@@ -20,23 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01533530` saves analysis context in mode 0, calls `FUN_01529c10`, and tests its return. A zero return calls `FUN_013d87d0`, which creates an `AC Time Function result` container, registers `Analysis Result 1`, publishes it, and refreshes the result UI.
+
+A nonzero return skips publication. The handler always restores the prior analysis context.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Time Function..."] -->|OnClick| handler["FUN_01533530"]
-    handler --> call1["FUN_013d87d0"]
-    handler --> call2["FUN_01529c10"]
-    handler --> call3["FUN_0152fca0"]
-    handler --> call4["FUN_0152fd80"]
+flowchart TD
+    control["Click AC Time Function"] --> handler["FUN_01533530"]
+    handler --> prepare["Save analysis context"]
+    prepare --> setup["FUN_01529c10 AC Time Function setup"]
+    setup --> zero{"Return is zero?"}
+    zero -->|Yes| publish["Publish AC Time Function result"]
+    zero -->|No| skip["Skip result publication"]
+    publish --> restore["Restore prior context"]
+    skip --> restore
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001533530__FUN_01533530.c](../../../DecompiledSources/Tina16/functions/0000000001533530__FUN_01533530.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Runs AC Time Function setup and publishes an AC Time Function result on success.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MAnalysis.MIACAnalysis.MIACTimeFunction.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -67,5 +72,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact meanings of nonzero setup returns are not recovered.
+- The detailed waveform construction remains inside the setup and result routines.

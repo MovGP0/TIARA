@@ -1,6 +1,6 @@
 ﻿# Scroll up
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,23 +20,32 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_015202a0` calls `FUN_01506f30`, which reads the graph at form offset `+0x9b0`. The graph proxy `FUN_010eb680` then calls the all-coordinate-system up dispatcher `FUN_01ad1480`.
+
+For each coordinate system, the shared path decrements the displayed active-Y-axis window start by one only while it is above zero. A changed system recalculates layout and redraws its owned objects. If any system changed, the graph also redraws its optional cursor objects. If all systems are at zero, the click is a silent no-op with no redraw.
+
+The click does not select, enable, or edit channels. It has no modifier branch, wrap, file write, local exception handler, or rollback. The hint and inspected 9-by-9 up-arrow glyph confirm direction; the source proves the one-position display change.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Scroll up"] -->|OnClick| handler["FUN_015202a0"]
-    handler --> call1["FUN_01506f30"]
+flowchart TD
+    Click["Click Scroll up"] --> Handler["FUN_015202a0"]
+    Handler --> Graph["Read graph +0x9b0"]
+    Graph --> Loop["Visit each coordinate system"]
+    Loop --> Bound{"Window start above zero?"}
+    Bound -->|No| NoOp["Keep this system unchanged"]
+    Bound -->|Yes| Step["Decrement window start by one"]
+    Step --> Redraw["Recalculate layout and redraw"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000015202A0__FUN_015202a0.c](../../../DecompiledSources/Tina16/functions/00000000015202A0__FUN_015202a0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Scroll the Logic Analyzer's displayed channel-axis window up by one position.
 - Current graph summary: Handles 1 Delphi UI event: LogicAnalyzerWin.DisplayGroupBox.FUpScrollBtn.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler enters the shared all-coordinate-system up-scroll path.
+- Current graph evidence: The handler, graph wrappers, bounded step, hint, and glyph agree on the direction and scope.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +70,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Original coordinate-system field names are not recovered. Their layout and bounded-step use establish the window roles.
+- The click changes live display state. It does not prove immediate persistence.

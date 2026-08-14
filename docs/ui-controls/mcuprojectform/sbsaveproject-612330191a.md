@@ -1,6 +1,6 @@
 ﻿# Save Project
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for sbSaveProjectClick.
 
 ## Control
 
@@ -20,14 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler calls the project-save routine. That routine first checks the project busy flag. When saving is allowed, it commits the active editor, updates target-specific project data, writes the project through its persistence object, and marks the project clean. When saving is blocked, it shows the recovered `HDLStrings.Msg_CIDECannotSave` message. The click handler then sets form flag `+0xBD7` to 1 even when the save routine reports failure.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Save Project"] -->|OnClick| handler["FUN_01079520"]
-    handler --> call1["FUN_010793a0"]
+flowchart TD
+    control["Save Project"] -->|OnClick| handler["TMCUProjectForm.sbSaveProjectClick<br/>FUN_01079520"]
+    handler --> save{"Project save allowed?"}
+    save -->|No| blocked["Show cannot-save message"]
+    save -->|Yes| persist["Commit editor and persist project<br/>Mark project clean"]
+    blocked --> flag["Set form flag +0xBD7"]
+    persist --> flag
 ```
 
 ## Handler evidence
@@ -59,7 +63,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

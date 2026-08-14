@@ -1,6 +1,6 @@
 ﻿# Select optimization target|Select the target of optimization mode
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,25 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+If the command can be changed, the handler constructs an optimization-target selection command, replaces the current command, and activates its toolbar button.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Select optimization target|Select the target of optimization mode"] -->|OnClick| handler["FUN_01c747e0"]
-    handler --> call1["FUN_01364e80"]
-    handler --> call2["FUN_01c6cee0"]
-    handler --> call3["FUN_01c6d670"]
+flowchart TD
+    control["Select optimization target|Select the target of optimization mode"] -->|"OnClick"| handler["ToolOptTargetClick (01c747e0)"]
+    handler --> guard{"Command change allowed?"}
+    guard -->|"No"| noChange["Keep current command"]
+    guard -->|"Yes"| action["Activate optimization-target selector"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C747E0__FUN_01c747e0.c](../../../DecompiledSources/Tina16/functions/0000000001C747E0__FUN_01c747e0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Activate optimization-target selection.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.TopToolBar.EditorTools.ToolOptTarget.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: If the command can be changed, the handler constructs an optimization-target selection command, replaces the current command, and activates its toolbar button.
+- Current graph evidence: The recovered body uses the common command guard, constructs one distinct selector class, passes it to FUN_01c6cee0, and activates ToolOptTarget. The paired Select Optimization Target menu delegates to this control.
 - Complexity: complex
 - Distinct outgoing calls: 3
 
@@ -65,5 +65,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The selector class name is not present in the recovered symbols.
+

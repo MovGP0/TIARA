@@ -1,6 +1,6 @@
 ﻿# B
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered B-selector guard and shared cursor On-state synchronization reviewed.
 
 ## Control
 
@@ -20,14 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The A and B selector buttons share speed-button group 1. After **B** becomes selected, the handler calls the shared B synchronization helper. That helper reads cursor B's active flag from cursor-controller byte `+0xc1` and applies it to the common cursor **On** button.
+
+If B is not Down when the helper runs, it returns without a change. The click selects which cursor later On and curve-navigation operations address; it does not itself move the cursor or change cursor B's active flag.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["B"] -->|OnClick| handler["FUN_012b16e0"]
-    handler --> call1["FUN_010f7e40"]
+flowchart TD
+    control["Click cursor B"] --> selected{"B selector is Down?"}
+    selected -->|No| noAction["Return without a change"]
+    selected -->|Yes| active["Read cursor B active flag"]
+    active --> sync["Set the common On button to that state"]
 ```
 
 ## Handler evidence
@@ -62,4 +66,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Cursor B's original controller-field name at byte +0xc1 is not recovered.

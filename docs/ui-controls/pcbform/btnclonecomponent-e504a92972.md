@@ -1,17 +1,17 @@
-﻿# Copy
+﻿# Copy component
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed: the handler copies the selected component definition to a new unique component name.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
 | Form | PcbForm |
+| Form caption | PCB information for SPICE macro components |
 | Component path | PcbForm.Panel2.BtnCloneComponent |
 | Control class | TBitBtn |
 | Caption | Copy |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | Not present |
 | Handler name | BtnCloneComponentClick |
 | Handler address | 00ed1110 |
 | Graph node | `resource:dfm:PcbForm/PcbForm.Panel2.BtnCloneComponent` |
@@ -20,65 +20,37 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+1. The handler reads the selected component and asks `FUN_00ebd270` for a new component name.
+2. If the returned name is nonempty and the backend reports that it does not exist, the handler reads the selected definition, adds and selects the new list entry, and creates the new backend component with the copied definition.
+3. It then refreshes component-dependent lists, enabled controls, and the 3D preview. A duplicate name shows localized message 0x846. Canceling the prompt or returning an empty name is a no-op.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Copy"] -->|OnClick| handler["FUN_00ed1110"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["Delphi UnicodeString assignment helper"]
-    handler --> call3["FUN_0043e130"]
-    handler --> call4["FUN_0043ea00"]
-    handler --> call5["FUN_00442f70"]
-    handler --> call6["FUN_0072d440"]
+flowchart TD
+    control["PcbForm.Panel2.BtnCloneComponent"] -->|OnClick| handler["FUN_00ed1110"]
+    handler --> decision{"New nonempty component name is unique?"}
+    decision -->|Yes| action["Create and select a component with the copied definition"]
+    decision -->|No| noop["Show duplicate-name error or do nothing after cancel"]
+    action --> outcome["Refresh dependent lists and the 3D preview"]
+    noop --> outcome
 ```
 
-## Handler evidence
+## Handler and call-path evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000000ED1110__FUN_00ed1110.c](../../../DecompiledSources/Tina16/functions/0000000000ED1110__FUN_00ed1110.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: PcbForm.Panel2.BtnCloneComponent.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 13
+- [`FUN_00ed1110`](../../../DecompiledSources/Tina16/functions/0000000000ED1110__FUN_00ed1110.c) — Clone a PCB component definition.
+- [`FUN_00ebd270`](../../../DecompiledSources/Tina16/functions/0000000000EBD270__FUN_00ebd270.c) — prompt and normalize a component name.
+- [`FUN_00eccc30`](../../../DecompiledSources/Tina16/functions/0000000000ECCC30__FUN_00eccc30.c) — refresh component-dependent selections.
+- [`FUN_00ecbca0`](../../../DecompiledSources/Tina16/functions/0000000000ECBCA0__FUN_00ecbca0.c) — refresh PCB form control availability.
 
-## Direct calls
+## Resource and glyph evidence
 
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:0043e130` — FUN_0043e130
-- `function:0043ea00` — FUN_0043ea00
-- `function:00442f70` — FUN_00442f70
-- `function:0072d440` — FUN_0072d440
-- `function:00b89270` — FUN_00b89270
-- `function:00b8e520` — FUN_00b8e520
-- `function:00ea9ca0` — FUN_00ea9ca0
-- `function:00ea9ef0` — FUN_00ea9ef0
-- `function:00ebd270` — FUN_00ebd270
-- `function:00ecbca0` — FUN_00ecbca0
-- `function:00eccc30` — FUN_00eccc30
+- Recovered form resource: [`ui-evidence.json`](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json).
 
-## Resource evidence
+## Inputs, outputs, and limits
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
+- Input: an OnClick event from `PcbForm.Panel2.BtnCloneComponent`, plus the current form selections and state described above.
+- State change: Prompts for a unique name, creates a new component with the selected definition, selects it, and refreshes dependent PCB controls.
+- Error or no-op behavior: The decision branches above identify the recovered validation, cancel, confirmation, boundary, or no-op path.
+- Analysis limit: The text of localized duplicate-name message 0x846 is not recovered here.
 
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Component list: at distance 256.
-- Rank 2: Footprint list: at distance 437.
-- Rank 3: 3D component view: at distance 602.
-
-## Analysis limits
-
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.

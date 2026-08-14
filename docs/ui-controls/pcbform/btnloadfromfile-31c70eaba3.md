@@ -1,17 +1,17 @@
-﻿# Load...
+﻿# Load
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed: the handler loads node mappings from a selected text file and applies them to the current PCB definition.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
 | Form | PcbForm |
+| Form caption | PCB information for SPICE macro components |
 | Component path | PcbForm.Panel1.BtnLoadFromFile |
 | Control class | TBitBtn |
 | Caption | Load... |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | Not present |
 | Handler name | BtnLoadFromFileClick |
 | Handler address | 00ed43c0 |
 | Graph node | `resource:dfm:PcbForm/PcbForm.Panel1.BtnLoadFromFile` |
@@ -20,56 +20,36 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+1. The handler initializes the form's open-file dialog from recovered global path and file-name values. If the user accepts the dialog, it passes the selected file to `FUN_00ed4890`.
+2. `FUN_00ed4890` reads the text file, parses its lines into temporary string lists, clears the visible node map, matches file tokens to the current definition, and replaces or appends mapping rows.
+3. The loader persists the result through `FUN_00ed3300`, then refreshes controls and the 3D preview. Canceling the file dialog leaves the mappings unchanged. No local exception handler is visible around file I/O or parsing.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Load..."] -->|OnClick| handler["FUN_00ed43c0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_00416ba0"]
-    handler --> call3["FUN_00724270"]
-    handler --> call4["FUN_00724420"]
-    handler --> call5["FUN_00ed4890"]
+flowchart TD
+    control["PcbForm.Panel1.BtnLoadFromFile"] -->|OnClick| handler["FUN_00ed43c0"]
+    handler --> decision{"File dialog accepted?"}
+    decision -->|Yes| action["Parse and apply mapping rows from the selected file"]
+    decision -->|No| noop["Leave the node map unchanged"]
+    action --> outcome["Persist the definition and refresh the UI"]
+    noop --> outcome
 ```
 
-## Handler evidence
+## Handler and call-path evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000000ED43C0__FUN_00ed43c0.c](../../../DecompiledSources/Tina16/functions/0000000000ED43C0__FUN_00ed43c0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: PcbForm.Panel1.BtnLoadFromFile.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 5
+- [`FUN_00ed43c0`](../../../DecompiledSources/Tina16/functions/0000000000ED43C0__FUN_00ed43c0.c) — Load PCB node mappings from a file.
+- [`FUN_00ed4890`](../../../DecompiledSources/Tina16/functions/0000000000ED4890__FUN_00ed4890.c) — parse and apply a node-mapping text file.
+- [`FUN_00ed3300`](../../../DecompiledSources/Tina16/functions/0000000000ED3300__FUN_00ed3300.c) — persist the selected PCB definition.
 
-## Direct calls
+## Resource and glyph evidence
 
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00416ba0` — FUN_00416ba0
-- `function:00724270` — FUN_00724270
-- `function:00724420` — FUN_00724420
-- `function:00ed4890` — FUN_00ed4890
+- Recovered form resource: [`ui-evidence.json`](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json).
 
-## Resource evidence
+## Inputs, outputs, and limits
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
+- Input: an OnClick event from `PcbForm.Panel1.BtnLoadFromFile`, plus the current form selections and state described above.
+- State change: Opens a file picker and, when accepted, parses mapping rows into the current component and footprint definition before refreshing the UI.
+- Error or no-op behavior: The decision branches above identify the recovered validation, cancel, confirmation, boundary, or no-op path.
+- Analysis limit: The open-dialog resource does not expose a user-facing file-format name, and the parser has no recovered local error message.
 
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1:  Valid node at distance 95.
-- Rank 2: Swapped node at distance 115.
-- Rank 3: Invalid node at distance 136.
-
-## Analysis limits
-
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.

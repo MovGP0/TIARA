@@ -1,6 +1,6 @@
 ﻿# Add Object
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for sbAddObjectWatchClick.
 
 ## Control
 
@@ -20,14 +20,20 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler forwards to the object-watch workflow. That routine opens a modal selector. Canceling or accepting an empty value preserves the watch list. For a nonempty accepted value it checks whether the item already exists, adds it only when absent, and refreshes the watch display. The duplicate path also refreshes without adding a second item.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Add Object"] -->|OnClick| handler["FUN_0108bcf0"]
-    handler --> call1["FUN_0108bc10"]
+flowchart TD
+    control["Add Object"] -->|OnClick| handler["TMCUProjectForm.sbAddObjectWatchClick<br/>FUN_0108bcf0"]
+    handler --> dialog["Open object-watch selector"]
+    dialog --> accepted{"Accepted nonempty object?"}
+    accepted -->|No| noOp["Keep watch list"]
+    accepted -->|Yes| exists{"Already in watch list?"}
+    exists -->|Yes| refresh["Refresh watch display"]
+    exists -->|No| add["Append object watch"]
+    add --> refresh
 ```
 
 ## Handler evidence
@@ -59,7 +65,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

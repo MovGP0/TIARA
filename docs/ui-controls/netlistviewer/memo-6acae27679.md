@@ -1,6 +1,6 @@
 ﻿# Memo
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the click wrapper, caret-position helper, and form resource.
 
 ## Control
 
@@ -20,20 +20,22 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Clicking `Memo` refreshes the cursor status display. The shared helper reads the SynEdit caret column and line, formats them with the form's recovered cursor-position template, and writes the result to the cursor panel. The click wrapper does not change text, selection, modified state, or messages. Normal SynEdit caret placement happens before or around this event through the control itself.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Memo"] -->|OnClick| handler["FUN_014b6070"]
-    handler --> call1["FUN_014b4650"]
+flowchart TD
+    control["Click Memo"] --> handler["FUN_014b6070"]
+    handler --> position["FUN_014b4650 reads caret column and line"]
+    position --> format["Format recovered cursor-position text"]
+    format --> panel["Update cursor status panel"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000014B6070__FUN_014b6070.c](../../../DecompiledSources/Tina16/functions/00000000014B6070__FUN_014b6070.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Refresh the Netlist Viewer cursor-position display.
 - Current graph summary: Handles 1 Delphi UI event: NetlistViewer.Memo.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The format template is constructed from localized resources during form creation; its exact displayed wording is not present in this article.
+- The handler reports the caret after the click but does not own the SynEdit mouse-placement logic.

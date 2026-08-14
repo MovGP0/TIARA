@@ -1,6 +1,6 @@
 ﻿# N
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for sbNodesClick.
 
 ## Control
 
@@ -20,16 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler copies byte `+0x328` from the Nodes control at `+0x958` to form byte `+0xBD4`. It compares that value with a retained global state. Only a transition from previously on to now off runs the recovered node-state shutdown path, performs a global refresh call, and pumps pending messages. It then stores the new toggle state globally. Other transitions only update the two state bytes.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["N"] -->|OnClick| handler["FUN_0108bb70"]
-    handler --> call1["FUN_0080cc70"]
-    handler --> call2["FUN_0199ded0"]
-    handler --> call3["FUN_01ca2aa0"]
+flowchart TD
+    control["N"] -->|OnClick| handler["TMCUProjectForm.sbNodesClick<br/>FUN_0108bb70"]
+    handler --> state["Copy Nodes control state to +0xBD4"]
+    state --> transition{"Previous on and now off?"}
+    transition -->|Yes| shutdown["Run node-state shutdown path<br/>Refresh and pump messages"]
+    transition -->|No| store["Store new global toggle state"]
+    shutdown --> store
 ```
 
 ## Handler evidence
@@ -63,7 +65,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

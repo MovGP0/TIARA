@@ -1,6 +1,6 @@
 ﻿# Import from picture (external)...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The recovered modal selection, required-picture branch, optional-netlist warning, and shared image-request path establish external picture import.
 
 ## Control
 
@@ -20,25 +20,32 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01a5bb80` creates and shows a modal external-picture selection dialog. If the user cancels, the handler destroys the dialog and makes no request. If accepted, it checks the two returned paths.
+
+An empty picture path shows `Picture file is not selected!` and stops without changing the form's picture state. A nonempty picture with an empty netlist shows `Netlist file is not selected!` but continues. The handler sets external-picture mode at `+0x293c`, stores the selected picture path in form field `+0x890`, and calls `FUN_01a5b280` with the optional netlist and required picture.
+
+The shared routine loads graph data from the selected netlist session when a netlist is present, stores the supplied picture path, marks a picture request, checks model compatibility, and invokes the local-LLM request pipeline. Compatibility messages do not abort processing. The click handler has no local exception handler or success message.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Import from picture (external)..."] -->|OnClick| handler["FUN_01a5bb80"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["Delphi UnicodeString assignment helper"]
-    handler --> call4["FUN_0043e1a0"]
-    handler --> call5["FUN_0072d440"]
-    handler --> call6["FUN_007fc180"]
+flowchart TD
+    control["Click external picture import"] --> dialog["Show picture and netlist selection dialog"]
+    dialog --> accepted{"Dialog accepted?"}
+    accepted -->|No| cancel["Return without request"]
+    accepted -->|Yes| picture{"Picture path present?"}
+    picture -->|No| error["Show Picture file is not selected"]
+    picture -->|Yes| netlist{"Netlist path present?"}
+    netlist -->|No| warn["Show Netlist file is not selected; continue"]
+    netlist -->|Yes| prepare["Prepare external picture request"]
+    warn --> prepare
+    prepare --> request["Invoke shared local-LLM request pipeline"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001A5BB80__FUN_01a5bb80.c](../../../DecompiledSources/Tina16/functions/0000000001A5BB80__FUN_01a5bb80.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Selects an external picture and optional netlist, then starts local-LLM picture recognition.
 - Current graph summary: Handles 1 Delphi UI event: LocalLLMForm.MainMenu1.mnTools.mnImportFromPictureExt.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -72,5 +79,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The modal dialog's recovered class name and its internal path-validation behavior are not resolved at this call site.
+- An absent netlist is explicitly allowed by this handler, although the selected model can later report that it cannot recognize images without one.

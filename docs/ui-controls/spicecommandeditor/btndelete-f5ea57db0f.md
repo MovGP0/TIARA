@@ -1,6 +1,6 @@
 ﻿# Delete
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed from recovered source.
 
 ## Control
 
@@ -20,33 +20,35 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler targets the final grid row, not the selected row. If the final row is a data row, it clears that row, reduces the row count by one, and disables the command selector. It clamps the requested row count to at least two, so deleting the last available data row clears it but keeps the grid's minimum layout. If no data row exists after the fixed header rows, the click has no effect.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Delete"] -->|OnClick| handler["FUN_01472580"]
-    handler --> call1["FUN_0064dbe0"]
-    handler --> call2["FUN_00848a70"]
-    handler --> call3["FUN_0084e3c0"]
+flowchart TD
+    control["Delete button"] -->|"OnClick"| handler["Delete handler"]
+    handler --> available{"Final row is a data row?"}
+    available -->|"No"| noOp["No change"]
+    available -->|"Yes"| clear["Clear final row"]
+    clear --> resize["Reduce row count, minimum 2"]
+    resize --> disable["Disable command selector"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001472580__FUN_01472580.c](../../../DecompiledSources/Tina16/functions/0000000001472580__FUN_01472580.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Removes the final command row while preserving the grid minimum.
 - Current graph summary: Handles 1 Delphi UI event: SpiceCommandEditor.pnlButtons.btnDelete.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Clears the last data row, reduces row count with a minimum of two, and disables the command selector.
+- Current graph evidence: The handler compares `RowCount - 1` with `FixedRows`, clears the returned row object through virtual slot `+0x90`, calls the row-count setter with `max(RowCount - 1, 2)`, and passes false to the selector enabled-state setter.
 - Complexity: complex
 - Distinct outgoing calls: 3
 
 ## Direct calls
 
-- `function:0064dbe0` — FUN_0064dbe0
-- `function:00848a70` — FUN_00848a70
-- `function:0084e3c0` — FUN_0084e3c0
+- `function:0064dbe0` — sets the selector enabled state to false.
+- `function:00848a70` — updates the grid row count and enforces its internal minimum.
+- `function:0084e3c0` — obtains the grid row object that the handler clears.
 
 ## Resource evidence
 
@@ -65,5 +67,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The row-object virtual call is recovered, but its Delphi method name is not.
+- The source proves removal from the end of the grid only. It does not use the current cell or selected row.

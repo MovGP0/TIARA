@@ -1,6 +1,6 @@
 ﻿# RunAll (picture)...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The recovered hard-coded paths, two file-enumeration loops, import calls, busy waits, and stop flag establish the developer batch workflow.
 
 ## Control
 
@@ -20,25 +20,37 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01a5bd40` is a batch test workflow, not a general folder picker. It hard-codes `c:\Attila\Devel Files\Other\ImportPic Test\`, clears stop byte `+0x810`, and runs two sequential enumerations.
+
+The first loop enumerates non-directory `*.tsc` files. For each file it builds the full path, calls the application document-open dispatcher, and invokes `FUN_01a5bad0` with a null second argument. That special call sets mode byte `+0x2ae8`, prepares a current-circuit picture request, and starts local-LLM processing. The loop pumps application messages while busy byte `+0x811` is set and then waits 500 ms.
+
+If the stop byte remains clear, the second loop enumerates non-directory `Ext\*.png` files. For each image it derives a sibling `.cir` path, enables external-picture mode, stores the image path, sets mode byte `+0x2ae8`, and calls `FUN_01a5b280` with the derived circuit and image paths. It again pumps messages until the request is no longer busy and waits 500 ms.
+
+Both loops stop when `+0x810` becomes nonzero. Missing or empty search results simply skip their loop. The handler does not ask for confirmation, let the user select a root, validate the hard-coded root, report completion, inspect individual import success, or provide a local exception handler.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["RunAll (picture)..."] -->|OnClick| handler["FUN_01a5bd40"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["Delphi UnicodeString assignment helper"]
-    handler --> call3["FUN_00414b50"]
-    handler --> call4["FUN_00416ba0"]
-    handler --> call5["FUN_00416cd0"]
-    handler --> call6["FUN_00417580"]
+flowchart TD
+    control["Click RunAll picture"] --> root["Use hard-coded ImportPic Test root; clear stop flag"]
+    root --> tsc{"Another non-directory *.tsc and stop flag clear?"}
+    tsc -->|Yes| open["Open document"]
+    open --> current["Start current-circuit picture import"]
+    current --> wait1["Pump messages until request is idle; wait 500 ms"]
+    wait1 --> tsc
+    tsc -->|No| stopped{"Stop flag set?"}
+    stopped -->|Yes| done["End batch"]
+    stopped -->|No| png{"Another non-directory Ext/*.png and stop flag clear?"}
+    png -->|Yes| pair["Derive .cir path and start external picture import"]
+    pair --> wait2["Pump messages until request is idle; wait 500 ms"]
+    wait2 --> png
+    png -->|No| done
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001A5BD40__FUN_01a5bd40.c](../../../DecompiledSources/Tina16/functions/0000000001A5BD40__FUN_01a5bd40.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Runs hard-coded current-circuit and external-picture import batches for developer test files.
 - Current graph summary: Handles 1 Delphi UI event: LocalLLMForm.MainMenu1.mnTools.mnRunAll.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -81,5 +93,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The hard-coded path and loop data flow establish a developer test workflow. The source does not identify a supported end-user configuration for this path.
+- The application document-open callee is large. This article uses only the proven filename input and open-dispatch call site.
+- Busy-wait loops pump UI messages, so other events can set the stop byte. The exact control that sets it is not established here.

@@ -1,6 +1,6 @@
 ﻿# FolderTree
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,33 +20,45 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_014bf040` reads the selected tree node. If no node is selected, it returns without changing the folder tree, file list, or preview.
+
+Each node data object has a load flag at `+0x30` and a folder path at `+0x10`. When the flag is clear, `FUN_014bdf00` requests `getUserFolders&parent=<path>&format=xml`, parses the returned folder records, and adds child nodes. The handler then sets the flag even if that request failed, so a later click does not retry this child-folder load through the same branch.
+
+The handler always calls `FUN_014be5c0` for the selected folder path. That routine clears the FileList, requests `getFolderFiles&folder=<path>&format=xml`, and, on success, adds rows with the recovered `name`, `size`, and `date` fields and clears the preview image. If the file request fails, the file list remains empty and the prior preview is not cleared. The handler has no local message or rollback branch.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["FolderTree"] -->|OnClick| handler["FUN_014bf040"]
-    handler --> call1["FUN_006e2530"]
-    handler --> call2["FUN_014bdf00"]
-    handler --> call3["FUN_014be5c0"]
+flowchart TD
+    Click["Click a folder node"] --> Handler["FUN_014bf040"]
+    Handler --> Selected{"Tree node selected?"}
+    Selected -->|No| NoOp["Return without changes"]
+    Selected -->|Yes| Loaded{"Child folders already loaded?"}
+    Loaded -->|No| LoadFolders["Request and parse child folders"]
+    LoadFolders --> Mark["Mark node as loaded"]
+    Loaded -->|Yes| LoadFiles["Clear FileList and request folder files"]
+    Mark --> LoadFiles
+    LoadFiles --> Success{"File request succeeds?"}
+    Success -->|No| Empty["Keep FileList empty; keep prior preview"]
+    Success -->|Yes| Populate["Add name, size, and date rows"]
+    Populate --> ClearPreview["Clear preview image"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000014BF040__FUN_014bf040.c](../../../DecompiledSources/Tina16/functions/00000000014BF040__FUN_014bf040.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Lazily expand the selected remote folder and load its file rows.
 - Current graph summary: Handles 1 Delphi UI event: OpenWindow.LeftPanel.FolderTree.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Uses the selected tree node path to load child folders once and to replace the file list with the selected folder's remote file records.
+- Current graph evidence: The handler reads the selected node through `FUN_006e2530`, tests node-data flag `+0x30`, passes path `+0x10` to the two loaders, and sets the flag. The callees contain the `getUserFolders` and `getFolderFiles` requests and parse `folder` or `file` XML records.
 - Complexity: complex
 - Distinct outgoing calls: 3
 
 ## Direct calls
 
-- `function:006e2530` — FUN_006e2530
-- `function:014bdf00` — FUN_014bdf00
-- `function:014be5c0` — FUN_014be5c0
+- `function:006e2530` — returns the currently selected tree node, or zero when no valid selection exists.
+- `function:014bdf00` — requests and inserts child folders for one remote folder path.
+- `function:014be5c0` — clears and reloads the file list for one remote folder path.
 
 ## Resource evidence
 
@@ -65,5 +77,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The server request helper can process server errors internally; its exact user-facing error text is not recovered here.
+- The handler marks child folders as loaded without checking the folder-request result. This can suppress a retry after failure.
+- The nearby **Folder:** label confirms layout only. The selected-node and request data flow establish the behavior.

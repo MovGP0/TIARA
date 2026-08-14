@@ -1,6 +1,6 @@
 ﻿# &Contents
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for TIARA-diz.6.7.1543.
 
 ## Control
 
@@ -11,59 +11,34 @@
 | Control class | TMenuItem |
 | Caption | &Contents |
 | Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | ContentsClick |
 | Handler address | 0179a7b0 |
 | Graph node | `resource:dfm:ShapeEdit/ShapeEdit.MainMenu.Help.Contents` |
 | Handler node | `function:0179a7b0` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Builds the SHAPED.CHM path under the application's recovered base directory, canonicalizes the path, and sends it to the application help system with help command 3.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Contents"] -->|OnClick| handler["FUN_0179a7b0"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00416ba0"]
-    handler --> call3["FUN_01b1def0"]
+flowchart TD
+    control["&Contents"] --> handler["ContentsClick at 0179a7b0"]
+    handler --> step1["Build SHAPED.CHM path"]
+    handler --> step2["Canonicalize path"]
+    handler --> step3["Invoke application help"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/000000000179A7B0__FUN_0179a7b0.c](../../../DecompiledSources/Tina16/functions/000000000179A7B0__FUN_0179a7b0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: ShapeEdit.MainMenu.Help.Contents.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 3
-
-## Direct calls
-
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00416ba0` — FUN_00416ba0
-- `function:01b1def0` — FUN_01b1def0
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
+- Handler source: [000000000179A7B0__FUN_0179a7b0.c](../../../DecompiledSources/Tina16/functions/000000000179A7B0__FUN_0179a7b0.c)
 - Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Recovered path: The handler appends SHAPED.CHM to form field +0xcc0, calls 01b1def0, and invokes the application help object through its recovered virtual method.
+- Resource context: The recovered TMenuItem resource uses caption `&Contents`.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered handler has no local error or missing-file branch.
+- The caption, hint, and glyph support control identity only. They do not replace the recovered handler and callee evidence.
+

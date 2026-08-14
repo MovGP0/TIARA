@@ -1,6 +1,6 @@
 ﻿# Left
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,23 +20,30 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+VCL selects **Left** in the Left/Right speed-button group. `FUN_01520660` then calls `FUN_01506fb0`. The helper reads the stored lower X bound at `+0xc50` and writes it to the shared floating-point coordinate edit at `+0xb90`, which stores and formats the value.
+
+The click selects and displays an existing bound. It does not change either bound, move the graph, move a cursor, or select a channel. Later edit and spin handlers enforce `left < right`, store an accepted value, clamp cursors, and update the graph. Those later actions are not direct calls from this click.
+
+Repeated clicks reload the same value. The direct path has no message, file write, local exception handler, or rollback.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Left"] -->|OnClick| handler["FUN_01520660"]
-    handler --> call1["FUN_01506fb0"]
+flowchart TD
+    Click["Click Left"] --> Select["VCL selects Left mode"]
+    Select --> Handler["FUN_01520660"]
+    Handler --> Read["Read lower X bound +0xc50"]
+    Read --> Edit["Write and format coordinate edit +0xb90"]
+    Edit -. "later edit or spin" .-> Apply["Validate and apply a new lower bound"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001520660__FUN_01520660.c](../../../DecompiledSources/Tina16/functions/0000000001520660__FUN_01520660.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Select and display the Logic Analyzer's lower X-axis bound.
 - Current graph summary: Handles 1 Delphi UI event: LogicAnalyzerWin.DisplayGroupBox.FLeftCoordBtn.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler copies the stored left bound into the shared coordinate editor.
+- Current graph evidence: The handler, `FUN_01506fb0`, and paired bound-update path establish the field roles.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +68,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Original Delphi field names for the bounds and edit pointer are not recovered.
+- The click does not expose the custom spin control's later callback order.

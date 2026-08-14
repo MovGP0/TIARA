@@ -1,6 +1,6 @@
 ﻿# Delete All
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for mnDeleteAllClick.
 
 ## Control
 
@@ -20,16 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler asks the project model to delete all breakpoints. It then refreshes the active editor. If the messages page selector reports page 3, it also refreshes the breakpoint list. There is no confirmation, local error message, or no-op guard in this handler.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Delete All"] -->|OnClick| handler["FUN_01089e80"]
-    handler --> call1["FUN_006d5120"]
-    handler --> call2["FUN_01088c80"]
-    handler --> call3["FUN_010b30a0"]
+flowchart TD
+    control["Delete All"] -->|OnClick| handler["TMCUProjectForm.mnDeleteAllClick<br/>FUN_01089e80"]
+    handler --> delete["Delete all project breakpoints"]
+    delete --> editor["Refresh active editor"]
+    editor --> page{"Breakpoint page active?"}
+    page -->|Yes| panel["Refresh breakpoint list"]
+    page -->|No| done["Finish"]
 ```
 
 ## Handler evidence
@@ -63,7 +65,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

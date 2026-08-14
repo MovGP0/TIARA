@@ -1,6 +1,6 @@
 ﻿# Select A&ll
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for TIARA-diz.6.7.1538.
 
 ## Control
 
@@ -11,59 +11,34 @@
 | Control class | TMenuItem |
 | Caption | Select A&ll |
 | Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | mnSelectAllClick |
 | Handler address | 01799320 |
 | Graph node | `resource:dfm:ShapeEdit/ShapeEdit.MainMenu.Edit.mnSelectAll` |
 | Handler node | `function:01799320` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Iterates through every drawing object, sets its selected flag, and redraws the editor. An empty list causes only the redraw.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Select A&ll"] -->|OnClick| handler["FUN_01799320"]
-    handler --> call1["FUN_004aeac0"]
-    handler --> call2["FUN_0064e770"]
-    handler --> call3["FUN_017afd00"]
+flowchart TD
+    control["Select A&ll"] --> handler["mnSelectAllClick at 01799320"]
+    handler --> step1["Iterate all drawing objects"]
+    handler --> step2["Set selected state"]
+    handler --> step3["Redraw editor"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001799320__FUN_01799320.c](../../../DecompiledSources/Tina16/functions/0000000001799320__FUN_01799320.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: ShapeEdit.MainMenu.Edit.mnSelectAll.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 3
-
-## Direct calls
-
-- `function:004aeac0` — FUN_004aeac0
-- `function:0064e770` — FUN_0064e770
-- `function:017afd00` — FUN_017afd00
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
+- Handler source: [0000000001799320__FUN_01799320.c](../../../DecompiledSources/Tina16/functions/0000000001799320__FUN_01799320.c)
 - Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Recovered path: The handler loops over field +0xd10, calls 017afd00 with value 1 for each object, and invalidates the editor.
+- Resource context: The recovered TMenuItem resource uses caption `Select A&ll`.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No additional implementation gap was found in the recovered click path.
+- The caption, hint, and glyph support control identity only. They do not replace the recovered handler and callee evidence.
+

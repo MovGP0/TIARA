@@ -1,6 +1,6 @@
 ﻿# Source
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,22 +20,31 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The **Source** and **Mode** buttons share trigger group `2`. When Source is down and form mode byte `+0xeb8` still selects Mode, `FUN_0151fef0` sets the byte to `1`. It then loads the trigger-source item list and selected index from analyzer engine virtual getters `+0x88` and `+0x90` into the shared combo at `+0xcb8`.
+
+The direct click changes the selected editor mode and combo contents. It does not store a new trigger source. A later combo change in Source state stores the selected item through engine slot `+0x98`.
+
+If Source is not down or source state is already active, the handler is a silent no-op. It has no message, file write, local exception handler, or rollback.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Source"] -->|OnClick| handler["FUN_0151fef0"]
+flowchart TD
+    Click["Click Source"] --> Handler["FUN_0151fef0"]
+    Handler --> Active{"Source is down and editor state is Mode?"}
+    Active -->|No| NoOp["Return without changing combo"]
+    Active -->|Yes| Flag["Set mode byte +0xeb8 to 1"]
+    Flag --> Items["Load trigger-source items and ItemIndex"]
+    Items -. "later combo change" .-> Store["Store selected source"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/000000000151FEF0__FUN_0151fef0.c](../../../DecompiledSources/Tina16/functions/000000000151FEF0__FUN_0151fef0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Select and display the Logic Analyzer trigger source.
 - Current graph summary: Handles 1 Delphi UI event: LogicAnalyzerWin.TriggerBox.TriggerSourceBtn.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler selects trigger-source editing and loads its engine-backed combo state.
+- Current graph evidence: The Down-state guard, mode byte, paired engine getters, and shared combo setters establish the behavior.
 - Complexity: simple
 - Distinct outgoing calls: 0
 
@@ -61,5 +70,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Engine methods are indirect VMT calls. Their trigger-source roles are established by paired read and change-handler data flow.
+- Nearby Group and Pattern labels are not used as evidence for this control.

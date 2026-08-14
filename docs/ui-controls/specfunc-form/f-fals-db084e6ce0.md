@@ -1,6 +1,6 @@
 ﻿# F=fals
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered handler, shared visibility setter, form lifecycle, and selection-state consumers.
 
 ## Control
 
@@ -20,20 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler selects the constant-false special function. It clears the recovered table-preservation flag, sets the active truth-row count to zero, and hides the `Symmetric number` group. Consumers use this count and its index array as the set of truth-table rows where the function is true. A zero count therefore represents no true rows.
+
+The handler does not erase old index-array entries, but the zero count makes those entries inactive. A repeated click keeps the count at zero. The shared visibility setter does nothing when the group is already hidden. The handler has no error branch and does not close the form.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["F=fals"] -->|OnClick| handler["FUN_011aa360"]
-    handler --> call1["FUN_0064dbe0"]
+flowchart TD
+    control["Select F=fals"] --> handler["TSpecFunc_form.F_falsClick"]
+    handler --> flag["Clear the table-preservation flag"]
+    flag --> count["Set the active truth-row count to 0"]
+    count --> hide["Hide the Symmetric number group"]
+    hide --> result["No truth-table row is selected as true"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011AA360__FUN_011aa360.c](../../../DecompiledSources/Tina16/functions/00000000011AA360__FUN_011aa360.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Select the constant-false special function.
 - Current graph summary: Handles 1 Delphi UI event: SpecFunc_form.F_fals.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -42,7 +47,7 @@ flowchart LR
 
 ## Direct calls
 
-- `function:0064dbe0` — FUN_0064dbe0
+- `function:0064dbe0` — changes the `Symmetric number` group visibility only when needed.
 
 ## Resource evidence
 
@@ -61,5 +66,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The Delphi names of the global count, index array, and table-preservation flag are not recovered.
+- The handler leaves inactive index-array entries in memory. Recovered consumers honor only entries below the count.

@@ -1,6 +1,6 @@
 ﻿# LbComponents
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source, call-path, state, and error evidence reviewed.
 
 ## Control
 
@@ -20,27 +20,31 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Clicking a Component list row makes that component current and rebuilds its dependent Footprint and mapping lists.
+
+When the mapping-state byte at `+0x8c0` is set, the handler compares the selected component with cached component field `+0x8a8` and retains the byte only when they match. It then calls [`FUN_00ec1150`](../../../DecompiledSources/Tina16/functions/0000000000EC1150__FUN_00ec1150.c). That helper clears the old Footprint and mapping rows, reads the selected component's `DigitalICs` definition, extracts its footprint entries, restores a cached footprint selection when possible, and invokes the footprint-mapping rebuild. [`FUN_00ec0380`](../../../DecompiledSources/Tina16/functions/0000000000EC0380__FUN_00ec0380.c) updates action availability.
+
+The nearest `Component list:` label agrees with this role. The source establishes the list dependency.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["LbComponents"] -->|OnClick| handler["FUN_00ec2240"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00416db0"]
-    handler --> call3["FUN_00ea9ca0"]
-    handler --> call4["FUN_00ec0380"]
-    handler --> call5["FUN_00ec1150"]
+flowchart TD
+    control["Component list row"] -->|OnClick| handler["FUN_00ec2240"]
+    handler --> guard{"Mapping-state byte set?"}
+    guard -->|Yes| compare["Compare selection with cached component"]
+    guard -->|No| rebuild["FUN_00ec1150 rebuilds footprints and mappings"]
+    compare --> rebuild
+    rebuild --> refresh["FUN_00ec0380 refreshes action availability"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000000EC2240__FUN_00ec2240.c](../../../DecompiledSources/Tina16/functions/0000000000EC2240__FUN_00ec2240.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Selects a component and rebuilds its dependent footprint and mapping lists.
 - Current graph summary: Handles 1 Delphi UI event: PcbForm4.Panel2.LbComponents.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Reconciles the mapping-state byte with the cached component selection, then rebuilds Footprint and pin-to-node mapping data from the selected component's DigitalICs definition and refreshes action availability.
+- Current graph evidence: FUN_00ec2240 reads the selected component when state byte +0x8c0 is set, compares it with field +0x8a8, updates the byte, and calls FUN_00ec1150 and FUN_00ec0380. FUN_00ec1150 reads the selected component definition and reconstructs dependent lists. The nearest label is Component list.
 - Complexity: complex
 - Distinct outgoing calls: 5
 
@@ -68,7 +72,13 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 - Rank 1: Component list: at distance 17.
 - Rank 2: Footprint list: at distance 197.
 
+## No-op and error behavior
+
+- The handler always refreshes dependent lists and actions for the current selection.
+- A changed component clears the retained mapping-state flag.
+- The handler has no local invalid-index or backend error recovery; normal list interaction supplies a selected row.
+
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The Delphi names for cache field `+0x8a8` and state byte `+0x8c0` are not recovered.
+- The component-definition grammar is parsed through recovered string delimiters whose semantic names are unknown.

@@ -1,6 +1,6 @@
 ﻿# &In
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,25 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler obtains the current viewport center and applies the recovered zoom-in factor around that point.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&In"] -->|OnClick| handler["FUN_01c75420"]
-    handler --> call1["FUN_00807f70"]
-    handler --> call2["FUN_00807f90"]
-    handler --> call3["FUN_01c74ee0"]
+flowchart TD
+    control["&In"] -->|"OnClick"| handler["ZoomInClick (01c75420)"]
+    handler --> action["Scale viewport inward around its center"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C75420__FUN_01c75420.c](../../../DecompiledSources/Tina16/functions/0000000001C75420__FUN_01c75420.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Zoom in around the viewport center.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.View.Zoom.ZoomIn.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler obtains the current viewport center and applies the recovered zoom-in factor around that point.
+- Current graph evidence: The body reads the view state, calculates its center through a helper, and calls the scale operation with the zoom-in constant. The menu caption is In.
 - Complexity: complex
 - Distinct outgoing calls: 3
 
@@ -65,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact numeric scale factor is expressed through recovered floating-point data rather than a named constant.
+

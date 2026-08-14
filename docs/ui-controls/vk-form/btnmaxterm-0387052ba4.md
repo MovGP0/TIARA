@@ -1,6 +1,6 @@
 ﻿# Maxterm
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and UI evidence.
 
 ## Control
 
@@ -20,28 +20,30 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler sets the shared help-context ID to `3200` and sets the Karnaugh mode byte to `0`, which the renderer uses for the right Maxterm view. It reads the stored maxterm source expression, removes its final character, substitutes the configured Boolean variable display names, and writes the formatted source text to the form.
+
+`FUN_011ae5b0` then redraws the maxterm map, generates its simplified product-of-sums expression, and publishes the result text. When the stored variable count is less than six, the handler also enables a shared application control at global form offset `+0x6f8`; that control's Delphi identity is not recovered here. The handler has no explicit error branch.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
     control["Maxterm"] -->|OnClick| handler["FUN_011d2a70"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_00416cd0"]
-    handler --> call4["FUN_00416dc0"]
-    handler --> call5["VCL control text setter with change suppression"]
-    handler --> call6["Boolean variable display-name substitution"]
+    handler --> selectMode["Set mode to Maxterm and help context to 3200"]
+    selectMode --> sourceText["Format the stored maxterm expression"]
+    sourceText --> render["FUN_011ae5b0: redraw and simplify the maxterm map"]
+    render --> variableCount{"Fewer than six variables?"}
+    variableCount -->|Yes| enableShared["Enable the shared control at +0x6f8"]
+    variableCount -->|No| keepState["Keep that control state"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011D2A70__FUN_011d2a70.c](../../../DecompiledSources/Tina16/functions/00000000011D2A70__FUN_011d2a70.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Select, redraw, and simplify the maxterm Karnaugh view.
 - Current graph summary: Handles 1 Delphi UI event: VK_form.BtnMaxterm.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Selects maxterm mode, formats the stored maxterm expression, redraws the map, and publishes the simplified result.
+- Current graph evidence: The handler writes `0` to `DAT_01f2a8d4`, reads the global string at offset `+0x798`, writes form control `+0x6c8`, and calls the annotated Karnaugh renderer `FUN_011ae5b0`.
 - Complexity: complex
 - Distinct outgoing calls: 7
 
@@ -73,5 +75,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The shared control at global form offset `+0x6f8` has no recovered Delphi name.
+- The removed final source-expression character is not identified by a recovered symbol.

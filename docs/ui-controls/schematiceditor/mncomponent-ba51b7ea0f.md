@@ -1,6 +1,6 @@
 ﻿# Last &Component
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,23 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler delegates to ToolCompClick, which checks editing permission and lock state, selects the last-used component, and activates placement. Sender is unused, so the menu and popup controls behave identically.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Last &Component"] -->|OnClick| handler["FUN_01c773a0"]
-    handler --> call1["FUN_01c6d6a0"]
+flowchart TD
+    control["Last &Component"] -->|"OnClick"| handler["mnComponentClick (01c773a0)"]
+    handler --> guard{"Editing allowed and schematic unlocked?"}
+    guard -->|"No"| noChange["Keep current command"]
+    guard -->|"Yes"| action["Select last component and activate placement tool"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C773A0__FUN_01c773a0.c](../../../DecompiledSources/Tina16/functions/0000000001C773A0__FUN_01c773a0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Select the last component placement tool.
 - Current graph summary: Handles 2 Delphi UI events: SchematicEditor.MainMenu.Insert.mnComponent.OnClick, SchematicEditor.SchPopup.pmLastComponent.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler delegates to ToolCompClick, which checks editing permission and lock state, selects the last-used component, and activates placement. Sender is unused, so the menu and popup controls behave identically.
+- Current graph evidence: The recovered wrapper calls FUN_01c6d6a0, whose guard, last-component selector call with -1, and tool activation were inspected.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The selected component type is runtime state.
+

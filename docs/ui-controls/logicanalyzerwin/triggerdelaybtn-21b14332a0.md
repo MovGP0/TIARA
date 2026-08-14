@@ -1,6 +1,6 @@
 ﻿# Delay
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,23 +20,32 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The **Delay** and **Position** buttons share trigger group `3`. When Delay is down and form mode byte `+0xeba` still selects Position, `FUN_015200c0` sets the byte to `1`, reads the current trigger delay from analyzer engine getter `+0xa8`, and displays it in the shared integer edit at `+0xcf0`.
+
+The direct click selects and displays an existing value. It does not store a new delay. Later edit or spin events use engine slots `+0xa0` and `+0xb0` to validate and store the delay when this mode byte is `1`.
+
+If Delay is not down or delay mode is already active, the handler is a silent no-op. It has no message, file write, local exception handler, or rollback.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Delay"] -->|OnClick| handler["FUN_015200c0"]
-    handler --> call1["FUN_00f04fa0"]
+flowchart TD
+    Click["Click Delay"] --> Handler["FUN_015200c0"]
+    Handler --> Active{"Delay is down and mode is Position?"}
+    Active -->|No| NoOp["Return without changing edit"]
+    Active -->|Yes| Flag["Set mode byte +0xeba to 1"]
+    Flag --> Read["Read engine delay +0xa8"]
+    Read --> Display["Display delay in integer edit +0xcf0"]
+    Display -. "later edit or spin" .-> Store["Validate and store delay"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000015200C0__FUN_015200c0.c](../../../DecompiledSources/Tina16/functions/00000000015200C0__FUN_015200c0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Select and display the Logic Analyzer trigger delay.
 - Current graph summary: Handles 1 Delphi UI event: LogicAnalyzerWin.TriggerBox.TriggerDelayBtn.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler selects delay mode and fills the shared trigger integer editor.
+- Current graph evidence: The Down-state guard, mode byte, engine getter, and paired later setter establish the role.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -62,5 +71,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The engine method names and delay units are not recovered.
+- Nearby Pattern and Group labels are layout candidates only and are not used as trigger-delay proof.

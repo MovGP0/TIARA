@@ -1,6 +1,6 @@
 ﻿# &Options...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the shared options-dialog handler.
 
 ## Control
 
@@ -20,23 +20,31 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+This menu item is a one-call wrapper around the same options path as the visible
+Options button. `FUN_01126a70` constructs the signal-options dialog, passes it the
+current compiled object and signal mode, and shows it modally. Cancel destroys the
+temporary dialog without changing the editor. An OK result recompiles or
+synchronizes the active editable mode, runs the test/evaluation refresh, and
+resets the editor selection or focus state.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["&Options..."] -->|OnClick| handler["FUN_01126b20"]
-    handler --> call1["FUN_01126a70"]
+    control["Options"] -->|"OnClick"| handler["FUN_01126b20"]
+    handler --> options["FUN_01126a70: show options dialog"]
+    options --> accepted{"Result is OK?"}
+    accepted -->|"No"| unchanged["Destroy dialog; no refresh"]
+    accepted -->|"Yes"| refresh["Compile or synchronize, then test"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001126B20__FUN_01126b20.c](../../../DecompiledSources/Tina16/functions/0000000001126B20__FUN_01126b20.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Open the shared signal-options workflow from the popup menu.
 - Current graph summary: Handles 1 Delphi UI event: SignalEditorDlg.PopupMenu.pmiOptions.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Delegates directly to `FUN_01126a70`.
+- Current graph evidence: The wrapper contains one call; the callee checks modal result `1` before all editor refresh work.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +69,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not name every option field in the temporary dialog.
+- Cancel is a verified no-op for the editor refresh path.

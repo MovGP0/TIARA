@@ -1,6 +1,6 @@
-﻿# Select Config...
+# Select the Linux configuration file
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the recovered handler, file-dialog helper, edit setter, form resource, and configuration-processing path.
 
 ## Control
 
@@ -10,8 +10,6 @@
 | Component path | MCUKernelImageProperties.bSelectConfigLinux |
 | Control class | TButton |
 | Caption | Select Config... |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | bSelectConfigLinuxClick |
 | Handler address | 01414f00 |
 | Graph node | `resource:dfm:MCUKernelImageProperties/MCUKernelImageProperties.bSelectConfigLinux` |
@@ -20,54 +18,42 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`TMCUKernelImageProperties.bSelectConfigLinuxClick` executes the form's `TOpenDialog`. If the user accepts, it copies the selected name to string field `+0x7b0`, sets Linux-configuration flag `+0x7cc`, and displays the name in `eConfigLinux` at `+0x740`.
+
+The click does not parse the file. When flag `+0x7cc` is already set, the OK handler can load the selected file and look up `FLASH_MEM_BASE` and `FLASH_SIZE`. If the flag is clear when OK is clicked, the recovered OK handler sets it and takes no processing path for that attempt.
+
+Canceling the open dialog preserves the prior string, flag, and edit text. The handler only clears its temporary Unicode string before return. It does not show a message or perform local recovery.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Select Config..."] -->|OnClick| handler["FUN_01414f00"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString assignment helper"]
-    handler --> call3["VCL control text setter with change suppression"]
-    handler --> call4["FUN_00724270"]
+flowchart TD
+    click["Click Select Config..."] --> execute["Execute the form OpenDialog"]
+    execute --> accepted{"Dialog accepted?"}
+    accepted -->|No| noChange["Keep the prior config.linux path and flag"]
+    accepted -->|Yes| read["Read the selected file name"]
+    read --> store["Store it at +0x7b0 and set flag +0x7cc"]
+    store --> display["Update eConfigLinux when its text differs"]
+    noChange --> cleanup["Clear the temporary string"]
+    display --> cleanup
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001414F00__FUN_01414f00.c](../../../DecompiledSources/Tina16/functions/0000000001414F00__FUN_01414f00.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: MCUKernelImageProperties.bSelectConfigLinux.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 4
-
-## Direct calls
-
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:0064de00` — VCL control text setter with change suppression
-- `function:00724270` — FUN_00724270
+- [FUN_01414f00](../../../DecompiledSources/Tina16/functions/0000000001414F00__FUN_01414f00.c) contains the dialog decision and accepted-path writes.
+- [FUN_00724270](../../../DecompiledSources/Tina16/functions/0000000000724270__FUN_00724270.c) reads the selected name.
+- [FUN_0064de00](../../../DecompiledSources/Tina16/functions/000000000064DE00__FUN_0064de00.c) performs the change-suppressed edit update.
+- [FUN_01415920](../../../DecompiledSources/Tina16/functions/0000000001415920__FUN_01415920.c) is the later key-value parser for `FLASH_MEM_BASE` and `FLASH_SIZE`.
+- [FUN_01415220](../../../DecompiledSources/Tina16/functions/0000000001415220__FUN_01415220.c) contains the special clear-flag and validated paths.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Frame buffer start:  at distance 343.
-- Rank 2: Frame buffer end at distance 373.
-- Rank 3: Optional at distance 445.
+- `bSelectConfigLinux` is paired with `eConfigLinux` in the recovered form.
+- The button has no hint, action, image, or extracted glyph.
+- The component names and the processing data flow agree on the Linux configuration role.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The reason for the OK handler's clear-flag shortcut is not recovered. This article records the observed branch without assigning a product rule to it.
+- This click does not validate that the required keys exist.
+

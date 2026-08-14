@@ -1,6 +1,6 @@
 ﻿# &New
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the recovered handler, unsaved-change guard, and reset path.
 
 ## Control
 
@@ -20,24 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The menu item first checks the current `Memo` for unsaved changes. If modified, it shows a localized Yes/No/Cancel save prompt: Cancel stops the command, Yes runs the shared Save handler, and No continues without saving. An accepted command clears `Memo`, marks the new document modified, resets the associated netlist state, clears the recovered status text, and clears the message list. The prompt helper does not verify that Save succeeded before New continues.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&New"] -->|OnClick| handler["FUN_014b5250"]
-    handler --> call1["VCL control text setter with change suppression"]
-    handler --> call2["FUN_00c0dad0"]
-    handler --> call3["FUN_00c0fae0"]
-    handler --> call4["FUN_014b4510"]
-    handler --> call5["FUN_019953b0"]
+flowchart TD
+    control["Choose New"] --> guard{"Unsaved-change guard permits reset?"}
+    guard -->|No or Cancel| stop["Keep current document"]
+    guard -->|Yes| handler["FUN_014b5250"]
+    handler --> clear["Clear Memo and mark new document modified"]
+    clear --> reset["Reset netlist state, status text, and messages"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000014B5250__FUN_014b5250.c](../../../DecompiledSources/Tina16/functions/00000000014B5250__FUN_014b5250.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Start a new Netlist Viewer document after the unsaved-change guard.
 - Current graph summary: Handles 1 Delphi UI event: NetlistViewer.MainMenu.MFile.MINew.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -69,5 +68,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact localized save-prompt text is not present in the form resource.
+- A Yes response calls Save, but the guard has no recovered save-success check.

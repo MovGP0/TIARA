@@ -1,6 +1,6 @@
 ﻿# Digital Step-&by-Step
 
-> Analysis status: Pending individual source review.
+> Analysis status: Blocked by an exact evidence gap.
 
 ## Control
 
@@ -20,28 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The OnClick binding reaches mnDigitalStepbyStepClick at 01c80750. The recovered body has 20 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Digital Step-&by-Step"] -->|OnClick| handler["FUN_01c80750"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["Delphi UnicodeString assignment helper"]
-    handler --> call4["FUN_0041ddd0"]
-    handler --> call5["FUN_00b89270"]
-    handler --> call6["FUN_00b8e650"]
+flowchart TD
+    control["Digital Step-&by-Step"] -->|"OnClick"| handler["mnDigitalStepbyStepClick (01c80750)"]
+    handler --> recovered["Recovered direct call path"]
+    recovered --> gap{"Application responsibility proven?"}
+    gap -->|"No"| blocked["Keep exact behavior unknown"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C80750__FUN_01c80750.c](../../../DecompiledSources/Tina16/functions/0000000001C80750__FUN_01c80750.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Evidence-blocked mnDigitalStepbyStepClick command.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.mnDigitalStepbyStep.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The OnClick binding reaches mnDigitalStepbyStepClick at 01c80750. The recovered body has 20 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.mnDigitalStepbyStep to mnDigitalStepbyStepClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C80750__FUN_01c80750.c and directly references 00414480, 00414560, 00414ad0, 0041ddd0, 00b89270, 00b8e650, 01500620, 01542950, and 12 more. No accepted end-to-end role was established for this control path.
 - Complexity: complex
 - Distinct outgoing calls: 20
 
@@ -85,5 +82,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+

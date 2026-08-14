@@ -1,6 +1,6 @@
 ﻿# nodal-solver
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered radio selection and nodal-solver mode transition reviewed.
 
 ## Control
 
@@ -20,16 +20,22 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler checks the **nodal-solver** radio item, enables two related properties through a shared menu-state helper, and requests application mode 1. If mode 1 is already active, the file-loading part is a no-op.
+
+For a real transition, the shared routine selects CSV-file filters and the `.csv` extension, clears the editor into a new blank document, and looks for `Examples\Python\nodal\test_1.csv`. It loads that sample and updates the current path and caption only when the file exists. The transition has no save prompt for the prior editor text.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["nodal-solver"] -->|OnClick| handler["FUN_014710f0"]
-    handler --> call1["FUN_007e2d20"]
-    handler --> call2["FUN_01471040"]
-    handler --> call3["FUN_01471260"]
+flowchart TD
+    control["Click nodal-solver"] --> check["Check the radio item"]
+    check --> flags["Set the related UI flags to true"]
+    flags --> changed{"Mode differs from 1?"}
+    changed -->|No| noAction["Keep the current document"]
+    changed -->|Yes| configure["Select CSV filters and clear the editor"]
+    configure --> exists{"test_1.csv exists?"}
+    exists -->|No| blank["Keep the new blank CSV document"]
+    exists -->|Yes| sample["Load the sample and update the caption"]
 ```
 
 ## Handler evidence
@@ -66,4 +72,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The shared mode value 1 maps to the nodal-solver executable later in the run path; the original Delphi enum name is not recovered.

@@ -1,6 +1,6 @@
 ﻿# OK
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,31 +20,40 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_014bf140` obtains the selected FolderTree node and the selected FileList item. Only when both exist does it set the form modal-result field at `+0x508` to `1`, the value used for successful modal acceptance. If either selection is missing, the dialog remains open and the handler gives no message.
+
+The downstream caller `FUN_014c4380` proves how this state is consumed. It creates OpenWindow, loads the root folders, shows the form modally, and continues only when the modal result is `1`. It then builds the selected folder-and-file key, constructs a `tina4web.dll/schematic?tsc=` request, downloads the selected schematic, and returns its helper-managed local path. The click itself does not perform the download.
+
+The recovered default-button property and two-frame check-mark glyph support the confirmation role. The selection guards and modal-result consumer establish the implementation.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["OK"] -->|OnClick| handler["FUN_014bf140"]
-    handler --> call1["FUN_006e2530"]
-    handler --> call2["FUN_006f6fe0"]
+flowchart TD
+    Click["Click OK"] --> Handler["FUN_014bf140"]
+    Handler --> Folder["Get selected folder node"]
+    Folder --> File["Get selected file item"]
+    File --> Valid{"Both selections exist?"}
+    Valid -->|No| Stay["Return and keep dialog open"]
+    Valid -->|Yes| Accept["Set modal result +0x508 to 1"]
+    Accept --> Consumer["FUN_014c4380 observes accepted result"]
+    Consumer --> Download["Build selection key and download schematic"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000014BF140__FUN_014bf140.c](../../../DecompiledSources/Tina16/functions/00000000014BF140__FUN_014bf140.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Accept OpenWindow only when a folder and file are selected.
 - Current graph summary: Handles 1 Delphi UI event: OpenWindow.RightPanel.ButtonPanel.OKBtn.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Validates both UI selections and sets modal result `1`; the caller then downloads the selected remote schematic.
+- Current graph evidence: `FUN_006e2530` and `FUN_006f6fe0` return the selected tree and list items. The handler writes `1` only when both are nonzero. `FUN_014c4380` tests the modal return for `1`, calls the same selection-key helper, and forms the `tina4web.dll/schematic?tsc=` download request.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
 ## Direct calls
 
-- `function:006e2530` — FUN_006e2530
-- `function:006f6fe0` — FUN_006f6fe0
+- `function:006e2530` — returns the selected FolderTree node, or zero when none is valid.
+- `function:006f6fe0` — returns the selected FileList item through the list-view selection query path.
 
 ## Resource evidence
 
@@ -63,5 +72,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The click handler does not validate the later schematic download or display a selection error.
+- The helper-managed destination directory and the server error presentation are not recovered in this article.
+- The caption, default state, and glyph support intent only; the guards, modal field, and downstream result check prove the behavior.

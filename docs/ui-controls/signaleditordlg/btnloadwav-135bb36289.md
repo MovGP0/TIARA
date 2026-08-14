@@ -1,6 +1,6 @@
 ﻿# Load WAV file...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the WAV open-dialog and path-update flow.
 
 ## Control
 
@@ -20,28 +20,36 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler shows the form's WAV open dialog. Cancel leaves the current path and
+audio state unchanged. When a file is selected, the Absolute path check box
+decides whether the edit control receives the selected path or a path relative to
+the current project directory. The handler then gives the full selected path to
+the sound-input loader, refreshes that loader, and selects the first recovered
+channel-mode control while clearing the other two. The nearby Max voltage label
+is not part of this click path.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Load WAV file..."] -->|OnClick| handler["FUN_01127910"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_00414b50"]
-    handler --> call4["FUN_00441d00"]
-    handler --> call5["VCL control text setter with change suppression"]
-    handler --> call6["FUN_00724270"]
+    control["Load WAV file"] -->|"OnClick"| handler["FUN_01127910"]
+    handler --> dialog["Show WAV open dialog"]
+    dialog --> accepted{"File selected?"}
+    accepted -->|"No"| unchanged["Keep current WAV state"]
+    accepted -->|"Yes"| path{"Absolute path selected?"}
+    path -->|"No"| relative["Store relative display path"]
+    path -->|"Yes"| absolute["Store selected full path"]
+    relative --> load["Load full path and refresh channel state"]
+    absolute --> load
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001127910__FUN_01127910.c](../../../DecompiledSources/Tina16/functions/0000000001127910__FUN_01127910.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Select and load the WAV source for sound-input mode.
 - Current graph summary: Handles 1 Delphi UI event: SignalEditorDlg.pnlNotebook.pctrlMode.tsSoundInput.btnLoadWAV.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Shows the WAV dialog, formats the displayed path, loads the selection, and resets channel choices.
+- Current graph evidence: The handler checks the dialog result and Absolute path control before setting the path edit and calling the sound-loader update methods.
 - Complexity: complex
 - Distinct outgoing calls: 9
 
@@ -74,5 +82,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The source proves the path and loader updates but does not expose lower-level WAV decode errors.
+- The nearby Max voltage label is only a layout candidate.

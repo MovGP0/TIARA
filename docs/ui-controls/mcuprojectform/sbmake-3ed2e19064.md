@@ -1,6 +1,6 @@
 ﻿# Make Project
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for sbMakeClick.
 
 ## Control
 
@@ -20,19 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler checks the active target type and runs the matching prerequisite validation. It shows a recovered target-specific error and stops when that check fails. It also stops with an error when the project is already in a blocked build state. Otherwise it prepares the active source for supported targets and starts the applicable build path: an external build object for one target or the alternate internal build routine for another. The handler has no retry branch.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Make Project"] -->|OnClick| handler["FUN_01084a30"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_0041ddd0"]
-    handler --> call4["FUN_007fc180"]
-    handler --> call5["FUN_01055ef0"]
-    handler --> call6["FUN_0105fed0"]
+flowchart TD
+    control["Make Project"] -->|OnClick| handler["TMCUProjectForm.sbMakeClick<br/>FUN_01084a30"]
+    handler --> prereq{"Target prerequisites valid?"}
+    prereq -->|No| error["Show target-specific error<br/>Stop build"]
+    prereq -->|Yes| busy{"Build state allows start?"}
+    busy -->|No| blocked["Show blocked-state error"]
+    busy -->|Yes| build["Prepare source and start target build path"]
 ```
 
 ## Handler evidence
@@ -81,7 +80,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

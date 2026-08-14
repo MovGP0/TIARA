@@ -1,6 +1,6 @@
 ﻿# OKBtn
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed. Catalog validation, record update, and close behavior are documented.
 
 ## Control
 
@@ -20,28 +20,43 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+In the normal catalog-editor mode, the handler first validates the active parameter-grid cell. A validation failure sets form byte `+0x8E0`, skips the catalog-record update, and causes `FormCloseQuery` to reject this close attempt. `FormCloseQuery` then clears the byte for the next attempt.
+
+After successful validation, the handler gets the current catalog record. It writes the selected type name, model name, library mode, and two grid option flags. In Tina mode, it removes the manufacturer-specific parameter object. In the other library modes, it stores the selected library or manufacturer filter, links the selected type object, and copies the Memo lines into the record's nested parameter list.
+
+If the type or model name changed, the handler refreshes the owning catalog collection. The built-in `bkOK` behavior can then close the dialog. In the recovered external grid-edit mode, the handler instead commits the active grid editor and sets modal result `1` only when that editor returns success.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["OKBtn"] -->|OnClick| handler["FUN_013f4d20"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_00415020"]
-    handler --> call4["FUN_00416740"]
-    handler --> call5["FUN_00416910"]
-    handler --> call6["FUN_004169a0"]
+flowchart TD
+    control["OK button: bkOK"] -->|OnClick| handler["OKBtnClick"]
+    handler --> mode{"External grid-edit mode?"}
+    mode -->|Yes| editor["Commit active grid editor"]
+    editor --> editorOK{"Editor result is success?"}
+    editorOK -->|Yes| modal["Set modal result 1"]
+    editorOK -->|No| stay["Keep dialog open"]
+    mode -->|No| validate{"Parameter grid is valid?"}
+    validate -->|No| block["Set error byte and skip record update"]
+    block --> closeVeto["FormCloseQuery rejects this close"]
+    validate -->|Yes| record["Update selected catalog record"]
+    record --> library{"Tina library mode?"}
+    library -->|Yes| clearCustom["Remove custom parameter object"]
+    library -->|No| saveCustom["Store library, type link, and Memo parameters"]
+    clearCustom --> refresh{"Type or model name changed?"}
+    saveCustom --> refresh
+    refresh -->|Yes| reindex["Refresh catalog collection"]
+    refresh -->|No| close["Permit built-in OK close"]
+    reindex --> close
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000013F4D20__FUN_013f4d20.c](../../../DecompiledSources/Tina16/functions/00000000013F4D20__FUN_013f4d20.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Validates the editor and saves the selected catalog record before modal close.
 - Current graph summary: Handles 1 Delphi UI event: TlrCatalogEditorDlg.OKBtn.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Behavior: Validates the active parameter-grid cell and blocks closing when validation fails. On success, updates the current catalog record with type, model, library mode, option flags, and either Tina or manufacturer-specific parameter state. It refreshes the catalog collection when the type or model name changes. A separate external edit mode commits the active grid editor and sets modal result 1 only for a successful editor result.
+- Evidence: FUN_013f4d20 stores FUN_00b0a890's validation result in form byte +0x8E0; FUN_013f5590 permits closing only when that byte is zero and then clears it. The handler obtains the selected record from the collection at +0x750, copies TypeLB and model strings into fixed record fields, branches on form library-mode byte +0x8E2, assigns Memo.Lines from +0x738 for manufacturer mode, and calls FUN_01d07850 plus FUN_01d08870 when the identifying strings changed.
 - Complexity: complex
 - Distinct outgoing calls: 16
 
@@ -83,5 +98,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The grid validator owns its error text and cell-specific rules; those messages are not recovered in this click handler.
+- The exact business names of the two grid option flags stored in the catalog record are not recovered.

@@ -1,6 +1,6 @@
 ﻿# &New
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for TIARA-diz.6.7.1569.
 
 ## Control
 
@@ -11,55 +11,36 @@
 | Control class | TMenuItem |
 | Caption | &New |
 | Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | mnNewClick |
 | Handler address | 01798c60 |
 | Graph node | `resource:dfm:ShapeEdit/ShapeEdit.MainMenu.mnFile.mnNew` |
 | Handler node | `function:01798c60` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Runs the unsaved-change guard. When it allows the operation, it changes the filename to NONAME.DDB, resets the current library and editing state, clears the dirty flag, rebuilds the device list, clears the current selection, updates the interface, and clears the sort checkbox state. Cancel in the guard leaves the current document unchanged.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&New"] -->|OnClick| handler["FUN_01798c60"]
-    handler --> call1["FUN_01798ba0"]
+flowchart TD
+    control["&New"] --> handler["mnNewClick at 01798c60"]
+    handler --> step1["Check unsaved-change guard"]
+    handler --> step2["Cancel: keep current document"]
+    handler --> step3["Reset library to NONAME.DDB"]
+    handler --> step4["Clear dirty and selection"]
+    handler --> step5["Rebuild interface"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001798C60__FUN_01798c60.c](../../../DecompiledSources/Tina16/functions/0000000001798C60__FUN_01798c60.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: ShapeEdit.MainMenu.mnFile.mnNew.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: simple
-- Distinct outgoing calls: 1
-
-## Direct calls
-
-- `function:01798ba0` — FUN_01798ba0
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
+- Handler source: [0000000001798C60__FUN_01798c60.c](../../../DecompiledSources/Tina16/functions/0000000001798C60__FUN_01798c60.c)
 - Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Recovered path: The handler calls 01798ba0. That helper calls 01795d10, checks its result, stores NONAME.DDB, resets the library through 01794150 and 017941c0, clears dirty state, rebuilds and clears selection, updates UI state, and unchecks field +0xc38.
+- Resource context: The recovered TMenuItem resource uses caption `&New`.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No additional implementation gap was found in the recovered click path.
+- The caption, hint, and glyph support control identity only. They do not replace the recovered handler and callee evidence.
+

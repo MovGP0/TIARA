@@ -1,6 +1,6 @@
 ﻿# Zoom|Select or type the appropiate zoom factor
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,28 +20,31 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads the combo text. A numeric value has its percent sign removed, is parsed, clamped to 10 through 500 percent, stored as the view scale, and applied. The last three list entries select All, Page Width, or Whole Page zoom. The handler then rewrites the text from the actual scale and returns focus to the editor.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Zoom|Select or type the appropiate zoom factor"] -->|OnClick| handler["FUN_01c70590"]
-    handler --> call1["FUN_0040c770"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["Delphi UnicodeString array finalization helper"]
-    handler --> call4["FUN_00414de0"]
-    handler --> call5["FUN_00416ba0"]
-    handler --> call6["FUN_004170c0"]
+flowchart TD
+    control["Zoom|Select or type the appropiate zoom factor"] -->|"OnClick"| handler["ZoomFactorClick (01c70590)"]
+    handler --> choice{"Typed percentage or preset?"}
+    choice -->|"Percentage"| numeric["Parse and clamp to 10-500 percent"]
+    choice -->|"All"| all["Fit full drawing"]
+    choice -->|"Page Width"| width["Fit page width"]
+    choice -->|"Whole Page"| page["Fit whole page"]
+    numeric --> finish["Refresh scale text and focus editor"]
+    all --> finish
+    width --> finish
+    page --> finish
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C70590__FUN_01c70590.c](../../../DecompiledSources/Tina16/functions/0000000001C70590__FUN_01c70590.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Apply a typed or preset zoom factor.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.TopToolBar.EditorTools.ZoomFactor.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler reads the combo text. A numeric value has its percent sign removed, is parsed, clamped to 10 through 500 percent, stored as the view scale, and applied. The last three list entries select All, Page Width, or Whole Page zoom. The handler then rewrites the text from the actual scale and returns focus to the editor.
+- Current graph evidence: The recovered body contains percent removal, numeric parsing, 10 and 500 bounds, scale storage at form offset 0x1924, branches to FUN_01c75310, FUN_01c83ef0, and FUN_01c83f50, and a final focus call. The DFM list items end with All, P. Width, and Whole P.
 - Complexity: complex
 - Distinct outgoing calls: 15
 
@@ -80,5 +83,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The scale field is recovered only by offset; the display formatting helper name is unknown.
+

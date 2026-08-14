@@ -1,6 +1,6 @@
 ﻿# Exit
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered form-close delegation reviewed.
 
 ## Control
 
@@ -20,14 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler delegates to the VCL form close pipeline. For a modeless form, that pipeline first runs the close query. A rejected query leaves the form open. An accepted close uses the close action selected by the form, such as hide, minimize, release, or main-form termination.
+
+This handler does not save the editor automatically and does not show its own confirmation. Any prompt or veto must come from the form's close events or other VCL code.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Exit"] -->|OnClick| handler["FUN_0146f080"]
-    handler --> call1["FUN_0146f480"]
+flowchart TD
+    control["Click Exit"] --> close["Request the VCL form close pipeline"]
+    close --> allowed{"Close query allows closure?"}
+    allowed -->|No| keep["Keep the form open"]
+    allowed -->|Yes| action["Apply the form close action"]
 ```
 
 ## Handler evidence
@@ -62,4 +66,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered click handler does not expose which close action the form's OnClose handler selects at run time.

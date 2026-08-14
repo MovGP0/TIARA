@@ -1,6 +1,6 @@
 ﻿# LbCases
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source, call-path, state, and error evidence reviewed.
 
 ## Control
 
@@ -20,28 +20,32 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Clicking a Footprint list row makes that footprint current and rebuilds its pin-to-node mapping view.
+
+When the form's mapping-state byte is set, the handler compares the current component and footprint selections with cached values at `+0x8a8` and `+0x8a0`. It keeps the state byte set only when both selections are unchanged. It then stores the selected footprint in field `+0x860`, calls [`FUN_00ec0aa0`](../../../DecompiledSources/Tina16/functions/0000000000EC0AA0__FUN_00ec0aa0.c) to parse the selected footprint section and rebuild both mapping lists, and calls [`FUN_00ec0380`](../../../DecompiledSources/Tina16/functions/0000000000EC0380__FUN_00ec0380.c) to refresh action availability.
+
+The nearby `Footprint list:` label agrees with this role. The selection read, cached state, and rebuild calls prove it.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["LbCases"] -->|OnClick| handler["FUN_00ec2320"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["Delphi UnicodeString assignment helper"]
-    handler --> call3["FUN_00416db0"]
-    handler --> call4["FUN_00ea9ca0"]
-    handler --> call5["FUN_00ec0380"]
-    handler --> call6["FUN_00ec0aa0"]
+flowchart TD
+    control["Footprint list row"] -->|OnClick| handler["FUN_00ec2320"]
+    handler --> guard{"Mapping-state byte set?"}
+    guard -->|Yes| compare["Compare component and footprint with cached selections"]
+    guard -->|No| cache["Store the selected footprint"]
+    compare --> cache
+    cache --> rebuild["FUN_00ec0aa0 rebuilds pin-to-node mappings"]
+    rebuild --> refresh["FUN_00ec0380 refreshes action availability"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000000EC2320__FUN_00ec2320.c](../../../DecompiledSources/Tina16/functions/0000000000EC2320__FUN_00ec2320.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Selects a footprint and rebuilds its pin-to-node mapping view.
 - Current graph summary: Handles 1 Delphi UI event: PcbForm4.Panel2.LbCases.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Reconciles the mapping-state byte with cached component and footprint selections, stores the selected footprint, rebuilds the footprint's mapping lists and derived controls, and refreshes action availability.
+- Current graph evidence: FUN_00ec2320 reads the current Component and Footprint list values, compares them with fields +0x8a8 and +0x8a0 when +0x8c0 is set, assigns the selected footprint to +0x860, and calls FUN_00ec0aa0 and FUN_00ec0380. The nearest label is Footprint list.
 - Complexity: complex
 - Distinct outgoing calls: 6
 
@@ -70,7 +74,12 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 - Rank 1: Footprint list: at distance 22.
 - Rank 2: Component list: at distance 192.
 
+## No-op and error behavior
+
+- The click always runs the mapping and action refresh for the current selection.
+- A changed component or footprint clears the retained mapping-state flag before rebuild.
+- The handler has no local invalid-index or backend error recovery; normal list interaction supplies a selected row.
+
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The Delphi names for cached fields `+0x8a0`, `+0x8a8`, and state byte `+0x8c0` are not recovered.

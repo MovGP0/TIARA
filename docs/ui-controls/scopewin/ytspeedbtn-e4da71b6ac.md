@@ -1,6 +1,6 @@
 ﻿# Y/T
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered mode guard, backend acceptance, axis reset, and redraw path reviewed.
 
 ## Control
 
@@ -20,17 +20,21 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler acts only when ScopeWin is currently in Y/X mode. It proposes Y/T mode by setting form flag `+0xdd0` to 0 and asks the scope backend to accept the change. If the backend restores a nonzero flag, the transition is rejected and the handler restores the Y/X button Down state.
+
+On acceptance, the handler stops or resets active acquisition when required, selects internal axis code `0x0b`, selects storage mode byte `+0xde8` from current acquisition state, reconciles curves, resets cursor state, applies the axis code to the plot, and redraws.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Y/T"] -->|OnClick| handler["FUN_012b16f0"]
-    handler --> call1["FUN_0082a6c0"]
-    handler --> call2["FUN_010e7b90"]
-    handler --> call3["FUN_010f6af0"]
-    handler --> call4["FUN_012ae470"]
+flowchart TD
+    control["Click Y/T"] --> current{"Already in Y/T mode?"}
+    current -->|Yes| noAction["Return without a change"]
+    current -->|No| propose["Propose mode flag 0 to the backend"]
+    propose --> accepted{"Backend accepts Y/T?"}
+    accepted -->|No| restore["Restore the Y/X button"]
+    accepted -->|Yes| reset["Reset acquisition, curves, cursors, and axes"]
+    reset --> redraw["Apply axis code 0x0b and redraw"]
 ```
 
 ## Handler evidence
@@ -70,4 +74,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The original enum names for axis code 0x0b and the derived storage mode are not recovered.

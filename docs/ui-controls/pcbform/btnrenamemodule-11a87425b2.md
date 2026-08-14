@@ -1,17 +1,17 @@
-﻿# Rename
+﻿# Rename footprint
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed: the handler replaces the selected footprint or module name inside the serialized component definition.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
 | Form | PcbForm |
+| Form caption | PCB information for SPICE macro components |
 | Component path | PcbForm.Panel2.BtnRenameModule |
 | Control class | TBitBtn |
 | Caption | Rename |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | Not present |
 | Handler name | BtnRenameModuleClick |
 | Handler address | 00ed2700 |
 | Graph node | `resource:dfm:PcbForm/PcbForm.Panel2.BtnRenameModule` |
@@ -20,70 +20,37 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+1. The handler reads the selected component, selected footprint, and serialized definition. It isolates the selected module segment and asks `FUN_00ebb850` for a replacement name.
+2. If the name is nonempty and absent from the footprint list, it splices the new name into the previous definition position. When the renamed item matches the saved current footprint, it also updates that saved value.
+3. It writes the updated component definition and refreshes lists, controls, node mappings, and the 3D preview. A duplicate name shows localized message 0x845. Canceling the prompt is a no-op.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Rename"] -->|OnClick| handler["FUN_00ed2700"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["Delphi UnicodeString assignment helper"]
-    handler --> call3["FUN_00416ba0"]
-    handler --> call4["FUN_00416db0"]
-    handler --> call5["FUN_00416e20"]
-    handler --> call6["FUN_00416ea0"]
+flowchart TD
+    control["PcbForm.Panel2.BtnRenameModule"] -->|OnClick| handler["FUN_00ed2700"]
+    handler --> decision{"New nonempty footprint name is unique?"}
+    decision -->|Yes| action["Splice the new name into the component definition"]
+    decision -->|No| noop["Show duplicate-name error or do nothing after cancel"]
+    action --> outcome["Update matching saved selection and refresh PCB data"]
+    noop --> outcome
 ```
 
-## Handler evidence
+## Handler and call-path evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000000ED2700__FUN_00ed2700.c](../../../DecompiledSources/Tina16/functions/0000000000ED2700__FUN_00ed2700.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: PcbForm.Panel2.BtnRenameModule.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 18
+- [`FUN_00ed2700`](../../../DecompiledSources/Tina16/functions/0000000000ED2700__FUN_00ed2700.c) — Rename a PCB footprint definition.
+- [`FUN_00ebb850`](../../../DecompiledSources/Tina16/functions/0000000000EBB850__FUN_00ebb850.c) — prompt for a footprint or module name.
+- [`FUN_00ecc490`](../../../DecompiledSources/Tina16/functions/0000000000ECC490__FUN_00ecc490.c) — rebuild the selected footprint node map.
+- [`FUN_00ed3a60`](../../../DecompiledSources/Tina16/functions/0000000000ED3A60__FUN_00ed3a60.c) — refresh the selected 3D footprint view.
 
-## Direct calls
+## Resource and glyph evidence
 
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:00416ba0` — FUN_00416ba0
-- `function:00416db0` — FUN_00416db0
-- `function:00416e20` — FUN_00416e20
-- `function:00416ea0` — FUN_00416ea0
-- `function:004170c0` — FUN_004170c0
-- `function:0043e130` — FUN_0043e130
-- `function:0043ea00` — FUN_0043ea00
-- `function:00442f70` — FUN_00442f70
-- `function:0072d440` — FUN_0072d440
-- `function:00b89270` — FUN_00b89270
-- `function:00b8e520` — FUN_00b8e520
-- `function:00ea9ca0` — FUN_00ea9ca0
-- `function:00ea9ef0` — FUN_00ea9ef0
-- `function:00ebb850` — FUN_00ebb850
-- `function:00ecbca0` — FUN_00ecbca0
-- `function:00eccc30` — FUN_00eccc30
+- Recovered form resource: [`ui-evidence.json`](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json).
 
-## Resource evidence
+## Inputs, outputs, and limits
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
+- Input: an OnClick event from `PcbForm.Panel2.BtnRenameModule`, plus the current form selections and state described above.
+- State change: Prompts for a unique footprint or module name, replaces it in the serialized component definition, updates a matching saved selection, and refreshes the UI.
+- Error or no-op behavior: The decision branches above identify the recovered validation, cancel, confirmation, boundary, or no-op path.
+- Analysis limit: The source uses case and module terminology for the same user-facing footprint list.
 
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Footprint list: at distance 320.
-- Rank 2: 3D component view: at distance 345.
-- Rank 3: Component list: at distance 501.
-
-## Analysis limits
-
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.

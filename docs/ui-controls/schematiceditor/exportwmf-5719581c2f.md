@@ -1,6 +1,6 @@
 ﻿# &Picture (*.EMF;*.BMP;*.JPG;*.GIF;*PNG)...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Blocked by an exact evidence gap.
 
 ## Control
 
@@ -20,28 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The OnClick binding reaches ExportWMFClick at 01c81940. The recovered body has 10 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Picture (*.EMF;*.BMP;*.JPG;*.GIF;*PNG)..."] -->|OnClick| handler["FUN_01c81940"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_00416ad0"]
-    handler --> call4["FUN_004414c0"]
-    handler --> call5["FUN_00441640"]
-    handler --> call6["FUN_00441920"]
+flowchart TD
+    control["&Picture (*.EMF;*.BMP;*.JPG;*.GIF;*PNG)..."] -->|"OnClick"| handler["ExportWMFClick (01c81940)"]
+    handler --> recovered["Recovered direct call path"]
+    recovered --> gap{"Application responsibility proven?"}
+    gap -->|"No"| blocked["Keep exact behavior unknown"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C81940__FUN_01c81940.c](../../../DecompiledSources/Tina16/functions/0000000001C81940__FUN_01c81940.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Evidence-blocked ExportWMFClick command.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.Export.ExportWMF.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The OnClick binding reaches ExportWMFClick at 01c81940. The recovered body has 10 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.Export.ExportWMF to ExportWMFClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C81940__FUN_01c81940.c and directly references 00414480, 00414560, 00416ad0, 004414c0, 00441640, 00441920, 00724270, 00724300, and 2 more. No accepted end-to-end role was established for this control path.
 - Complexity: complex
 - Distinct outgoing calls: 10
 
@@ -75,5 +72,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+

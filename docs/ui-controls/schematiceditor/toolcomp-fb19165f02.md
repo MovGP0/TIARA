@@ -1,6 +1,6 @@
 ﻿# Last component|Inserts the last inserted component
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,25 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+If editing is allowed and the schematic is not locked, the handler asks the component selector for the last-used component and activates the component tool. If either guard fails, it leaves the active command unchanged.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Last component|Inserts the last inserted component"] -->|OnClick| handler["FUN_01c6d6a0"]
-    handler --> call1["FUN_01c6d670"]
-    handler --> call2["FUN_01c6ec30"]
-    handler --> call3["FUN_01c8cee0"]
+flowchart TD
+    control["Last component|Inserts the last inserted component"] -->|"OnClick"| handler["ToolCompClick (01c6d6a0)"]
+    handler --> guard{"Editing allowed and schematic unlocked?"}
+    guard -->|"No"| noChange["Keep current command"]
+    guard -->|"Yes"| action["Select last component and activate placement tool"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C6D6A0__FUN_01c6d6a0.c](../../../DecompiledSources/Tina16/functions/0000000001C6D6A0__FUN_01c6d6a0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Select the last component placement tool.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.TopToolBar.EditorTools.ToolComp.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: If editing is allowed and the schematic is not locked, the handler asks the component selector for the last-used component and activates the component tool. If either guard fails, it leaves the active command unchanged.
+- Current graph evidence: The recovered body checks the shared command-permission helper and the document lock byte, calls FUN_01c6ec30 with index -1, and activates the bound tool button through FUN_01c6d670.
 - Complexity: complex
 - Distinct outgoing calls: 3
 
@@ -65,5 +65,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The selected component type is runtime state and is not fixed by this control.
+

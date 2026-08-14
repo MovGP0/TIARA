@@ -1,6 +1,6 @@
 ﻿# Toggle BreakPoint
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for sbToggleBreakPointClick.
 
 ## Control
 
@@ -20,19 +20,19 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler first rejects the command while form flag `+0xB52` is set. It then requires line information from the active editor. Missing line information shows `HDLStrings.Msg_NoLineInfo` and does not change breakpoints. For a valid source line it resolves the MCU address, updates the editor breakpoint marker, calls `_MCU_ToggleBreakPoint`, refreshes the editor, and refreshes the breakpoint panel when that panel is active.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Toggle BreakPoint"] -->|OnClick| handler["FUN_01088aa0"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_0041ddd0"]
-    handler --> call3["FUN_006d5120"]
-    handler --> call4["FUN_0072d730"]
-    handler --> call5["FUN_00b89270"]
-    handler --> call6["FUN_00b8e650"]
+flowchart TD
+    control["Toggle BreakPoint"] -->|OnClick| handler["TMCUProjectForm.sbToggleBreakPointClick<br/>FUN_01088aa0"]
+    handler --> guard{"Breakpoint command enabled?"}
+    guard -->|No| noOp["Return"]
+    guard -->|Yes| line{"Line information resolves?"}
+    line -->|No| error["Show NoLineInfo message"]
+    line -->|Yes| toggle["Update editor marker<br/>Toggle MCU breakpoint"]
+    toggle --> refresh["Refresh editor and active breakpoint panel"]
 ```
 
 ## Handler evidence
@@ -75,7 +75,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

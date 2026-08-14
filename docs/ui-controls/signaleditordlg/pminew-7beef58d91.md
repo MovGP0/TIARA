@@ -1,6 +1,6 @@
 ﻿# &New
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered new-document path.
 
 ## Control
 
@@ -20,23 +20,35 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The click delegates to `FUN_01125630`. When the editor is modified, that function
+asks whether to save the current document. A Yes result calls the normal save
+path; Cancel stops the operation. Otherwise it creates a fresh backing object for
+the active mode. User-defined mode `8` receives the name `noname.exc` and, when
+available, loads `DEFAULT.EXC`. The piecewise-linear path receives
+`noname.pwl` and clears its editor object. Both successful paths clear the
+modified state, refresh the editor status text, and run the appropriate
+compile/synchronization helper.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["&New"] -->|OnClick| handler["FUN_01125490"]
-    handler --> call1["FUN_01125630"]
+    control["New"] -->|"OnClick"| handler["FUN_01125490"]
+    handler --> modified{"Current document modified?"}
+    modified -->|"Yes"| prompt["Ask whether to save"]
+    prompt -->|"Cancel"| keep["Keep current document"]
+    prompt -->|"Yes"| save["Run save path"]
+    modified -->|"No"| create["Create mode-specific document"]
+    save --> create
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001125490__FUN_01125490.c](../../../DecompiledSources/Tina16/functions/0000000001125490__FUN_01125490.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Start a new editable signal document with save confirmation.
 - Current graph summary: Handles 1 Delphi UI event: SignalEditorDlg.PopupMenu.pmiNew.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Delegates to a modified-document prompt and mode-specific reset path.
+- Current graph evidence: The wrapper calls `FUN_01125630`, which checks the modified byte, handles Yes and Cancel results, and writes `noname.exc` or `noname.pwl`.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +73,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- A failed save does not return a separate status to this function in the recovered signature.
+- The exact localized confirmation text is assembled by helper calls and is not fully recovered.

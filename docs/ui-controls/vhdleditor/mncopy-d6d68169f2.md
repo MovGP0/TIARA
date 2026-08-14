@@ -1,6 +1,6 @@
 ﻿# Copy
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered SynEdit clipboard path and empty-selection no-op reviewed.
 
 ## Control
 
@@ -20,29 +20,47 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`mnCopyClick` passes the form's `TSynEdit` control at offset `+0x740` to the
+shared SynEdit copy helper. The helper first tests whether the editor has a
+selection. If the selection is empty, it returns without opening or changing
+the clipboard and without showing a message.
+
+For a nonempty selection, the helper extracts the selected text and writes it
+to the standard text clipboard. It also adds a SynEdit-specific clipboard
+payload that contains the selection mode. For the recovered special selection
+mode value 2, it temporarily clears editor option bit `0x04000000` while it
+extracts the text, then restores the bit before it writes the clipboard data.
+The live document and selection endpoints do not change.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Copy"] -->|OnClick| handler["FUN_014a0660"]
-    handler --> call1["FUN_00bf1d60"]
+flowchart TD
+    control["Copy menu item"] -->|OnClick| handler["FUN_014a0660<br/>mnCopyClick"]
+    handler --> copyHelper["FUN_00bf1d60<br/>inspect the SynEdit selection"]
+    copyHelper --> hasSelection{"Is the selection nonempty?"}
+    hasSelection -->|No| noOp["Return without clipboard access"]
+    hasSelection -->|Yes| extract["Extract selected text<br/>preserve special selection-mode state"]
+    extract --> clipboard["Write standard text and SynEdit mode payloads"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000014A0660__FUN_014a0660.c](../../../DecompiledSources/Tina16/functions/00000000014A0660__FUN_014a0660.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Copies the current VhdlEditor selection to the clipboard.
 - Current graph summary: Handles 1 Delphi UI event: VhdlEditor.mnMainMenu.mnEdit.mnCopy.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Delegates to SynEdit's guarded copy path for the
+  editor at form offset `+0x740`.
+- Current graph evidence: `FUN_014a0660` calls `FUN_00bf1d60` with the editor.
+  The callee tests the selection, extracts selected text, preserves the special
+  selection-mode flag, and calls the recovered clipboard writer.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
 ## Direct calls
 
-- `function:00bf1d60` — FUN_00bf1d60
+- `function:00bf1d60` — copies a nonempty SynEdit selection to standard and
+  SynEdit-specific clipboard formats.
 
 ## Resource evidence
 
@@ -61,5 +79,7 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Clipboard allocation or operating-system failures have no local recovery in
+  this handler path.
+- The menu shortcut value is recovered as `16451`; this article does not infer
+  a key name from the numeric value.

@@ -1,6 +1,6 @@
 ﻿# FNextCurveBtn
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed: the click selects the next analyzer curve.
 
 ## Control
 
@@ -20,20 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler calls `FUN_010f6d10`. That helper dispatches curve-selection command `0x53B` with direction value `0`.
+
+In local mode, the command decreases the current curve index and wraps from the first entry to the last entry. In remote mode, it forwards the same command. The extracted downward-arrow glyph agrees with the recovered direction, but the handler path is the primary evidence.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["FNextCurveBtn"] -->|OnClick| handler["FUN_0138cb00"]
-    handler --> call1["FUN_010f6d10"]
+flowchart TD
+    control["Next-curve button"] -->|OnClick| handler["NextCurveBtnClick"]
+    handler --> command["Dispatch curve command 0x53B, direction 0"]
+    command --> mode{"Local mode?"}
+    mode -->|No| remote["Forward command"]
+    mode -->|Yes| select["Select prior index; wrap to last"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/000000000138CB00__FUN_0138cb00.c](../../../DecompiledSources/Tina16/functions/000000000138CB00__FUN_0138cb00.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Selects the next labeled analyzer curve through the common curve command.
 - Current graph summary: Handles 1 Delphi UI event: SignalAnalyzerWin.CursorBox.FNextCurveBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +66,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The internal list order runs opposite to the user-facing Next label: direction `0` decreases the stored index.
+- The handler does not expose errors from the remote command transport.

@@ -1,6 +1,6 @@
 ﻿# Delete
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source, call-path, state, and error evidence reviewed.
 
 ## Control
 
@@ -20,27 +20,31 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The click deletes the selected footprint from the selected component definition.
+
+The handler reads the selected Component list and Footprint list values and calls [`FUN_00ec6ea0`](../../../DecompiledSources/Tina16/functions/0000000000EC6EA0__FUN_00ec6ea0.c) with its removal flag set. That helper loads the component's `DigitalICs` definition, removes the selected footprint section, clears the cached current footprint when it matches the deleted name, and writes the modified definition.
+
+The handler then rebuilds the Footprint and mapping lists, refreshes action availability, and marks the active library entry for later persistence.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Delete"] -->|OnClick| handler["FUN_00ec64e0"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00ea9ca0"]
-    handler --> call3["FUN_00ec0380"]
-    handler --> call4["FUN_00ec1150"]
-    handler --> call5["FUN_00ec6ea0"]
+flowchart TD
+    control["Delete footprint"] -->|OnClick| handler["FUN_00ec64e0"]
+    handler --> read["Read selected component and footprint names"]
+    read --> remove["FUN_00ec6ea0 removes the footprint section"]
+    remove --> cache["Clear matching cached footprint name"]
+    cache --> rebuild["Rebuild dependent lists and actions"]
+    rebuild --> mark["Mark the active library entry"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000000EC64E0__FUN_00ec64e0.c](../../../DecompiledSources/Tina16/functions/0000000000EC64E0__FUN_00ec64e0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Deletes the selected footprint from the selected component definition.
 - Current graph summary: Handles 1 Delphi UI event: PcbForm4.Panel2.BtnDeleteModule.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Passes the selected component and footprint to FUN_00ec6ea0 with removal enabled. The helper removes the footprint section and clears a matching cached selection. The handler then rebuilds lists and actions and marks the active library entry.
+- Current graph evidence: FUN_00ec64e0 reads both selected list values, calls FUN_00ec6ea0 with final argument 1, then calls FUN_00ec1150 and FUN_00ec0380 and sets item-associated state. FUN_00ec6ea0 rewrites the DigitalICs definition and conditionally clears the cached footprint.
 - Complexity: complex
 - Distinct outgoing calls: 5
 
@@ -68,7 +72,11 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 - Rank 1: Footprint list: at distance 291.
 - Rank 2: Component list: at distance 471.
 
+## No-op and error behavior
+
+- Normal UI state disables this action when the Footprint list is empty. The recovered handler does not add a separate invalid-selection guard.
+- The handler has no confirmation dialog or local backend error recovery.
+
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The footprint-section delimiters are visible only as recovered string constants; their semantic names are unknown.

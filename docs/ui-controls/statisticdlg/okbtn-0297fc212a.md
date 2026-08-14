@@ -1,6 +1,6 @@
 ﻿# C&alculate
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and UI evidence.
 
 ## Control
 
@@ -20,28 +20,43 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads the current value from `CutEdit` and the selected output from `OutputSelectorCB`. It shows the lower result panel and searches the form's output collection for records that match the selected output. `FUN_01ac7590` counts the matching records, allocates the sample array, and records whether the matched output has a special state.
+
+If no record matches, the handler does not calculate statistics. If records match, `FUN_01ac5e20` reads one value from each record. The selected `OptionRG` item chooses the value path for `XMAX`, `YMAX`, `CUT`, `XMIN`, or `YMIN`. `FUN_01ac6150` finds the minimum and maximum values.
+
+The handler fills `StringGrid` according to a global analysis-mode byte. Mode `3` writes minimum, maximum, and range values. Other modes write the mean and population standard deviation. For a matched output with the special state, it also writes the cut value and its differences from the maximum and minimum. It enables `DrawBtn` only when more than one sample is available. A temporary progress object is destroyed after the calculation.
+
+An internal byte at form offset `+0x759` can skip the calculation path. Its purpose and its setter are not recovered here. The handler clears that byte before it returns. The recovered handler has no explicit error-message path.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
     control["C&alculate"] -->|OnClick| handler["FUN_01ac7740"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["Delphi UnicodeString array finalization helper"]
-    handler --> call4["FUN_0064dbe0"]
-    handler --> call5["FUN_007fc180"]
-    handler --> call6["FUN_008059a0"]
+    handler --> gated{"Internal guard is clear?"}
+    gated -->|No| clearGuard["Clear the guard and return"]
+    gated -->|Yes| selectOutput["Read the output, option, and cut value"]
+    selectOutput --> collect["Collect matching samples"]
+    collect --> hasSamples{"At least one sample?"}
+    hasSamples -->|No| clearGuard
+    hasSamples -->|Yes| extrema["Find the minimum and maximum"]
+    extrema --> mode{"Analysis mode is 3?"}
+    mode -->|Yes| rangeRows["Write minimum, maximum, and range rows"]
+    mode -->|No| distributionRows["Write mean and standard-deviation rows"]
+    rangeRows --> enableDraw{"More than one sample?"}
+    distributionRows --> enableDraw
+    enableDraw -->|Yes| drawEnabled["Enable Draw"]
+    enableDraw -->|No| clearGuard
+    drawEnabled --> clearGuard
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001AC7740__FUN_01ac7740.c](../../../DecompiledSources/Tina16/functions/0000000001AC7740__FUN_01ac7740.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Calculate the selected tolerance-output statistics and update the result grid.
 - Current graph summary: Handles 1 Delphi UI event: StatisticDlg.OKBtn.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Collects values for the selected output and statistic option, calculates summary values, fills the result grid, and enables histogram drawing when enough samples exist.
+- Current graph evidence: The handler reads controls at form offsets `+0x6e8`, `+0x6f0`, and `+0x700`; calls `FUN_01ac7590`, `FUN_01ac5e20`, and `FUN_01ac6150`; writes grid cells through `FUN_0084e3e0`; and enables the control at `+0x6c8` only when the sample count is greater than one.
 - Complexity: complex
 - Distinct outgoing calls: 19
 
@@ -86,5 +101,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The semantic name of the global analysis mode is not recovered.
+- The exact meaning of the matched-output state byte is not recovered. The article describes only how it changes the displayed rows.
+- The internal guard at form offset `+0x759` has no recovered setter in this handler.

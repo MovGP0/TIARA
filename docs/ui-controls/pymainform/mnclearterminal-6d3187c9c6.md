@@ -1,6 +1,6 @@
 ﻿# Clear
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered terminal clear and prompt-reset path reviewed.
 
 ## Control
 
@@ -20,14 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler clears the terminal SynEdit line collection. It then runs the shared prompt-reset routine, which appends the exact prompt `>>>  `, records the resulting terminal position, and updates the shell's terminal-input state.
+
+The click removes all visible terminal history without confirmation or undo. It does not clear the main editor or stop a running process. No local error branch or catch is present.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Clear"] -->|OnClick| handler["FUN_0146f140"]
-    handler --> call1["FUN_0146fd80"]
+flowchart TD
+    control["Click Clear"] --> clear["Clear all terminal lines"]
+    clear --> prompt["Append the prompt >>>"]
+    prompt --> state["Record the new terminal position and input state"]
 ```
 
 ## Handler evidence
@@ -62,4 +65,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The original Delphi names of the terminal-position state fields are not recovered.

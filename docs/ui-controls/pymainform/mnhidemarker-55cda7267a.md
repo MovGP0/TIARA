@@ -1,6 +1,6 @@
 ﻿# Hide Marker
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered editor-position and line-insertion path reviewed.
 
 ## Control
 
@@ -20,14 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads the current row from the main SynEdit control. It then inserts the exact text `# Hide from here` into the editor's line collection at that row. The click changes the Python source text only; it does not hide a VCL marker object or run the script.
+
+The handler does not test the current line contents. Repeated clicks can insert repeated marker lines. The recovered function has no error dialog, confirmation, or local catch.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Hide Marker"] -->|OnClick| handler["FUN_0146f090"]
-    handler --> call1["FUN_00bfaa50"]
+flowchart TD
+    control["Click Hide Marker"] --> row["Read the current editor row"]
+    row --> insert["Insert # Hide from here at that row"]
+    insert --> changed["Leave the edited document changed"]
 ```
 
 ## Handler evidence
@@ -62,4 +65,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The original SynEdit method names are not recovered. The argument pattern and line-list object establish the insertion, but the exact row-base convention remains in the SynEdit implementation.

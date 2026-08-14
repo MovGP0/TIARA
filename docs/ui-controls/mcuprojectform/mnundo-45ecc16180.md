@@ -1,6 +1,6 @@
 ﻿# Undo
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for mnUndoClick.
 
 ## Control
 
@@ -20,14 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler forwards the command to the active editor at form field `+0xA78`. The editor routine first tests its protected or read-only state. When editing is allowed it walks and applies the prior undo record group and restores the editor bookkeeping. When editing is blocked or no undo record exists, it returns without a local message.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Undo"] -->|OnClick| handler["FUN_0108a8a0"]
-    handler --> call1["FUN_00c00ff0"]
+flowchart TD
+    control["Undo"] -->|OnClick| handler["TMCUProjectForm.mnUndoClick<br/>FUN_0108a8a0"]
+    handler --> editor["Invoke active editor undo"]
+    editor --> allowed{"Editing allowed and undo record available?"}
+    allowed -->|No| noOp["Leave document unchanged"]
+    allowed -->|Yes| undo["Apply previous undo record group<br/>Restore editor state"]
 ```
 
 ## Handler evidence
@@ -59,7 +62,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

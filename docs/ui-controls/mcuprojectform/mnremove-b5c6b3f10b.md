@@ -1,6 +1,6 @@
 ﻿# Remove
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for mnRemoveClick.
 
 ## Control
 
@@ -20,19 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler compares the selected project node at `+0xAB0` with the project root at `+0xC00`. Selecting the root is a no-op. For another node it loads `HDLStrings.Msg_RemoveFromProject` and requests confirmation. Only a positive answer calls the shared removal routine; cancellation or rejection preserves the selection and project content.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Remove"] -->|OnClick| handler["FUN_01084920"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_0041ddd0"]
-    handler --> call3["FUN_00b89270"]
-    handler --> call4["FUN_00b8e650"]
-    handler --> call5["FUN_01079230"]
-    handler --> call6["FUN_0107a3b0"]
+flowchart TD
+    control["Remove"] -->|OnClick| handler["TMCUProjectForm.mnRemoveClick<br/>FUN_01084920"]
+    handler --> root{"Selected node is project root?"}
+    root -->|Yes| noOp["Do not remove root"]
+    root -->|No| confirm{"Confirm removal?"}
+    confirm -->|No| keep["Keep selected node"]
+    confirm -->|Yes| remove["Remove selected node<br/>Refresh project state"]
 ```
 
 ## Handler evidence
@@ -70,7 +69,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

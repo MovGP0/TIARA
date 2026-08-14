@@ -1,6 +1,6 @@
 ﻿# Add to schematic
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed from recovered source.
 
 ## Control
 
@@ -20,42 +20,42 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler creates a temporary string list, clears it, and scans all data rows. It adds only rows whose command and value cells are both nonempty, joining each pair with a fixed recovered separator. If the list is empty, it releases the temporary list without changing the schematic. In normal mode (`+0x740` is false), a nonempty list is inserted as a new schematic text object with subtype 4, the form's font, and the current schematic position. In existing-object mode, the handler finds the object at the index saved in `+0x744`, copies the list into it, marks the schematic changed, obtains its bounds, and asks the active view to refresh that area. The button has recovered modal result 8, but the handler itself does not save the circuit or provide rollback.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Add to schematic"] -->|OnClick| handler["FUN_014727e0"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_00416cd0"]
-    handler --> call4["FUN_004b6930"]
-    handler --> call5["FUN_0084e320"]
-    handler --> call6["FUN_00b94e60"]
+flowchart TD
+    control["Add to schematic button"] -->|"OnClick"| handler["Schematic placement handler"]
+    handler --> collect["Collect complete command rows"]
+    collect --> any{"Any complete rows?"}
+    any -->|"No"| noOp["Release list; no schematic change"]
+    any -->|"Yes"| mode{"Existing schematic object mode?"}
+    mode -->|"No"| insert["Insert subtype-4 text object"]
+    mode -->|"Yes"| update["Update indexed object, mark changed, refresh bounds"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000014727E0__FUN_014727e0.c](../../../DecompiledSources/Tina16/functions/00000000014727E0__FUN_014727e0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Inserts or updates a schematic command text object from complete grid rows.
 - Current graph summary: Handles 1 Delphi UI event: SpiceCommandEditor.pnlButtons.btnPlace.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Builds a command list from complete rows, inserts a subtype-4 schematic text object in normal mode, or updates and refreshes the indexed existing object in edit mode.
+- Current graph evidence: FUN_014727e0 reads grid cells through 0084e320, appends formatted pairs to a temporary list, tests its count, branches on `+0x740`, calls 01c9c910 with subtype 4, or gets collection item `+0x744`, copies content, calls 0199e310, reads bounds, and invokes the active-view refresh method.
 - Complexity: complex
 - Distinct outgoing calls: 9
 
 ## Direct calls
 
-- `function:00410f20` — Nil-safe Delphi object destruction helper
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00416cd0` — FUN_00416cd0
-- `function:004b6930` — FUN_004b6930
-- `function:0084e320` — FUN_0084e320
-- `function:00b94e60` — FUN_00b94e60
-- `function:0149ec30` — FUN_0149ec30
-- `function:0199e310` — FUN_0199e310
-- `function:01c9c910` — FUN_01c9c910
+- `function:00410f20` — destroys the temporary string-list object safely.
+- `function:00414560` — finalizes the temporary UnicodeString values.
+- `function:00416cd0` — formats one command from its two cell values and the fixed separator.
+- `function:004b6930` — creates the temporary Delphi string list.
+- `function:0084e320` — reads text from one grid cell.
+- `function:00b94e60` — retrieves the existing schematic object by the saved index.
+- `function:0149ec30` — copies the prepared command list into the schematic text object.
+- `function:0199e310` — marks the active schematic changed and notifies relevant views.
+- `function:01c9c910` — creates and inserts a subtype-4 text object into the active schematic.
 
 ## Resource evidence
 
@@ -74,5 +74,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The fixed separators at `LAB_01472a88` and related data are not decoded in the exported source.
+- The exact user-visible undo behavior of the insertion helper and the existing-object refresh method names remain unknown.

@@ -1,6 +1,6 @@
 ﻿# mW
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed: the click cycles the reference unit and converts the stored reference value.
 
 ## Control
 
@@ -20,25 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler increments reference-unit byte `+0xE91` and wraps it modulo `3`. For unit index `2`, it clears the unit label and shows the recovered text Source. For the other units, it updates the unit caption from a two-entry table and gets a converted reference value through analyzer backend virtual slot `+0xA0`.
+
+It then converts or transforms the reference value stored in the plot model according to the active analyzer mode and updates model flag `+0x120`. When a source object exists, it also invokes that source's reference-update path.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["mW"] -->|OnClick| handler["FUN_0138d410"]
-    handler --> call1["FUN_004113f0"]
-    handler --> call2["VCL control text setter with change suppression"]
-    handler --> call3["FUN_00b90440"]
-    handler --> call4["FUN_010e1a60"]
-    handler --> call5["FUN_010e1b10"]
-    handler --> call6["FUN_01138af0"]
+flowchart TD
+    control["Reference-unit button"] -->|OnClick| handler["RefUnitSpBtnClick"]
+    handler --> cycle["Cycle unit index modulo 3"]
+    cycle --> source{"Unit index 2?"}
+    source -->|Yes| sourceText["Show Source reference"]
+    source -->|No| convert["Update caption and convert value"]
+    sourceText --> model["Transform stored reference for analyzer mode"]
+    convert --> model
+    model --> notify["Notify active source when available"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/000000000138D410__FUN_0138d410.c](../../../DecompiledSources/Tina16/functions/000000000138D410__FUN_0138d410.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Cycles three reference-unit modes and converts the displayed and stored reference value.
 - Current graph summary: Handles 1 Delphi UI event: SignalAnalyzerWin.Ref_WindowGroupBox.RefUnitSpBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -72,5 +75,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered text table does not expose the names of the first two reference units in this handler source.
+- The source callback and backend conversion formulas are not fully recovered.

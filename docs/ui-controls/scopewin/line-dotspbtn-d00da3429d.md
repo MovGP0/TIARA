@@ -1,6 +1,6 @@
 ﻿# Curve drawing mode
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered four-glyph drawing-mode toggle and curve-refresh path reviewed.
 
 ## Control
 
@@ -20,14 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The button has four glyph states that show line and point variants. On click, the handler reads the speed button's Down state and stores its inverse in form flag `+0xde9`. It then runs the shared curve-update routine with reason 2.
+
+That routine reconciles the displayed curve collection, reapplies plot state and axes, and redraws. The click changes the display style; it does not alter the sampled curve values or publish data.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Curve drawing mode"] -->|OnClick| handler["FUN_012b1de0"]
-    handler --> call1["FUN_012b0230"]
+flowchart TD
+    control["Click Curve drawing mode"] --> down["Read the button Down state"]
+    down --> flag["Store the inverse in drawing flag +0xde9"]
+    flag --> update["Reconcile curve display with reason 2"]
+    update --> redraw["Reapply axes and redraw"]
 ```
 
 ## Handler evidence
@@ -62,4 +66,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The two Boolean flag values are recovered, but their original Delphi line-versus-dot enum names are not.

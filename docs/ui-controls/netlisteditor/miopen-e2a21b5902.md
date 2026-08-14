@@ -1,6 +1,6 @@
 ﻿# &Open...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The modified-document gate, open dialog, and loader establish the accepted and cancelled paths.
 
 ## Control
 
@@ -20,23 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01531f80` first calls `FUN_0152fa50`. If the editor is modified, that helper asks whether to save, cancel, or continue. Cancel stops the open action; the save choice calls the Save handler without checking its result.
+
+When the gate allows the action, the handler executes the Open dialog. Dialog cancellation is a no-op. On acceptance, it reads the selected path and calls `FUN_01530bb0`, which updates the form file name, loads the editor text, clears the modified state and message list, refreshes circuit state, and updates recent-file and UI state. The handler does not inspect `Sender`, so menu and toolbar controls share this path.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Open..."] -->|OnClick| handler["FUN_01531f80"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_00724270"]
-    handler --> call3["FUN_0152fa50"]
-    handler --> call4["FUN_01530bb0"]
+flowchart TD
+    control["Click Open menu item"] --> handler["FUN_01531f80"]
+    handler --> gate["Modified-document prompt when needed"]
+    gate --> allow{"Continue?"}
+    allow -->|No| stop["Return"]
+    allow -->|Yes| dialog["Execute Open dialog"]
+    dialog --> accepted{"File selected?"}
+    accepted -->|No| cancel["Return"]
+    accepted -->|Yes| load["FUN_01530bb0 loads and resets state"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001531F80__FUN_01531f80.c](../../../DecompiledSources/Tina16/functions/0000000001531F80__FUN_01531f80.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Prompts as needed, selects a netlist file, and loads it into the editor.
 - Current graph summary: Handles 2 Delphi UI events: NetlistEditor.BtnPanel.OpenButton.OnClick, NetlistEditor.MainMenu.MFile.MIOpen.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -67,5 +72,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The handler does not inspect `Sender`; the menu item and toolbar button use the same dialog and state.
+- The save choice in the modified-document prompt is called without a checked return value.

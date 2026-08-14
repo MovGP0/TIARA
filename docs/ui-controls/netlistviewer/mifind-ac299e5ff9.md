@@ -1,6 +1,6 @@
 ﻿# &Find...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the recovered handler, dialog resource, and find callback.
 
 ## Control
 
@@ -20,20 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The menu item opens the form's modeless `TFindDialog`. After the dialog call returns, it enables **Search Again**. Searches occur through the dialog's `OnFind` handler: it reads the dialog text and direction, case, and whole-word options, searches `Memo`, and shows a localized not-found message when SynEdit returns no match. This click does not change document text.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Find..."] -->|OnClick| handler["FUN_014b5950"]
-    handler --> call1["FUN_007e2da0"]
+flowchart TD
+    control["Choose Find"] --> handler["FUN_014b5950"]
+    handler --> dialog["Open TFindDialog"]
+    dialog --> enable["Enable Search Again"]
+    dialog --> event["OnFind reads text and options"]
+    event --> result{"SynEdit finds a match?"}
+    result -->|No| notice["Show localized not-found message"]
+    result -->|Yes| select["Select the found text"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000014B5950__FUN_014b5950.c](../../../DecompiledSources/Tina16/functions/00000000014B5950__FUN_014b5950.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Open Find and enable repeat searches in the Netlist Viewer.
 - Current graph summary: Handles 1 Delphi UI event: NetlistViewer.MainMenu.MEdit.MIFind.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +66,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The localized not-found string is addressed through resource ID `0x3ea`; its exact text is not recovered here.
+- The find callback, not the menu click wrapper, selects a match.

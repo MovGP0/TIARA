@@ -1,6 +1,6 @@
 ﻿# Open MCU code editor...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,26 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler obtains the selected MCU object, builds its session and source mapping, resolves the schematic item to a source location, and opens the MCU code editor at that recovered position. If the required object or mapping is unavailable, no editor navigation occurs.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Open MCU code editor..."] -->|OnClick| handler["FUN_01c71e40"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_015f5c70"]
-    handler --> call3["FUN_015fca00"]
-    handler --> call4["FUN_0160f2b0"]
+flowchart TD
+    control["Open MCU code editor..."] -->|"OnClick"| handler["pmGotoMCUIDEClick (01c71e40)"]
+    handler --> guard{"Selected MCU object and source mapping available?"}
+    guard -->|"No"| noChange["Do not navigate"]
+    guard -->|"Yes"| action["Open MCU editor at mapped source location"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C71E40__FUN_01c71e40.c](../../../DecompiledSources/Tina16/functions/0000000001C71E40__FUN_01c71e40.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Open the selected MCU source location.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.SchPopup.pmGotoMCUIDE.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler obtains the selected MCU object, builds its session and source mapping, resolves the schematic item to a source location, and opens the MCU code editor at that recovered position. If the required object or mapping is unavailable, no editor navigation occurs.
+- Current graph evidence: The recovered body follows the selected-object pointer through MCU-specific helpers, builds a path value, maps a source position, and calls the MCU editor-opening helper. The popup resource caption is Open MCU code editor....
 - Complexity: complex
 - Distinct outgoing calls: 4
 
@@ -67,5 +66,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not name the MCU session and mapping record types.
+

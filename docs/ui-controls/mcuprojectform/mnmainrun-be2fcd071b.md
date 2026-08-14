@@ -1,6 +1,6 @@
 ﻿# Run
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for mnMainRunClick.
 
 ## Control
 
@@ -20,14 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The menu handler checks form flag `+0xB52`. When the flag is set, it returns without changing execution state. Otherwise it invokes the same run handler used by the toolbar, which clears the MCU aborted state and starts local or alternate debugger execution.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Run"] -->|OnClick| handler["FUN_0108a9c0"]
-    handler --> call1["FUN_01087a10"]
+flowchart TD
+    control["Run"] -->|OnClick| handler["TMCUProjectForm.mnMainRunClick<br/>FUN_0108a9c0"]
+    handler --> guard{"Run command enabled?"}
+    guard -->|No| noOp["Keep current execution state"]
+    guard -->|Yes| run["Invoke shared MCU run handler"]
+    run --> mode["Start local or alternate debugger execution"]
 ```
 
 ## Handler evidence
@@ -59,7 +62,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

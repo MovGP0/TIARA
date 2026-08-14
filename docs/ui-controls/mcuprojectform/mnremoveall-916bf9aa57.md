@@ -1,6 +1,6 @@
 ﻿# Remove All Files
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for mnRemoveAllClick.
 
 ## Control
 
@@ -20,19 +20,16 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler loads `HDLStrings.Msg_RemoveAllFiles` and shows a yes-or-no confirmation. A negative answer is a no-op. A positive answer passes the project root node at form field `+0xC00` to the shared recursive removal routine, which processes the contained files and refreshes the project and editor state.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Remove All Files"] -->|OnClick| handler["FUN_01084820"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_0041ddd0"]
-    handler --> call3["FUN_00b89270"]
-    handler --> call4["FUN_00b8e650"]
-    handler --> call5["FUN_01079230"]
-    handler --> call6["FUN_01084690"]
+flowchart TD
+    control["Remove All Files"] -->|OnClick| handler["TMCUProjectForm.mnRemoveAllClick<br/>FUN_01084820"]
+    handler --> confirm{"Confirm Remove All Files?"}
+    confirm -->|No| noOp["Keep project files"]
+    confirm -->|Yes| remove["Remove files under project root<br/>Refresh project state"]
 ```
 
 ## Handler evidence
@@ -69,7 +66,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

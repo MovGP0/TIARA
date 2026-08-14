@@ -1,6 +1,6 @@
 ﻿# Scroll left
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,23 +20,35 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_015202e0` first requires a buffered Logic Analyzer curve at form offset `+0x880`. If that field is null, the click returns without a range change. Otherwise, it calls the shared left-scroll bridge `FUN_01506f90`, which reaches the diagram controller through the graph at `+0x9b0`.
+
+The shared diagram path selects an applicable X axis from the current axis or curve selection, or from the only coordinate system when that choice is unambiguous. It moves the visible range left by one major division in the current linear or logarithmic scale, clamps at the allowed lower limit, draws the affected axis, and restarts a 500 ms deferred-refresh timer.
+
+Invalid, mixed, or ambiguous selection and a range already at the lower limit produce no range movement. The click does not change samples, trigger settings, channels, or the stored coordinate-edit bounds. It has no file write, local exception handler, or rollback. The hint and inspected glyph confirm direction.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Scroll left"] -->|OnClick| handler["FUN_015202e0"]
-    handler --> call1["Shared display left-scroll bridge"]
+flowchart TD
+    Click["Click Scroll left"] --> Handler["FUN_015202e0"]
+    Handler --> Curve{"Buffered curve +0x880 present?"}
+    Curve -->|No| NoOp["Return without scrolling"]
+    Curve -->|Yes| Select["Resolve an applicable X axis"]
+    Select --> Axis{"Axis and lower movement available?"}
+    Axis -->|No| Refresh["Keep range unchanged"]
+    Axis -->|Yes| Step["Subtract one major division and clamp"]
+    Step --> Draw["Draw axis and queue refresh"]
+    Draw --> Timer["Restart 500 ms refresh timer"]
+    Refresh --> Timer
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000015202E0__FUN_015202e0.c](../../../DecompiledSources/Tina16/functions/00000000015202E0__FUN_015202e0.c)
-- Recovered role: Logic Analyzer left-scroll button handler
+- Recovered role: Scroll the Logic Analyzer X-axis view left when a buffered curve exists.
 - Current graph summary: Starts the shared Logic Analyzer display left-scroll path when the required form object is present. Handles 1 Delphi UI event: LogicAnalyzerWin.DisplayGroupBox.FLeftScrollBtn.OnClick.
-- Current graph behavior: Starts the shared Logic Analyzer display left-scroll path when the required form object is present.
-- Current graph evidence: FLeftScrollBtn has the hint Scroll left and a 9 by 9 left-arrow glyph. The handler checks form offset 0x880 before it calls FUN_01506f90.
+- Current graph behavior: Starts the shared Logic Analyzer display left-scroll path when the buffered curve at `+0x880` is present.
+- Current graph evidence: The handler guard, bridge chain, range arithmetic, hint, and 9-by-9 left-arrow glyph agree.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +73,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The shared dispatcher can select an axis through indirect diagram relationships. Original Delphi type names are not recovered.
+- The path changes live view endpoints. It does not prove that a later save persists them.

@@ -1,6 +1,6 @@
 ﻿# &DC Transfer Characteristic...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The setup return branch and recovered DC result publisher establish the flow.
 
 ## Control
 
@@ -20,23 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_015331b0` saves analysis context in mode 2 and calls `FUN_01324990`. A zero return passes the active result data to `FUN_013d3ef0`, which creates a numbered DC result container, registers `Analysis Result 1`, updates result state, and refreshes the application.
+
+A nonzero setup return skips result publication. The handler restores the prior context on both branches.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&DC Transfer Characteristic..."] -->|OnClick| handler["FUN_015331b0"]
-    handler --> call1["FUN_01324990"]
-    handler --> call2["FUN_013d3ef0"]
-    handler --> call3["FUN_0152fca0"]
-    handler --> call4["FUN_0152fd80"]
+flowchart TD
+    control["Click DC Transfer Characteristic"] --> handler["FUN_015331b0"]
+    handler --> prepare["Save analysis context in mode 2"]
+    prepare --> setup["FUN_01324990 DC transfer setup"]
+    setup --> zero{"Return is zero?"}
+    zero -->|Yes| publish["FUN_013d3ef0 publishes DC result"]
+    zero -->|No| skip["Skip result publication"]
+    publish --> restore["Restore prior context"]
+    skip --> restore
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000015331B0__FUN_015331b0.c](../../../DecompiledSources/Tina16/functions/00000000015331B0__FUN_015331b0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Runs DC transfer setup and publishes a DC transfer result on success.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MAnalysis.MIDCAnalysis.MIDCTransferCharacteristic.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -67,5 +72,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact meanings of nonzero setup returns are not recovered.
+- The DC sweep input configuration remains inside `FUN_01324990`.

@@ -1,6 +1,6 @@
 ﻿# Delete temporary files
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The recovered enumeration helper and unconditional message establish the temporary-file deletion behavior and its error-reporting limit.
 
 ## Control
 
@@ -20,21 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01a530e0` passes the form's local-LLM temporary directory at `+0x2ba0` to `FUN_01b1e2f0`. That helper enumerates `\*.*`, builds a full path for each returned entry, and calls the recovered delete-file helper. It then closes the enumeration.
+
+The delete helper returns a success value, but the enumeration routine ignores it. After the helper returns, the click handler always shows `AI temporary files deleted successfully`. An empty directory therefore produces the same message. A failed individual deletion is not reported and does not stop later entries. There is no confirmation prompt, directory removal call, retry, or local exception handler.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Delete temporary files"] -->|OnClick| handler["FUN_01a530e0"]
-    handler --> call1["FUN_0072d440"]
-    handler --> call2["FUN_01b1e2f0"]
+flowchart TD
+    control["Click Delete temporary files"] --> enumerate["Enumerate temp-folder entries with *.*"]
+    enumerate --> each{"Another entry?"}
+    each -->|Yes| remove["Call delete-file helper; ignore result"]
+    remove --> each
+    each -->|No| message["Show files deleted successfully message"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001A530E0__FUN_01a530e0.c](../../../DecompiledSources/Tina16/functions/0000000001A530E0__FUN_01a530e0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Deletes enumerated local-LLM temporary files and reports completion.
 - Current graph summary: Handles 1 Delphi UI event: LocalLLMForm.MainMenu1.mnTools.mnDeleteTempFiles.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -63,5 +67,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The enumeration attributes and helper call prove file deletion attempts. The source does not prove that every entry was removed.
+- The exact handling of subdirectory entries depends on the recovered runtime enumeration and delete helpers; no recursive directory traversal is present.

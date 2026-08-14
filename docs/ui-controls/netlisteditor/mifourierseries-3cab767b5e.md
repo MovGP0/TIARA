@@ -1,6 +1,6 @@
 ﻿# Fourier Series...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The compile call, analysis context, Fourier routine, and result dialog establish the flow.
 
 ## Control
 
@@ -20,23 +20,26 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_015336e0` first calls `FUN_0152fdf0` with compile mode 6. It then saves the analysis context and calls `FUN_01143a60` with the active circuit. That routine selects a recovered time interval from the global Fourier settings, runs `FUN_0113f440`, prepares series data, creates a Fourier result dialog, executes it modally, and destroys it.
+
+The handler restores the prior context after the Fourier routine returns. It does not test a separate compile or dialog result.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Fourier Series..."] -->|OnClick| handler["FUN_015336e0"]
-    handler --> call1["FUN_01143a60"]
-    handler --> call2["FUN_0152fca0"]
-    handler --> call3["FUN_0152fd80"]
-    handler --> call4["FUN_0152fdf0"]
+flowchart TD
+    control["Click Fourier Series"] --> handler["FUN_015336e0"]
+    handler --> compile["Compile with mode 6"]
+    compile --> prepare["Save analysis context"]
+    prepare --> series["FUN_01143a60 calculates Fourier series"]
+    series --> dialog["Show modal result dialog"]
+    dialog --> restore["Restore prior context"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000015336E0__FUN_015336e0.c](../../../DecompiledSources/Tina16/functions/00000000015336E0__FUN_015336e0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Compiles the document, calculates a Fourier series, and opens its result dialog.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MAnalysis.MIFourier.MIFourierSeries.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -67,5 +70,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered global Fourier time and frequency fields have no Delphi names.
+- The wrapper does not expose a separate compile-success test.

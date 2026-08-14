@@ -1,6 +1,6 @@
 ﻿# &Temperature Analysis...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The setup return branch and recovered Temperature result publisher establish the flow.
 
 ## Control
 
@@ -20,23 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01533230` saves analysis context in mode 0 and calls `FUN_01328250`. When the call returns zero, it passes the active result data to `FUN_013d45f0`, which creates a numbered `Temperature` result, registers `Analysis Result 1`, publishes it, and refreshes the application.
+
+A nonzero return skips result publication. The handler restores the prior context on both branches.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Temperature Analysis..."] -->|OnClick| handler["FUN_01533230"]
-    handler --> call1["FUN_01328250"]
-    handler --> call2["FUN_013d45f0"]
-    handler --> call3["FUN_0152fca0"]
-    handler --> call4["FUN_0152fd80"]
+flowchart TD
+    control["Click Temperature Analysis"] --> handler["FUN_01533230"]
+    handler --> prepare["Save analysis context"]
+    prepare --> setup["FUN_01328250 temperature setup"]
+    setup --> zero{"Return is zero?"}
+    zero -->|Yes| publish["FUN_013d45f0 publishes Temperature result"]
+    zero -->|No| skip["Skip result publication"]
+    publish --> restore["Restore prior context"]
+    skip --> restore
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001533230__FUN_01533230.c](../../../DecompiledSources/Tina16/functions/0000000001533230__FUN_01533230.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Runs temperature-analysis setup and publishes a Temperature result on success.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MAnalysis.MIDCAnalysis.MITemperatureAnalysis.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -67,5 +72,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact meanings of nonzero setup returns are not recovered.
+- Temperature sweep configuration remains inside `FUN_01328250`.

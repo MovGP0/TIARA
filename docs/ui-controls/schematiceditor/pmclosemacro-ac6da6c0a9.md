@@ -1,6 +1,6 @@
 ﻿# Leave Macro
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,23 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler delegates to the macro-exit helper with index -1. Sender is unused, so the menu and popup controls leave the current macro through the same path.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Leave Macro"] -->|OnClick| handler["FUN_01c8d180"]
-    handler --> call1["FUN_01c8cb50"]
+flowchart TD
+    control["Leave Macro"] -->|"OnClick"| handler["mnCloseMacroClick (01c8d180)"]
+    handler --> action["Leave current macro level"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C8D180__FUN_01c8d180.c](../../../DecompiledSources/Tina16/functions/0000000001C8D180__FUN_01c8d180.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Leave the current macro.
 - Current graph summary: Handles 2 Delphi UI events: SchematicEditor.MainMenu.mnFile.mnCloseMacro.OnClick, SchematicEditor.SchPopup.pmCloseMacro.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler delegates to the macro-exit helper with index -1. Sender is unused, so the menu and popup controls leave the current macro through the same path.
+- Current graph evidence: The recovered wrapper makes one call to the traced macro-level helper with constant -1. Two DFM captions say Leave Macro.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +61,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The helper's internal save or confirmation behavior is outside this wrapper.
+

@@ -1,6 +1,6 @@
 ﻿# Copy
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,24 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+If the embedded SynEdit context is active, the handler copies its text selection. Otherwise it copies the schematic selection. The menu and toolbar controls share the same context-based behavior.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Copy"] -->|OnClick| handler["FUN_01c77bb0"]
-    handler --> call1["FUN_00bf1d60"]
-    handler --> call2["FUN_01b9b8a0"]
+flowchart TD
+    control["Copy"] -->|"OnClick"| handler["CopyClick (01c77bb0)"]
+    handler --> context{"Embedded text editor active?"}
+    context -->|"Yes"| text["Copy text selection"]
+    context -->|"No"| schematic["Copy schematic selection"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C77BB0__FUN_01c77bb0.c](../../../DecompiledSources/Tina16/functions/0000000001C77BB0__FUN_01c77bb0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Copy the active editor selection.
 - Current graph summary: Handles 2 Delphi UI events: SchematicEditor.TopToolBar.GeneralTools.DFCopyBtn.OnClick, SchematicEditor.MainMenu.Edit.Copy.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: If the embedded SynEdit context is active, the handler copies its text selection. Otherwise it copies the schematic selection. The menu and toolbar controls share the same context-based behavior.
+- Current graph evidence: The recovered body tests the editor-mode field and either invokes the SynEdit copy method or the schematic-copy helper. Sender is not used.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -63,5 +64,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Clipboard formats produced by the schematic-copy helper were not expanded for this control.
+

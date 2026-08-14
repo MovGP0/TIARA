@@ -1,6 +1,6 @@
 ﻿# DC Result
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The wrapper selector and recovered symbolic-result loop establish the numeric DC result path.
 
 ## Control
 
@@ -20,22 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01533930` saves analysis context and calls `FUN_0145ef50` with selector 0 and the active circuit. The callee initializes the symbolic engine, labels the output `DC result:`, processes entries until completion or cancellation, and publishes the result text in the result/equation window on completion.
+
+The handler restores the prior context after the callee returns.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["DC Result"] -->|OnClick| handler["FUN_01533930"]
-    handler --> call1["FUN_0145ef50"]
-    handler --> call2["FUN_0152fca0"]
-    handler --> call3["FUN_0152fd80"]
+flowchart TD
+    control["Click DC Result"] --> handler["FUN_01533930"]
+    handler --> prepare["Save analysis context"]
+    prepare --> action["FUN_0145ef50 selector 0 DC result"]
+    action --> restore["Restore prior context"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001533930__FUN_01533930.c](../../../DecompiledSources/Tina16/functions/0000000001533930__FUN_01533930.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Generates and displays the DC symbolic-result view with numeric formatting selector 0.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MAnalysis.MISymbolic.MIDCResult.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -65,5 +67,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The symbolic engine's internal expression transformations are not named.
+- Cancellation is tested inside the callee; the wrapper has no separate message.

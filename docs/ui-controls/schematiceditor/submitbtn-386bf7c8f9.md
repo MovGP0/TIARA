@@ -1,6 +1,6 @@
 ﻿# Submit
 
-> Analysis status: Pending individual source review.
+> Analysis status: Blocked by an exact evidence gap.
 
 ## Control
 
@@ -20,28 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The OnClick binding reaches SubmitBtnClick at 01c7b040. The recovered body has 27 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Submit"] -->|OnClick| handler["FUN_01c7b040"]
-    handler --> call1["FUN_0040e780"]
-    handler --> call2["FUN_004113d0"]
-    handler --> call3["Delphi UnicodeString clear and finalization helper"]
-    handler --> call4["Delphi UnicodeString array finalization helper"]
-    handler --> call5["FUN_00414b50"]
-    handler --> call6["FUN_004169a0"]
+flowchart TD
+    control["Submit"] -->|"OnClick"| handler["SubmitBtnClick (01c7b040)"]
+    handler --> recovered["Recovered direct call path"]
+    recovered --> gap{"Application responsibility proven?"}
+    gap -->|"No"| blocked["Keep exact behavior unknown"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C7B040__FUN_01c7b040.c](../../../DecompiledSources/Tina16/functions/0000000001C7B040__FUN_01c7b040.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Evidence-blocked SubmitBtnClick command.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.EditorPanel.ExamPanel.ExamMainPages.tsCurTask.GroupBox2.SubmitBtn.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The OnClick binding reaches SubmitBtnClick at 01c7b040. The recovered body has 27 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+- Current graph evidence: The DFM binds SchematicEditor.EditorPanel.ExamPanel.ExamMainPages.tsCurTask.GroupBox2.SubmitBtn to SubmitBtnClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C7B040__FUN_01c7b040.c and directly references 0040e780, 004113d0, 00414480, 00414560, 00414b50, 004169a0, 00416cd0, 00416dc0, and 19 more. No accepted end-to-end role was established for this control path.
 - Complexity: complex
 - Distinct outgoing calls: 27
 
@@ -92,5 +89,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+

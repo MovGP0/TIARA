@@ -1,6 +1,6 @@
 ﻿# Add...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Blocked by an exact evidence gap.
 
 ## Control
 
@@ -20,28 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The OnClick binding reaches SelAddBtnClick at 01c7d310. The recovered body has 8 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Add..."] -->|OnClick| handler["FUN_01c7d310"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["VCL control Unicode text reader"]
-    handler --> call4["VCL control text setter with change suppression"]
-    handler --> call5["FUN_007fc180"]
-    handler --> call6["FUN_012beb90"]
+flowchart TD
+    control["Add..."] -->|"OnClick"| handler["SelAddBtnClick (01c7d310)"]
+    handler --> recovered["Recovered direct call path"]
+    recovered --> gap{"Application responsibility proven?"}
+    gap -->|"No"| blocked["Keep exact behavior unknown"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C7D310__FUN_01c7d310.c](../../../DecompiledSources/Tina16/functions/0000000001C7D310__FUN_01c7d310.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Evidence-blocked SelAddBtnClick command.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.EditorPanel.FaultManager.nbExMan.tsExManSelection.GroupBox5.SelAddBtn.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The OnClick binding reaches SelAddBtnClick at 01c7d310. The recovered body has 8 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+- Current graph evidence: The DFM binds SchematicEditor.EditorPanel.FaultManager.nbExMan.tsExManSelection.GroupBox5.SelAddBtn to SelAddBtnClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C7D310__FUN_01c7d310.c and directly references 00410f20, 00414480, 0064dd90, 0064de00, 007fc180, 012beb90, 01c7cf40, 01c7d9d0. No accepted end-to-end role was established for this control path.
 - Complexity: complex
 - Distinct outgoing calls: 8
 
@@ -73,5 +70,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+

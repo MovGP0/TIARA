@@ -1,6 +1,6 @@
 ﻿# &Grid
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for TIARA-diz.6.7.1550.
 
 ## Control
 
@@ -11,59 +11,36 @@
 | Control class | TMenuItem |
 | Caption | &Grid |
 | Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | mnGridClick |
 | Handler address | 0179a660 |
 | Graph node | `resource:dfm:ShapeEdit/ShapeEdit.MainMenu.View.mnGrid` |
 | Handler node | `function:0179a660` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Derives the final grid state from the menu item or toolbar sender, mirrors the state between the menu checked property and toolbar down property, and redraws the editor.
+
+This control shares the recovered handler with `ShapeEdit.TopToolBar.EditorTools.sbGrid`. This article keeps the resource evidence for this control separate.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Grid"] -->|OnClick| handler["FUN_0179a660"]
-    handler --> call1["FUN_0064e770"]
-    handler --> call2["FUN_007e2d20"]
-    handler --> call3["FUN_0082a6c0"]
+flowchart TD
+    control["&Grid"] --> handler["mnGridClick at 0179a660"]
+    handler --> step1["Derive final grid state"]
+    handler --> step2["Mirror menu and toolbar"]
+    handler --> step3["Redraw editor"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/000000000179A660__FUN_0179a660.c](../../../DecompiledSources/Tina16/functions/000000000179A660__FUN_0179a660.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 2 Delphi UI events: ShapeEdit.TopToolBar.EditorTools.sbGrid.OnClick, ShapeEdit.MainMenu.View.mnGrid.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 3
-
-## Direct calls
-
-- `function:0064e770` — FUN_0064e770
-- `function:007e2d20` — FUN_007e2d20
-- `function:0082a6c0` — FUN_0082a6c0
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: true
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
+- Handler source: [000000000179A660__FUN_0179a660.c](../../../DecompiledSources/Tina16/functions/000000000179A660__FUN_0179a660.c)
 - Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Recovered path: The shared handler tests Sender, reads or toggles the menu state, calls the recovered checked/down setters for fields +0x6c0 and +0x8d0, and invalidates the editor.
+- Resource context: The recovered TMenuItem resource uses caption `&Grid`.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No additional implementation gap was found in the recovered click path.
+- The caption, hint, and glyph support control identity only. They do not replace the recovered handler and callee evidence.
+

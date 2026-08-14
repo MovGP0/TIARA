@@ -1,6 +1,6 @@
 ﻿# Syntax check
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed from recovered source.
 
 ## Control
 
@@ -20,29 +20,34 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The click handler calls the shared validation routine and ignores its Boolean return. That routine creates and initializes a temporary SPICE parser context, collects only grid rows whose two cells are both nonempty, and submits a nonempty command list to the parser path. It repeatedly processes parser input until the recovered normalized parser state matches a fixed sentinel, then restores the parser flag and destroys all temporary objects. An empty list skips parsing. The recovered normal return is initialized to 1 and is never reassigned. The exported source does not prove how parser diagnostics or exceptions are shown to the user.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Syntax check"] -->|OnClick| handler["FUN_01472a90"]
-    handler --> call1["FUN_014736b0"]
+flowchart TD
+    control["Syntax check button"] -->|"OnClick"| handler["Syntax-check handler"]
+    handler --> validate["Create parser and collect complete rows"]
+    validate --> any{"Any complete rows?"}
+    any -->|"No"| cleanup["Skip parsing and clean up"]
+    any -->|"Yes"| parse["Submit list and process parser input"]
+    parse --> cleanup
+    cleanup --> ignored["Return value is ignored"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001472A90__FUN_01472a90.c](../../../DecompiledSources/Tina16/functions/0000000001472A90__FUN_01472a90.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Runs SPICE command validation without applying the commands.
 - Current graph summary: Handles 1 Delphi UI event: SpiceCommandEditor.pnlButtons.btnSyntaxCheck.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Delegates to the shared command validator and ignores its result.
+- Current graph evidence: FUN_01472a90 contains only a call to 014736b0 and a return. FUN_014736b0 constructs and initializes a parser context, builds a list from complete grid rows, processes nonempty input, cleans up, and returns its unchanged local value 1.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
 ## Direct calls
 
-- `function:014736b0` — FUN_014736b0
+- `function:014736b0` — assembles complete rows and submits them to the recovered SPICE parser path.
 
 ## Resource evidence
 
@@ -61,5 +66,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The fixed parser sentinel at `DAT_01473a38` and the exact error-presentation path are not decoded in the exported source.
+- This handler does not copy commands to the destination list and does not modify a schematic object.

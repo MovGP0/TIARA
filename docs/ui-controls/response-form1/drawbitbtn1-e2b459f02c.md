@@ -1,6 +1,6 @@
-﻿# &Draw
+# &Draw
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed. The handler calculates sampled response data and opens the selected result views.
 
 ## Control
 
@@ -10,8 +10,6 @@
 | Component path | Response_form1.SettingsGroupBox2.DrawBitBtn1 |
 | Control class | TBitBtn |
 | Caption | &Draw |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | DrawBitBtn1Click |
 | Handler address | 01178490 |
 | Graph node | `resource:dfm:Response_form1/Response_form1.SettingsGroupBox2.DrawBitBtn1` |
@@ -20,66 +18,32 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+[FUN_01178490](../../../DecompiledSources/Tina16/functions/0000000001178490__FUN_01178490.c) reads the response start, stop, gain-scale, and point-count controls. `FUN_011762d0` requires start below stop. For an invalid interval, it shows an error and changes stop to start times 100. The click handler does not stop on that return value; it continues with the adjusted range.
+
+It builds linear or logarithmic sample frequencies, evaluates the current Analog, FIR, or IIR filter, publishes magnitude and phase arrays, and replaces the previous response object. It converts magnitude from decibels with `10^(dB/20)` and phase from degrees to radians before it adds each point.
+
+It then reads the five checkboxes: Amplitude uses mask 1, Phase 2, Amplitude and Phase 4, Nyquist 8, and Group delay 16. `FUN_013d4bc0` opens each selected result. If none are checked, the response data is created but no result view opens.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Draw"] -->|OnClick| handler["FUN_01178490"]
-    handler --> call1["FUN_00526500"]
-    handler --> call2["FUN_0115f5b0"]
-    handler --> call3["FUN_0115f9c0"]
-    handler --> call4["FUN_011762d0"]
-    handler --> call5["FUN_011770f0"]
-    handler --> call6["FUN_013d4bc0"]
+flowchart TD
+    control["Draw button"] -->|OnClick| range["Read and normalize response range"]
+    range --> evaluate["Evaluate filter at sample frequencies"]
+    evaluate --> convert["Convert dB to linear<br/>and degrees to radians"]
+    convert --> choices{"Selected result checkboxes"}
+    choices -->|Mask 1, 2, 4, 8, or 16| open["FUN_013d4bc0<br/>Open each selected result"]
+    choices -->|None| noView["Open no result view"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001178490__FUN_01178490.c](../../../DecompiledSources/Tina16/functions/0000000001178490__FUN_01178490.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: Response_form1.SettingsGroupBox2.DrawBitBtn1.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 14
-
-## Direct calls
-
-- `function:00526500` — FUN_00526500
-- `function:0115f5b0` — FUN_0115f5b0
-- `function:0115f9c0` — FUN_0115f9c0
-- `function:011762d0` — FUN_011762d0
-- `function:011770f0` — FUN_011770f0
-- `function:013d4bc0` — FUN_013d4bc0
-- `function:01c8a3c0` — FUN_01c8a3c0
-- `function:01cc2930` — FUN_01cc2930
-- `function:01cc31d0` — FUN_01cc31d0
-- `function:01cc3760` — FUN_01cc3760
-- `function:01cc3870` — FUN_01cc3870
-- `function:01cc47e0` — FUN_01cc47e0
-- `function:01cc48a0` — FUN_01cc48a0
-- `function:01cc6060` — FUN_01cc6060
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
+- Recovered role: Calculate sampled filter-response data and open selected result views.
+- Key direct calls: `FUN_011762d0`, `FUN_0115f5b0`, `FUN_0115f9c0`, `FUN_011770f0`, and `FUN_013d4bc0`.
+- Resource inputs: Start frequency, Stop frequency, Gain minimum, Number of points, and five result checkboxes.
 - Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Number of points at distance 24.
-- Rank 2: Gain. min (dB) at distance 161.
-- Rank 3: Stop freq.(Hz) at distance 185.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+Several result-object helper names are unrecovered. Their data roles are supported by their arguments and by `FUN_013d4bc0`.
+

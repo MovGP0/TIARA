@@ -1,7 +1,5 @@
 ﻿# Flowchart...
 
-> Analysis status: Pending individual source review.
-
 ## Control
 
 | Property | Recovered value |
@@ -20,28 +18,44 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The DFM stores this button as hidden and disabled. `FormCreate` shows and enables the flowchart action only when the MCU name contains `PIC16`, the MCU type is `2`, `4`, or `8`, or the current internal mode is already flowchart. The mode selector then enables the button only for mode `2`.
+
+The handler opens `TFlowChartMainForm`, the **TINA Flowchart Editor**, for the current MCU context. If the selector is not already in flowchart mode, it first stages the default file name `noname.tfc`.
+
+It creates temporary string-list and VHDL-session objects. It passes the MCU name, MCU type, working directory, current staged source list, current session data, and simulator context into the editor. It initializes the editor and shows it modally.
+
+The editor has an accepted byte at `+0x9D0`. Its save path sets this byte only after it has copied the current editor text to the supplied output list. When the byte remains clear, the selector restores its previous current-file name. When the byte is set, the selector:
+
+1. records the current mode as the mode snapshot;
+2. obtains the editor's `.tfc` file name and makes it current;
+3. copies the returned source list to the selector's staged list; and
+4. replaces the retained VHDL session data with the editor result.
+
+The handler destroys its temporary objects and releases the temporary VHDL session after the modal call. It has no local error dialog or catch path.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Flowchart..."] -->|OnClick| handler["FUN_01419510"]
-    handler --> call1["FUN_00410e60"]
-    handler --> call2["Nil-safe Delphi object destruction helper"]
-    handler --> call3["Delphi UnicodeString array finalization helper"]
-    handler --> call4["Delphi UnicodeString assignment helper"]
-    handler --> call5["FUN_00442620"]
-    handler --> call6["FUN_004b6930"]
+flowchart TD
+    Control["Flowchart click"] --> Default{"Already in flowchart mode?"}
+    Default -->|No| Name["Stage noname.tfc"]
+    Default -->|Yes| Setup["Create editor lists and VHDL session"]
+    Name --> Setup
+    Setup --> Editor["Initialize and show TINA Flowchart Editor"]
+    Editor --> Result{"Editor accepted byte set?"}
+    Result -->|No| Restore["Restore previous current-file name"]
+    Result -->|Yes| Apply["Store .tfc name, source list,<br/>and returned session data"]
+    Restore --> Cleanup["Free temporary editor and session objects"]
+    Apply --> Cleanup
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001419510__FUN_01419510.c](../../../DecompiledSources/Tina16/functions/0000000001419510__FUN_01419510.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Edit or create the staged MCU flowchart and retain accepted editor state.
 - Current graph summary: Handles 1 Delphi UI event: MCUAsmSelector.bMakeFlowChart.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Initializes the Flowchart Editor from current MCU state, restores the old file name on cancel, and copies the accepted `.tfc`, list, and session outputs back to the selector.
+- Current graph evidence: `FUN_01419510` checks editor byte `+0x9D0` after the modal call. `FUN_0104e230` initializes it to zero. `FUN_0104fb30` sets it after copying editor text to the output list.
 - Complexity: complex
 - Distinct outgoing calls: 19
 
@@ -84,5 +98,10 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- [Click handler `FUN_01419510`](../../../DecompiledSources/Tina16/functions/0000000001419510__FUN_01419510.c) proves the modal setup, cancel restoration, accepted copy-back, and cleanup sequence.
+- [Availability check `FUN_01419110`](../../../DecompiledSources/Tina16/functions/0000000001419110__FUN_01419110.c), [form creation `FUN_01419180`](../../../DecompiledSources/Tina16/functions/0000000001419180__FUN_01419180.c), and [resource evidence](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json) prove the initial hidden state and run-time availability guard.
+- [Flowchart form creation `FUN_0104e230`](../../../DecompiledSources/Tina16/functions/000000000104E230__FUN_0104e230.c) proves the initial clear accepted byte.
+- [Flowchart accept helper `FUN_0104fb30`](../../../DecompiledSources/Tina16/functions/000000000104FB30__FUN_0104fb30.c) proves the editor-text copy and accepted-byte write.
+- [Flowchart file-name getter `FUN_010514c0`](../../../DecompiledSources/Tina16/functions/00000000010514C0__FUN_010514c0.c) proves the `.tfc` result.
+- [VHDL session creation `FUN_015fcc20`](../../../DecompiledSources/Tina16/functions/00000000015FCC20__FUN_015fcc20.c) and [release `FUN_015fcd60`](../../../DecompiledSources/Tina16/functions/00000000015FCD60__FUN_015fcd60.c) prove the external session boundary.
+- An exception can interrupt the recovered straight-line cleanup. The source has no visible local recovery path.

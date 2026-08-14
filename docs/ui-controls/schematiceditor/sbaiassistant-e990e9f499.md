@@ -1,6 +1,6 @@
 ﻿# AI Assistant
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,23 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The recovered handler clears a local empty UnicodeString and returns. It does not open an assistant or change application state. The menu and toolbar controls share this effective no-op.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["AI Assistant"] -->|OnClick| handler["FUN_01ca4da0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
+flowchart TD
+    control["AI Assistant"] -->|"OnClick"| handler["mnAIAssistantClick (01ca4da0)"]
+    handler --> return["Return without state change"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001CA4DA0__FUN_01ca4da0.c](../../../DecompiledSources/Tina16/functions/0000000001CA4DA0__FUN_01ca4da0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: No-op AI Assistant handler.
 - Current graph summary: Handles 2 Delphi UI events: SchematicEditor.TopToolBar.EditorTools.sbAIAssistant.OnClick, SchematicEditor.MainMenu.mnTools.mnAIAssistant.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The recovered handler clears a local empty UnicodeString and returns. It does not open an assistant or change application state. The menu and toolbar controls share this effective no-op.
+- Current graph evidence: FUN_01ca4da0 initializes a zero local string, calls the UnicodeString clear helper on it, and returns. It has no application-relevant outgoing call.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +61,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The resource does not explain why the command is inactive.
+

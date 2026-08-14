@@ -1,6 +1,6 @@
 ﻿# Timeout
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,24 +20,31 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+VCL selects **Timeout** in measurement group `3`. `FUN_01520b70` hides and disables the floating-point period edit at `+0xca8`, shows and enables the shared integer edit at `+0xcf8`, reads the current timeout from analyzer engine getter `+0x140`, and displays it in that edit.
+
+The click selects and displays an existing value. It does not store a new timeout. Later integer-edit and spin events use `FUN_0151f8f0` when the Timeout button is down. That path validates the proposed value through engine slot `+0x138`, stores it through `+0x148`, and updates the edit.
+
+Repeated clicks reload the current engine value. The direct path has no message, file write, local exception handler, or rollback.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Timeout"] -->|OnClick| handler["FUN_01520b70"]
-    handler --> call1["FUN_0064dbe0"]
-    handler --> call2["FUN_00f04fa0"]
+flowchart TD
+    Click["Click Timeout"] --> Select["VCL selects group-3 Timeout mode"]
+    Select --> Handler["FUN_01520b70"]
+    Handler --> Controls["Hide period edit; show integer edit"]
+    Controls --> Read["Read engine timeout +0x140"]
+    Read --> Display["Display value in integer edit +0xcf8"]
+    Display -. "later edit or spin" .-> Store["Validate and store timeout"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001520B70__FUN_01520b70.c](../../../DecompiledSources/Tina16/functions/0000000001520B70__FUN_01520b70.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Select and display the Logic Analyzer timeout.
 - Current graph summary: Handles 1 Delphi UI event: LogicAnalyzerWin.MeasurementGroupBox.TimeoutBtn.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler shows the shared integer editor and fills it with the engine's timeout value.
+- Current graph evidence: The paired control-state calls, engine getter, integer setter, and later timeout-edit path establish the behavior.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -63,5 +70,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The engine method names and timeout units are not recovered. Their roles are established by paired read, validate, and store data flow.
+- The direct click does not prove persistence of a later timeout change.

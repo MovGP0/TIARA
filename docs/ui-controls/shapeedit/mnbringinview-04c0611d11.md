@@ -1,6 +1,6 @@
 ﻿# &Bring in view
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for TIARA-diz.6.7.1549.
 
 ## Control
 
@@ -11,65 +11,37 @@
 | Control class | TMenuItem |
 | Caption | &Bring in view |
 | Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | mnBringInViewClick |
 | Handler address | 0179b790 |
 | Graph node | `resource:dfm:ShapeEdit/ShapeEdit.MainMenu.View.mnBringInView` |
 | Handler node | `function:0179b790` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Computes the union bounds of eligible drawing objects, applies the current scale, and centers both scroll positions on those bounds. If no eligible object exists, it does not change the scroll positions. It redraws the editor.
+
+This control shares the recovered handler with `ShapeEdit.TopToolBar.EditorTools.sbBringInView`. This article keeps the resource evidence for this control separate.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Bring in view"] -->|OnClick| handler["FUN_0179b790"]
-    handler --> call1["FUN_004113d0"]
-    handler --> call2["FUN_00498350"]
-    handler --> call3["FUN_004aeac0"]
-    handler --> call4["FUN_0064e770"]
-    handler --> call5["FUN_007fa6c0"]
-    handler --> call6["FUN_017ad620"]
+flowchart TD
+    control["&Bring in view"] --> handler["mnBringInViewClick at 0179b790"]
+    handler --> step1["Collect eligible drawing bounds"]
+    handler --> step2["No bounds: keep scroll positions"]
+    handler --> step3["Center horizontal and vertical view"]
+    handler --> step4["Redraw editor"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/000000000179B790__FUN_0179b790.c](../../../DecompiledSources/Tina16/functions/000000000179B790__FUN_0179b790.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 2 Delphi UI events: ShapeEdit.TopToolBar.EditorTools.sbBringInView.OnClick, ShapeEdit.MainMenu.View.mnBringInView.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 6
-
-## Direct calls
-
-- `function:004113d0` — FUN_004113d0
-- `function:00498350` — FUN_00498350
-- `function:004aeac0` — FUN_004aeac0
-- `function:0064e770` — FUN_0064e770
-- `function:007fa6c0` — FUN_007fa6c0
-- `function:017ad620` — FUN_017ad620
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
+- Handler source: [000000000179B790__FUN_0179b790.c](../../../DecompiledSources/Tina16/functions/000000000179B790__FUN_0179b790.c)
 - Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Recovered path: The handler skips the recovered excluded class, obtains object bounds through virtual calls, computes scaled center positions, writes the horizontal and vertical scrollbar positions, and invalidates the editor.
+- Resource context: The recovered TMenuItem resource uses caption `&Bring in view`.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No additional implementation gap was found in the recovered click path.
+- The caption, hint, and glyph support control identity only. They do not replace the recovered handler and callee evidence.
+

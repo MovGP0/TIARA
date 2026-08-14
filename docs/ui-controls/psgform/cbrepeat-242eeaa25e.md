@@ -1,6 +1,6 @@
 ﻿# R&epeat
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,29 +20,39 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_013f8f20` updates repeat metadata only after form initialization flag `+0x741` is set. This guard prevents initialization-time checkbox changes from modifying the working model.
+
+After initialization, an unchecked Repeat box sets form repeat index `+0x760` to `0`. A checked box validates and reads the integer editor at `+0x718` and stores that Repeat-from value instead. The handler then copies the chosen index to repeat field `+0x20` in working model `+0x750`.
+
+This click does not copy the working model to the original generator; OK performs that step. Invalid editor text or range uses the standard TIntEdit validation path. The handler has no local recovery branch and does not use `Sender`.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["R&epeat"] -->|OnClick| handler["FUN_013f8f20"]
-    handler --> call1["FUN_00f04d50"]
+flowchart TD
+    Click["Click Repeat"] --> Handler["FUN_013f8f20"]
+    Handler --> Ready{"Initialization complete?"}
+    Ready -->|No| NoOp["Return without changing model"]
+    Ready -->|Yes| Checked{"Repeat checked?"}
+    Checked -->|No| Zero["Set repeat index to 0"]
+    Checked -->|Yes| Read["Validate and read Repeat-from edit"]
+    Zero --> Model["Write index to working model +0x20"]
+    Read --> Model
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000013F8F20__FUN_013f8f20.c](../../../DecompiledSources/Tina16/functions/00000000013F8F20__FUN_013f8f20.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Enable or disable repetition in the working pulse sequence.
 - Current graph summary: Handles 1 Delphi UI event: PsgForm.cbRepeat.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: After initialization, maps unchecked state to repeat index `0` and checked state to the validated Repeat-from integer, then updates the working model.
+- Current graph evidence: The handler tests flag `+0x741`, reads checkbox state through VMT slot `+0x260`, calls `FUN_00f04d50` only for the checked state, writes form field `+0x760`, and copies it to model field `+0x20`.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
 ## Direct calls
 
-- `function:00f04d50` — FUN_00f04d50
+- `function:00f04d50` — validates and returns the TIntEdit Repeat-from value.
 
 ## Resource evidence
 
@@ -61,5 +71,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The valid minimum and maximum values are held in the TIntEdit object but were not exported as resource properties.
+- The nearby **Repeat from:** label supports the editor association; the state branch and model write establish the behavior.

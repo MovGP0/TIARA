@@ -1,6 +1,6 @@
 ﻿# ListBox1
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and graph evidence.
 
 ## Control
 
@@ -20,28 +20,33 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads the selected list item and converts it to uppercase. If the line contains both `PROCEDURE` and `{_JO }`, it locates the recovered name delimiters and removes the three-character `Def` prefix. The resulting template name is stored in shared state. For example, the embedded `PROCEDURE DefLowPassFilter; {_JO }` entry supplies the `LOWPASSFILTER` template name.
+
+The handler then resets the shared placement position to `(24, 40)` and the shared element count to zero, makes the `Shematic` form visible when needed, clears its drawing rectangle with color value `0x00FF0000`, and calls `FUN_0116da30`. That callee finds the named procedure block in the embedded definition library, reads its node and element declarations, and creates the listed circuit elements. Recovered commands include conductive, capacitive, and inductive branches, generators, outputs, and operational-amplifier elements.
+
+If the selected line lacks `PROCEDURE` or `{_JO }`, the handler does not replace the stored template name. It still redraws and calls the builder with the previous value. The handler also has no recovered check for an invalid item index, a missing end delimiter, or the builder's result.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["ListBox1"] -->|OnClick| handler["FUN_01171c30"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["Delphi UnicodeString assignment helper"]
-    handler --> call3["FUN_00416dc0"]
-    handler --> call4["FUN_004170c0"]
-    handler --> call5["FUN_0043e130"]
-    handler --> call6["FUN_005fdab0"]
+flowchart TD
+    control["ListBox1"] -->|OnClick| handler["ListBox1Click at 01171c30"]
+    handler --> selected["Read and uppercase the selected item"]
+    selected --> definition{"Are both definition markers present?"}
+    definition -->|Yes| extract["Remove Def and store the template name"]
+    definition -->|No| stale["Keep the previous template name"]
+    extract --> reset["Reset placement state and clear the drawing area"]
+    stale --> reset
+    reset --> build["FUN_0116da30 parses and builds the named circuit"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001171C30__FUN_01171c30.c](../../../DecompiledSources/Tina16/functions/0000000001171C30__FUN_01171c30.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Extracts the selected definition name and builds its circuit schematic.
 - Current graph summary: Handles 1 Delphi UI event: Screen_form1.ListBox1.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler derives a template name from a selected `PROCEDURE Def...` entry, resets the drawing state, and invokes the circuit-definition parser and builder.
+- Current graph evidence: The handler obtains the list item by its selected index, calls the uppercase, substring-search, and substring-copy helpers, stores the recovered template name, prepares the `Shematic` drawing surface, and passes that name to `FUN_0116da30`.
 - Complexity: complex
 - Distinct outgoing calls: 9
 
@@ -49,13 +54,13 @@ flowchart LR
 
 - `function:00414560` — Delphi UnicodeString array finalization helper
 - `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:00416dc0` — FUN_00416dc0
-- `function:004170c0` — FUN_004170c0
-- `function:0043e130` — FUN_0043e130
-- `function:005fdab0` — FUN_005fdab0
-- `function:008059a0` — FUN_008059a0
-- `function:01160b40` — Handles 1 Delphi UI event: Screen_graph_form1.OnActivate.
-- `function:0116da30` — FUN_0116da30
+- `function:00416dc0` — Copies a bounded substring into the shared template-name string.
+- `function:004170c0` — Searches a Unicode string from a one-based start position.
+- `function:0043e130` — Creates an uppercase copy of the selected list item.
+- `function:005fdab0` — Sets the drawing color used to clear the schematic rectangle.
+- `function:008059a0` — Sets a VCL form visible and brings it forward.
+- `function:01160b40` — The recovered `Screen_graph_form1.OnActivate` handler is an empty return.
+- `function:0116da30` — Parses the named procedure block and creates its declared circuit nodes and elements.
 
 ## Resource evidence
 
@@ -74,5 +79,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact text of three static delimiter constants is not present in the recovered C source. Their positions and the three-character skip establish the name extraction, and the embedded `Def...` procedure declarations confirm the input format.
+- The drawing-surface virtual method names and the original Delphi names for shared state are not recovered.
+- The nearby `Rmod` label is not used as evidence for this list's behavior.

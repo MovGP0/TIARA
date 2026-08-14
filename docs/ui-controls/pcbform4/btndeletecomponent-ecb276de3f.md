@@ -1,6 +1,6 @@
 ﻿# Delete
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source, call-path, state, and error evidence reviewed.
 
 ## Control
 
@@ -20,28 +20,29 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The click deletes the selected component from the current PCB library.
+
+The handler reads the selected Component list value, removes that list row, and selects the row that now occupies the same index or the preceding final row. It then calls the current library backend's `DigitalICs` deletion method with the selected component key, calls [`FUN_00ec1150`](../../../DecompiledSources/Tina16/functions/0000000000EC1150__FUN_00ec1150.c) to rebuild the Footprint and mapping lists, refreshes action availability, and marks the active library entry for later persistence.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Delete"] -->|OnClick| handler["FUN_00ec5310"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_0043e130"]
-    handler --> call4["FUN_00ea9ca0"]
-    handler --> call5["FUN_00ec0380"]
-    handler --> call6["FUN_00ec1150"]
+flowchart TD
+    control["Delete component"] -->|OnClick| handler["FUN_00ec5310"]
+    handler --> read["Read the selected component name"]
+    read --> remove["Remove its Component list row and choose a neighbor"]
+    remove --> backend["Delete the DigitalICs backend entry"]
+    backend --> rebuild["Rebuild footprints and mappings"]
+    rebuild --> mark["Refresh actions and mark the library"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000000EC5310__FUN_00ec5310.c](../../../DecompiledSources/Tina16/functions/0000000000EC5310__FUN_00ec5310.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Deletes the selected component from the current PCB library.
 - Current graph summary: Handles 1 Delphi UI event: PcbForm4.Panel2.BtnDeleteComponent.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Removes the selected component row, selects a remaining neighbor, deletes the corresponding DigitalICs backend entry, rebuilds dependent footprint and mapping lists, refreshes action availability, and marks the active library entry.
+- Current graph evidence: FUN_00ec5310 reads the selected component string and index, deletes that list item, adjusts ItemIndex, invokes the backend method at vtable offset 0xc0 with DigitalICs and the component key, calls FUN_00ec1150 and FUN_00ec0380, and sets item-associated state on the current library entry.
 - Complexity: complex
 - Distinct outgoing calls: 6
 
@@ -70,7 +71,12 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 - Rank 1: Component list: at distance 295.
 - Rank 2: Footprint list: at distance 317.
 
+## No-op and error behavior
+
+- The handler has no confirmation dialog.
+- Normal UI state disables this action when the Component list is empty. The recovered handler itself does not add a separate invalid-selection guard.
+- The handler has no local backend error recovery.
+
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The backend deletion method is recovered only through its call shape and coordinated UI removal.

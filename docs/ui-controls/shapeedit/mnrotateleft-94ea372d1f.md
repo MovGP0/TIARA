@@ -1,6 +1,6 @@
 ﻿# Rotate &Left
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for TIARA-diz.6.7.1536.
 
 ## Control
 
@@ -11,55 +11,38 @@
 | Control class | TMenuItem |
 | Caption | Rotate &Left |
 | Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | sbRLeftClick |
 | Handler address | 01794980 |
 | Graph node | `resource:dfm:ShapeEdit/ShapeEdit.MainMenu.Edit.mnRotateLeft` |
 | Handler node | `function:01794980` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Collects selected objects, or the temporary objects while an active interaction tool is present. It records undo state for normal document objects, marks the document dirty, invokes each object's left-rotation virtual method around the derived pivot, and redraws. With no eligible object, it exits without a transform.
+
+This control shares the recovered handler with `ShapeEdit.TopToolBar.EditorTools.sbRLeft`. This article keeps the resource evidence for this control separate.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Rotate &Left"] -->|OnClick| handler["FUN_01794980"]
-    handler --> call1["FUN_017946f0"]
+flowchart TD
+    control["Rotate &Left"] --> handler["sbRLeftClick at 01794980"]
+    handler --> step1["Collect rotation targets"]
+    handler --> step2["No target: stop"]
+    handler --> step3["Record undo and mark dirty"]
+    handler --> step4["Rotate left around pivot"]
+    handler --> step5["Redraw editor"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001794980__FUN_01794980.c](../../../DecompiledSources/Tina16/functions/0000000001794980__FUN_01794980.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 2 Delphi UI events: ShapeEdit.TopToolBar.EditorTools.sbRLeft.OnClick, ShapeEdit.MainMenu.Edit.mnRotateLeft.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: simple
-- Distinct outgoing calls: 1
-
-## Direct calls
-
-- `function:017946f0` — FUN_017946f0
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
+- Handler source: [0000000001794980__FUN_01794980.c](../../../DecompiledSources/Tina16/functions/0000000001794980__FUN_01794980.c)
 - Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Recovered path: The handler calls 017946f0 with direction flag 1. That helper gathers the target list, derives a pivot, creates an undo command for normal objects, calls virtual slot +0x60, sets the dirty flag, and invalidates the editor.
+- Resource context: The recovered TMenuItem resource uses caption `Rotate &Left`.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No additional implementation gap was found in the recovered click path.
+- The caption, hint, and glyph support control identity only. They do not replace the recovered handler and callee evidence.
+

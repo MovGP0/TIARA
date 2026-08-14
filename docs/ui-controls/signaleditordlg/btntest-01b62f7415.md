@@ -1,6 +1,6 @@
 ﻿# &Test
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the shared compile-and-test path.
 
 ## Control
 
@@ -20,24 +20,30 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The local Test button uses the same two-step path as the popup Test item. It first
+calls `FUN_011254a0` to compile user-defined mode `8` or synchronize the
+piecewise-linear editor. It then calls `FUN_01125620`, which evaluates the active
+signal with test flag `1` and updates the preview or diagnostics. The nearby
+ErrorLine text describes this control, but the recovered call order independently
+proves the test behavior. This wrapper has no separate error branch.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["&Test"] -->|OnClick| handler["FUN_011254f0"]
-    handler --> call1["FUN_011254a0"]
-    handler --> call2["FUN_01125620"]
+    control["Test"] -->|"OnClick"| handler["FUN_011254f0"]
+    handler --> prepare["Compile or synchronize active mode"]
+    prepare --> evaluate["Evaluate with test flag 1"]
+    evaluate --> preview["Update signal preview or diagnostics"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011254F0__FUN_011254f0.c](../../../DecompiledSources/Tina16/functions/00000000011254F0__FUN_011254f0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Compile and test the active signal from the local editor panel.
 - Current graph summary: Handles 1 Delphi UI event: SignalEditorDlg.pnlNotebook.pctrlMode.tsUserDefined.pnlLocalMenu.btnTest.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Calls the shared syntax handler and test wrapper in a fixed order.
+- Current graph evidence: The body contains exactly `FUN_011254a0(param_1)` followed by `FUN_01125620(param_1)`; the nearby label says to press Test to see the signal.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -63,5 +69,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The wrapper does not branch on the compile result; the called evaluation path performs its own validity checks.
+- The preview rendering format is outside this function.

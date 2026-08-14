@@ -1,6 +1,6 @@
 ﻿# On
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed: the click enables or disables the selected analyzer channel.
 
 ## Control
 
@@ -20,20 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads the selected channel index. If the index is `-1`, it returns without a state change. Otherwise, it sends the button's Down state to the analyzer backend and copies that state to byte `+0x11` in the selected channel model.
+
+When the state is off, `FUN_010f6740` detaches the channel's primary and secondary trace resources. When the state is on, the form's virtual update path attaches or refreshes the channel display.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["On"] -->|OnClick| handler["FUN_01389b50"]
-    handler --> call1["FUN_010f6740"]
+flowchart TD
+    control["Channel On button"] -->|OnClick| handler["ChannelOnBtnClick"]
+    handler --> selected{"Channel selected?"}
+    selected -->|No| noop["Return without change"]
+    selected -->|Yes| backend["Send Down state to backend"]
+    backend --> model["Copy state to channel model"]
+    model --> enabled{"Enabled?"}
+    enabled -->|No| detach["Detach channel traces"]
+    enabled -->|Yes| attach["Attach or refresh channel display"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001389B50__FUN_01389b50.c](../../../DecompiledSources/Tina16/functions/0000000001389B50__FUN_01389b50.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Applies the Channel On state to the selected analyzer channel and its traces.
 - Current graph summary: Handles 1 Delphi UI event: SignalAnalyzerWin.ChannelGroupBox.FChannelOnBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +69,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The selected-channel field names are not recovered; the source identifies them by offsets.
+- Hardware-side validation and errors are handled outside the recovered click path.

@@ -1,6 +1,6 @@
 ﻿# Pin Properties...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for TIARA-diz.6.7.1534.
 
 ## Control
 
@@ -11,79 +11,36 @@
 | Control class | TMenuItem |
 | Caption | Pin Properties... |
 | Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | mnPinPropertiesClick |
 | Handler address | 0179ee00 |
 | Graph node | `resource:dfm:ShapeEdit/ShapeEdit.MainMenu.Edit.mnPinProperties` |
 | Handler node | `function:0179ee00` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Collects selected pin objects. With no selected pin, it only redraws. Otherwise it shows the pin-properties dialog. On OK, it records undo state and copies the edited property fields back to each selected pin, then runs the pin post-update path and redraws. Cancel does not copy changes.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Pin Properties..."] -->|OnClick| handler["FUN_0179ee00"]
-    handler --> call1["FUN_00410e60"]
-    handler --> call2["Nil-safe Delphi object destruction helper"]
-    handler --> call3["FUN_004113d0"]
-    handler --> call4["Delphi UnicodeString clear and finalization helper"]
-    handler --> call5["Delphi UnicodeString array finalization helper"]
-    handler --> call6["FUN_00416910"]
+flowchart TD
+    control["Pin Properties..."] --> handler["mnPinPropertiesClick at 0179ee00"]
+    handler --> step1["Collect selected pins"]
+    handler --> step2["None: redraw only"]
+    handler --> step3["Show properties dialog"]
+    handler --> step4["OK: record undo and apply fields"]
+    handler --> step5["Redraw editor"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/000000000179EE00__FUN_0179ee00.c](../../../DecompiledSources/Tina16/functions/000000000179EE00__FUN_0179ee00.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: ShapeEdit.MainMenu.Edit.mnPinProperties.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 20
-
-## Direct calls
-
-- `function:00410e60` — FUN_00410e60
-- `function:00410f20` — Nil-safe Delphi object destruction helper
-- `function:004113d0` — FUN_004113d0
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00416910` — FUN_00416910
-- `function:004169a0` — FUN_004169a0
-- `function:00448450` — FUN_00448450
-- `function:00448650` — FUN_00448650
-- `function:004ae7e0` — FUN_004ae7e0
-- `function:004aeac0` — FUN_004aeac0
-- `function:00594f90` — FUN_00594f90
-- `function:00597de0` — FUN_00597de0
-- `function:00848a70` — FUN_00848a70
-- `function:0084e320` — FUN_0084e320
-- `function:0084e3e0` — FUN_0084e3e0
-- `function:00c5c340` — FUN_00c5c340
-- `function:00c5c790` — FUN_00c5c790
-- `function:017880a0` — FUN_017880a0
-- `function:017a0190` — FUN_017a0190
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
+- Handler source: [000000000179EE00__FUN_0179ee00.c](../../../DecompiledSources/Tina16/functions/000000000179EE00__FUN_0179ee00.c)
 - Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Recovered path: The handler filters selected objects to class 017a79c0, populates rows in dialog 01785938, checks ModalResult, creates a 00c5c340 command, copies row fields to each pin, calls 017a0190, and invalidates the editor.
+- Resource context: The recovered TMenuItem resource uses caption `Pin Properties...`.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered handler does not call the direct dirty-flag setter; any dirty-state effect can only occur in the called update or undo paths.
+- The caption, hint, and glyph support control identity only. They do not replace the recovered handler and callee evidence.
+

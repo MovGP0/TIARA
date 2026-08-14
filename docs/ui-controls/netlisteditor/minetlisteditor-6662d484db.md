@@ -1,6 +1,6 @@
 ﻿# &Netlist Editor
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The recovered help-path construction, localized-file selection, and application help command establish the action.
 
 ## Control
 
@@ -20,22 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01533c50` builds a path ending in `TINA.CHM` from the recovered application help directory. It passes that path to `FUN_01b1def0`, which selects an existing language-specific file variant or falls back to the original path.
+
+The handler dispatches application help command `0x1195` with the selected path through the global application's help object. The wrapper does not test a success result or show a local error.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Netlist Editor"] -->|OnClick| handler["FUN_01533c50"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00416cd0"]
-    handler --> call3["FUN_01b1def0"]
+flowchart TD
+    control["Click Netlist Editor Help"] --> handler["FUN_01533c50"]
+    handler --> path["Build TINA.CHM path"]
+    path --> localized["Use language-specific file when it exists"]
+    localized --> help["Dispatch help command 0x1195"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001533C50__FUN_01533c50.c](../../../DecompiledSources/Tina16/functions/0000000001533C50__FUN_01533c50.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Opens the Netlist Editor help topic from TINA.CHM.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MHelp.MINetlistEditor.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -65,5 +67,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The numeric help command's symbolic constant is not recovered.
+- Missing-file or viewer errors are handled by the application help subsystem.

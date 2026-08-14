@@ -1,6 +1,6 @@
-﻿#  Width
+﻿#  Width 
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for TIARA-diz.6.7.1584.
 
 ## Control
 
@@ -11,67 +11,36 @@
 | Control class | TRadioGroup |
 | Caption |  Width  |
 | Hint | Border width |
-| Text | Not present in the recovered resource. |
 | Handler name | rgPenWidthClick |
 | Handler address | 01799c30 |
 | Graph node | `resource:dfm:ShapeEdit/ShapeEdit.PartsPanel.rgPenWidth` |
 | Handler node | `function:01799c30` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+In normal editing mode, collects selected objects, marks the document dirty, records undo state when any object is selected, invokes each selected object's style-update path using the form's current width choice, and refreshes the editor. In embedded mode, it does nothing.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control[" Width "] -->|OnClick| handler["FUN_01799c30"]
-    handler --> call1["FUN_00410e60"]
-    handler --> call2["Nil-safe Delphi object destruction helper"]
-    handler --> call3["FUN_004ae7e0"]
-    handler --> call4["FUN_004aeac0"]
-    handler --> call5["FUN_00c5c340"]
-    handler --> call6["FUN_00c5c790"]
+flowchart TD
+    control[" Width "] --> handler["rgPenWidthClick at 01799c30"]
+    handler --> step1["Check normal editing mode"]
+    handler --> step2["Collect selected objects"]
+    handler --> step3["Record undo and mark dirty"]
+    handler --> step4["Apply width through object method"]
+    handler --> step5["Refresh editor"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001799C30__FUN_01799c30.c](../../../DecompiledSources/Tina16/functions/0000000001799C30__FUN_01799c30.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: ShapeEdit.PartsPanel.rgPenWidth.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 7
-
-## Direct calls
-
-- `function:00410e60` — FUN_00410e60
-- `function:00410f20` — Nil-safe Delphi object destruction helper
-- `function:004ae7e0` — FUN_004ae7e0
-- `function:004aeac0` — FUN_004aeac0
-- `function:00c5c340` — FUN_00c5c340
-- `function:00c5c790` — FUN_00c5c790
-- `function:01795670` — FUN_01795670
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: ("Hair", "1", "2", "3")
-- Image reference: Not present in the recovered resource.
+- Handler source: [0000000001799C30__FUN_01799c30.c](../../../DecompiledSources/Tina16/functions/0000000001799C30__FUN_01799c30.c)
 - Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Object color at distance 78.
-- Rank 2: Fill color at distance 136.
+- Recovered path: The handler guards on form byte +0xc93, gathers objects with selection byte +0x21, calls 01795670 with 1 for each, conditionally pushes a 00c5c340 command, invokes virtual slot +0x20 on each selected object, and refreshes field +0x948.
+- Resource context: The recovered TRadioGroup resource uses caption ` Width ` and hint `Border width`.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The radio group supplies the selected width, but the recovered virtual object method hides class-specific storage details.
+- The caption, hint, and glyph support control identity only. They do not replace the recovered handler and callee evidence.
+

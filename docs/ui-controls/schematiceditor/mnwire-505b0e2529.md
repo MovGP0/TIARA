@@ -1,6 +1,6 @@
 ﻿# &Wire
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,23 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler delegates to ToolWireClick, which checks editing permission and lock state, constructs a wire command, replaces the current command, and activates the wire tool. Sender is unused.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Wire"] -->|OnClick| handler["FUN_01c773b0"]
-    handler --> call1["FUN_01c6d6f0"]
+flowchart TD
+    control["&Wire"] -->|"OnClick"| handler["mnWireClick (01c773b0)"]
+    handler --> guard{"Editing allowed and schematic unlocked?"}
+    guard -->|"No"| noChange["Keep current command"]
+    guard -->|"Yes"| action["Construct and activate wire tool"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C773B0__FUN_01c773b0.c](../../../DecompiledSources/Tina16/functions/0000000001C773B0__FUN_01c773b0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Activate the wire placement tool.
 - Current graph summary: Handles 2 Delphi UI events: SchematicEditor.MainMenu.Insert.mnWire.OnClick, SchematicEditor.SchPopup.pmWire.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler delegates to ToolWireClick, which checks editing permission and lock state, constructs a wire command, replaces the current command, and activates the wire tool. Sender is unused.
+- Current graph evidence: The recovered wrapper calls FUN_01c6d6f0, whose guard, wire-tool construction, command replacement, and toolbar activation were inspected.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No control-specific branch exists in this wrapper.
+

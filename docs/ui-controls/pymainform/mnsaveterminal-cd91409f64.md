@@ -1,6 +1,6 @@
 ﻿# Save
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered save-dialog acceptance and terminal file-write path reviewed.
 
 ## Control
 
@@ -20,15 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler opens `SaveDialog`. If the user cancels, it performs no write. If the user accepts, it reads the selected path and writes the terminal SynEdit line collection to that file. It then finalizes the temporary path string.
+
+The click saves terminal history only. It does not save the main editor, clear the terminal, or change the Python document's current file name. No local overwrite check, retry, or error catch is present.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Save"] -->|OnClick| handler["FUN_0146f1b0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_00724270"]
+flowchart TD
+    control["Click Save"] --> accepted{"User accepts SaveDialog?"}
+    accepted -->|No| noAction["Do not write a file"]
+    accepted -->|Yes| path["Read the selected path"]
+    path --> write["Write all terminal lines to that file"]
 ```
 
 ## Handler evidence
@@ -64,4 +67,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered resource does not specify a terminal-log file filter or default extension.

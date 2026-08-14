@@ -1,6 +1,6 @@
 ﻿# BtnOk
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and UI evidence.
 
 ## Control
 
@@ -20,24 +20,29 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The DFM marks this `bkOK` button as hidden. If its event runs, the handler reads the shared Karnaugh mode byte. Mode `0` dispatches to the Maxterm handler. Any nonzero mode dispatches to the Minterm handler.
+
+The selected handler updates the help context, formats the corresponding stored source expression, redraws that map, and publishes its simplified expression. `BtnOkClick` does not set a modal result and does not close the form. Form activation calls this handler to synchronize the active view with the current Minterm radio-button state.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
     control["BtnOk"] -->|OnClick| handler["FUN_011d2be0"]
-    handler --> call1["FUN_011d2900"]
-    handler --> call2["FUN_011d2a70"]
+    handler --> mode{"Karnaugh mode is 0?"}
+    mode -->|Yes| maxterm["FUN_011d2a70: refresh Maxterm"]
+    mode -->|No| minterm["FUN_011d2900: refresh Minterm"]
+    maxterm --> keepOpen["Keep the form open"]
+    minterm --> keepOpen
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011D2BE0__FUN_011d2be0.c](../../../DecompiledSources/Tina16/functions/00000000011D2BE0__FUN_011d2be0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Dispatch the hidden VK_form refresh action to the current Karnaugh mode.
 - Current graph summary: Handles 1 Delphi UI event: VK_form.BtnOk.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Calls the Maxterm refresh for mode `0` and the Minterm refresh for any other mode; it does not close the form.
+- Current graph evidence: The recovered handler tests `DAT_01f2a8d4` and calls only `FUN_011d2a70` or `FUN_011d2900`. It contains no modal-result write. The DFM sets `Visible=false` and `Kind=bkOK`.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -64,5 +69,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The source does not show a normal visible user path to this hidden button.
+- The built-in `bkOK` kind does not prove modal closure because this custom handler performs no close operation.

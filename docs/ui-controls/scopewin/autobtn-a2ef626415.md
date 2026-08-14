@@ -1,6 +1,6 @@
 ﻿# Auto
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered curve iteration, automatic range calculation, backend update, and plot refresh reviewed.
 
 ## Control
 
@@ -20,19 +20,26 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler iterates every curve in the scope's channel collection. It skips a curve unless both its source and buffered data pointers exist. For each usable curve, it creates a range calculator for the current Y/T or Y/X mode, measures the curve data, derives a vertical scale from the measured span and the recovered number of vertical divisions, and sends that proposed scale to the scope backend.
+
+The backend can return an adjusted channel mode flag. The handler stores that flag, vertical offset zero, and the calculated scale in the curve model. For the currently selected curve, it also writes the scale and offset into the two numeric edit controls. After all curves, it restores the selected channel in the backend, rebuilds the plot axes, reapplies the current display mode, and redraws the plot.
+
+Curves without source or data are unchanged. The handler has no local error message or rollback.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Auto"] -->|OnClick| handler["FUN_012b1960"]
-    handler --> call1["FUN_0040c850"]
-    handler --> call2["Nil-safe Delphi object destruction helper"]
-    handler --> call3["FUN_004113f0"]
-    handler --> call4["FUN_00b90440"]
-    handler --> call5["FUN_00b90620"]
-    handler --> call6["FUN_010f67e0"]
+flowchart TD
+    control["Click Auto"] --> curves["Iterate scope curves"]
+    curves --> usable{"Curve has source and buffered data?"}
+    usable -->|No| next["Leave that curve unchanged"]
+    usable -->|Yes| range["Measure its data range for Y/T or Y/X mode"]
+    range --> apply["Store backend-adjusted mode, zero offset, and scale"]
+    apply --> selected{"Current selected curve?"}
+    selected -->|Yes| edits["Update scale and offset edit controls"]
+    selected -->|No| next
+    edits --> next
+    next --> refresh["Restore selection, rebuild axes, and redraw"]
 ```
 
 ## Handler evidence
@@ -75,4 +82,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The original class names of the two mode-specific range calculators are not recovered.

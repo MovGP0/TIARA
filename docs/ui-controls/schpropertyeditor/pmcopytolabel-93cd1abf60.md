@@ -1,6 +1,6 @@
 ﻿# Copy to &Label
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The selected-cell guard, active-editor commit, grid text read, and destination write establish the action.
 
 ## Control
 
@@ -20,23 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_00f43b10` reads the AttributeGrid at form offset `+0x6d0`. It continues only when the selected row is 1 and the selected column is greater than 0. Other selections are a proven no-op; the popup-open handler uses the same condition to enable this menu item.
+
+For an eligible selection, `FUN_00b0a360` commits the active cell editor. A nonzero commit result stops the copy. On success, `FUN_0084e320` reads the text from row 1 at the selected column, and `FUN_00b0b450` writes that text to row 1, column 0 and updates the grid's underlying data and active-editor state as applicable.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Copy to &Label"] -->|OnClick| handler["FUN_00f43b10"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_0084e320"]
-    handler --> call3["FUN_00b0a360"]
-    handler --> call4["FUN_00b0b450"]
+flowchart TD
+    control["Click Copy to Label"] --> handler["FUN_00f43b10"]
+    handler --> cell{"Row is 1 and column is greater than 0?"}
+    cell -->|No| noop["Return without change"]
+    cell -->|Yes| commit["Commit active cell editor"]
+    commit --> valid{"Commit result is zero?"}
+    valid -->|No| stop["Return without copy"]
+    valid -->|Yes| read["Read selected row-1 cell text"]
+    read --> write["Write text to row 1, column 0"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000000F43B10__FUN_00f43b10.c](../../../DecompiledSources/Tina16/functions/0000000000F43B10__FUN_00f43b10.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Copies the selected row-1 property value to the row-1 label cell.
 - Current graph summary: Handles 1 Delphi UI event: SchPropertyEditor.GridPopup.pmCopyToLabel.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -67,5 +72,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered grid code identifies the destination by row and column, not by a Delphi field name.
+- Any validation message for a failed active-cell commit is handled inside the grid editor.

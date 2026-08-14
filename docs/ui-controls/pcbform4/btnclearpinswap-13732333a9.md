@@ -1,6 +1,6 @@
 ﻿# Clear pin swap
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source, call-path, state, and error evidence reviewed.
 
 ## Control
 
@@ -20,24 +20,30 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The click clears the form's saved pin-swap ordering and rebuilds the current footprint view.
+
+The handler clears the state byte at form offset `+0x8c0`, clears the string-list object at `+0x858`, calls [`FUN_00ec0aa0`](../../../DecompiledSources/Tina16/functions/0000000000EC0AA0__FUN_00ec0aa0.c) to reconstruct the footprint's pin-to-node rows, and calls [`FUN_00ec0380`](../../../DecompiledSources/Tina16/functions/0000000000EC0380__FUN_00ec0380.c) to refresh button availability. The shared rebuild helper uses the cleared list only when the state byte is set, which confirms that these fields hold the pin-swap ordering state.
+
+The resource starts with this button disabled. The action-state helper controls when it becomes available.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
+flowchart TD
     control["Clear pin swap"] -->|OnClick| handler["FUN_00ec7600"]
-    handler --> call1["FUN_00ec0380"]
-    handler --> call2["FUN_00ec0aa0"]
+    handler --> reset["Clear state byte +0x8c0"]
+    reset --> clear["Clear the saved pin-swap string list"]
+    clear --> rebuild["FUN_00ec0aa0 rebuilds footprint mappings"]
+    rebuild --> refresh["FUN_00ec0380 refreshes action availability"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000000EC7600__FUN_00ec7600.c](../../../DecompiledSources/Tina16/functions/0000000000EC7600__FUN_00ec7600.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Clears the saved pin-swap ordering and rebuilds the footprint mapping view.
 - Current graph summary: Handles 1 Delphi UI event: PcbForm4.Panel1.BtnClearPinSwap.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Clears form state byte +0x8c0 and the string-list object at +0x858, then rebuilds the current footprint mapping rows and refreshes action availability.
+- Current graph evidence: FUN_00ec7600 performs both state clears before calling FUN_00ec0aa0 and FUN_00ec0380. FUN_00ec0aa0 consults the same state byte and string list when it applies pin-swap ordering.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -63,7 +69,12 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 - Rank 2: Swapped node at distance 189.
 - Rank 3:  Valid node at distance 207.
 
+## No-op and error behavior
+
+- Clearing an already empty swap list still performs the mapping and action refresh.
+- The handler does not change the selected component or footprint directly.
+- The handler has no local exception recovery.
+
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered code proves the ordering-state clear. It does not recover a Delphi field name for offsets `+0x858` and `+0x8c0`.

@@ -1,6 +1,6 @@
 ﻿# &Redraw
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for TIARA-diz.6.7.1552.
 
 ## Control
 
@@ -11,55 +11,33 @@
 | Control class | TMenuItem |
 | Caption | &Redraw |
 | Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | mnRedrawClick |
 | Handler address | 01795910 |
 | Graph node | `resource:dfm:ShapeEdit/ShapeEdit.MainMenu.View.mnRedraw` |
 | Handler node | `function:01795910` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Invalidates the ShapeEdit canvas or editor control so that it is repainted. It does not change document data.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Redraw"] -->|OnClick| handler["FUN_01795910"]
-    handler --> call1["FUN_0064e770"]
+flowchart TD
+    control["&Redraw"] --> handler["mnRedrawClick at 01795910"]
+    handler --> step1["Invalidate editor control"]
+    handler --> step2["VCL schedules repaint"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001795910__FUN_01795910.c](../../../DecompiledSources/Tina16/functions/0000000001795910__FUN_01795910.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: ShapeEdit.MainMenu.View.mnRedraw.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: simple
-- Distinct outgoing calls: 1
-
-## Direct calls
-
-- `function:0064e770` — FUN_0064e770
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
+- Handler source: [0000000001795910__FUN_01795910.c](../../../DecompiledSources/Tina16/functions/0000000001795910__FUN_01795910.c)
 - Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Recovered path: The handler contains one call to 0064e770 with form field +0x948 and then returns.
+- Resource context: The recovered TMenuItem resource uses caption `&Redraw`.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No additional implementation gap was found in the recovered click path.
+- The caption, hint, and glyph support control identity only. They do not replace the recovered handler and callee evidence.
+

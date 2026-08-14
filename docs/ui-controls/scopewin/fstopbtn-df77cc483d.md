@@ -1,6 +1,6 @@
 ﻿# Stop
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered stop request, control-state update, backend stop, and refresh reviewed.
 
 ## Control
 
@@ -20,14 +20,19 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler selects the Run control state first. If the Stop-associated state is active, it clears that state and calls the form's virtual stop callback. It then sends zero to virtual slot `+0x128` on the acquisition object, sets form stop-request flag `+0x7ec` to 1, and invokes the scope backend refresh callback at slot `+0x168`.
+
+The running acquisition loop checks the shared stop state and exits through its normal restoration path. The click does not discard curve data by itself and has no confirmation or local error report.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Stop"] -->|OnClick| handler["FUN_012b0090"]
-    handler --> call1["FUN_0082a6c0"]
+flowchart TD
+    control["Click Stop"] --> controls["Restore Run and clear active Stop state"]
+    controls --> callback["Invoke the form stop callback when required"]
+    callback --> backend["Send stop value 0 to the acquisition object"]
+    backend --> flag["Set stop-request flag +0x7ec"]
+    flag --> refresh["Invoke the scope backend refresh callback"]
 ```
 
 ## Handler evidence
@@ -62,4 +67,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The original names of the virtual stop and refresh callbacks are not recovered.

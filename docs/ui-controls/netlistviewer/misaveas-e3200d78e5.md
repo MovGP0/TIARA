@@ -1,6 +1,6 @@
 ﻿# Save &As...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the recovered handler, mode branch, and save-dialog path.
 
 ## Control
 
@@ -20,25 +20,27 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The menu item has two mode-dependent paths. In standalone mode, it builds a default file name, opens `TSaveDialog`, and writes the current `Memo` lines to the selected file only when the dialog is accepted. In integrated mode, it sends the memo lines to the host-owned netlist object and calls the recovered host save helper; it clears `Memo.Modified` only when that helper reports success. A canceled dialog is a no-op. The recovered standalone branch does not clear the modified flag after the file write.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Save &As..."] -->|OnClick| handler["FUN_014b5430"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_00416ad0"]
-    handler --> call4["FUN_00416ba0"]
-    handler --> call5["FUN_004414c0"]
-    handler --> call6["FUN_00441640"]
+flowchart TD
+    control["Choose Save As"] --> handler["FUN_014b5430"]
+    handler --> mode{"Integrated viewer mode?"}
+    mode -->|No| dialog{"SaveDialog accepted?"}
+    dialog -->|No| noop["Keep document unchanged"]
+    dialog -->|Yes| file["Write Memo lines to selected file"]
+    mode -->|Yes| host["Pass Memo lines to host save helper"]
+    host --> success{"Host reports success?"}
+    success -->|Yes| clean["Clear Memo modified flag"]
+    success -->|No| keep["Keep modified flag"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000014B5430__FUN_014b5430.c](../../../DecompiledSources/Tina16/functions/00000000014B5430__FUN_014b5430.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Save the current Netlist Viewer source to a selected file or host target.
 - Current graph summary: Handles 1 Delphi UI event: NetlistViewer.MainMenu.MFile.MISaveAs.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -76,5 +78,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The rebuilt `FUN_014a1f90` helper is incomplete, so the original host persistence result is not recovered.
+- The exact default extension comes from a global string whose symbolic name is not recovered.

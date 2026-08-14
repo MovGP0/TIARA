@@ -1,6 +1,6 @@
 ﻿# Replace...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for mnReplaceClick.
 
 ## Control
 
@@ -20,14 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler opens the shared search dialog with replace mode enabled. It initializes the dialog from stored find and replace values and the active selection. Canceling is a no-op. On acceptance it persists the options and, when search text is present, runs the shared search path with replace flags. The exact replace-one versus replace-all choice is supplied by the dialog fields and remains inside the shared search routine.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Replace..."] -->|OnClick| handler["FUN_0108a990"]
-    handler --> call1["FUN_0108fc80"]
+flowchart TD
+    control["Replace..."] -->|OnClick| handler["TMCUProjectForm.mnReplaceClick<br/>FUN_0108a990"]
+    handler --> dialog["Open Replace dialog with stored options"]
+    dialog --> accepted{"Accepted with search text?"}
+    accepted -->|No| noOp["Keep document unchanged"]
+    accepted -->|Yes| replace["Run shared search path with replace options"]
 ```
 
 ## Handler evidence
@@ -59,7 +62,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

@@ -1,67 +1,100 @@
-﻿# CancelBtn
+﻿# Cancel the transfer-media dialog
 
-> Analysis status: Pending individual source review.
+> Analysis status: The standard VCL Cancel request is recovered. The custom handler and final close decision remain unresolved.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
 | Form | TransferMediaFrm |
+| Form caption | Transfer license |
 | Component path | TransferMediaFrm.CancelBtn |
 | Control class | TBitBtn |
-| Caption | Not present in the recovered resource. |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Button kind | bkCancel |
 | Handler name | CancelBtnClick |
-| Handler address | Not present in the recovered resource. |
+| Handler address | Not recovered |
 | Graph node | `resource:dfm:TransferMediaFrm/TransferMediaFrm.CancelBtn` |
 | Handler node | `concept:dfm-handler:TTransferMediaFrm/CancelBtnClick` |
 | Graph layer | tina.exe |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The recovered VCL path proves that this button requests a Cancel result before it dispatches the custom click handler:
 
-## Click flow
+1. The DFM loader applies `Kind = bkCancel` to the `TBitBtn`. The recovered kind-setting path supplies the standard Cancel presentation and modal result 2, the Delphi `mrCancel` value.
+2. `TBitBtn.Click` delegates `bkCancel` to the inherited button-click path. Only `bkHelp` and `bkClose` use special branches in this override.
+3. The inherited path finds the parent form. When it finds one, it copies modal result 2 to the form.
+4. The path then dispatches `TTransferMediaFrm.CancelBtnClick`.
+
+The modal-result write happens before the custom event dispatch. The custom handler can still change transfer state, change the modal result, release resources, or return without another state change. Its code address and body are not recovered, so none of these application actions can be assigned.
+
+The form also has an unresolved `FormCloseQuery` handler. It can allow or reject the close request. Therefore, this evidence proves a Cancel request. It does not prove that the dialog closes or that transfer state is rolled back.
+
+## Transfer-media context
+
+The form resource supplies these direct facts:
+
+- The form caption is **Transfer license**.
+- `DriveCB` is a `TDriveComboBox` under the label **Choose transfer media:**.
+- Three initially hidden status controls contain these instructions:
+  - **Insert a disk in your target (unauthorised) computer.**
+  - **Insert the disk into your source (authorized) computer.**
+  - **Reinsert your disk into your target computer.**
+- The sibling buttons use `bkOK` and `bkHelp`.
+- `FormShow`, `FormHelp`, `FormCloseQuery`, `OKBtnClick`, and `CancelBtnClick` all have null code addresses.
+
+These resources establish the displayed transfer-media workflow. They do not prove which instruction is active when Cancel is clicked, whether media I/O has started, or which state the custom handler changes.
+
+## Cancel flow
 
 ```mermaid
-flowchart LR
-    control["CancelBtn"] -->|OnClick| handler["CancelBtnClick"]
-    handler -.-> unresolved["Recovered address not established"]
+flowchart TD
+    resource["DFM loads CancelBtn with Kind = bkCancel"] --> kindSetter["TBitBtn.SetKind supplies modal result 2"]
+    click["User clicks Cancel"] --> bitClick["TBitBtn.Click"]
+    bitClick --> inherited["Delegate to inherited button Click"]
+    inherited --> parent{"Parent form found?"}
+    parent -->|Yes| request["Write mrCancel value 2 to form modal result"]
+    parent -->|No| noRequest["Skip modal-result write"]
+    request --> dispatch["Dispatch OnClick"]
+    noRequest --> dispatch
+    kindSetter -. "supplies result" .-> request
+    dispatch --> custom["TTransferMediaFrm.CancelBtnClick<br/>address not recovered"]
+    custom -. "unknown handler result" .-> closeQuery["TTransferMediaFrm.FormCloseQuery<br/>address not recovered"]
+    closeQuery -. "unknown decision" .-> outcome["Final close and transfer state are unknown"]
 ```
 
-## Handler evidence
+## Recovered evidence
 
-- Source: [DecompiledSources/Tina16/resources/dfm/ui-evidence.json](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Unresolved Delphi event handler TTransferMediaFrm.CancelBtnClick, referenced by 1 UI event.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: simple
-- Distinct outgoing calls: Not present in the recovered resource.
+- [TBitBtn kind setter](../../../DecompiledSources/Tina16/functions/000000000082BC30__FUN_0082bc30.c) selects the standard caption, modal result, glyph, and default or cancel state from the button kind.
+- [TBitBtn click override](../../../DecompiledSources/Tina16/functions/000000000082B0E0__FUN_0082b0e0.c) sends kinds other than `bkHelp` and `bkClose` to the inherited button path.
+- [Inherited button click](../../../DecompiledSources/Tina16/functions/0000000000687F30__FUN_00687f30.c) copies the button modal result to the parent form before it calls the common click dispatcher.
+- [Common click dispatcher](../../../DecompiledSources/Tina16/functions/0000000000650840__FUN_00650840.c) invokes the assigned event with the control as `Sender`, or uses the action-link fallback.
+- [Recovered DFM evidence](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json) supplies the form caption, drive selector, instructions, button kind, and unresolved event names.
+- [UI evidence extractor](../../../analysis/undelphi/TiaraUiEvidence.rs) is the checked-in address-resolution path used for these bindings.
+- The graph contains one `triggers` edge from `CancelBtn` to the unresolved handler concept. It contains no function node, source file, or outgoing call edge for `CancelBtnClick`.
+- The glyph manifest has no extracted image for this button. Its standard image is supplied at run time by `bkCancel`.
 
-## Direct calls
+## Handler-address gap
 
-- No direct call edge is present in the recovered graph.
+The rebuilt image used by the extractor has no literal `TTransferMediaFrm` class-name match. The captured process dump contains one class-name occurrence, but a string occurrence does not supply an address-backed VMT or published-method table. The extractor therefore preserves `CancelBtnClick` with a null address.
 
-## Resource evidence
+A later recovery needs the module or mapped class metadata that owns `TTransferMediaFrm`. It must map the class VMT and published method `CancelBtnClick` to executable code before a call tree or function annotation can be created.
 
-- Kind: bkCancel
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
+## Inputs, outputs, and limits
 
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Choose transfer media: at distance 201.
-- Rank 2: Insert a disk in your target (unauthorised) computer. at distance 241.
-- Rank 3: Insert the disk into your source (authorized) computer. at distance 244.
+| Question | Proven result |
+| --- | --- |
+| Immediate input | A click on the `bkCancel` button. |
+| Framework state change | The parent form receives modal result 2 when a parent form is found. |
+| Custom handler input | The VCL dispatcher passes `CancelBtn` as `Sender`. |
+| Transfer cleanup or rollback | Unknown because `CancelBtnClick` is unresolved. |
+| Media or license write | Unknown; no custom source or call path is recovered. |
+| Final close result | Unknown because the custom handler and `FormCloseQuery` are unresolved. |
+| Error behavior | No handler-level message, exception path, or recovery rule is recovered. |
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The standard `bkCancel` path proves a Cancel request only.
+- The transfer instructions and drive selector do not prove the custom handler's data flow.
+- No function annotation JSON is justified without a recovered function address.
+

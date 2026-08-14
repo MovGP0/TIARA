@@ -1,6 +1,6 @@
 ﻿# &Window
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,23 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler delegates to the toolbar window-zoom command, which starts the interactive zoom tool.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Window"] -->|OnClick| handler["FUN_01c75410"]
-    handler --> call1["FUN_01c740c0"]
+flowchart TD
+    control["&Window"] -->|"OnClick"| handler["mnZoomWindowClick (01c75410)"]
+    handler --> action["Start interactive window zoom"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C75410__FUN_01c75410.c](../../../DecompiledSources/Tina16/functions/0000000001C75410__FUN_01c75410.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Activate window zoom.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.View.Zoom.mnZoomWindow.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler delegates to the toolbar window-zoom command, which starts the interactive zoom tool.
+- Current graph evidence: The recovered body is a single call to FUN_01c740c0, the traced ToolZoomClick handler. The menu caption is Window.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +61,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The selected window is supplied by later pointer input, not by this click.
+

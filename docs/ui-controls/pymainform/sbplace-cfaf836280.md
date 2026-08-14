@@ -1,6 +1,6 @@
 ﻿# Place to Schematic
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered editor-text copy, mode branch, schematic insertion, and form-close path reviewed.
 
 ## Control
 
@@ -20,19 +20,20 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler creates a temporary string list and copies all main-editor lines into it. In normal mode, it converts the editor text to one string and calls the schematic insertion routine with subtype 7. That routine creates a typed schematic text object, copies the text and font, adds it to the active schematic, marks the schematic changed, positions the object at the current pointer, and refreshes related editor state.
+
+In an application mode, the handler instead initializes the active schematic context once and passes the editor lines and text into two recovered model interfaces. The exact application-mode object is not named. Both paths then close the Python Shell form through the VCL close pipeline. The handler has no empty-text check, rollback, or local catch.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Place to Schematic"] -->|OnClick| handler["FUN_0146f670"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["FUN_004b6930"]
-    handler --> call3["FUN_00805200"]
-    handler --> call4["FUN_00bf2c10"]
-    handler --> call5["FUN_0199e310"]
-    handler --> call6["FUN_01c9c910"]
+flowchart TD
+    control["Click Place to Schematic"] --> copy["Copy editor lines to a temporary list"]
+    copy --> mode{"Normal mode?"}
+    mode -->|Yes| insert["Insert typed text subtype 7 into the active schematic"]
+    mode -->|No| app["Pass text to the active application-mode model"]
+    insert --> close["Request form closure"]
+    app --> close
 ```
 
 ## Handler evidence
@@ -72,4 +73,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact purpose and original names of the two application-mode interfaces are not recovered.

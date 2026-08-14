@@ -1,6 +1,6 @@
 ﻿# Ins
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,28 +20,32 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01520d80` requires a selected pattern, fewer than `16` pattern items, and a selected pattern group. If any guard fails, the click is a silent no-op.
+
+For a valid request, the handler builds a numbered pattern string at the selected index. It adds one default marker for every channel in the selected group's inclusive From-to-To range. It then renumbers existing entries at and after the insertion point, inserts the new string before the selected item, and copies the new item text to `PatternEdit` at `+0xe38`.
+
+The combo item list belongs to the selected runtime pattern group. The click does not add a channel or channel group and does not start acquisition. It has no confirmation, undo record, file write, local exception handler, or rollback. An invalid saved group range can produce a pattern with no appended channel markers.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Ins"] -->|OnClick| handler["FUN_01520d80"]
-    handler --> call1["FUN_0040e840"]
-    handler --> call2["FUN_004113f0"]
-    handler --> call3["Delphi UnicodeString array finalization helper"]
-    handler --> call4["FUN_00414de0"]
-    handler --> call5["FUN_00416780"]
-    handler --> call6["FUN_004169a0"]
+flowchart TD
+    Click["Click pattern Ins"] --> Handler["FUN_01520d80"]
+    Handler --> Guards{"Pattern selected, group selected,<br/>and count below 16?"}
+    Guards -->|No| NoOp["Keep list unchanged"]
+    Guards -->|Yes| Build["Build numbered pattern for group range"]
+    Build --> Renumber["Renumber entries after insertion point"]
+    Renumber --> Insert["Insert new pattern before selection"]
+    Insert --> Edit["Update PatternEdit text"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001520D80__FUN_01520d80.c](../../../DecompiledSources/Tina16/functions/0000000001520D80__FUN_01520d80.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Insert a new Logic Analyzer trigger pattern for the selected channel group.
 - Current graph summary: Handles 1 Delphi UI event: LogicAnalyzerWin.TriggerBox.PatternInsertBtn.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler applies selection and count guards, builds a group-width pattern, inserts it, and refreshes the edit text.
+- Current graph evidence: The source's count limit, group range, string construction, renumber loop, insertion, and text update establish the behavior.
 - Complexity: complex
 - Distinct outgoing calls: 10
 
@@ -76,5 +80,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact default marker character comes from a recovered global table whose Delphi name is unknown.
+- The nearby Pattern and Group labels support context only. The source establishes insertion semantics.

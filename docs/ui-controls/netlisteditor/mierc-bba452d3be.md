@@ -1,6 +1,6 @@
 ﻿# ERC
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The recovered wrapper, ERC engine annotation, and message-location binding establish the full action.
 
 ## Control
 
@@ -20,23 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_015325c0` saves the analysis context, clears and prepares the message-list state, and calls `FUN_019a9ed0` with the active schematic plus the recovered ERC rule matrix and option globals. That engine rebuilds derived connectivity, checks node and pin conditions, appends findings and a final count summary, and attaches schematic-location collections.
+
+The handler then calls `FUN_016cedb0` to bind the result messages to the Netlist Editor's location state and restores the prior context. The recovered path has no cancellation transaction or persistence write.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["ERC"] -->|OnClick| handler["FUN_015325c0"]
-    handler --> call1["FUN_0152fca0"]
-    handler --> call2["FUN_0152fd80"]
-    handler --> call3["FUN_016cedb0"]
-    handler --> call4["FUN_019a9ed0"]
+flowchart TD
+    control["Click ERC"] --> handler["FUN_015325c0"]
+    handler --> prepare["Save context and prepare message list"]
+    prepare --> erc["FUN_019a9ed0 rebuilds connectivity and runs ERC"]
+    erc --> bind["FUN_016cedb0 binds messages to source locations"]
+    bind --> restore["Restore prior context"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000015325C0__FUN_015325c0.c](../../../DecompiledSources/Tina16/functions/00000000015325C0__FUN_015325c0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Runs electrical-rules checks and binds findings to the Netlist Editor message list.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MAnalysis.MIERC.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -67,5 +69,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact Delphi names of the ERC option globals are not recovered.
+- The result list is updated in memory; this path does not prove that findings are persisted.

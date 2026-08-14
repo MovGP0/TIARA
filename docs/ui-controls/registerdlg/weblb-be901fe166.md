@@ -64,4 +64,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The UI extractor recovered the `WebLBClick` name but no code address. Its concept node has one incoming UI trigger and no function source or call edge. All 14 recovered `TRegisterDlg` events have the same unresolved address gap. The URL caption and `Go to website!` hint suggest user intent, but they do not establish the invoked API, final target, or error behavior. Keep this article pending until a handler body or another proven state path is recovered.

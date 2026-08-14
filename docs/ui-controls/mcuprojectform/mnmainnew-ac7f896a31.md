@@ -1,6 +1,6 @@
 ﻿# New
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for mnNewClick.
 
 ## Control
 
@@ -20,19 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The shared handler chooses the default extension from the target and current project data. It searches names from `noname<counter>` through at most 1,001 candidates and stops at the first unused path. It then adds the new file to the project, opens or selects it, refreshes the project view, and selects the new editor item when one exists. The handler does not use `Sender`, so the main menu, popup menu, and toolbar entries use the same path.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["New"] -->|OnClick| handler["FUN_010856d0"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00414b50"]
-    handler --> call3["FUN_00416cd0"]
-    handler --> call4["FUN_0043e1a0"]
-    handler --> call5["FUN_0043f750"]
-    handler --> call6["FUN_00441920"]
+flowchart TD
+    control["New"] -->|OnClick| handler["TMCUProjectForm.mnNewClick<br/>FUN_010856d0"]
+    handler --> extension["Choose target-specific extension"]
+    extension --> unique{"Find first unused noname counter"}
+    unique --> create["Add new file to project"]
+    create --> refresh["Refresh project and select new editor item"]
 ```
 
 ## Handler evidence
@@ -77,7 +75,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

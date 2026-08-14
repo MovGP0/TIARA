@@ -1,6 +1,6 @@
 ﻿# Open SMPS Converter...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Blocked by an exact evidence gap.
 
 ## Control
 
@@ -20,28 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The OnClick binding reaches ConvertersMnuClick at 01c76610. The recovered body has 12 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Open SMPS Converter..."] -->|OnClick| handler["FUN_01c76610"]
-    handler --> call1["FUN_00410e60"]
-    handler --> call2["Nil-safe Delphi object destruction helper"]
-    handler --> call3["Delphi UnicodeString clear and finalization helper"]
-    handler --> call4["FUN_004b6930"]
-    handler --> call5["FUN_007fc180"]
-    handler --> call6["FUN_01477fa0"]
+flowchart TD
+    control["Open SMPS Converter..."] -->|"OnClick"| handler["ConvertersMnuClick (01c76610)"]
+    handler --> recovered["Recovered direct call path"]
+    recovered --> gap{"Application responsibility proven?"}
+    gap -->|"No"| blocked["Keep exact behavior unknown"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C76610__FUN_01c76610.c](../../../DecompiledSources/Tina16/functions/0000000001C76610__FUN_01c76610.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Evidence-blocked ConvertersMnuClick command.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.ConvertersMnu.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The OnClick binding reaches ConvertersMnuClick at 01c76610. The recovered body has 12 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnFile.ConvertersMnu to ConvertersMnuClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C76610__FUN_01c76610.c and directly references 00410e60, 00410f20, 00414480, 004b6930, 007fc180, 01477fa0, 01478670, 01479a90, and 4 more. No accepted end-to-end role was established for this control path.
 - Complexity: complex
 - Distinct outgoing calls: 12
 
@@ -77,5 +74,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+

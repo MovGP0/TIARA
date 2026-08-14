@@ -1,6 +1,6 @@
 ﻿# Printer &Setup...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The one virtual dialog call establishes the action.
 
 ## Control
 
@@ -20,19 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01532430` executes the object at form offset `+0x8d0` through virtual slot `+0xa8`, the same recovered dialog-execution slot used by the neighboring file dialogs.
+
+The handler ignores the return value and performs no direct printer-state copy. Applying or cancelling printer settings is handled inside the dialog and printer subsystem.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Printer &Setup..."] -->|OnClick| handler["FUN_01532430"]
+flowchart TD
+    control["Click Printer Setup"] --> handler["FUN_01532430"]
+    handler --> dialog["Execute Printer Setup dialog"]
+    dialog --> done["Return after dialog closes"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001532430__FUN_01532430.c](../../../DecompiledSources/Tina16/functions/0000000001532430__FUN_01532430.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Opens the Printer Setup dialog.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MFile.MIPrinterSetup.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -60,5 +64,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The dialog's Delphi component name is inferred from the bound control and neighboring file-dialog fields, not recovered from the call.
+- The wrapper exposes no accepted/cancelled result.

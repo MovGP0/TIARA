@@ -1,6 +1,6 @@
 ﻿# Show &Warnings
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The recovered checked-state toggle and two visibility branches establish the action.
 
 ## Control
 
@@ -20,22 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01533ba0` reads the `MIShowWarnings` checked byte and calls the recovered `TMenuItem.SetChecked` routine with its inverse. It then reads the new state.
+
+When unchecked, the handler hides the controls at form offsets `+0x930` and `+0x928`. When checked, it enables or shows the related editor/message controls and applies recovered indexes 1 and 2 through the UI helpers. The exact Delphi names of all affected layout controls are not recovered.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Show &Warnings"] -->|OnClick| handler["FUN_01533ba0"]
-    handler --> call1["FUN_0064c650"]
-    handler --> call2["FUN_0064dbe0"]
-    handler --> call3["FUN_007e2d20"]
+flowchart TD
+    control["Click Show Warnings"] --> handler["FUN_01533ba0"]
+    handler --> toggle["Invert menu checked state"]
+    toggle --> checked{"Now checked?"}
+    checked -->|No| hide["Hide +0x930 and +0x928 controls"]
+    checked -->|Yes| show["Show and arrange warning-related controls"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001533BA0__FUN_01533ba0.c](../../../DecompiledSources/Tina16/functions/0000000001533BA0__FUN_01533ba0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Toggles warning display controls and the menu item's checked state.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MAnalysis.MIShowWarnings.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -65,5 +68,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact control class and role at form offset `+0x928` are not recovered.
+- The handler changes display state only; it does not rerun ERC or compilation.

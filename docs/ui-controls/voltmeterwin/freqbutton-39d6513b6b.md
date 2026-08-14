@@ -1,6 +1,6 @@
 ﻿# Freq
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,24 +20,29 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads the active meter mode. When that mode is in the recovered frequency-family range 5 through 10, it advances to the next value and wraps from 10 to 5. It asks the backend whether each candidate is supported and continues until a supported value is found or it returns to the starting value. A mode outside this range starts the search at 5. The handler applies the selected value through the shared mode helper, reads the actual backend mode, and refreshes the controls. The recovered UI renderer labels mode 5 as Freq and mode 10 as Diode; the four intermediate labels are not recovered as text. The click does not start a measurement.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Freq"] -->|OnClick| handler["FUN_01b6fb90"]
-    handler --> call1["FUN_01b6bcd0"]
-    handler --> call2["FUN_01b6e340"]
+flowchart TD
+    control["Frequency button"] -->|"OnClick"| handler["FreqButtonClick (01b6fb90)"]
+    handler --> current["Read active backend mode"]
+    current --> candidate["Choose mode 5 or advance and wrap within 5-10"]
+    candidate --> supported{"Backend supports candidate?"}
+    supported -->|"No"| next["Try next value unless back at start"]
+    next --> candidate
+    supported -->|"Yes"| apply["Apply candidate through shared mode helper"]
+    apply --> actual["Read actual mode and refresh controls"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B6FB90__FUN_01b6fb90.c](../../../DecompiledSources/Tina16/functions/0000000001B6FB90__FUN_01b6fb90.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Cycle to the next supported frequency-family measurement mode.
 - Current graph summary: Handles 1 Delphi UI event: VoltmeterWin.FunctionBox.FreqButton.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler reads the active meter mode. When that mode is in the recovered frequency-family range 5 through 10, it advances to the next value and wraps from 10 to 5. It asks the backend whether each candidate is supported and continues until a supported value is found or it returns to the starting value. A mode outside this range starts the search at 5. The handler applies the selected value through the shared mode helper, reads the actual backend mode, and refreshes the controls. The recovered UI renderer labels mode 5 as Freq and mode 10 as Diode; the four intermediate labels are not recovered as text. The click does not start a measurement.
+- Current graph evidence: FUN_01b6fb90 reads the backend mode through virtual slot 0xA0, recognizes values 5 through 10, increments with a 10-to-5 wrap, and tests candidates through virtual slot 0x98. It then calls FUN_01b6e340 with the candidate, reads the actual mode again, and calls FUN_01b6bcd0. That renderer assigns Freq to mode 5 and Diode to mode 10.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -63,5 +68,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The strings referenced for modes 6 through 9 are not decoded in the recovered source, so their user-visible names remain unknown.
+- The backend class and virtual method names are not recovered.
+

@@ -1,6 +1,6 @@
-﻿# Help
+# No-op RAM display Help command
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source and call path reviewed.
 
 ## Control
 
@@ -9,9 +9,7 @@
 | Form | RamDisplaySettings |
 | Component path | RamDisplaySettings.Help |
 | Control class | TBitBtn |
-| Caption | Not present in the recovered resource. |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Kind | bkHelp |
 | Handler name | HelpClick |
 | Handler address | 00f872e0 |
 | Graph node | `resource:dfm:RamDisplaySettings/RamDisplaySettings.Help` |
@@ -20,45 +18,37 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The recovered handler returns immediately. It does not inspect `Sender`, open a help topic, call the application help system, show a message, change either RAM editor, change the validation flag, or close the dialog.
+
+The DFM marks the button as `bkHelp`, but that resource property does not establish implemented help content. The resolved `OnClick` body and empty call neighborhood show that this application handler is a no-op.
+
+Repeated clicks have the same no-op result. There is no decision, output, local error behavior, or exception recovery.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Help"] -->|OnClick| handler["FUN_00f872e0"]
+flowchart TD
+    click["Click Help"] --> handler["Enter HelpClick"]
+    handler --> return["Return without an action"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000000F872E0__FUN_00f872e0.c](../../../DecompiledSources/Tina16/functions/0000000000F872E0__FUN_00f872e0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: RamDisplaySettings.Help.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: simple
-- Distinct outgoing calls: 0
+- [Help click handler](../../../DecompiledSources/Tina16/functions/0000000000F872E0__FUN_00f872e0.c): contains only a return instruction.
+- The knowledge graph shows no outgoing call from `function:00f872e0`.
 
 ## Direct calls
 
-- No direct call edge is present in the recovered graph.
+- No direct call edge is present.
 
 ## Resource evidence
 
-- Kind: bkHelp
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Kind: `bkHelp`.
+- NumGlyphs: `2`.
+- Caption, hint, image reference, and extracted glyph: Not present in the recovered resource.
+- UI evidence: [Recovered DFM resource data](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json).
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The source proves that the assigned application handler is a no-op. It does not prove why help content was not implemented.
+- No separate inherited help dispatch is present in the recovered handler call path.

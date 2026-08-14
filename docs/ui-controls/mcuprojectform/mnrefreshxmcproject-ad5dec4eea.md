@@ -1,6 +1,6 @@
 ﻿# Refresh Eclipse Project
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for mnRefreshXMCProjectClick.
 
 ## Control
 
@@ -20,18 +20,19 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler invokes the Eclipse-project refresh routine with the current external-project and MCU-project objects. It then refreshes the project view, resolves the active item, updates the selection, and selects its editor entry when present. Finally it clears one transient flag and marks project data changed. The handler has no confirmation or local error branch.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Refresh Eclipse Project"] -->|OnClick| handler["FUN_0108d740"]
-    handler --> call1["FUN_010792a0"]
-    handler --> call2["FUN_0107a0c0"]
-    handler --> call3["FUN_01081ce0"]
-    handler --> call4["FUN_01085110"]
-    handler --> call5["FUN_01607d20"]
+flowchart TD
+    control["Refresh Eclipse Project"] -->|OnClick| handler["TMCUProjectForm.mnRefreshXMCProjectClick<br/>FUN_0108d740"]
+    handler --> refresh["Refresh linked Eclipse project"]
+    refresh --> rebuild["Refresh MCU project view and active item"]
+    rebuild --> item{"Active item resolved?"}
+    item -->|Yes| select["Select its editor entry"]
+    item -->|No| flags["Update project flags"]
+    select --> flags
 ```
 
 ## Handler evidence
@@ -67,7 +68,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

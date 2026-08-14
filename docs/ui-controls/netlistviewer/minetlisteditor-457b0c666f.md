@@ -1,6 +1,6 @@
 ﻿# &Netlist Viewer
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the recovered handler, localized help resolver, and VCL help call.
 
 ## Control
 
@@ -20,22 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The menu item builds the path to `TINA.CHM`, asks the localization helper for an existing language-specific variant, and passes the selected help file with context ID `0x1195` to the application help system. If the localized file does not exist, the helper returns the original `TINA.CHM` path. The wrapper does not change the document or handle a help-launch failure locally.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Netlist Viewer"] -->|OnClick| handler["FUN_014b5f90"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00416cd0"]
-    handler --> call3["FUN_01b1def0"]
+flowchart TD
+    control["Choose Netlist Viewer help"] --> handler["FUN_014b5f90"]
+    handler --> path["Build TINA.CHM path"]
+    path --> localized{"Localized variant exists?"}
+    localized -->|Yes| variant["Use language-specific help file"]
+    localized -->|No| base["Use original TINA.CHM"]
+    variant --> help["Open help context 0x1195"]
+    base --> help
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000014B5F90__FUN_014b5f90.c](../../../DecompiledSources/Tina16/functions/00000000014B5F90__FUN_014b5f90.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Open the localized Netlist Viewer help topic.
 - Current graph summary: Handles 1 Delphi UI event: NetlistViewer.MainMenu.MHelp.MINetlistEditor.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -65,5 +68,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source identifies context ID `0x1195` but not its original symbolic constant.
+- Help-system errors follow the VCL application path.

@@ -1,6 +1,6 @@
 ﻿# Export curves
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered shared buffered-curve publication path reviewed.
 
 ## Control
 
@@ -20,14 +20,21 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Despite the **Export curves** hint and file-style glyph, this handler does not open a file dialog. It calls the shared analyzer export routine, which asks ScopeWin for an exportable buffered curve through virtual slot `+0x560`.
+
+If the form type gate accepts a non-null curve, the routine installs that curve as the application's current analysis source, clears the prior nested current-curve slot, and creates two reference-counted curve-writer support objects configured for memory storage. If no curve is returned, or the form type gate rejects it, the click is a no-op.
+
+The recovered path publishes data to the application analysis workspace; a later consumer can perform file export.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Export curves"] -->|OnClick| handler["FUN_012b1ca0"]
-    handler --> call1["FUN_010f7ea0"]
+flowchart TD
+    control["Click Export curves"] --> curve["Request an exportable ScopeWin curve"]
+    curve --> usable{"Accepted non-null curve?"}
+    usable -->|No| noAction["Return without publishing"]
+    usable -->|Yes| publish["Install it as the current analysis source"]
+    publish --> writers["Create two in-memory curve-writer helpers"]
 ```
 
 ## Handler evidence
@@ -62,4 +69,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The downstream action that converts the published curve to a disk file is outside this handler.

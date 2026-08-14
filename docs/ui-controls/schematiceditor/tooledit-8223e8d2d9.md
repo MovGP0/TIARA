@@ -1,6 +1,6 @@
 ﻿# Editing tool
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,23 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler ends and destroys the current interactive command, clears its field, and marks the edit tool as active.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Editing tool"] -->|OnClick| handler["FUN_01c6d690"]
-    handler --> call1["FUN_01c6cf20"]
+flowchart TD
+    control["Editing tool"] -->|"OnClick"| handler["ToolEditClick (01c6d690)"]
+    handler --> action["End current command and activate edit tool"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C6D690__FUN_01c6d690.c](../../../DecompiledSources/Tina16/functions/0000000001C6D690__FUN_01c6d690.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Return to the schematic edit tool.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.TopToolBar.EditorTools.ToolEdit.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler ends and destroys the current interactive command, clears its field, and marks the edit tool as active.
+- Current graph evidence: The handler delegates to FUN_01c6cf20. That recovered callee destroys the active command at form offset 0x1b58, clears the pointer, and calls the tool-button activation helper for the edit tool.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +61,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The active-command field is recovered only by offset.
+

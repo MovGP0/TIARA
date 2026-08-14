@@ -1,6 +1,6 @@
 ﻿# &Mirror
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,23 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler forwards the click to the traced mirror operation. Sender is unused, so the menu and popup controls behave identically.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Mirror"] -->|OnClick| handler["FUN_01c77030"]
-    handler --> call1["FUN_01c6d440"]
+flowchart TD
+    control["&Mirror"] -->|"OnClick"| handler["mnMirrorClick (01c77030)"]
+    handler --> guard{"Mirror allowed and schematic unlocked?"}
+    guard -->|"No"| noChange["Leave selection unchanged"]
+    guard -->|"Yes"| action["Create undo action and mirror selection"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C77030__FUN_01c77030.c](../../../DecompiledSources/Tina16/functions/0000000001C77030__FUN_01c77030.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Mirror selected schematic objects.
 - Current graph summary: Handles 2 Delphi UI events: SchematicEditor.MainMenu.Edit.mnMirror.OnClick, SchematicEditor.SchPopup.pmMirror.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler forwards the click to the traced mirror operation. Sender is unused, so the menu and popup controls behave identically.
+- Current graph evidence: The recovered body is a single call to FUN_01c6d440, whose permission, undo, transform, redraw, and result paths were inspected.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The mirror axis is not named in the recovered source.
+

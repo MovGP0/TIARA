@@ -1,6 +1,6 @@
 ﻿# Save &As...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,28 +20,34 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_013f8870` first validates and commits the active AttributeGrid cell. If validation fails, it records the error flag at `+0x740` and returns without opening SaveDialog or writing a file.
+
+For valid grid state, it uses the current PSG file's base name as the SaveDialog default. Cancellation leaves the stored file name and disk unchanged. After acceptance, the handler reads the chosen path, converts it to lowercase, stores it at `+0x780`, and calls `FUN_013f7f40`.
+
+The writer emits the header `@ Pulse generator file`, a `Default` section with the first level, each later moment and level pair, and the final `.@ end of file` marker. The repeat-from setting is not part of this recovered file format. The handler has no local write-error recovery.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Save &As..."] -->|OnClick| handler["FUN_013f8870"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["Delphi UnicodeString assignment helper"]
-    handler --> call4["FUN_00416910"]
-    handler --> call5["FUN_0043e1a0"]
-    handler --> call6["FUN_00441920"]
+flowchart TD
+    Click["Click Save As"] --> Handler["FUN_013f8870"]
+    Handler --> Grid{"Active grid cell valid?"}
+    Grid -->|No| Stop["Set error flag and return"]
+    Grid -->|Yes| Default["Set dialog default from current base name"]
+    Default --> Dialog{"SaveDialog accepted?"}
+    Dialog -->|No| NoOp["Return without file changes"]
+    Dialog -->|Yes| Path["Store lowercase selected path"]
+    Path --> Writer["FUN_013f7f40"]
+    Writer --> File["Write header, points, and end marker"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000013F8870__FUN_013f8870.c](../../../DecompiledSources/Tina16/functions/00000000013F8870__FUN_013f8870.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Save the validated working moment/level sequence to a selected PSG file.
 - Current graph summary: Handles 1 Delphi UI event: PsgForm.SaveAs.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Guards on active-cell validation, runs SaveDialog, stores the normalized path, and serializes the working sequence in the recovered PSG text format.
+- Current graph evidence: `FUN_00b0a890` controls the branch and error flag. The accepted dialog path flows through `FUN_00724270`, lowercase conversion, and `FUN_013f7f40`, whose literals and loop establish the file structure.
 - Complexity: complex
 - Distinct outgoing calls: 10
 
@@ -51,12 +57,12 @@ flowchart LR
 - `function:00414560` — Delphi UnicodeString array finalization helper
 - `function:00414ad0` — Delphi UnicodeString assignment helper
 - `function:00416910` — FUN_00416910
-- `function:0043e1a0` — FUN_0043e1a0
-- `function:00441920` — FUN_00441920
-- `function:00724270` — FUN_00724270
-- `function:00724380` — FUN_00724380
-- `function:00b0a890` — FUN_00b0a890
-- `function:013f7f40` — FUN_013f7f40
+- `function:0043e1a0` — converts the selected Unicode path to lowercase.
+- `function:00441920` — extracts the current file's base name for the dialog default.
+- `function:00724270` — returns the SaveDialog selected file name.
+- `function:00724380` — sets the SaveDialog file-name property.
+- `function:00b0a890` — validates and commits the active AttributeGrid cell.
+- `function:013f7f40` — serializes the working model to the PSG text file.
 
 ## Resource evidence
 
@@ -75,5 +81,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Lower-level text I/O code handles file creation and write failures; this handler has no local recovery branch.
+- The nearby **Repeat from:** label is not save evidence. The writer does not serialize repeat state.

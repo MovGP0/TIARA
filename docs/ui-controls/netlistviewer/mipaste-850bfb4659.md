@@ -1,6 +1,6 @@
 ﻿# &Paste
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the recovered handler and SynEdit paste engine.
 
 ## Control
 
@@ -20,21 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The menu item calls the same handler as the toolbar **Paste** button. If the form owns the command context, it pastes compatible standard clipboard text into the writable `Memo`. SynEdit preserves normal, line, or column selection mode and records one grouped undo action. A read-only editor or clipboard without supported text is a no-op. If another window owns the command context, the handler forwards numeric command `0x302` to that window instead.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Paste"] -->|OnClick| handler["FUN_014b58c0"]
-    handler --> call1["FUN_0065b870"]
-    handler --> call2["FUN_00bf9d90"]
+flowchart TD
+    control["Choose Paste"] --> handler["FUN_014b58c0"]
+    handler --> context{"Form owns the command context?"}
+    context -->|No| forward["Forward command 0x302"]
+    context -->|Yes| input{"Writable Memo and compatible text?"}
+    input -->|No| noop["No document change"]
+    input -->|Yes| paste["Paste as one grouped SynEdit edit"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000014B58C0__FUN_014b58c0.c](../../../DecompiledSources/Tina16/functions/00000000014B58C0__FUN_014b58c0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Paste clipboard text into the active Netlist Viewer editing context.
 - Current graph summary: Handles 2 Delphi UI events: NetlistViewer.BtnPanel.PasteButton.OnClick, NetlistViewer.MainMenu.MEdit.MIPaste.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -63,5 +66,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The rebuilt source does not give numeric command `0x302` a symbolic name.
+- The toolbar and menu controls share this handler without a `Sender` branch.

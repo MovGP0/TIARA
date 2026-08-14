@@ -1,6 +1,6 @@
 ﻿# Open files from the web
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,28 +20,29 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler obtains a file list from the web service and processes each downloaded file by extension. TSC and SCH files are opened and copied to User Examples, TSM files go to Macrolib, CIR files use the netlist path, LIB and TLD files go to Spicelib, and other types are shell-opened. It reports copy destinations. The menu and toolbar controls share the path.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Open files from the web"] -->|OnClick| handler["FUN_01ca2170"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["Delphi UnicodeString array finalization helper"]
-    handler --> call4["FUN_00414b50"]
-    handler --> call5["FUN_00416740"]
-    handler --> call6["FUN_00416ad0"]
+flowchart TD
+    control["Open files from the web"] -->|"OnClick"| handler["mnOpenFileFromWebClick (01ca2170)"]
+    handler --> list["Get downloadable file list"]
+    list --> files{"For each downloaded extension"}
+    files -->|"TSC or SCH"| schematic["Open and copy to User Examples"]
+    files -->|"TSM"| macro["Copy to Macrolib"]
+    files -->|"CIR"| netlist["Open as netlist"]
+    files -->|"LIB or TLD"| library["Copy to Spicelib"]
+    files -->|"Other"| shell["Open through Windows shell"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001CA2170__FUN_01ca2170.c](../../../DecompiledSources/Tina16/functions/0000000001CA2170__FUN_01ca2170.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Download and dispatch files from the web.
 - Current graph summary: Handles 2 Delphi UI events: SchematicEditor.TopToolBar.GeneralTools.DFOpenFromWebBtn.OnClick, SchematicEditor.MainMenu.mnFile.mnOpenFileFromWeb.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler obtains a file list from the web service and processes each downloaded file by extension. TSC and SCH files are opened and copied to User Examples, TSM files go to Macrolib, CIR files use the netlist path, LIB and TLD files go to Spicelib, and other types are shell-opened. It reports copy destinations. The menu and toolbar controls share the path.
+- Current graph evidence: The recovered body contains the web-list call, file loop, explicit extension comparisons for .TSC, .SCH, .TSM, .CIR, .LIB, and .TLD, directory-copy helpers, schematic and netlist dispatches, shell-open fallback, and destination messages.
 - Complexity: complex
 - Distinct outgoing calls: 22
 
@@ -87,5 +88,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Network transport and authentication behavior are implemented in the downstream web service helper.
+

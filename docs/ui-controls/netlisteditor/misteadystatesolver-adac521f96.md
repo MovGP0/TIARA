@@ -1,6 +1,6 @@
 ﻿# St&eady State Solver...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The analysis context and one recovered solver call establish the action.
 
 ## Control
 
@@ -20,22 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_015336b0` saves analysis context in mode 0, calls `FUN_0134d990`, and restores the prior context after the solver routine returns.
+
+The wrapper has no result branch or local message. Solver configuration, cancellation, and result publication are handled inside `FUN_0134d990`.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["St&eady State Solver..."] -->|OnClick| handler["FUN_015336b0"]
-    handler --> call1["FUN_0134d990"]
-    handler --> call2["FUN_0152fca0"]
-    handler --> call3["FUN_0152fd80"]
+flowchart TD
+    control["Click Steady State Solver"] --> handler["FUN_015336b0"]
+    handler --> prepare["Save analysis context"]
+    prepare --> action["FUN_0134d990 Steady State Solver"]
+    action --> restore["Restore prior context"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000015336B0__FUN_015336b0.c](../../../DecompiledSources/Tina16/functions/00000000015336B0__FUN_015336b0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Runs the Steady State Solver within the Netlist Editor analysis context.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MAnalysis.MISteadyStateSolver.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -65,5 +67,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The handler exposes no solver return value.
+- All detailed solver decisions and result handling remain inside `FUN_0134d990`.

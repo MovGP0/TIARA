@@ -1,6 +1,6 @@
 ﻿# On
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered selected-channel guard, button-state propagation, curve update, and redraw reviewed.
 
 ## Control
 
@@ -20,15 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler asks the channel selector for its current index. If no channel is selected, indicated by index `-1`, the click is a no-op.
+
+Otherwise it reads the **On** speed button's current Down state and passes that Boolean to the selected-channel helper. The helper sends the change to the scope backend only when the channel model differs, updates the channel model, attaches or detaches its curve as required, and redraws the plot. The handler then synchronizes the button Down state with the accepted Boolean.
+
+There is no confirmation, error message, or local rollback.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["On"] -->|OnClick| handler["FUN_012af7d0"]
-    handler --> call1["FUN_0082a6c0"]
-    handler --> call2["FUN_012af700"]
+flowchart TD
+    control["Click Channel On"] --> selected{"A channel is selected?"}
+    selected -->|No| noAction["Return without a change"]
+    selected -->|Yes| state["Read the button Down state"]
+    state --> changed{"Selected channel state differs?"}
+    changed -->|No| sync["Keep the accepted button state"]
+    changed -->|Yes| backend["Update backend and attach or detach the curve"]
+    backend --> redraw["Redraw the plot"]
+    redraw --> sync
 ```
 
 ## Handler evidence
@@ -64,4 +73,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The original Boolean property name at channel-model offset +0x11 is not recovered.

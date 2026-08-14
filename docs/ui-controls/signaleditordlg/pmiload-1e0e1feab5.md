@@ -1,6 +1,6 @@
 ﻿# &Open...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered handler and file-load path.
 
 ## Control
 
@@ -20,23 +20,32 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The click delegates to `FUN_01125a60`. That function selects the user-defined
+open dialog for mode `8`; all other editable modes use the piecewise-linear open
+dialog. If the user cancels the dialog, the function only releases temporary
+strings. If a file is selected, it stores the selected path in the corresponding
+form field, loads the file into the active editor or backing object, clears the
+editor modified state, and clears the shared diagnostic-path field at `+0xb68`.
+The recovered source has no separate error dialog in this path.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["&Open..."] -->|OnClick| handler["FUN_01125460"]
-    handler --> call1["FUN_01125a60"]
+    control["Open"] -->|"OnClick"| handler["FUN_01125460"]
+    handler --> dialog["Show mode-specific open dialog"]
+    dialog --> accepted{"File selected?"}
+    accepted -->|"No"| unchanged["Keep current document"]
+    accepted -->|"Yes"| load["Load file and clear modified/diagnostic state"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001125460__FUN_01125460.c](../../../DecompiledSources/Tina16/functions/0000000001125460__FUN_01125460.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Open a user-defined or piecewise-linear signal file.
 - Current graph summary: Handles 1 Delphi UI event: SignalEditorDlg.PopupMenu.pmiLoad.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Delegates to the mode-specific open-dialog and load path.
+- Current graph evidence: `FUN_01125460` is a one-call wrapper around `FUN_01125a60`; the callee branches on mode `8` and checks the dialog result.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +70,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The open-dialog filters and the loader's internal parse errors are not named in the recovered source.
+- Cancel is a no-op for the current editor and stored file name.

@@ -1,6 +1,6 @@
 ﻿# &Phasor Diagram
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The setup return branch and phasor-result call establish the flow.
 
 ## Control
 
@@ -20,23 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_015334f0` saves analysis context in mode 0 and calls `FUN_0152b4a0`. A zero return calls `FUN_013e0570` with the active result data. A nonzero return skips that result call.
+
+The handler restores the prior analysis context on both branches.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Phasor Diagram"] -->|OnClick| handler["FUN_015334f0"]
-    handler --> call1["FUN_013e0570"]
-    handler --> call2["FUN_0152b4a0"]
-    handler --> call3["FUN_0152fca0"]
-    handler --> call4["FUN_0152fd80"]
+flowchart TD
+    control["Click AC Phasor Diagram"] --> handler["FUN_015334f0"]
+    handler --> prepare["Save analysis context"]
+    prepare --> setup["FUN_0152b4a0 phasor setup"]
+    setup --> zero{"Return is zero?"}
+    zero -->|Yes| publish["FUN_013e0570 publishes phasor result"]
+    zero -->|No| skip["Skip result call"]
+    publish --> restore["Restore prior context"]
+    skip --> restore
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000015334F0__FUN_015334f0.c](../../../DecompiledSources/Tina16/functions/00000000015334F0__FUN_015334f0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Runs phasor-diagram setup and publishes the result when setup returns zero.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MAnalysis.MIACAnalysis.MIACVectorDiagram.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -67,5 +72,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact meanings of nonzero setup returns are not recovered.
+- The internal phasor-series construction is outside this wrapper.

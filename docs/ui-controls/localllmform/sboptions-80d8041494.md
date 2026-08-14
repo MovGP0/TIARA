@@ -1,6 +1,6 @@
 ﻿# Options
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The recovered handler, options-dialog initializer, settings copier, and model-refresh path establish the modal edit workflow.
 
 ## Control
 
@@ -20,25 +20,31 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01a42840` creates a temporary local-LLM settings record and an options dialog. `FUN_01a537c0` copies the current framework, model, language, voice, flags, and related values into that record. `FUN_019d9750` populates the dialog controls. The handler also supplies three model-name variants before it shows the dialog modally.
+
+Canceling the dialog destroys the dialog and temporary record without applying them. On acceptance, the handler applies the edited settings through `FUN_01a421f0`. It compares the old and new framework selections and handles a change separately. For an active recovered framework-2 process it requests a stop. For the other old frameworks it tells the user to close the named program on the Windows taskbar. It then shows wait messages, rebuilds framework-dependent model names, refreshes the model list, reports successful preparation, stores the selected model text, rebuilds request state, and updates the model edit.
+
+The voice or related option at settings offset `+0x60` has an extra update path when its value changes and the guard in `FUN_01a40a60` permits it. The handler has no rollback after the dialog is accepted. Message-box acknowledgements do not cancel the apply path, and the recovered source has no local exception handler around framework or model preparation.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Options"] -->|OnClick| handler["FUN_01a42840"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["Delphi UnicodeString array finalization helper"]
-    handler --> call4["Delphi UnicodeString assignment helper"]
-    handler --> call5["FUN_00414b50"]
-    handler --> call6["FUN_00442f70"]
+flowchart TD
+    control["Click Options speed button"] --> populate["Copy current settings into modal dialog"]
+    populate --> accepted{"Dialog accepted?"}
+    accepted -->|No| cancel["Destroy temporary dialog and state"]
+    accepted -->|Yes| apply["Apply edited settings"]
+    apply --> changed{"Framework changed?"}
+    changed -->|No| finish["Rebuild request state and update model edit"]
+    changed -->|Yes| stop["Stop or request closure of old framework"]
+    stop --> prepare["Prepare framework and refresh models"]
+    prepare --> finish
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001A42840__FUN_01a42840.c](../../../DecompiledSources/Tina16/functions/0000000001A42840__FUN_01a42840.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Local-LLM modal options and framework-apply handler.
 - Current graph summary: Handles 1 Delphi UI event: LocalLLMForm.Panel1.sbOptions.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -86,5 +92,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The gear glyph and `Options` hint agree with the proven dialog path but are not the basis for the behavior claim.
+- Several record fields and the exact external-framework startup implementation do not have recovered Delphi names.
+- The source shows preparation messages and model refresh calls. It does not prove that every external framework has started successfully when the success message appears.

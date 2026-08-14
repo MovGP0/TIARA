@@ -1,6 +1,6 @@
 ﻿# Auto-calculate sensing rectangle
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for TIARA-diz.6.7.1598.
 
 ## Control
 
@@ -9,63 +9,39 @@
 | Form | ShapeEdit |
 | Component path | ShapeEdit.TopToolBar.EditorTools.sbRecalcSense |
 | Control class | TSpeedButton |
-| Caption | Not present in the recovered resource. |
+| Caption | Auto-calculate sensing rectangle |
 | Hint | Auto-calculate sensing rectangle |
-| Text | Not present in the recovered resource. |
 | Handler name | sbRecalcSenseClick |
 | Handler address | 0179d960 |
 | Graph node | `resource:dfm:ShapeEdit/ShapeEdit.TopToolBar.EditorTools.sbRecalcSense` |
 | Handler node | `function:0179d960` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Derives the new state from the menu item or toolbar sender, mirrors that state between both controls, and recalculates the sensing rectangle only when the final state is enabled. It always redraws the editor. The calculation unions eligible non-pin object bounds and writes the result to the sensing-rectangle object when it exists.
+
+This control shares the recovered handler with `ShapeEdit.MainMenu.Edit.mnAutoCalculateSensingRectangle`. This article keeps the resource evidence for this control separate.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Auto-calculate sensing rectangle"] -->|OnClick| handler["FUN_0179d960"]
-    handler --> call1["FUN_0064e770"]
-    handler --> call2["FUN_007e2d20"]
-    handler --> call3["FUN_0082a6c0"]
-    handler --> call4["FUN_0179d630"]
+flowchart TD
+    control["Auto-calculate sensing rectangle"] --> handler["sbRecalcSenseClick at 0179d960"]
+    handler --> step1["Derive final toggle state"]
+    handler --> step2["Mirror menu and toolbar"]
+    handler --> step3["Enabled: recalculate rectangle"]
+    handler --> step4["Redraw editor"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/000000000179D960__FUN_0179d960.c](../../../DecompiledSources/Tina16/functions/000000000179D960__FUN_0179d960.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 2 Delphi UI events: ShapeEdit.TopToolBar.EditorTools.sbRecalcSense.OnClick, ShapeEdit.MainMenu.Edit.mnAutoCalculateSensingRectangle.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 4
-
-## Direct calls
-
-- `function:0064e770` — FUN_0064e770
-- `function:007e2d20` — FUN_007e2d20
-- `function:0082a6c0` — FUN_0082a6c0
-- `function:0179d630` — FUN_0179d630
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: [`0414_ShapeEdit_ShapeEdit_TopToolBar_EditorTools_sbRecalcSense_Glyph_Data.png`](../../../glyph/0414_ShapeEdit_ShapeEdit_TopToolBar_EditorTools_sbRecalcSense_Glyph_Data.png)
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Handler source: [000000000179D960__FUN_0179d960.c](../../../DecompiledSources/Tina16/functions/000000000179D960__FUN_0179d960.c)
+- Extracted glyph 1: [0414_ShapeEdit_ShapeEdit_TopToolBar_EditorTools_sbRecalcSense_Glyph_Data.png](../../../glyph/0414_ShapeEdit_ShapeEdit_TopToolBar_EditorTools_sbRecalcSense_Glyph_Data.png)
+- Recovered path: The shared handler tests Sender, updates the menu checked and toolbar down states, conditionally calls 0179d630, and invalidates the editor. 0179d630 builds bounds while excluding the recovered marker class and pins.
+- Resource context: The recovered TSpeedButton resource uses caption `Auto-calculate sensing rectangle` and hint `Auto-calculate sensing rectangle`. The extracted glyph was visually inspected. It agrees with the recovered resource intent, but the source path remains the behavior proof.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No additional implementation gap was found in the recovered click path.
+- The caption, hint, and glyph support control identity only. They do not replace the recovered handler and callee evidence.
+

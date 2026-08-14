@@ -1,6 +1,6 @@
 ﻿# Rotate left|Rotate the selected component left (counterclockwise)
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,23 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler delegates to the rotate-left operation. That operation checks command and lock state, creates an undo action, rotates the selected schematic objects, redraws when required, and records the operation result. Sender is not read, so all three bound controls behave identically.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Rotate left|Rotate the selected component left (counterclockwise)"] -->|OnClick| handler["FUN_01c70530"]
-    handler --> call1["FUN_01c6d1a0"]
+flowchart TD
+    control["Rotate left|Rotate the selected component left (counterclockwise)"] -->|"OnClick"| handler["ToolRLeftClick (01c70530)"]
+    handler --> guard{"Rotation allowed and schematic unlocked?"}
+    guard -->|"No"| noChange["Leave selection unchanged"]
+    guard -->|"Yes"| action["Create undo action and rotate selection left"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C70530__FUN_01c70530.c](../../../DecompiledSources/Tina16/functions/0000000001C70530__FUN_01c70530.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Rotate selected schematic objects left.
 - Current graph summary: Handles 3 Delphi UI events: SchematicEditor.SpeedButton7.OnClick, SchematicEditor.SpeedButton8.OnClick, SchematicEditor.TopToolBar.EditorTools.ToolRLeft.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler delegates to the rotate-left operation. That operation checks command and lock state, creates an undo action, rotates the selected schematic objects, redraws when required, and records the operation result. Sender is not read, so all three bound controls behave identically.
+- Current graph evidence: FUN_01c70530 only calls FUN_01c6d1a0. The recovered callee contains the permission and lock guards, undo creation, selected-object transform, conditional redraw, and result flag update. The handler has three DFM OnClick bindings.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Two bound speed buttons have no recovered caption; their shared handler proves the same rotate-left path.
+

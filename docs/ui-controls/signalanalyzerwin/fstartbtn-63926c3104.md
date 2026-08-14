@@ -1,6 +1,6 @@
 ﻿# Start
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed: the click starts an analyzer measurement through command 0x538.
 
 ## Control
 
@@ -20,20 +20,32 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler builds command descriptor `0x538` and enters the measurement start state machine in `FUN_0138aff0`. The state machine validates command order and readiness. It forwards the request in remote mode or prepares local plots, data, cursor state, progress state, and the analyzer source.
+
+For a local start, it marks measurement active, disables relevant controls, configures the source for the active analyzer mode, and runs the acquisition and read loop. It refreshes display data after successful reads. A read failure shows `Signal Analyzer: Read Data Failed!`. The cleanup path stops or finalizes the source, re-enables controls, clears the active flag, and closes the progress UI.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Start"] -->|OnClick| handler["FUN_0138afc0"]
-    handler --> call1["FUN_0138aff0"]
+flowchart TD
+    control["Start button"] -->|OnClick| handler["StartBtnClick"]
+    handler --> command["Build command 0x538"]
+    command --> ready{"Command and source ready?"}
+    ready -->|No| cleanup["Finish progress cleanup"]
+    ready -->|Remote| remote["Forward start command"]
+    ready -->|Local| prepare["Prepare plots, source, and active state"]
+    prepare --> acquire["Run acquisition and read loop"]
+    acquire --> read{"Read successful?"}
+    read -->|Yes| refresh["Refresh analyzer data"]
+    read -->|No| error["Show read-data error"]
+    refresh --> cleanup
+    error --> cleanup
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/000000000138AFC0__FUN_0138afc0.c](../../../DecompiledSources/Tina16/functions/000000000138AFC0__FUN_0138afc0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Starts and manages the analyzer measurement acquisition state machine.
 - Current graph summary: Handles 1 Delphi UI event: SignalAnalyzerWin.MeasurementGroupBox.FStartBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +73,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Many recovered form fields and backend virtual methods are known only by offsets.
+- Source-specific hardware errors other than the recovered read-data message occur inside called operations.

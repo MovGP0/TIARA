@@ -1,6 +1,6 @@
 ﻿# D
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for sbDevelClick.
 
 ## Control
 
@@ -20,18 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler derives the current debug position, converts the stored file or source value, and asks the backend for the next source line. It updates the editor to that returned line and refreshes debugger state. The handler has no explicit guard or error message; the behavior for an invalid backend line is controlled by the called line-selection routines.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["D"] -->|OnClick| handler["FUN_0108b6f0"]
-    handler --> call1["FUN_00442620"]
-    handler --> call2["VHDL_DLL2.DLL::_Debug_GetNextLine"]
-    handler --> call3["FUN_01085cd0"]
-    handler --> call4["FUN_010890f0"]
-    handler --> call5["FUN_0108bb30"]
+flowchart TD
+    control["D"] -->|OnClick| handler["TMCUProjectForm.sbDevelClick<br/>FUN_0108b6f0"]
+    handler --> current["Derive current debugger source position"]
+    current --> next["Ask backend for next source line"]
+    next --> select["Select returned line in editor"]
+    select --> refresh["Refresh debugger state"]
 ```
 
 ## Handler evidence
@@ -67,7 +66,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

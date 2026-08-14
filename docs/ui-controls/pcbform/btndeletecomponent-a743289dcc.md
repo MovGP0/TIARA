@@ -1,17 +1,17 @@
-﻿# Delete
+﻿# Delete component
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed: the handler deletes the selected component definition and refreshes dependent PCB data.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
 | Form | PcbForm |
+| Form caption | PCB information for SPICE macro components |
 | Component path | PcbForm.Panel2.BtnDeleteComponent |
 | Control class | TBitBtn |
 | Caption | Delete |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | Not present |
 | Handler name | BtnDeleteComponentClick |
 | Handler address | 00ed1430 |
 | Graph node | `resource:dfm:PcbForm/PcbForm.Panel2.BtnDeleteComponent` |
@@ -20,58 +20,34 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+1. The handler reads the selected component and its list index, removes the list entry, and selects the item now at that index or the preceding item when the deleted entry was last.
+2. It invokes the backend delete operation for the selected component definition. It then rebuilds the footprint and node-map lists, refreshes enabled controls, and updates the 3D preview.
+3. The body has no confirmation dialog. The shared enabled-state function normally disables this button when the component list is empty.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Delete"] -->|OnClick| handler["FUN_00ed1430"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_0043e130"]
-    handler --> call4["FUN_00ea9ca0"]
-    handler --> call5["FUN_00ecbca0"]
-    handler --> call6["FUN_00eccc30"]
+flowchart TD
+    control["PcbForm.Panel2.BtnDeleteComponent"] -->|OnClick| handler["FUN_00ed1430"]
+    handler --> action["Remove the selected list row and backend definition"]
+    action --> outcome["Select a surviving component and refresh dependent data"]
 ```
 
-## Handler evidence
+## Handler and call-path evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000000ED1430__FUN_00ed1430.c](../../../DecompiledSources/Tina16/functions/0000000000ED1430__FUN_00ed1430.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: PcbForm.Panel2.BtnDeleteComponent.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 6
+- [`FUN_00ed1430`](../../../DecompiledSources/Tina16/functions/0000000000ED1430__FUN_00ed1430.c) — Delete the selected PCB component.
+- [`FUN_00eccc30`](../../../DecompiledSources/Tina16/functions/0000000000ECCC30__FUN_00eccc30.c) — refresh component-dependent selections.
+- [`FUN_00ecbca0`](../../../DecompiledSources/Tina16/functions/0000000000ECBCA0__FUN_00ecbca0.c) — refresh PCB form control availability.
+- [`FUN_00ed3a60`](../../../DecompiledSources/Tina16/functions/0000000000ED3A60__FUN_00ed3a60.c) — refresh the selected 3D footprint view.
 
-## Direct calls
+## Resource and glyph evidence
 
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:0043e130` — FUN_0043e130
-- `function:00ea9ca0` — FUN_00ea9ca0
-- `function:00ecbca0` — FUN_00ecbca0
-- `function:00eccc30` — FUN_00eccc30
+- Recovered form resource: [`ui-evidence.json`](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json).
 
-## Resource evidence
+## Inputs, outputs, and limits
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
+- Input: an OnClick event from `PcbForm.Panel2.BtnDeleteComponent`, plus the current form selections and state described above.
+- State change: Removes the selected component from the list and backend, selects a surviving row, and refreshes dependent footprint, node-map, and 3D state.
+- Error or no-op behavior: The decision branches above identify the recovered validation, cancel, confirmation, boundary, or no-op path.
+- Analysis limit: The backend delete method is an indirect virtual call, so its Delphi method name is not recovered.
 
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Component list: at distance 301.
-- Rank 2: Footprint list: at distance 334.
-- Rank 3: 3D component view: at distance 499.
-
-## Analysis limits
-
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.

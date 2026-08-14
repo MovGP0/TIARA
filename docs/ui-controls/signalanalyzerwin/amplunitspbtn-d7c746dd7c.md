@@ -1,6 +1,6 @@
 ﻿# dBm
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed: the click cycles the amplitude unit and converts the displayed value.
 
 ## Control
 
@@ -20,21 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler increments form byte `+0xE90` and wraps it modulo `2`. It changes the unit button caption through a two-entry text table.
+
+It then asks the analyzer backend through virtual slot `+0x80` to convert the selected channel value for the new unit. The returned number is written to the amplitude value control at form field `+0xCB8`.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["dBm"] -->|OnClick| handler["FUN_0138cec0"]
-    handler --> call1["VCL control text setter with change suppression"]
-    handler --> call2["FUN_00b90440"]
+    control["Amplitude-unit button"] -->|OnClick| handler["AmplUnitSpBtnClick"]
+    handler --> cycle["Cycle unit index modulo 2"]
+    cycle --> caption["Update unit caption"]
+    caption --> convert["Convert selected-channel value"]
+    convert --> display["Write converted amplitude value"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/000000000138CEC0__FUN_0138cec0.c](../../../DecompiledSources/Tina16/functions/000000000138CEC0__FUN_0138cec0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Cycles between two amplitude units and converts the displayed channel value.
 - Current graph summary: Handles 1 Delphi UI event: SignalAnalyzerWin.MeasurementGroupBox.AmplitudeBox.AmplUnitSpBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -63,5 +67,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered static text table does not expose both unit names in this handler source.
+- The backend conversion formula and validation are not recovered.

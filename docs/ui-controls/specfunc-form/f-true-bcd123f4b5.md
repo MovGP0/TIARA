@@ -1,6 +1,6 @@
 ﻿# F=true
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered handler, shared visibility setter, form lifecycle, and selection-state consumers.
 
 ## Control
 
@@ -20,20 +20,27 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler selects the constant-true special function. It clears the recovered table-preservation flag and resets the active truth-row count. It then hides the `Symmetric number` group and reads the truth-table grid row count. For every data row after the grid header, it appends the zero-based row index to the active index array and increments the count.
+
+Consumers convert each listed index into a true output row. Listing all data-row indices therefore represents a function that is true for every input combination. If the recovered grid count has no data row, the loop performs no write and the count stays zero. A repeated click rebuilds the same list. The handler has no error branch and does not close the form.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["F=true"] -->|OnClick| handler["FUN_011aa3a0"]
-    handler --> call1["FUN_0064dbe0"]
+flowchart TD
+    control["Select F=true"] --> handler["TSpecFunc_form.F_trueClick"]
+    handler --> reset["Clear the flag and reset the active count"]
+    reset --> hide["Hide the Symmetric number group"]
+    hide --> rows{"Another truth-table data row?"}
+    rows -->|Yes| append["Append its zero-based index"]
+    append --> rows
+    rows -->|No| result["All data rows are selected as true"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011AA3A0__FUN_011aa3a0.c](../../../DecompiledSources/Tina16/functions/00000000011AA3A0__FUN_011aa3a0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Select the constant-true special function.
 - Current graph summary: Handles 1 Delphi UI event: SpecFunc_form.F_true.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -42,7 +49,7 @@ flowchart LR
 
 ## Direct calls
 
-- `function:0064dbe0` — FUN_0064dbe0
+- `function:0064dbe0` — changes the `Symmetric number` group visibility only when needed.
 
 ## Resource evidence
 
@@ -61,5 +68,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The Delphi names of the global count, index array, and table-preservation flag are not recovered.
+- The grid field at offset `0x4e0` behaves as the row count. The handler subtracts one for the header row.

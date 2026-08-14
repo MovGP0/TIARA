@@ -1,6 +1,6 @@
-﻿# Font
+# Font
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed. The handler copies accepted font settings to `ListMemo1`.
 
 ## Control
 
@@ -10,8 +10,6 @@
 | Component path | Response_form1.PopupMenu4.Fonttype4 |
 | Control class | TMenuItem |
 | Caption | Font |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | Fonttype4Click |
 | Handler address | 011796d0 |
 | Graph node | `resource:dfm:Response_form1/Response_form1.PopupMenu4.Fonttype4` |
@@ -20,58 +18,31 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+[FUN_011796d0](../../../DecompiledSources/Tina16/functions/00000000011796D0__FUN_011796d0.c) executes `FontDialog1`. Canceling leaves `ListMemo1` unchanged. After acceptance, the handler copies the dialog font's character set, size or height setting, name, and color to `ListMemo1.Font`. The VCL setters notify the target when a copied value differs.
+
+This is a property-by-property copy. It does not change another response view.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
+flowchart TD
     control["Font"] -->|OnClick| handler["FUN_011796d0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_005fc860"]
-    handler --> call3["FUN_005fccd0"]
-    handler --> call4["FUN_005fcd80"]
-    handler --> call5["FUN_005fce00"]
-    handler --> call6["FUN_005fce30"]
+    handler --> dialog["Execute FontDialog1"]
+    dialog --> accepted{"Accepted?"}
+    accepted -->|No| keep["Keep ListMemo1 font"]
+    accepted -->|Yes| copy["Copy character set, size,<br/>name, and color"]
+    copy --> target["Update ListMemo1.Font"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000011796D0__FUN_011796d0.c](../../../DecompiledSources/Tina16/functions/00000000011796D0__FUN_011796d0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: Response_form1.PopupMenu4.Fonttype4.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 8
-
-## Direct calls
-
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:005fc860` — FUN_005fc860
-- `function:005fccd0` — FUN_005fccd0
-- `function:005fcd80` — FUN_005fcd80
-- `function:005fce00` — FUN_005fce00
-- `function:005fce30` — FUN_005fce30
-- `function:005fce60` — FUN_005fce60
-- `function:005fce70` — FUN_005fce70
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
+- Recovered role: Apply accepted font properties to `ListMemo1`.
+- Target mapping: form field `+0x848` is `ListMemo1`; paired view handlers confirm it.
+- Direct helpers: `FUN_005fce60/70`, `FUN_005fce00/30`, `FUN_005fccd0`, `FUN_005fcd80`, and `FUN_005fc860`.
+- Resource dialog: `FontDialog1`.
 - Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+The recovered copy does not prove that every possible Delphi `TFont` property is transferred.
+

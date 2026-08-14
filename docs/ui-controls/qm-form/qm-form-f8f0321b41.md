@@ -1,6 +1,6 @@
 ﻿# Quine-McCluskey method
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered handler and form lifecycle sources.
 
 ## Control
 
@@ -20,13 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler stores help-context ID `4000` in the shared help-context field. This prepares the Quine-McCluskey form topic for a later Help command. It does not open help, start minimization, or change the form inputs.
+
+The form activation path also restores ID `4000`. The form Help handler later passes the current shared ID and `logiconv.chm` to the help service. A command control can replace this ID before the user requests help.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Quine-McCluskey method"] -->|OnClick| handler["FUN_011a5050"]
+flowchart TD
+    control["Click the form surface"] --> handler["TQM_form.FormClick"]
+    handler --> context["Store help context 4000"]
+    context --> later["A later Help command uses this context"]
 ```
 
 ## Handler evidence
@@ -60,5 +64,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered handler is a single field store. It has no direct call edge.
+- The exact Delphi field name for the shared help context is not recovered.

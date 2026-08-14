@@ -1,17 +1,17 @@
 ﻿# Create Library
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed: the handler synchronizes the controls for create-library mode.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
 | Form | PcbForm |
+| Form caption | PCB information for SPICE macro components |
 | Component path | PcbForm.Panel2.rbtnCreateLibrary |
 | Control class | TRadioButton |
 | Caption | Create Library |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | Not present |
 | Handler name | rbtnCreateLibraryClick |
 | Handler address | 00ed51f0 |
 | Graph node | `resource:dfm:PcbForm/PcbForm.Panel2.rbtnCreateLibrary` |
@@ -20,47 +20,35 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+1. The recovered field map identifies offset `0x840` as `rbtnSelectLibrary`, `0x850` as `etdNewLibrary`, `0x858` as `cbxSelectLibrary`, and `0x860` as `sbtnCreateLibrary`.
+2. This handler reads the opposite Select Library radio state. It enables the existing-library combo when Select mode is active, enables the new-library editor when Select mode is inactive, and makes the create button follow the editor's enabled state.
+3. Therefore, after Create Library becomes selected, the existing-library combo is disabled and the new-library editor and create button are enabled. The handler does not create a library itself.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Create Library"] -->|OnClick| handler["FUN_00ed51f0"]
+flowchart TD
+    control["PcbForm.Panel2.rbtnCreateLibrary"] -->|OnClick| handler["FUN_00ed51f0"]
+    handler --> decision{"Select Library radio checked?"}
+    decision -->|Yes| action["Enable existing-library selector"]
+    decision -->|No| noop["Enable new-library editor and create button"]
+    action --> outcome["Keep the two mode input groups mutually exclusive"]
+    noop --> outcome
 ```
 
-## Handler evidence
+## Handler and call-path evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000000ED51F0__FUN_00ed51f0.c](../../../DecompiledSources/Tina16/functions/0000000000ED51F0__FUN_00ed51f0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: PcbForm.Panel2.rbtnCreateLibrary.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: simple
-- Distinct outgoing calls: 0
+- [`FUN_00ed51f0`](../../../DecompiledSources/Tina16/functions/0000000000ED51F0__FUN_00ed51f0.c) — Synchronize create-library mode controls.
+- [`FUN_00ed5150`](../../../DecompiledSources/Tina16/functions/0000000000ED5150__FUN_00ed5150.c) — synchronize controls from the opposite radio state.
 
-## Direct calls
+## Resource and glyph evidence
 
-- No direct call edge is present in the recovered graph.
+- Recovered form resource: [`ui-evidence.json`](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json).
 
-## Resource evidence
+## Inputs, outputs, and limits
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
+- Input: an OnClick event from `PcbForm.Panel2.rbtnCreateLibrary`, plus the current form selections and state described above.
+- State change: Reads the opposite select-mode radio state, disables the existing-library selector for create mode, and enables the new-library editor and create button.
+- Error or no-op behavior: The decision branches above identify the recovered validation, cancel, confirmation, boundary, or no-op path.
+- Analysis limit: The field map comes from the recovered DFM component order together with the offsets used by the create and delete handlers.
 
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Footprint list: at distance 68.
-- Rank 2: 3D component view: at distance 233.
-- Rank 3: Component list: at distance 241.
-
-## Analysis limits
-
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.

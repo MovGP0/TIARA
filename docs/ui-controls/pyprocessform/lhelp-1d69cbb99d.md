@@ -1,6 +1,6 @@
 ﻿# Help
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,31 +20,50 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads the current index from the Filter combo box and uses that
+same index in the form's help-URL list. `FormCreate` keeps both lists in the
+same order. Index 0 opens the SciPy `signal.butter` reference for the
+Butterworth filter. Index 1 opens the SciPy `ndimage.uniform_filter` reference
+for the uniform filter.
+
+The handler passes the selected URL to the recovered Windows shell thunk with
+the `open` operation, no arguments, no working directory, and show value 1. It
+does not check the shell result. The click does not change the selected filter,
+edit any parameters, run the filter, or close the form. A shell or browser
+failure therefore has no recovered in-application error path.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Help"] -->|OnClick| handler["FUN_01a68080"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_00416740"]
+flowchart TD
+    control["Help label"] -->|"OnClick"| handler["Read current filter index"]
+    handler --> filter{"Selected filter"}
+    filter -->|"0: butterworth"| butter["SciPy signal.butter URL"]
+    filter -->|"1: uniform_filter1d"| uniform["SciPy ndimage.uniform_filter URL"]
+    butter --> shell["Windows shell open request"]
+    uniform --> shell
+    shell --> result["Return value ignored<br/>form state unchanged"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001A68080__FUN_01a68080.c](../../../DecompiledSources/Tina16/functions/0000000001A68080__FUN_01a68080.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Opens the SciPy reference page for the selected Process curve filter.
 - Current graph summary: Handles 1 Delphi UI event: PyProcessForm.lHelp.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Maps the selected filter index to its stored reference URL and requests that the Windows shell open it. It ignores the shell result.
+- Current graph evidence: The handler reads `cbFilters.ItemIndex` at form field `+0x6B0`, retrieves the same index from the URL list at `+0x740`, and calls the shared shell thunk with `open`, the URL, null parameters, null directory, and show value 1.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
 ## Direct calls
 
 - `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00416740` — FUN_00416740
+- `function:00416740` — returns a nil-safe pointer to the selected Unicode URL.
+
+The recovered source also calls the indirect shell thunk
+`thunk_FUN_0419adcc`. The graph does not emit an edge for this indirect import
+call. Parallel recovered handlers and its arguments identify the thunk as the
+Windows shell open operation.
 
 ## Resource evidence
 
@@ -65,5 +84,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Form initialization proves the two URL values and their order relative to
+  the filter definitions.
+- The handler has no branch for a shell failure and does not inspect the return
+  value.
+- The source has no in-application fallback if the system cannot open the URL.

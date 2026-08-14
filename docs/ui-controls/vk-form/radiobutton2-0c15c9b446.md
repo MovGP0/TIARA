@@ -1,6 +1,6 @@
 ﻿# X
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and UI evidence.
 
 ## Control
 
@@ -20,23 +20,29 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler sets the shared help-context ID to `3300` and explicitly selects the `X` radio button at form offset `+0x728`. The radio group clears the `-` selection. The handler then reverses the minterm-or-maxterm mode, renders one view, restores the original mode, and renders the other view.
+
+The renderer reads the `-` radio-button state at offset `+0x720`. Its clear state uses the character `X` for don't-care cells. The handler therefore refreshes both maps with `X` markers and leaves the selected Karnaugh mode unchanged. It has no error branch.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
     control["X"] -->|OnClick| handler["FUN_011d2c00"]
-    handler --> call1["Karnaugh-map renderer and simplified-expression generator"]
+    handler --> selectMarker["Select the X radio button"]
+    selectMarker --> helpContext["Set help context to 3300"]
+    helpContext --> renderOther["Render the other view with X markers"]
+    renderOther --> restoreMode["Restore the original mode"]
+    restoreMode --> renderCurrent["Render the current view with X markers"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011D2C00__FUN_011d2c00.c](../../../DecompiledSources/Tina16/functions/00000000011D2C00__FUN_011d2c00.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Use `X` for don't-care cells and refresh both Karnaugh views.
 - Current graph summary: Handles 1 Delphi UI event: VK_form.GroupBox1.RadioButton2.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Selects the `X` marker and redraws both minterm and maxterm maps without changing the active mode.
+- Current graph evidence: The handler sets the checked state of form control `+0x728`, toggles `DAT_01f2a8d4` around two renderer calls, and restores the mode. `FUN_011ae5b0` maps a clear `+0x720` control to character `0x58`.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +67,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The nearby `Don't care` label supports the group relationship, but the renderer's character branch establishes the behavior.
+- The renderer infers `X` from the clear state of the paired hyphen radio button.

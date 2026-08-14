@@ -1,6 +1,6 @@
 ﻿# Long clock pin
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for TIARA-diz.6.7.1573.
 
 ## Control
 
@@ -9,71 +9,40 @@
 | Form | ShapeEdit |
 | Component path | ShapeEdit.PartsPanel.PinPanel.sbPinLC |
 | Control class | TSpeedButton |
-| Caption | Not present in the recovered resource. |
+| Caption | Long clock pin |
 | Hint | Long clock pin |
-| Text | Not present in the recovered resource. |
 | Handler name | sbPinNDClick |
 | Handler address | 01797fc0 |
 | Graph node | `resource:dfm:ShapeEdit/ShapeEdit.PartsPanel.PinPanel.sbPinLC` |
 | Handler node | `function:01797fc0` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Clears current selection state and temporary pin objects, copies the clicked speed button's Delphi Tag value into the new pin variant field, creates and selects a pin object, and installs the pin interaction state. The specific pin style therefore depends on the sender control.
+
+This control shares the recovered handler with `ShapeEdit.PartsPanel.PinPanel.sbPinLD`, `ShapeEdit.PartsPanel.PinPanel.sbPinLDC`, `ShapeEdit.PartsPanel.PinPanel.sbPinLN`, `ShapeEdit.PartsPanel.PinPanel.sbPinMini`, `ShapeEdit.PartsPanel.PinPanel.sbPinNC`, `ShapeEdit.PartsPanel.PinPanel.sbPinND`, `ShapeEdit.PartsPanel.PinPanel.sbPinNDC`, `ShapeEdit.PartsPanel.PinPanel.sbPinNN`, `ShapeEdit.PartsPanel.PinPanel.sbPinX`. This article keeps the resource evidence for this control separate.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Long clock pin"] -->|OnClick| handler["FUN_01797fc0"]
-    handler --> call1["FUN_004113d0"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["FUN_00498310"]
-    handler --> call4["FUN_004ae7e0"]
-    handler --> call5["FUN_004aeac0"]
-    handler --> call6["FUN_017956f0"]
+flowchart TD
+    control["Long clock pin"] --> handler["sbPinNDClick at 01797fc0"]
+    handler --> step1["Verify speed-button sender"]
+    handler --> step2["Clear prior selection and temporary pins"]
+    handler --> step3["Copy sender Tag to pin variant"]
+    handler --> step4["Create and select pin"]
+    handler --> step5["Activate pin interaction"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001797FC0__FUN_01797fc0.c](../../../DecompiledSources/Tina16/functions/0000000001797FC0__FUN_01797fc0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 10 Delphi UI events: ShapeEdit.PartsPanel.PinPanel.sbPinX.OnClick, ShapeEdit.PartsPanel.PinPanel.sbPinMini.OnClick, ShapeEdit.PartsPanel.PinPanel.sbPinLN.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 10
-
-## Direct calls
-
-- `function:004113d0` — FUN_004113d0
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00498310` — FUN_00498310
-- `function:004ae7e0` — FUN_004ae7e0
-- `function:004aeac0` — FUN_004aeac0
-- `function:017956f0` — FUN_017956f0
-- `function:01795890` — FUN_01795890
-- `function:01797e80` — FUN_01797e80
-- `function:017afd00` — FUN_017afd00
-- `function:017b02a0` — FUN_017b02a0
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: [`0427_ShapeEdit_ShapeEdit_PartsPanel_PinPanel_sbPinLC_Glyph_Data.png`](../../../glyph/0427_ShapeEdit_ShapeEdit_PartsPanel_PinPanel_sbPinLC_Glyph_Data.png)
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Handler source: [0000000001797FC0__FUN_01797fc0.c](../../../DecompiledSources/Tina16/functions/0000000001797FC0__FUN_01797fc0.c)
+- Extracted glyph 1: [0427_ShapeEdit_ShapeEdit_PartsPanel_PinPanel_sbPinLC_Glyph_Data.png](../../../glyph/0427_ShapeEdit_ShapeEdit_PartsPanel_PinPanel_sbPinLC_Glyph_Data.png)
+- Recovered path: The shared handler verifies TSpeedButton Sender, calls 017956f0, clears field +0xd28, reads Sender offset +0x18 (TComponent.Tag), writes that value into the pin data, constructs a pin through 017b02a0, selects it, and activates the interaction path.
+- Resource context: The recovered TSpeedButton resource uses caption `Long clock pin` and hint `Long clock pin`. The extracted glyph was visually inspected. It agrees with the recovered resource intent, but the source path remains the behavior proof.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The extracted DFM evidence omits each Tag numeric value. The hint and inspected glyph identify the intended variant, but the exact enum number remains unknown.
+- The caption, hint, and glyph support control identity only. They do not replace the recovered handler and callee evidence.
+

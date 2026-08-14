@@ -1,6 +1,6 @@
 ﻿# &Diagram
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,23 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler delegates to the current Edison object's diagram-opening method. Both popup controls share the same address and Sender is unused.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Diagram"] -->|OnClick| handler["FUN_01c8ec50"]
-    handler --> call1["FUN_013e1380"]
+flowchart TD
+    control["&Diagram"] -->|"OnClick"| handler["pmDiagramClick (01c8ec50)"]
+    handler --> action["Open current Edison-object diagram"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C8EC50__FUN_01c8ec50.c](../../../DecompiledSources/Tina16/functions/0000000001C8EC50__FUN_01c8ec50.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Open the diagram for the current Edison object.
 - Current graph summary: Handles 2 Delphi UI events: SchematicEditor.SchPopup.pmDiagram.OnClick, SchematicEditor.SchPopupEdison.pmEdisonDiagram.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler delegates to the current Edison object's diagram-opening method. Both popup controls share the same address and Sender is unused.
+- Current graph evidence: The recovered body makes one virtual call through the current Edison-object field. The two DFM bindings have Diagram captions.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +61,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The diagram object's Delphi class name is not recovered.
+

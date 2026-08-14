@@ -1,6 +1,6 @@
 ﻿# New
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered editor clear, generated-name, title, and caret-status path reviewed.
 
 ## Control
 
@@ -20,18 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler clears the main editor. It builds a generated name from `noname%s` and the form's current extension field, stores that name, updates the window caption to include it, and refreshes the editor-position panel from the current caret row and column.
+
+The click does not create a disk file and does not ask to save the previous editor text. The selected application mode controls whether the generated extension is Python or CSV.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["New"] -->|OnClick| handler["FUN_0146f490"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString assignment helper"]
-    handler --> call3["FUN_00442f70"]
-    handler --> call4["FUN_0146f8e0"]
-    handler --> call5["FUN_0146fe10"]
+flowchart TD
+    control["Click New"] --> clear["Clear the main editor"]
+    clear --> name["Build and store a noname file name"]
+    name --> title["Update the Python Shell caption"]
+    title --> position["Refresh the caret row and column display"]
 ```
 
 ## Handler evidence
@@ -70,4 +70,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not contain a save-confirmation branch before the editor is cleared.

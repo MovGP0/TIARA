@@ -1,6 +1,6 @@
 ﻿# Semi-symbolic AC transfer
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The wrapper selector and recovered symbolic transfer loop establish the semi-symbolic transfer path.
 
 ## Control
 
@@ -20,22 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01533a20` saves analysis context and calls `FUN_0145e790` with selector 1. The callee initializes the transfer-expression pipeline, normalizes each produced expression, selects the selector-1 formatter, and publishes the result when processing completes without cancellation.
+
+The handler restores the prior context after the callee returns.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Semi-symbolic AC transfer"] -->|OnClick| handler["FUN_01533a20"]
-    handler --> call1["FUN_0145e790"]
-    handler --> call2["FUN_0152fca0"]
-    handler --> call3["FUN_0152fd80"]
+flowchart TD
+    control["Click Semi-symbolic AC transfer"] --> handler["FUN_01533a20"]
+    handler --> prepare["Save analysis context"]
+    prepare --> action["FUN_0145e790 selector 1 transfer result"]
+    action --> restore["Restore prior context"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001533A20__FUN_01533a20.c](../../../DecompiledSources/Tina16/functions/0000000001533A20__FUN_01533a20.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Generates and displays the transfer or impedance expression with semi-symbolic selector 1.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MAnalysis.MISymbolic.MISemisymbolicACTransfer.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -65,5 +67,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact symbolic terms retained by selector 1 are not named.
+- Title selection and cancellation are handled inside the callee.

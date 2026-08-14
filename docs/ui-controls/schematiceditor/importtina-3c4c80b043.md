@@ -1,6 +1,6 @@
 ﻿# &TINA 2.xx (*.ICE)...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,22 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The recovered handler returns immediately and performs no import.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&TINA 2.xx (*.ICE)..."] -->|OnClick| handler["FUN_01c83490"]
+flowchart TD
+    control["&TINA 2.xx (*.ICE)..."] -->|"OnClick"| handler["ImportTINAClick (01c83490)"]
+    handler --> return["Return without state change"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C83490__FUN_01c83490.c](../../../DecompiledSources/Tina16/functions/0000000001C83490__FUN_01c83490.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: No-op TINA 2.x import handler.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnFile.Import.ImportTINA.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The recovered handler returns immediately and performs no import.
+- Current graph evidence: FUN_01c83490 contains only a return and has zero outgoing graph calls.
 - Complexity: simple
 - Distinct outgoing calls: 0
 
@@ -60,5 +61,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The menu caption is resource evidence only; no import implementation is reached.
+

@@ -1,6 +1,6 @@
 ﻿# Options
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The recovered wrapper and shared options handler establish the modal settings path and its cancellation behavior.
 
 ## Control
 
@@ -20,20 +20,26 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01a40130` delegates directly to `FUN_01a42840`, the same handler used by the toolbar Options button. It opens the local-LLM options dialog after copying the current framework, model, language, voice, and related settings into a temporary record. If the user cancels the dialog, the handler destroys the temporary objects and makes no settings change.
+
+If the user accepts the dialog, the shared handler copies the edited values back to the form settings. A framework or model-preparation change can stop the prior framework, show wait messages, refresh the model list, and update the displayed model. The wrapper does not use `Sender` and adds no separate decision or error path.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Options"] -->|OnClick| handler["FUN_01a40130"]
-    handler --> call1["FUN_01a42840"]
+flowchart TD
+    control["Click File > Options"] --> wrapper["FUN_01a40130"]
+    wrapper --> options["FUN_01a42840 opens populated options dialog"]
+    options --> accepted{"Dialog accepted?"}
+    accepted -->|No| cancel["Destroy temporary state; no settings change"]
+    accepted -->|Yes| apply["Apply edited local-LLM settings"]
+    apply --> refresh["Restart framework when required and refresh model display"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001A40130__FUN_01a40130.c](../../../DecompiledSources/Tina16/functions/0000000001A40130__FUN_01a40130.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: LocalLLM menu options command wrapper.
 - Current graph summary: Handles 1 Delphi UI event: LocalLLMForm.MainMenu1.File1.Options1.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +67,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The wrapper proves that this menu item uses the shared options path. Detailed setting effects come from `FUN_01a42840` and its data-flow callees.
+- The recovered code does not name every settings field or the exact exception behavior of framework startup and model refresh operations.

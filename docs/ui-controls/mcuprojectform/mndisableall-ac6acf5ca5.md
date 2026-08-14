@@ -1,6 +1,6 @@
 ﻿# Disable All
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for mnDisableAllClick.
 
 ## Control
 
@@ -20,16 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler sets all project breakpoints to disabled. It then refreshes the active editor and, when the breakpoint page is active, refreshes that list. The handler has no local confirmation or error branch.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Disable All"] -->|OnClick| handler["FUN_01089f20"]
-    handler --> call1["FUN_006d5120"]
-    handler --> call2["FUN_01088c80"]
-    handler --> call3["FUN_010b30f0"]
+flowchart TD
+    control["Disable All"] -->|OnClick| handler["TMCUProjectForm.mnDisableAllClick<br/>FUN_01089f20"]
+    handler --> disable["Set all breakpoints disabled"]
+    disable --> editor["Refresh active editor"]
+    editor --> page{"Breakpoint page active?"}
+    page -->|Yes| panel["Refresh breakpoint list"]
+    page -->|No| done["Finish"]
 ```
 
 ## Handler evidence
@@ -63,7 +65,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

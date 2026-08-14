@@ -1,6 +1,6 @@
-﻿# Select Romfs...
+# Select the ROM file-system image
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the recovered handler, file-dialog helper, edit setter, form resource, and OK validation path.
 
 ## Control
 
@@ -10,8 +10,6 @@
 | Component path | MCUKernelImageProperties.bSelectRomfs |
 | Control class | TButton |
 | Caption | Select Romfs... |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | bSelectRomfsClick |
 | Handler address | 01414c40 |
 | Graph node | `resource:dfm:MCUKernelImageProperties/MCUKernelImageProperties.bSelectRomfs` |
@@ -20,54 +18,41 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`TMCUKernelImageProperties.bSelectRomfsClick` executes the form's `TOpenDialog`. An accepted dialog copies the selected name to string field `+0x7a0`, sets ROMFS-selection flag `+0x7ca`, and displays the name in `eRomfsName` at `+0x700`.
+
+The handler does not inspect the image. The edit setter sends its change path only if the displayed text is different. The OK handler later requires flag `+0x7ca` before it starts its configuration-processing path.
+
+If the user cancels the open dialog, the handler preserves the prior path, flag, and edit text. It clears its temporary Unicode string and returns without a message or local recovery action.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Select Romfs..."] -->|OnClick| handler["FUN_01414c40"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString assignment helper"]
-    handler --> call3["VCL control text setter with change suppression"]
-    handler --> call4["FUN_00724270"]
+flowchart TD
+    click["Click Select Romfs..."] --> execute["Execute the form OpenDialog"]
+    execute --> accepted{"Dialog accepted?"}
+    accepted -->|No| noChange["Keep the prior ROMFS path and flag"]
+    accepted -->|Yes| read["Read the selected file name"]
+    read --> store["Store it at +0x7a0 and set flag +0x7ca"]
+    store --> display["Update eRomfsName when its text differs"]
+    noChange --> cleanup["Clear the temporary string"]
+    display --> cleanup
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001414C40__FUN_01414c40.c](../../../DecompiledSources/Tina16/functions/0000000001414C40__FUN_01414c40.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: MCUKernelImageProperties.bSelectRomfs.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 4
-
-## Direct calls
-
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:0064de00` — VCL control text setter with change suppression
-- `function:00724270` — FUN_00724270
+- [FUN_01414c40](../../../DecompiledSources/Tina16/functions/0000000001414C40__FUN_01414c40.c) contains the dialog decision and accepted-path writes.
+- [FUN_00724270](../../../DecompiledSources/Tina16/functions/0000000000724270__FUN_00724270.c) reads the selected name.
+- [FUN_0064de00](../../../DecompiledSources/Tina16/functions/000000000064DE00__FUN_0064de00.c) updates the edit only after a text difference.
+- [FUN_01415220](../../../DecompiledSources/Tina16/functions/0000000001415220__FUN_01415220.c) reports `Romfs not selected!` when flag `+0x7ca` is clear during the validated OK path.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Frame buffer start:  at distance 418.
-- Rank 2: Frame buffer end at distance 448.
-- Rank 3: Optional at distance 520.
+- The recovered form contains one `TOpenDialog`, `bSelectRomfs`, and `eRomfsName`.
+- The button has no hint, action, image, or extracted glyph.
+- Frame-buffer labels are only distant layout candidates.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The source does not validate the selected image's contents in this handler.
+- The exact dialog filter and options are not recovered in the graph fields.
+

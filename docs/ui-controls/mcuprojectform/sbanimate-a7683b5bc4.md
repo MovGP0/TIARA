@@ -1,6 +1,6 @@
 ﻿# A
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for sbAnimateClick.
 
 ## Control
 
@@ -20,13 +20,15 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads byte `+0x328` from the form-owned Animate control at `+0x950` and copies it to form byte `+0xBD3`. It does not use `Sender`, call another function, or update the backend in this recovered body. Repeated clicks that do not change the control state only rewrite the same byte.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["A"] -->|OnClick| handler["FUN_0108bb50"]
+flowchart TD
+    control["A"] -->|OnClick| handler["TMCUProjectForm.sbAnimateClick<br/>FUN_0108bb50"]
+    handler --> state["Read Animate control state +0x328"]
+    state --> store["Copy state to form flag +0xBD3"]
 ```
 
 ## Handler evidence
@@ -58,7 +60,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

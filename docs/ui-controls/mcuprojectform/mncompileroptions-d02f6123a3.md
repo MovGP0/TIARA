@@ -1,6 +1,6 @@
 ﻿# Compiler Options
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for mnCompilerOptionsClick.
 
 ## Control
 
@@ -20,19 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler creates the compiler-options dialog and initializes it from the current project, target type, output and source settings, and compiler state. Canceling frees the dialog without changing project fields. On acceptance it copies the returned option record into the project. For the recovered Arduino transition it recalculates the compiler mode and refreshes dependent state. If the accepted working object marks library data as changed, it replaces the project's Arduino library selections.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Compiler Options"] -->|OnClick| handler["FUN_0108c580"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["FUN_0043e1a0"]
-    handler --> call4["FUN_007fc180"]
-    handler --> call5["FUN_010715c0"]
-    handler --> call6["FUN_010716b0"]
+flowchart TD
+    control["Compiler Options"] -->|OnClick| handler["TMCUProjectForm.mnCompilerOptionsClick<br/>FUN_0108c580"]
+    handler --> dialog["Open compiler options with project state"]
+    dialog --> accepted{"Accepted?"}
+    accepted -->|No| noOp["Keep compiler settings"]
+    accepted -->|Yes| apply["Copy accepted options to project"]
+    apply --> target{"Arduino mode transition?"}
+    target -->|Yes| recalc["Recalculate compiler mode"]
+    target -->|No| libraries{"Library selections changed?"}
+    recalc --> libraries
+    libraries -->|Yes| replace["Replace project library selections"]
+    libraries -->|No| done["Finish"]
 ```
 
 ## Handler evidence
@@ -73,7 +77,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

@@ -1,6 +1,6 @@
 ﻿# Show &Warnings
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the recovered handler, form lifecycle, and panel state.
 
 ## Control
 
@@ -20,22 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The menu item inverts its checked state. When cleared, it hides the warning list and its adjacent drag panel. When checked, it makes those controls visible and reapplies their recovered layout order so the memo, splitter, and message area are arranged together. It does not clear or rebuild messages. `FormDestroy` writes the checked state to the `Netlist Editor/ShowWarnings` setting, and `FormShow` restores it on the next viewer instance.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Show &Warnings"] -->|OnClick| handler["FUN_014b5ee0"]
-    handler --> call1["FUN_0064c650"]
-    handler --> call2["FUN_0064dbe0"]
-    handler --> call3["FUN_007e2d20"]
+flowchart TD
+    control["Choose Show Warnings"] --> handler["FUN_014b5ee0"]
+    handler --> toggle["Invert checked state"]
+    toggle --> state{"Now checked?"}
+    state -->|No| hide["Hide warning list and drag panel"]
+    state -->|Yes| show["Show controls and restore layout order"]
+    show --> persist["FormDestroy later stores ShowWarnings"]
+    hide --> persist
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000014B5EE0__FUN_014b5ee0.c](../../../DecompiledSources/Tina16/functions/00000000014B5EE0__FUN_014b5ee0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Toggle and persist the Netlist Viewer warning pane.
 - Current graph summary: Handles 1 Delphi UI event: NetlistViewer.MainMenu.MAnalysis.MIShowWarnings.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -65,5 +68,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The layout helper calls expose control order but not original alignment-property names.
+- The click changes visibility only; it does not remove warning records.

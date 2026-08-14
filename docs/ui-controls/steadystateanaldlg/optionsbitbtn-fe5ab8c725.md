@@ -1,6 +1,6 @@
 ﻿# Options...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered modal solver-options dialog path reviewed.
 
 ## Control
 
@@ -20,31 +20,56 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`OptionsBitBtnClick` creates a `TSteadyStateOptionslDlg` and passes it the same
+backing analysis object that the parent form keeps at offset `+0x770`. The
+constructor stores that object at child-form offset `+0x780` and runs the
+standard form initialization path.
+
+The handler then calls the dialog's modal-show method. The child form's
+`FormCreate` reads the shared steady-state solver options and fills its seven
+numeric edits. If the user activates that dialog's OK button, its recovered
+handler validates the edits and writes the accepted values to the shared
+solver-options object. See the reviewed
+[`SteadyStateOptionslDlg.OKBtn` article](../steadystateoptionsldlg/okbtn-69b3f2acbe.md).
+
+When the modal call returns, the parent handler does not inspect its result. It
+destroys the child dialog and returns. The parent handler has no direct setting
+write, error message, validation branch, or analysis-start call.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Options..."] -->|OnClick| handler["FUN_01339b10"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["FUN_01338660"]
+flowchart TD
+    control["Options... button"] -->|OnClick| handler["FUN_01339b10<br/>OptionsBitBtnClick"]
+    handler --> construct["FUN_01338660<br/>create TSteadyStateOptionslDlg with backing object +0x770"]
+    construct --> showModal["Show the solver-options dialog modally"]
+    showModal --> userAction{"Does the child OK handler run?"}
+    userAction -->|Yes| applyOptions["Validate and write seven shared solver options"]
+    userAction -->|No| noParentWrite["Return without a parent-handler setting write"]
+    applyOptions --> ignoreResult["Parent handler does not inspect the modal result"]
+    noParentWrite --> ignoreResult
+    ignoreResult --> destroy["Destroy the child dialog"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001339B10__FUN_01339b10.c](../../../DecompiledSources/Tina16/functions/0000000001339B10__FUN_01339b10.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Opens the steady-state solver-options dialog for the current
+  backing analysis object.
 - Current graph summary: Handles 1 Delphi UI event: SteadyStateAnalDlg.OptionsBitBtn.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Constructs the solver-options form, shows it
+  modally, ignores the returned modal result, and destroys the form.
+- Current graph evidence: `FUN_01339b10` passes the form field at `+0x770` to
+  `FUN_01338660`, calls VMT slot `+0x2d0` on the returned object, and passes the
+  same object to the nil-safe destruction helper.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
 ## Direct calls
 
 - `function:00410f20` — Nil-safe Delphi object destruction helper
-- `function:01338660` — FUN_01338660
+- `function:01338660` — constructs `TSteadyStateOptionslDlg`, stores the supplied
+  backing object at child-form offset `+0x780`, and initializes the form.
 
 ## Resource evidence
 
@@ -63,5 +88,10 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The parent handler ignores the modal result. The child form owns the actual
+  setting writes through its own OK handler.
+- The recovered source does not expose the original Delphi name or type of the
+  backing object at parent offset `+0x770`.
+- The `NumGlyphs` value is 2, but the recovered resource contains no glyph data
+  for this control. No visual meaning is inferred from that value.
+- The handler opens an editor only. It does not run the steady-state solver.

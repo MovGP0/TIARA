@@ -1,6 +1,6 @@
 ﻿# Edit Symbol...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,28 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+If the selected object is a valid component, the handler resolves its symbol or macro record, opens the symbol editor, and commits accepted changes. It then recalculates bounds and redraws the schematic. With no valid component it does nothing. Sender is unused.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Edit Symbol..."] -->|OnClick| handler["FUN_01c931a0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_00414b50"]
-    handler --> call3["FUN_0043f750"]
-    handler --> call4["FUN_004aeac0"]
-    handler --> call5["FUN_00b957c0"]
-    handler --> call6["FUN_00c40270"]
+flowchart TD
+    control["Edit Symbol..."] -->|"OnClick"| handler["mnEditSymbolClick (01c931a0)"]
+    handler --> guard{"Valid component selected?"}
+    guard -->|"No"| noChange["Do not open symbol editor"]
+    guard -->|"Yes"| action["Open symbol editor and commit accepted changes"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C931A0__FUN_01c931a0.c](../../../DecompiledSources/Tina16/functions/0000000001C931A0__FUN_01c931a0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Edit the selected component symbol.
 - Current graph summary: Handles 2 Delphi UI events: SchematicEditor.MainMenu.Edit.mnEditSymbol.OnClick, SchematicEditor.SchPopup.pmEditSymbol.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: If the selected object is a valid component, the handler resolves its symbol or macro record, opens the symbol editor, and commits accepted changes. It then recalculates bounds and redraws the schematic. With no valid component it does nothing. Sender is unused.
+- Current graph evidence: The recovered body checks selection and component class, resolves the symbol record, constructs and executes the symbol editor, tests the accepted result, then calls commit, bounds, and redraw helpers. Two DFM controls share the handler.
 - Complexity: complex
 - Distinct outgoing calls: 18
 
@@ -83,5 +80,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The specific symbol record subtype is selected at runtime.
+

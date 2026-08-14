@@ -1,6 +1,6 @@
 ﻿# &Bitmap...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for TIARA-diz.6.7.1556.
 
 ## Control
 
@@ -11,59 +11,36 @@
 | Control class | TMenuItem |
 | Caption | &Bitmap... |
 | Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | sbBitmapClick |
 | Handler address | 0179dfa0 |
 | Graph node | `resource:dfm:ShapeEdit/ShapeEdit.MainMenu.mnDraw.mnuBitmap` |
 | Handler node | `function:0179dfa0` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Creates the recovered bitmap tool object, installs it as the active ShapeEdit interaction tool, and sets the corresponding toolbar button down. A previous active tool is released by the shared installation path.
+
+This control shares the recovered handler with `ShapeEdit.TopToolBar.EditorTools.sbBitmap`. This article keeps the resource evidence for this control separate.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Bitmap..."] -->|OnClick| handler["FUN_0179dfa0"]
-    handler --> call1["FUN_0082a6c0"]
-    handler --> call2["FUN_00c5ef40"]
-    handler --> call3["FUN_01794b80"]
+flowchart TD
+    control["&Bitmap..."] --> handler["sbBitmapClick at 0179dfa0"]
+    handler --> step1["Create bitmap tool"]
+    handler --> step2["Replace active interaction tool"]
+    handler --> step3["Set toolbar button down"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/000000000179DFA0__FUN_0179dfa0.c](../../../DecompiledSources/Tina16/functions/000000000179DFA0__FUN_0179dfa0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 2 Delphi UI events: ShapeEdit.TopToolBar.EditorTools.sbBitmap.OnClick, ShapeEdit.MainMenu.mnDraw.mnuBitmap.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 3
-
-## Direct calls
-
-- `function:0082a6c0` — FUN_0082a6c0
-- `function:00c5ef40` — FUN_00c5ef40
-- `function:01794b80` — FUN_01794b80
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
+- Handler source: [000000000179DFA0__FUN_0179dfa0.c](../../../DecompiledSources/Tina16/functions/000000000179DFA0__FUN_0179dfa0.c)
 - Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Recovered path: The handler constructs the bitmap tool class, calls 01794b80 to replace field +0xd20, and updates the recovered speed-button state.
+- Resource context: The recovered TMenuItem resource uses caption `&Bitmap...`.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No additional implementation gap was found in the recovered click path.
+- The caption, hint, and glyph support control identity only. They do not replace the recovered handler and callee evidence.
+

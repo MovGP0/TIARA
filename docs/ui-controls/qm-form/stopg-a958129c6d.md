@@ -1,6 +1,6 @@
 ﻿# Stop
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered handler, reset helper, and all recovered accesses to the shared flag.
 
 ## Control
 
@@ -20,24 +20,26 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler toggles a recovered global run-control byte and changes this button's caption. When the byte is zero, it sets the byte to one and loads string resource `0x880`. Otherwise, it calls `FUN_0119a380`, which clears the byte and loads string resource `0x872`.
+
+The Start and minimization initialization paths also set the byte to one and load resource `0x880`. Calculation-stage code calls the reset helper at stage boundaries. However, the recovered source contains no read of this byte that interrupts, pauses, or stops the calculation. The proven effect is limited to the flag and caption states. The exact localized text for resource IDs `0x880` and `0x872` is not recovered.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Stop"] -->|OnClick| handler["FUN_011a2340"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["VCL control text setter with change suppression"]
-    handler --> call3["FUN_00b89270"]
-    handler --> call4["FUN_00b8e520"]
-    handler --> call5["FUN_0119a380"]
+flowchart TD
+    control["Click Stop"] --> handler["TQM_form.stopgClick"]
+    handler --> state{"Recovered flag is zero?"}
+    state -->|Yes| set["Set flag to 1 and load caption resource 0x880"]
+    state -->|No| clear["Clear flag and load caption resource 0x872"]
+    set --> gap["Calculation interruption is not established"]
+    clear --> gap
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011A2340__FUN_011a2340.c](../../../DecompiledSources/Tina16/functions/00000000011A2340__FUN_011a2340.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Toggle the recovered Quine-McCluskey run-control flag and caption state.
 - Current graph summary: Handles 1 Delphi UI event: QM_form.Stopg.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -69,5 +71,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No recovered source reads the flag to interrupt, pause, or stop calculation.
+- The localized strings for resource IDs `0x880` and `0x872` are not recovered.

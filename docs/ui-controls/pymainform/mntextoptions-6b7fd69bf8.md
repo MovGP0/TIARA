@@ -1,6 +1,6 @@
 ﻿# Text Options
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered wrapper and shared font-dialog handler reviewed.
 
 ## Control
 
@@ -20,14 +20,19 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The menu handler delegates directly to the same handler as the **Set Editor Font** toolbar button. That handler copies the main editor's current font into `FontDialog` and opens the dialog. If the user accepts, it copies the selected font back to the editor. If the user cancels, the editor font stays unchanged.
+
+The click changes editor presentation only. It does not change the document text, save the file, or change the terminal font. No local catch or retry path is present.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Text Options"] -->|OnClick| handler["FUN_0146f270"]
-    handler --> call1["FUN_01470c00"]
+flowchart TD
+    control["Click Text Options"] --> shared["Call the shared editor-font handler"]
+    shared --> seed["Copy the current editor font to FontDialog"]
+    seed --> accepted{"User accepts the dialog?"}
+    accepted -->|No| noAction["Keep the editor font unchanged"]
+    accepted -->|Yes| apply["Copy the selected font to the editor"]
 ```
 
 ## Handler evidence
@@ -62,4 +67,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered code does not show whether the selected font persists after this form closes.

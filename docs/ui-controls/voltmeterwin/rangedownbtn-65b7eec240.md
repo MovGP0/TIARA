@@ -1,6 +1,6 @@
 ﻿# RangeDownBtn
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,28 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler switches to manual ranging by releasing the Auto button and sending backend command 0x6F. If the current range index is greater than zero, it decrements the index and sends the new index to backend virtual slot 0x88. At the lower or upper boundary, it keeps the existing index. In both cases, it reads the active range value, formats the value with the current measurement unit, prefixes the text with Rng:, and updates the range display.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["RangeDownBtn"] -->|OnClick| handler["FUN_01b6f6d0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_004169a0"]
-    handler --> call4["FUN_00416cd0"]
-    handler --> call5["VCL control text setter with change suppression"]
-    handler --> call6["FUN_0082a6c0"]
+flowchart TD
+    control["Range lower button"] -->|"OnClick"| handler["RangeDownBtnClick (01b6f6d0)"]
+    handler --> manual["Release Auto and select manual range"]
+    manual --> bound{"Another lower range is available?"}
+    bound -->|"Yes"| change["Change range index and send it to backend"]
+    bound -->|"No"| keep["Keep current range index"]
+    change --> display["Read, format, and display active range"]
+    keep --> display
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001B6F6D0__FUN_01b6f6d0.c](../../../DecompiledSources/Tina16/functions/0000000001B6F6D0__FUN_01b6f6d0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Select the next lower manual Voltmeter range.
 - Current graph summary: Handles 1 Delphi UI event: VoltmeterWin.MeasRangeBox.RangeDownBtn.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler switches to manual ranging by releasing the Auto button and sending backend command 0x6F. If the current range index is greater than zero, it decrements the index and sends the new index to backend virtual slot 0x88. At the lower or upper boundary, it keeps the existing index. In both cases, it reads the active range value, formats the value with the current measurement unit, prefixes the text with Rng:, and updates the range display.
+- Current graph evidence: FUN_01b6f6d0 writes range-format code 4, clears RangeAutoBtn through the recovered speed-button Down setter, sends command 0x6F, tests range byte 0x9B8 against the lower bound, conditionally changes it and calls backend slot 0x88, obtains range data through slot 0x80, formats the value and unit, and writes the Rng: string to the control at form offset 0x978. The inspected glyph points lower.
 - Complexity: complex
 - Distinct outgoing calls: 8
 
@@ -73,5 +73,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The numeric range values and maximum range count are supplied by the active backend and measurement mode.
+- The recovered backend virtual methods do not have Delphi names.
+

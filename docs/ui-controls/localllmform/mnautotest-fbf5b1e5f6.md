@@ -1,6 +1,6 @@
 ﻿# Autotest
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The recovered stop call, log cleanup, object creation, and VCL display helper establish the autotest launch sequence.
 
 ## Control
 
@@ -20,25 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01a58f90` first invokes the same full-stop wrapper as the Stop speed button. It then constructs `log_short.json` and `log.json` paths under the local-LLM temporary directory and deletes each file only when it exists. Delete return values are not checked.
+
+The handler next creates an object from recovered class metadata, stores it in global `PTR_DAT_02001920`, and passes it to `FUN_008059a0`. That helper enables the object and shows its VCL control or form. The recovered call site does not expose the class name, test list, inputs, or completion result. There is no confirmation, modal-result check, success message, or local exception handler. If no worker is active and neither log exists, the stop and deletion parts are no-ops, but the new object is still created and shown.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Autotest"] -->|OnClick| handler["FUN_01a58f90"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00416cd0"]
-    handler --> call3["FUN_00440a20"]
-    handler --> call4["FUN_004412f0"]
-    handler --> call5["FUN_007fc180"]
-    handler --> call6["FUN_008059a0"]
+flowchart TD
+    control["Click Autotest"] --> stop["Run full local-LLM stop path"]
+    stop --> logs["Delete log_short.json and log.json when present"]
+    logs --> create["Create recovered autotest object"]
+    create --> global["Store object in global PTR_DAT_02001920"]
+    global --> show["Enable and show its VCL control or form"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001A58F90__FUN_01a58f90.c](../../../DecompiledSources/Tina16/functions/0000000001A58F90__FUN_01a58f90.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Stops local-LLM work, clears prior logs, and launches the recovered autotest UI object.
 - Current graph summary: Handles 1 Delphi UI event: LocalLLMForm.MainMenu1.mnTools.mnAutoTest.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -72,5 +72,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The menu caption supports the object purpose, but the class name and test behavior are not resolved at this call site.
+- The handler proves launch preparation only. It does not prove which tests run or how results are reported.

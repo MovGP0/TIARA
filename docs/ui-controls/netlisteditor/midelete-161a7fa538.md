@@ -1,6 +1,6 @@
 ﻿# &Delete
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The recovered selection test and replacement call establish the no-op and deletion paths.
 
 ## Control
 
@@ -20,20 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01532510` passes the editor to `FUN_00c08110`. That routine tests whether a selection exists with `FUN_00bf2c80`. An empty selection is a no-op; a nonempty selection is replaced with empty text through `FUN_00c08be0`.
+
+Undo and modified-state effects are handled inside the SynEdit replacement routine. The handler has no confirmation prompt.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Delete"] -->|OnClick| handler["FUN_01532510"]
-    handler --> call1["FUN_00c08110"]
+flowchart TD
+    control["Click Delete"] --> handler["FUN_01532510"]
+    handler --> selected{"Selection present?"}
+    selected -->|No| noop["Return"]
+    selected -->|Yes| remove["Replace selection with empty text"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001532510__FUN_01532510.c](../../../DecompiledSources/Tina16/functions/0000000001532510__FUN_01532510.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Deletes the current SynEdit selection without using the clipboard.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MEdit.MIDelete.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +65,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The wrapper does not expose the selection mode or resulting caret position.
+- Any read-only guard is handled below this recovered wrapper.

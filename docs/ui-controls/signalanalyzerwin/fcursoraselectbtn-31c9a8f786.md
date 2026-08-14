@@ -1,6 +1,6 @@
 ﻿# A
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed: the click selects cursor A and synchronizes the common cursor state.
 
 ## Control
 
@@ -20,20 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler calls the cursor-A selection helper. If the cursor-A button is not Down after that call, the handler returns without another change.
+
+If cursor A is selected, the handler reads cursor-A model byte `+0xC0` and copies it to the common Cursor On button. This keeps the shared cursor toggle aligned with cursor A's active state.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["A"] -->|OnClick| handler["FUN_0138cbe0"]
-    handler --> call1["FUN_010f7e00"]
+flowchart TD
+    control["Cursor A button"] -->|OnClick| handler["CursorASelectBtnClick"]
+    handler --> select["Run cursor-A selection helper"]
+    select --> down{"Cursor A selected?"}
+    down -->|No| noop["Return"]
+    down -->|Yes| sync["Copy cursor-A state to Cursor On"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/000000000138CBE0__FUN_0138cbe0.c](../../../DecompiledSources/Tina16/functions/000000000138CBE0__FUN_0138cbe0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Selects cursor A and synchronizes the common Cursor On button.
 - Current graph summary: Handles 1 Delphi UI event: SignalAnalyzerWin.CursorBox.FCursorASelectBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +66,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The handler does not itself create, move, or remove a cursor.
+- The Delphi names of the cursor model bytes are not recovered.

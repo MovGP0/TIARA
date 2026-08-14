@@ -1,7 +1,5 @@
 ﻿# bCancel
 
-> Analysis status: Pending individual source review.
-
 ## Control
 
 | Property | Recovered value |
@@ -20,22 +18,29 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler sets the form byte at `+0xFA9` to `1`. `FormCloseQuery` copies this byte to its `CanClose` output. The click therefore removes the form's validation block and permits the pending close request.
+
+The handler does not inspect the selected input mode, file names, or file lists. It does not clear staged data. It has no branch and no direct call. Repeating the click writes the same value.
+
+The resource identifies this control as `bkCancel`, but the recovered handler proves only the close-permission write. The normal VCL button behavior supplies the close request outside this handler.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["bCancel"] -->|OnClick| handler["FUN_01419500"]
+flowchart TD
+    Control["bCancel click"] --> Handler["FUN_01419500"]
+    Handler --> Permit["Set form +0xFA9 to 1"]
+    Permit --> CloseQuery["FormCloseQuery copies flag to CanClose"]
+    CloseQuery --> Close["Permit the pending close request"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001419500__FUN_01419500.c](../../../DecompiledSources/Tina16/functions/0000000001419500__FUN_01419500.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Permit MCU input selector closure after Cancel.
 - Current graph summary: Handles 1 Delphi UI event: MCUAsmSelector.bCancel.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Sets the form close-permission flag. The form close-query handler returns this flag unchanged.
+- Current graph evidence: `FUN_01419500` writes byte `1` at form offset `+0xFA9`; `FUN_014194f0` copies that byte to `CanClose`.
 - Complexity: simple
 - Distinct outgoing calls: 0
 
@@ -60,5 +65,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- [Cancel handler `FUN_01419500`](../../../DecompiledSources/Tina16/functions/0000000001419500__FUN_01419500.c) proves the single close-permission write.
+- [Form close-query handler `FUN_014194f0`](../../../DecompiledSources/Tina16/functions/00000000014194F0__FUN_014194f0.c) proves how the flag controls closure.
+- The recovered code does not show a rollback operation. Do not treat this click as an undo of file or mode changes.

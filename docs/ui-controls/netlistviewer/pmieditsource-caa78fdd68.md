@@ -1,6 +1,6 @@
 ﻿# &Edit Source
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the shared list action, message association, and SynEdit navigation path.
 
 ## Control
 
@@ -20,20 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The popup item delegates to the same routine as a double-click on the warning list. With no selected row, it is a no-op. Otherwise, it reads the selected message and its optional associated source object, resolves a source line either from the message text or by scanning the current memo source, moves the `Memo` caret to that line, scrolls it into view, refreshes the cursor status, and enables the special-line highlight. It does not open an external source editor despite the resource caption.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Edit Source"] -->|OnClick| handler["FUN_014b6790"]
-    handler --> call1["FUN_014b64f0"]
+flowchart TD
+    control["Choose Edit Source"] --> handler["FUN_014b6790"]
+    handler --> shared["Delegate to FUN_014b64f0 list action"]
+    shared --> selected{"Warning row is selected?"}
+    selected -->|No| noop["Return without change"]
+    selected -->|Yes| resolve["Resolve source line from message or association"]
+    resolve --> navigate["Move Memo caret, scroll, and highlight line"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000014B6790__FUN_014b6790.c](../../../DecompiledSources/Tina16/functions/00000000014B6790__FUN_014b6790.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Navigate the Netlist Viewer memo to the selected diagnostic source line.
 - Current graph summary: Handles 1 Delphi UI event: NetlistViewer.ListBoxPopup.pmiEditSource.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +65,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The caption says `Edit Source`, but the recovered handler navigates within `Memo`; no external editor launch is present.
+- Original types for the optional message-associated objects are not recovered.

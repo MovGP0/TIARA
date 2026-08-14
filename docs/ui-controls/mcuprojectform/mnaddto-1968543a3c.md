@@ -1,6 +1,6 @@
 ﻿# Add Existing File...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for mnAddToClick.
 
 ## Control
 
@@ -20,14 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler is a one-call wrapper around the same existing-file workflow used by the toolbar and Add-to-Project menu. It does not inspect `Sender` or add a separate branch. The wrapped routine opens the target-specific file picker, validates an accepted path, and adds it only when valid; cancellation and validation failure leave the project unchanged.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Add Existing File..."] -->|OnClick| handler["FUN_01084560"]
-    handler --> call1["FUN_01083fb0"]
+flowchart TD
+    control["Add Existing File..."] -->|OnClick| handler["TMCUProjectForm.mnAddToClick<br/>FUN_01084560"]
+    handler --> add["Run existing-file picker and validation"]
+    add --> result{"Accepted valid path?"}
+    result -->|No| noOp["No project insertion"]
+    result -->|Yes| insert["Add file to project"]
 ```
 
 ## Handler evidence
@@ -59,7 +62,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

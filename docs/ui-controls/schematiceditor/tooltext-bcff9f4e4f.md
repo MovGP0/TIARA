@@ -1,6 +1,6 @@
 ﻿# Text|Click where you want to place the text
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,28 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+If editing is allowed and the schematic is unlocked, the handler constructs and validates a text object. A failed validation destroys the object and ends the command. A valid object gets an undo entry, is inserted at the current schematic coordinates, becomes selected, and activates the text tool.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Text|Click where you want to place the text"] -->|OnClick| handler["FUN_01c6d750"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_00418590"]
-    handler --> call3["FUN_0041ddd0"]
-    handler --> call4["FUN_0149d160"]
-    handler --> call5["FUN_017baeb0"]
-    handler --> call6["FUN_017baf50"]
+flowchart TD
+    control["Text|Click where you want to place the text"] -->|"OnClick"| handler["ToolTextClick (01c6d750)"]
+    handler --> guard{"Editing allowed and schematic unlocked?"}
+    guard -->|"No"| unchanged["Keep current command"]
+    guard -->|"Yes"| create["Construct and validate text object"]
+    create --> valid{"Valid?"}
+    valid -->|"No"| cleanup["Destroy object and end command"]
+    valid -->|"Yes"| insert["Create undo entry, insert, position, and select text"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C6D750__FUN_01c6d750.c](../../../DecompiledSources/Tina16/functions/0000000001C6D750__FUN_01c6d750.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Insert schematic text.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.TopToolBar.EditorTools.ToolText.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: If editing is allowed and the schematic is unlocked, the handler constructs and validates a text object. A failed validation destroys the object and ends the command. A valid object gets an undo entry, is inserted at the current schematic coordinates, becomes selected, and activates the text tool.
+- Current graph evidence: The recovered body contains the permission and lock guards, a text-object constructor and validation branch, cleanup calls on failure, and undo, insertion, positioning, selection, and tool-activation calls on success.
 - Complexity: complex
 - Distinct outgoing calls: 13
 
@@ -78,5 +78,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The text-object class and validation error reason are not named in the recovered symbols.
+

@@ -1,6 +1,6 @@
 ﻿# Sort by name
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for TIARA-diz.6.7.1586.
 
 ## Control
 
@@ -11,61 +11,37 @@
 | Control class | TCheckBox |
 | Caption | Sort by name |
 | Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | cbxSortbyNameClick |
 | Handler address | 0179ff20 |
 | Graph node | `resource:dfm:ShapeEdit/ShapeEdit.TemplatePanel.cbxSortbyName` |
 | Handler node | `function:0179ff20` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Compares the checkbox state with the library sort flag and stops if they match. Otherwise it remembers the selected device name, writes the new sort flag, and restores selection by name. When sorting is enabled, it also rebuilds the list and marks the document dirty. The recovered handler does not rebuild or set dirty when sorting is disabled.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Sort by name"] -->|OnClick| handler["FUN_0179ff20"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_004b67b0"]
-    handler --> call3["FUN_01795670"]
-    handler --> call4["FUN_01798270"]
+flowchart TD
+    control["Sort by name"] --> handler["cbxSortbyNameClick at 0179ff20"]
+    handler --> step1["Compare checkbox and sort flag"]
+    handler --> step2["Unchanged: stop"]
+    handler --> step3["Remember selected name"]
+    handler --> step4["Write sort flag"]
+    handler --> step5["Enabled: rebuild and mark dirty"]
+    handler --> step6["Restore selection"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/000000000179FF20__FUN_0179ff20.c](../../../DecompiledSources/Tina16/functions/000000000179FF20__FUN_0179ff20.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: ShapeEdit.TemplatePanel.cbxSortbyName.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 4
-
-## Direct calls
-
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:004b67b0` — FUN_004b67b0
-- `function:01795670` — FUN_01795670
-- `function:01798270` — FUN_01798270
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
+- Handler source: [000000000179FF20__FUN_0179ff20.c](../../../DecompiledSources/Tina16/functions/000000000179FF20__FUN_0179ff20.c)
 - Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Recovered path: The handler reads field +0xc38 and library field +0x48, stores the selected name, writes the flag, conditionally calls 01798270 and 01795670 only on the true state, finds the saved name, and updates selection when its index changes.
+- Resource context: The recovered TCheckBox resource uses caption `Sort by name`.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The asymmetric disable branch is explicit in the recovered source; its broader persistence intent is unknown.
+- The caption, hint, and glyph support control identity only. They do not replace the recovered handler and callee evidence.
+

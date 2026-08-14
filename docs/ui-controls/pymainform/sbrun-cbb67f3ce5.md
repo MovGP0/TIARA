@@ -1,6 +1,6 @@
 ﻿# Run
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered temporary-program, execution, terminal-output, timeout, and image-result path reviewed.
 
 ## Control
 
@@ -20,19 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler removes a prior `PyImage.png` result when it exists, clears the terminal, resets the execution model, and copies the selected application mode into the model. It reads the complete editor text and prepares either a temporary Python program or a temporary CSV input. Mode 0 builds a Python command; modes 1 and 2 select `nodal-solver.exe` or `nodal-resistance.exe`.
+
+The execution helper runs the prepared command with a recovered 60-second timeout and copies process output to the terminal. A timeout appends `Timeout received`. After execution, the handler restores the terminal prompt. If a new `PyImage.png` exists, it opens the recovered image viewer for that file. The handler does not validate source text before execution and has no local retry or rollback.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Run"] -->|OnClick| handler["FUN_01470460"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_00416cd0"]
-    handler --> call4["FUN_00440a20"]
-    handler --> call5["FUN_004412f0"]
-    handler --> call6["FUN_007fc180"]
+flowchart TD
+    control["Click Run"] --> clean["Remove an old PyImage.png and clear the terminal"]
+    clean --> prepare["Prepare Python or nodal input from all editor text"]
+    prepare --> execute["Run the prepared command with a 60-second timeout"]
+    execute --> timeout{"Execution timed out?"}
+    timeout -->|Yes| report["Append Timeout received"]
+    timeout -->|No| output["Copy process output to the terminal"]
+    report --> prompt["Restore the terminal prompt"]
+    output --> prompt
+    prompt --> image{"New PyImage.png exists?"}
+    image -->|Yes| show["Open the image viewer"]
+    image -->|No| finish["Keep the terminal result"]
 ```
 
 ## Handler evidence
@@ -77,4 +83,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not prove sandboxing or trust checks before it runs editor-controlled content.

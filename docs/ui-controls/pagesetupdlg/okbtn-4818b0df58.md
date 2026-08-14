@@ -1,6 +1,6 @@
 ﻿# OKBtn
 
-> Analysis status: Pending individual source review.
+> Analysis status: Blocked by an unresolved event-handler address.
 
 ## Control
 
@@ -20,29 +20,42 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The recovered DFM stream binds `PageSetupDlg.OKBtn.OnClick` to the method name
+`OKBtnClick`. The checked-in extractor could not resolve a code address from
+the event binding or from the `TPageSetupDlg` published-method table. The
+graph therefore contains an unresolved handler concept, not a recovered
+function.
+
+The `bkOK` resource property identifies the control as the dialog's OK button.
+It does not prove what `OKBtnClick` does. No recovered evidence shows whether
+the handler validates the page values, copies them to another object, sets a
+modal result, closes the dialog, reports an error, or returns without a state
+change.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["OKBtn"] -->|OnClick| handler["OKBtnClick"]
-    handler -.-> unresolved["Recovered address not established"]
+flowchart TD
+    control["OKBtn<br/>DFM Kind = bkOK"] -->|"OnClick"| binding["Handler name: OKBtnClick"]
+    binding --> address{"Code address resolved?"}
+    address -->|"No"| gap["No recovered source or callee path"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/resources/dfm/ui-evidence.json](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json)
-- Recovered role: Not present in the recovered resource.
+- Extractor: [analysis/undelphi/TiaraUiEvidence.rs](../../../analysis/undelphi/TiaraUiEvidence.rs)
+- Recovered role: Unknown because no handler function was resolved.
 - Current graph summary: Unresolved Delphi event handler TPageSetupDlg.OKBtnClick, referenced by 1 UI event.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Unknown.
+- Current graph evidence: The trigger edge preserves the DFM method name, but its handler address is null.
 - Complexity: simple
-- Distinct outgoing calls: Not present in the recovered resource.
+- Distinct outgoing calls: None. The handler node is an unresolved concept.
 
 ## Direct calls
 
-- No direct call edge is present in the recovered graph.
+- No direct call edge is present. A call tree cannot start without a recovered
+  handler address.
 
 ## Resource evidence
 
@@ -63,5 +76,9 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The DFM provides the `OKBtnClick` name but no address.
+- RTTI and VMT resolution did not find this method for `TPageSetupDlg`.
+- The recovered graph has no function node, source file, outgoing call, glyph,
+  or function annotation for this binding.
+- A later recovery must identify the handler address and inspect its source and
+  relevant callees before it can describe application behavior.

@@ -1,6 +1,6 @@
 ﻿# OK
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source, call-path, state, and error evidence reviewed.
 
 ## Control
 
@@ -20,28 +20,38 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler validates the current component and footprint selection, writes the edited `DigitalICs` definition when required, persists the affected PCB libraries, and refreshes the shared library state. The resource supplies modal result `1`, so a successful return accepts the dialog.
+
+It first requires a selected item in both the Component list and Footprint list. If either selection is absent, it clears the form modal result and shows localized message `0x843`. For a footprint other than `NOPCB`, it also requires at least one pin-to-node mapping row. A missing mapping clears the modal result and shows localized message `0x844`.
+
+On the accepted path, the handler compares the generated component definition with the stored `DigitalICs` definition and calls [`FUN_00eaec40`](../../../DecompiledSources/Tina16/functions/0000000000EAEC40__FUN_00eaec40.c) when an update is required. [`FUN_00eae940`](../../../DecompiledSources/Tina16/functions/0000000000EAE940__FUN_00eae940.c) then processes the library entries. It asks for confirmation before it modifies the standard `TINA` library; a declined confirmation reloads that entry instead. Finally, [`FUN_00eaecd0`](../../../DecompiledSources/Tina16/functions/0000000000EAECD0__FUN_00eaecd0.c) invokes the global library refresh.
+
+The green-check glyph supports the accept meaning. The source, selection checks, writes, save path, and modal-result resets establish the implementation.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
+flowchart TD
     control["OK"] -->|OnClick| handler["FUN_00ec3110"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_00416ba0"]
-    handler --> call4["FUN_00416db0"]
-    handler --> call5["FUN_0043e130"]
-    handler --> call6["FUN_0072d440"]
+    handler --> selected{"Component and footprint selected?"}
+    selected -->|No| missing["Show message 0x843 and clear modal result"]
+    selected -->|Yes| mapped{"NOPCB or at least one mapping row?"}
+    mapped -->|No| pins["Show message 0x844 and clear modal result"]
+    mapped -->|Yes| update["Update the DigitalICs definition when required"]
+    update --> save["FUN_00eae940 saves or reloads affected libraries"]
+    save --> refresh["FUN_00eaecd0 refreshes shared library state"]
+    refresh --> accept["Modal result 1 accepts the dialog"]
+    missing --> stay["Keep the dialog open"]
+    pins --> stay
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000000EC3110__FUN_00ec3110.c](../../../DecompiledSources/Tina16/functions/0000000000EC3110__FUN_00ec3110.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Validates and persists the edited PCB component and footprint library state.
 - Current graph summary: Handles 1 Delphi UI event: PcbForm4.BtnOK.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Requires selected component and footprint rows and, except for NOPCB, at least one mapping row. Validation failures clear the modal result and show localized messages. The accepted path updates the DigitalICs definition when required, processes library persistence, refreshes shared state, and then permits modal result 1.
+- Current graph evidence: The handler reads both list selections, compares the selected footprint with NOPCB, checks the mapping-row count, writes through FUN_00eaec40, processes libraries through FUN_00eae940, and calls FUN_00eaecd0. The DFM supplies modal result 1 and the inspected glyph shows green check marks.
 - Complexity: complex
 - Distinct outgoing calls: 13
 
@@ -76,7 +86,14 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
+## No-op and error behavior
+
+- Missing component or footprint selection: show localized message `0x843`, clear the modal result, and keep the form open.
+- Non-`NOPCB` footprint without mapping rows: show localized message `0x844`, clear the modal result, and keep the form open.
+- Standard `TINA` library modification declined: reload that library entry instead of saving it.
+- The handler has no local exception recovery for backend reads, writes, or saves.
+
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The localized message text is not present in the recovered handler; only message identifiers and branch conditions are proven.
+- The code conditionally writes the component definition. The exact backend storage format remains behind recovered virtual methods.

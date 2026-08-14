@@ -1,6 +1,6 @@
 ﻿# &Delete
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the recovered handler and SynEdit selection-delete path.
 
 ## Control
 
@@ -20,20 +20,22 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The menu item deletes the current `Memo` selection by replacing it with empty text. The helper first tests whether a selection exists. With no selection, it returns without changing the document. Unlike Cut, this path does not write the clipboard. The SynEdit replacement path owns modified-state and undo recording.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Delete"] -->|OnClick| handler["FUN_014b5910"]
-    handler --> call1["FUN_00c08110"]
+flowchart TD
+    control["Choose Delete"] --> handler["FUN_014b5910"]
+    handler --> selection{"Memo has selected text?"}
+    selection -->|No| noop["Return without change"]
+    selection -->|Yes| delete["Replace selection with empty text"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000014B5910__FUN_014b5910.c](../../../DecompiledSources/Tina16/functions/00000000014B5910__FUN_014b5910.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Delete the selected Netlist Viewer text without copying it.
 - Current graph summary: Handles 1 Delphi UI event: NetlistViewer.MainMenu.MEdit.MIDelete.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered wrapper does not contain its own read-only or error branch; those checks belong to the SynEdit replacement helper.
+- The command does not delete a character when there is no selection.

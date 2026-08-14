@@ -1,17 +1,17 @@
-﻿# Delete Library
+﻿# Delete Library button
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed: the handler confirms and deletes the selected nonfirst PCB library, then activates the preceding library.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
 | Form | PcbForm |
+| Form caption | PCB information for SPICE macro components |
 | Component path | PcbForm.Panel2.sbtnDeleteLibrary |
 | Control class | TSpeedButton |
-| Caption | Not present in the recovered resource. |
+| Caption | Not present |
 | Hint | Delete Library |
-| Text | Not present in the recovered resource. |
 | Handler name | sbtnDeleteLibraryClick |
 | Handler address | 00ed56b0 |
 | Graph node | `resource:dfm:PcbForm/PcbForm.Panel2.sbtnDeleteLibrary` |
@@ -20,58 +20,38 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+1. The handler reads the selected index from `cbxSelectLibrary`. Index zero and negative indexes are protected by an immediate no-op, so the first library cannot be deleted through this button.
+2. For a later item, it shows `%s will be deleted. Continue?`. Only dialog result 6 proceeds.
+3. `FUN_00eae480` removes and destroys the named library object from the global registry. The handler removes the combo item, selects the preceding row, and passes that library name to `FUN_00ecba00` so the form reloads its component and footprint state.
+4. A No response leaves the registry and selector unchanged. The red-X glyph supports delete intent, but the source proves the target and the protected-index rule.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Delete Library"] -->|OnClick| handler["FUN_00ed56b0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_00442f70"]
-    handler --> call4["FUN_0072d440"]
-    handler --> call5["FUN_00eae480"]
-    handler --> call6["FUN_00ecba00"]
+flowchart TD
+    control["PcbForm.Panel2.sbtnDeleteLibrary"] -->|OnClick| handler["FUN_00ed56b0"]
+    handler --> decision{"Selected index is above zero and confirmation is Yes?"}
+    decision -->|Yes| action["Delete the registry and combo entries"]
+    decision -->|No| noop["Leave all libraries unchanged"]
+    action --> outcome["Select the preceding library and rebuild form state"]
+    noop --> outcome
 ```
 
-## Handler evidence
+## Handler and call-path evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000000ED56B0__FUN_00ed56b0.c](../../../DecompiledSources/Tina16/functions/0000000000ED56B0__FUN_00ed56b0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: PcbForm.Panel2.sbtnDeleteLibrary.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 6
+- [`FUN_00ed56b0`](../../../DecompiledSources/Tina16/functions/0000000000ED56B0__FUN_00ed56b0.c) — Delete a selected PCB library.
+- [`FUN_00eae480`](../../../DecompiledSources/Tina16/functions/0000000000EAE480__FUN_00eae480.c) — remove one named PCB library object.
+- [`FUN_00ecba00`](../../../DecompiledSources/Tina16/functions/0000000000ECBA00__FUN_00ecba00.c) — activate a named PCB library and rebuild form state.
 
-## Direct calls
+## Resource and glyph evidence
 
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00442f70` — FUN_00442f70
-- `function:0072d440` — FUN_0072d440
-- `function:00eae480` — FUN_00eae480
-- `function:00ecba00` — FUN_00ecba00
+- Extracted glyph: [`0299_PcbForm_PcbForm_Panel2_sbtnDeleteLibrary_Glyph_Data.png`](../../../glyph/0299_PcbForm_PcbForm_Panel2_sbtnDeleteLibrary_Glyph_Data.png).
+- Recovered form resource: [`ui-evidence.json`](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json).
 
-## Resource evidence
+## Inputs, outputs, and limits
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: [`0299_PcbForm_PcbForm_Panel2_sbtnDeleteLibrary_Glyph_Data.png`](../../../glyph/0299_PcbForm_PcbForm_Panel2_sbtnDeleteLibrary_Glyph_Data.png)
+- Input: an OnClick event from `PcbForm.Panel2.sbtnDeleteLibrary`, plus the current form selections and state described above.
+- State change: Protects the first library entry, confirms deletion of a later entry, removes it from the registry and combo, and activates the preceding library.
+- Error or no-op behavior: The decision branches above identify the recovered validation, cancel, confirmation, boundary, or no-op path.
+- Analysis limit: The first entry is protected by index, but its name is not hard-coded in this handler.
 
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Footprint list: at distance 39.
-- Rank 2: 3D component view: at distance 194.
-- Rank 3: Component list: at distance 220.
-
-## Analysis limits
-
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.

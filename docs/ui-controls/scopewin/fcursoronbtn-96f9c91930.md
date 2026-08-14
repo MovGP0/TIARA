@@ -1,6 +1,6 @@
 ﻿# On
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered selected-cursor toggle state machine and local-or-remote dispatch reviewed.
 
 ## Control
 
@@ -20,14 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler builds internal request `0x53A` and passes it to the shared cursor-toggle state machine. If the form is in remote mode, the request is forwarded instead of changing local state.
+
+In local mode, the common **On** button's Down state is applied to the selected A or B cursor. Turning a selected cursor off clears its controller flag and removes its display state. Turning it on sets the controller flag and initializes it from the selected curve. If neither A nor B is selected, no cursor flag changes. The helper then refreshes the cursor readouts and plot.
+
+The click does not change the selected curve or save settings.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["On"] -->|OnClick| handler["FUN_012b16c0"]
-    handler --> call1["FUN_010f7c00"]
+flowchart TD
+    control["Click cursor On"] --> request["Build cursor-toggle request 0x53A"]
+    request --> remote{"Remote mode?"}
+    remote -->|Yes| forward["Forward the request"]
+    remote -->|No| selected{"A or B is selected?"}
+    selected -->|No| refresh["Refresh cursor readouts"]
+    selected -->|Yes| apply["Apply the On button state to that cursor"]
+    apply --> refresh
 ```
 
 ## Handler evidence
@@ -62,4 +71,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The transport used for the remote request is outside the recovered helper.

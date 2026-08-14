@@ -1,6 +1,6 @@
 ﻿# Log
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed: the click switches the analyzer scale between linear and logarithmic modes.
 
 ## Control
 
@@ -20,24 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads the current backend display configuration, copies this button's Down state to scale byte `+0xE74`, and applies the new linear or logarithmic setting through backend virtual slots `+0x130` and `+0x120`. It also updates the button state and its two-state caption.
+
+If the scale changed, the handler preserves the display range, updates the plot object, refreshes all analyzer channels through `FUN_010f67e0`, and copies the resulting range back to the data model. If the scale did not change, it skips that refresh sequence.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Log"] -->|OnClick| handler["FUN_0138cd80"]
-    handler --> call1["VCL control text setter with change suppression"]
-    handler --> call2["FUN_0082a6c0"]
-    handler --> call3["FUN_010f67e0"]
-    handler --> call4["FUN_01389820"]
-    handler --> call5["FUN_01389900"]
+flowchart TD
+    control["Lin/Log button"] -->|OnClick| handler["LinLogSpBtnClick"]
+    handler --> apply["Apply Down state to backend scale"]
+    apply --> caption["Update two-state caption"]
+    caption --> changed{"Scale changed?"}
+    changed -->|No| done["Return"]
+    changed -->|Yes| preserve["Preserve display range"]
+    preserve --> plot["Update plot and refresh channels"]
+    plot --> restore["Copy resulting range to model"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/000000000138CD80__FUN_0138cd80.c](../../../DecompiledSources/Tina16/functions/000000000138CD80__FUN_0138cd80.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Applies linear or logarithmic analyzer scaling and refreshes the plot when the mode changes.
 - Current graph summary: Handles 1 Delphi UI event: SignalAnalyzerWin.MeasurementGroupBox.FrequencyGroupBox.LinLogSpBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -71,5 +75,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered static string addresses do not decode both caption texts in this handler file.
+- The exact scaling calculations occur in backend and plot methods whose Delphi names are not recovered.

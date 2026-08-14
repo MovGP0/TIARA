@@ -1,17 +1,17 @@
-﻿# Move &Up
+﻿# Move Up
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed: the handler moves the selected node-mapping payload up by one row.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
 | Form | PcbForm |
+| Form caption | PCB information for SPICE macro components |
 | Component path | PcbForm.Panel1.BtnMoveUp |
 | Control class | TBitBtn |
-| Caption | Move &Up  |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Caption | Move &Up |
+| Hint | Not present |
 | Handler name | BtnMoveUpClick |
 | Handler address | 00ece150 |
 | Graph node | `resource:dfm:PcbForm/PcbForm.Panel1.BtnMoveUp` |
@@ -20,59 +20,34 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+1. The handler requires a selected index greater than zero. It parses that row and the previous row, exchanges their mapping payloads while keeping each position's ordinal prefix, and selects the upper row.
+2. It persists the reordered component and footprint definition through `FUN_00ed3300` and refreshes the 3D preview. A missing selection or first-row selection is a no-op.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Move &Up "] -->|OnClick| handler["FUN_00ece150"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00416ad0"]
-    handler --> call3["FUN_00416dc0"]
-    handler --> call4["FUN_00416e20"]
-    handler --> call5["FUN_004170c0"]
-    handler --> call6["FUN_00ea9ca0"]
+flowchart TD
+    control["PcbForm.Panel1.BtnMoveUp"] -->|OnClick| handler["FUN_00ece150"]
+    handler --> decision{"Selected row has a preceding row?"}
+    decision -->|Yes| action["Swap mapping payloads and select the upper row"]
+    decision -->|No| noop["Leave the order unchanged"]
+    action --> outcome["Persist the definition and refresh the 3D preview"]
+    noop --> outcome
 ```
 
-## Handler evidence
+## Handler and call-path evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000000ECE150__FUN_00ece150.c](../../../DecompiledSources/Tina16/functions/0000000000ECE150__FUN_00ece150.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: PcbForm.Panel1.BtnMoveUp.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 7
+- [`FUN_00ece150`](../../../DecompiledSources/Tina16/functions/0000000000ECE150__FUN_00ece150.c) — Move a PCB node mapping up.
+- [`FUN_00ed3300`](../../../DecompiledSources/Tina16/functions/0000000000ED3300__FUN_00ed3300.c) — persist the selected PCB definition.
 
-## Direct calls
+## Resource and glyph evidence
 
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00416ad0` — FUN_00416ad0
-- `function:00416dc0` — FUN_00416dc0
-- `function:00416e20` — FUN_00416e20
-- `function:004170c0` — FUN_004170c0
-- `function:00ea9ca0` — FUN_00ea9ca0
-- `function:00ed3300` — FUN_00ed3300
+- Recovered form resource: [`ui-evidence.json`](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json).
 
-## Resource evidence
+## Inputs, outputs, and limits
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
+- Input: an OnClick event from `PcbForm.Panel1.BtnMoveUp`, plus the current form selections and state described above.
+- State change: Moves the selected node-mapping payload up one position, preserves row ordinals, persists the definition, and refreshes the 3D preview.
+- Error or no-op behavior: The decision branches above identify the recovered validation, cancel, confirmation, boundary, or no-op path.
+- Analysis limit: The handler reorders serialized row payloads; the constant delimiter names are not recovered.
 
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Part: at distance 147.
-- Rank 2:  Valid node at distance 149.
-- Rank 3: Swapped nodes at distance 153.
-
-## Analysis limits
-
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.

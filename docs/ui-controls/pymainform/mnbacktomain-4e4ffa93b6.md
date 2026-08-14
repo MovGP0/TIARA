@@ -1,6 +1,6 @@
 ﻿# Normal mode
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered radio selection and normal-mode transition reviewed.
 
 ## Control
 
@@ -20,16 +20,20 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler checks the **Normal mode** radio item, disables two related properties through a shared menu-state helper, and requests application mode 0. If mode 0 is already active, the mode loader is a no-op.
+
+For a real transition, the shared mode routine selects Python-file filters and the Python extension, creates a new blank document, then loads `Examples\Python\programs\bubblesort.py` into the editor. It stores that path and updates the caption. This transition discards the current editor text without a save prompt in the recovered path.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Normal mode"] -->|OnClick| handler["FUN_01471080"]
-    handler --> call1["FUN_007e2d20"]
-    handler --> call2["FUN_01471040"]
-    handler --> call3["FUN_01471260"]
+flowchart TD
+    control["Click Normal mode"] --> check["Check the radio item"]
+    check --> flags["Set the related UI flags to false"]
+    flags --> changed{"Mode differs from 0?"}
+    changed -->|No| noAction["Keep the current document"]
+    changed -->|Yes| configure["Select Python filters and create a blank document"]
+    configure --> sample["Load bubblesort.py and update the caption"]
 ```
 
 ## Handler evidence
@@ -66,4 +70,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The original name of the component changed by the shared UI-flag helper is not recovered.

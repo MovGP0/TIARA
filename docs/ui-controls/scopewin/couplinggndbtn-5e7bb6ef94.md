@@ -1,6 +1,6 @@
 ﻿# CouplingGNDBtn
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered ground glyph, exclusive coupling selection, and backend selector call reviewed.
 
 ## Control
 
@@ -20,13 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The three coupling buttons share speed-button group 10, so selecting this button releases the other coupling button. Its extracted glyph is the electrical ground symbol. The handler sends fixed selector value 4 to virtual slot `+0x140` on the scope backend at form field `+0xdb8`.
+
+The handler has no validation, redraw call, or local error branch. The original enum name and the backend implementation of selector 4 are not recovered.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["CouplingGNDBtn"] -->|OnClick| handler["FUN_012af6a0"]
+flowchart TD
+    control["Click the ground coupling button"] --> group["Select it in coupling group 10"]
+    group --> backend["Send coupling selector 4 to the scope backend"]
+    backend --> finish["Return without a separate redraw"]
 ```
 
 ## Handler evidence
@@ -61,4 +65,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The glyph confirms ground intent, while the recovered source proves only the fixed backend selector and call site.

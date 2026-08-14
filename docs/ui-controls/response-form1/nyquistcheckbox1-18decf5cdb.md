@@ -1,6 +1,6 @@
-﻿# Nyquist
+# Nyquist
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed. The handler publishes response-draw context; Draw later reads this checkbox.
 
 ## Control
 
@@ -10,8 +10,6 @@
 | Component path | Response_form1.SettingsGroupBox2.NyquistCheckBox1 |
 | Control class | TCheckBox |
 | Caption | Nyquist |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | NyquistCheckBox1Click |
 | Handler address | 0117a020 |
 | Graph node | `resource:dfm:Response_form1/Response_form1.SettingsGroupBox2.NyquistCheckBox1` |
@@ -20,48 +18,32 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+[FUN_0117a020](../../../DecompiledSources/Tina16/functions/000000000117A020__FUN_0117a020.c) stores command identifier `0x2288`, sets shared control text to `Filter Response Draw`, and invokes a virtual method on the checkbox that sent the event. The exact Delphi name of that virtual method is not recovered.
+
+The handler does not read the checked state, enforce exclusive selection, calculate a response, or open a result. Standard checkbox processing changes the state before `OnClick` runs.
+
+Later, [FUN_01178490](../../../DecompiledSources/Tina16/functions/0000000001178490__FUN_01178490.c) reads this checkbox. When checked, Draw passes mask `8` to `FUN_013d4bc0`, which creates the Nyquist result. When clear, Draw skips that result.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Nyquist"] -->|OnClick| handler["FUN_0117a020"]
-    handler --> call1["VCL control text setter with change suppression"]
+flowchart TD
+    control["Nyquist checkbox"] -->|OnClick| context["Set command 0x2288<br/>and Filter Response Draw text"]
+    context --> virtual["Invoke unresolved sender virtual method"]
+    control -. "Later Draw click" .-> checked{"Checkbox checked?"}
+    checked -->|No| skip["Skip Nyquist result"]
+    checked -->|Yes| output["FUN_013d4bc0<br/>Mask 8: create Nyquist result"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/000000000117A020__FUN_0117a020.c](../../../DecompiledSources/Tina16/functions/000000000117A020__FUN_0117a020.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: Response_form1.SettingsGroupBox2.NyquistCheckBox1.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: simple
-- Distinct outgoing calls: 1
-
-## Direct calls
-
-- `function:0064de00` — VCL control text setter with change suppression
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
+- Recovered role: Publish response-draw context after the checkbox changes.
+- Direct call: `FUN_0064de00`, the VCL control-text setter.
+- Later consumer: `FUN_01178490` maps this checkbox to mask `8`.
+- Initial checked state: not set in the resource.
 - Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Number of points at distance 64.
-- Rank 2: Gain. min (dB) at distance 73.
-- Rank 3: Stop freq.(Hz) at distance 97.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+VMT slot `0x188` is unresolved, so this article does not name its exact effect.
+

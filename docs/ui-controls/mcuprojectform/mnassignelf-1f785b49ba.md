@@ -1,6 +1,6 @@
 ﻿# Assign ELF/HEX manually...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for mnAssignElfClick.
 
 ## Control
 
@@ -20,18 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler creates the assignment dialog and tells it whether the active target uses the recovered alternate format. Canceling leaves the project unchanged. On acceptance it applies the selected output path through the form-owned assignment object, clears and repopulates the related project collection, marks two form dirty flags, and updates project state. The handler has no local file-validation message; validation belongs to the dialog.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Assign ELF/HEX manually..."] -->|OnClick| handler["FUN_0108d670"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["FUN_004b9f40"]
-    handler --> call3["FUN_007fc180"]
-    handler --> call4["FUN_010b2840"]
-    handler --> call5["FUN_010b3ad0"]
+flowchart TD
+    control["Assign ELF/HEX manually..."] -->|OnClick| handler["TMCUProjectForm.mnAssignElfClick<br/>FUN_0108d670"]
+    handler --> dialog["Open ELF or HEX assignment dialog"]
+    dialog --> accepted{"Accepted?"}
+    accepted -->|No| noOp["Keep current assignment"]
+    accepted -->|Yes| apply["Apply selected image path<br/>Replace related project entry"]
+    apply --> dirty["Mark project assignment state changed"]
 ```
 
 ## Handler evidence
@@ -67,7 +67,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

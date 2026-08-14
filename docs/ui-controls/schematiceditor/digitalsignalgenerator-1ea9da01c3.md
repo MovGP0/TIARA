@@ -1,6 +1,6 @@
 ﻿# &Digital Signal Generator
 
-> Analysis status: Pending individual source review.
+> Analysis status: Blocked by an exact evidence gap.
 
 ## Control
 
@@ -20,23 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The OnClick binding reaches mnDSGVirtualClick at 01c906d0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Digital Signal Generator"] -->|OnClick| handler["FUN_01c906d0"]
-    handler --> call1["FUN_01c8f600"]
+flowchart TD
+    control["&Digital Signal Generator"] -->|"OnClick"| handler["mnDSGVirtualClick (01c906d0)"]
+    handler --> recovered["Recovered direct call path"]
+    recovered --> gap{"Application responsibility proven?"}
+    gap -->|"No"| blocked["Keep exact behavior unknown"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C906D0__FUN_01c906d0.c](../../../DecompiledSources/Tina16/functions/0000000001C906D0__FUN_01c906d0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Evidence-blocked mnDSGVirtualClick command.
 - Current graph summary: Handles 2 Delphi UI events: SchematicEditor.MainMenu.mnTM.DigitalSignalGenerator1.mnDSGVirtual.OnClick, SchematicEditor.MainMenu.mnTM.DigitalSignalGenerator.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The OnClick binding reaches mnDSGVirtualClick at 01c906d0. The recovered body has 1 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnTM.DigitalSignalGenerator, SchematicEditor.MainMenu.mnTM.DigitalSignalGenerator1.mnDSGVirtual to mnDSGVirtualClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C906D0__FUN_01c906d0.c and directly references 01c8f600. No accepted end-to-end role was established for this control path.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+

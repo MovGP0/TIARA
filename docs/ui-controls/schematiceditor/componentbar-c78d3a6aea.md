@@ -1,6 +1,6 @@
 ﻿# Component Bar
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,23 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads the current component-panel visibility and applies the opposite value. If the toolbar is visible, it temporarily hides and restores the toolbar around the layout change so the toolbar keeps its original final state.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Component Bar"] -->|OnClick| handler["FUN_01c67d50"]
-    handler --> call1["FUN_0064dbe0"]
+flowchart TD
+    control["Component Bar"] -->|"OnClick"| handler["ComponentBarClick (01c67d50)"]
+    handler --> current{"Current checked or visible state"}
+    current -->|"Off"| enable["Set component bar visibility: enable"]
+    current -->|"On"| disable["Set component bar visibility: disable"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C67D50__FUN_01c67d50.c](../../../DecompiledSources/Tina16/functions/0000000001C67D50__FUN_01c67d50.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Toggle the component bar.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.ToolsPopup.ComponentBar.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler reads the current component-panel visibility and applies the opposite value. If the toolbar is visible, it temporarily hides and restores the toolbar around the layout change so the toolbar keeps its original final state.
+- Current graph evidence: The recovered body reads the component panel visible byte, negates it, and calls FUN_01c679d0. Its second branch preserves the toolbar visible byte around that call. The ToolsPopup.ComponentBar resource supplies the Component Bar caption.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered field names are unavailable; the component and toolbar identities come from the DFM bindings and the paired visibility paths.
+

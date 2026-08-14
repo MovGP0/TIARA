@@ -1,6 +1,6 @@
-﻿# Select UserFsConfig...
+# Select the user file-system configuration
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the recovered handler, file-dialog helper, edit setter, form resource, and paired-input validation.
 
 ## Control
 
@@ -10,8 +10,6 @@
 | Component path | MCUKernelImageProperties.bSelectUserFsConfig |
 | Control class | TButton |
 | Caption | Select UserFsConfig... |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | bSelectUserFsConfigClick |
 | Handler address | 01414cf0 |
 | Graph node | `resource:dfm:MCUKernelImageProperties/MCUKernelImageProperties.bSelectUserFsConfig` |
@@ -20,54 +18,40 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`TMCUKernelImageProperties.bSelectUserFsConfigClick` executes the form's `TOpenDialog`. If accepted, it stores the selected file name at `+0x7c0`, sets user-FS configuration flag `+0x7ce`, and displays the name in `eUserFsConfigName` at `+0x728`.
+
+The handler does not read the selected file. The OK handler compares flag `+0x7ce` with executable flag `+0x7cd`. Both inputs must be selected together, or both can be absent. A one-sided pair sets the form error flag, reports `Userfs or userfs config not selected!`, and prevents that close request.
+
+If the user cancels the open dialog, the stored name, selection flag, and edit text do not change. The handler clears its temporary Unicode string and returns without a message or local recovery action.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Select UserFsConfig..."] -->|OnClick| handler["FUN_01414cf0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString assignment helper"]
-    handler --> call3["VCL control text setter with change suppression"]
-    handler --> call4["FUN_00724270"]
+flowchart TD
+    click["Click Select UserFsConfig..."] --> execute["Execute the form OpenDialog"]
+    execute --> accepted{"Dialog accepted?"}
+    accepted -->|No| noChange["Keep the prior user-FS config path and flag"]
+    accepted -->|Yes| read["Read the selected file name"]
+    read --> store["Store it at +0x7c0 and set flag +0x7ce"]
+    store --> display["Update eUserFsConfigName when its text differs"]
+    noChange --> cleanup["Clear the temporary string"]
+    display --> cleanup
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001414CF0__FUN_01414cf0.c](../../../DecompiledSources/Tina16/functions/0000000001414CF0__FUN_01414cf0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: MCUKernelImageProperties.bSelectUserFsConfig.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 4
-
-## Direct calls
-
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:0064de00` — VCL control text setter with change suppression
-- `function:00724270` — FUN_00724270
+- [FUN_01414cf0](../../../DecompiledSources/Tina16/functions/0000000001414CF0__FUN_01414cf0.c) contains the dialog decision and accepted-path writes.
+- [FUN_00724270](../../../DecompiledSources/Tina16/functions/0000000000724270__FUN_00724270.c) reads the selected name.
+- [FUN_0064de00](../../../DecompiledSources/Tina16/functions/000000000064DE00__FUN_0064de00.c) performs the change-suppressed edit update.
+- [FUN_01415220](../../../DecompiledSources/Tina16/functions/0000000001415220__FUN_01415220.c) enforces equal selected and unselected states for the two optional user-FS inputs.
 
 ## Resource evidence
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Optional at distance 325.
-- Rank 2: Frame buffer end at distance 395.
-- Rank 3: Frame buffer start:  at distance 425.
+- The form pairs `bSelectUserFsConfig` with `eUserFsConfigName`.
+- The nearby `Optional` label is consistent with the recovered pair rule, but the source comparison is the deciding evidence.
+- The button has no hint, action, image, or extracted glyph.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The handler does not parse or validate the configuration file.
+- The dialog filter and options are not present in the graph fields.

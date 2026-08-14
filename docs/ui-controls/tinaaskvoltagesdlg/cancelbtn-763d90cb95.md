@@ -1,6 +1,6 @@
 ﻿# CancelBtn
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and UI evidence.
 
 ## Control
 
@@ -20,23 +20,30 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler calls the common VCL form-close routine. This dialog is opened with the modal show path. The close routine therefore writes modal result `2`, which is Delphi `mrCancel`. The click does not change the voltage or current data.
+
+The common close routine also has a modeless branch. On that branch, it first runs the form close query. A rejected close query causes no further action. An accepted query runs the form close event and then applies its close action. No local error handler is present.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["CancelBtn"] -->|OnClick| handler["FUN_012b6310"]
-    handler --> call1["FUN_00805200"]
+flowchart TD
+    cancelClick["Click CancelBtn"] --> cancelHandler["CancelBtnClick at 012b6310"]
+    cancelHandler --> closeForm["Run the VCL form-close pipeline"]
+    closeForm --> modalCheck{"Is the form modal?"}
+    modalCheck -->|Yes| setCancel["Set modal result to mrCancel"]
+    modalCheck -->|No| closeQuery{"Does the close query accept?"}
+    closeQuery -->|No| keepOpen["Keep the form open"]
+    closeQuery -->|Yes| applyAction["Run the close event and apply its action"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000012B6310__FUN_012b6310.c](../../../DecompiledSources/Tina16/functions/00000000012B6310__FUN_012b6310.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Request cancellation through the VCL form-close pipeline.
 - Current graph summary: Handles 1 Delphi UI event: TinaAskVoltagesDlg.BtnPanel.CancelBtn.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler delegates directly to `FUN_00805200`. For a modal form, that routine sets modal result `2`. For a modeless form, it runs the close-query and close-action paths.
+- Current graph evidence: `FUN_012b6310` contains only the call to `FUN_00805200`. The recovered caller `FUN_012b86e0` opens this dialog with the modal show routine. The common close routine has the documented modal and modeless branches.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +68,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered handler does not contain a data reset or a separate cancel callback.
+- The modeless branch is part of the common close routine. The recovered dialog caller uses the modal branch.

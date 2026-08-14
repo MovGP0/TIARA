@@ -1,6 +1,6 @@
 ﻿# TrgSlopeRiseBtn
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered rising-slope state, backend update, trigger marker calculation, and redraw reviewed.
 
 ## Control
 
@@ -20,15 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler stores Boolean 0 in trigger-slope field `+0xd90` and sends 0 to virtual slot `+0xe8` on the scope backend. It then recalculates the current trigger level without applying an increment, updates the trigger marker with the rising-slope flag, refreshes the trigger label, and redraws the plot.
+
+The rising-edge glyph confirms the direction. The handler does not change trigger source, trigger mode, or the numeric level value except for normal formatting and range clamping in the shared helper.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["TrgSlopeRiseBtn"] -->|OnClick| handler["FUN_012b0130"]
-    handler --> call1["FUN_010e8e30"]
-    handler --> call2["FUN_012ae910"]
+flowchart TD
+    control["Click rising slope"] --> state["Set slope field and backend value to 0"]
+    state --> level["Recalculate and clamp the current trigger level"]
+    level --> marker["Update the rising-slope trigger marker"]
+    marker --> redraw["Refresh the label and redraw the plot"]
 ```
 
 ## Handler evidence
@@ -64,4 +67,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The backend implementation and original enum name for slope value 0 are not recovered.

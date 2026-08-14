@@ -1,6 +1,6 @@
 ﻿# Select File
 
-> Analysis status: Pending individual source review.
+> Analysis status: Blocked by an unresolved event-handler address.
 
 ## Control
 
@@ -20,29 +20,34 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The recovered DFM stream binds this speed button to `TThreadControl.sbAdd1Click`. The extractor did not resolve a code address for the published method. The graph therefore contains an unresolved handler concept and no function source or call tree.
+
+The `Select File` hint, the inspected file-style glyph, the `lbManualList` list box, and the `TOpenDialog` component provide a consistent file-selection context. They do not prove that the handler opens the dialog, which file types it accepts, whether it adds one or several entries, how it handles duplicates, or what happens when the user cancels. Inputs, decisions, state changes, outputs, and error behavior remain unknown.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Select File"] -->|OnClick| handler["sbAdd1Click"]
-    handler -.-> unresolved["Recovered address not established"]
+flowchart TD
+    control["Select File speed button"] -->|OnClick from DFM| binding["TThreadControl.sbAdd1Click"]
+    binding --> address{"Is a code address resolved?"}
+    address -->|No| gap["No recovered source or call tree"]
+    gap --> unknown["File-selection and list effects remain unknown"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/resources/dfm/ui-evidence.json](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json)
-- Recovered role: Not present in the recovered resource.
+- Extractor: [analysis/undelphi/TiaraUiEvidence.rs](../../../analysis/undelphi/TiaraUiEvidence.rs)
+- Recovered role: Unknown because no handler function was resolved.
 - Current graph summary: Unresolved Delphi event handler TThreadControl.sbAdd1Click, referenced by 1 UI event.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Unknown.
+- Current graph evidence: The trigger edge preserves the DFM method name, but its handler address is null.
 - Complexity: simple
-- Distinct outgoing calls: Not present in the recovered resource.
+- Distinct outgoing calls: None. The handler node is an unresolved concept.
 
 ## Direct calls
 
-- No direct call edge is present in the recovered graph.
+- No direct call edge is present. A call tree cannot start without a recovered handler address.
 
 ## Resource evidence
 
@@ -61,5 +66,7 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The DFM provides the handler name but no code address. RTTI and VMT resolution did not produce a function in the recovered range.
+- A repository-wide search found no recovered `TThreadControl` or `sbAdd1Click` implementation outside the resource and glyph evidence.
+- The hint, file-style glyph, list box, and open-dialog component support presentation context only. They do not establish runtime behavior.
+- A recovered address or an independent runtime trace is required before this control can receive a function annotation or a behavior claim.

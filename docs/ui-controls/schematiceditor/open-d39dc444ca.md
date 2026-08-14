@@ -1,6 +1,6 @@
 ﻿# &Open...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,28 +20,30 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler executes the configured open dialog and processes each accepted file. A recovered file-type branch sends netlists through the netlist editor and import path; other supported selections use the schematic-open path. It updates recent-file and open-document state. Canceling produces no file operation. The menu and toolbar controls share this behavior.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Open..."] -->|OnClick| handler["FUN_01c75560"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_00441640"]
-    handler --> call4["FUN_007241d0"]
-    handler --> call5["FUN_00724270"]
-    handler --> call6["FUN_00724300"]
+flowchart TD
+    control["&Open..."] -->|"OnClick"| handler["OpenClick (01c75560)"]
+    handler --> dialog["Execute open dialog"]
+    dialog --> accepted{"Files accepted?"}
+    accepted -->|"No"| unchanged["Return without opening"]
+    accepted -->|"Yes"| type{"Netlist file type?"}
+    type -->|"Yes"| netlist["Open through netlist editor or importer"]
+    type -->|"No"| schematic["Open through schematic path"]
+    netlist --> state["Update recent and open state"]
+    schematic --> state
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C75560__FUN_01c75560.c](../../../DecompiledSources/Tina16/functions/0000000001C75560__FUN_01c75560.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Open selected schematic or netlist files.
 - Current graph summary: Handles 2 Delphi UI events: SchematicEditor.TopToolBar.GeneralTools.DFOpenBtn.OnClick, SchematicEditor.MainMenu.mnFile.Open.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler executes the configured open dialog and processes each accepted file. A recovered file-type branch sends netlists through the netlist editor and import path; other supported selections use the schematic-open path. It updates recent-file and open-document state. Canceling produces no file operation. The menu and toolbar controls share this behavior.
+- Current graph evidence: The recovered body tests the open-dialog result, iterates its Files collection, branches on recovered type value 3, calls distinct netlist and schematic helpers, and updates recent/open state. Sender is only forwarded into the netlist branch and does not select the top-level operation.
 - Complexity: complex
 - Distinct outgoing calls: 11
 
@@ -76,5 +78,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The numeric dialog type values other than the traced netlist value are not named.
+

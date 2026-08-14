@@ -1,17 +1,17 @@
-﻿# Delete
+﻿# Delete footprint
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed: the handler removes the selected footprint or module segment from the component definition.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
 | Form | PcbForm |
+| Form caption | PCB information for SPICE macro components |
 | Component path | PcbForm.Panel2.BtnDeleteModule |
 | Control class | TBitBtn |
 | Caption | Delete |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | Not present |
 | Handler name | BtnDeleteModuleClick |
 | Handler address | 00ed25c0 |
 | Graph node | `resource:dfm:PcbForm/PcbForm.Panel2.BtnDeleteModule` |
@@ -20,56 +20,34 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+1. The handler reads the selected component and footprint names and calls `FUN_00ed2f60` with its clear-current-selection flag set.
+2. `FUN_00ed2f60` locates the selected module segment in the serialized component definition, removes its name and parenthesized pin mapping with the required delimiter adjustment, and clears the saved current-footprint field when it matches the deleted item.
+3. The updated definition is written to the backend. The handler then refreshes lists, enabled controls, node mappings, and the 3D preview. No confirmation dialog is present.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Delete"] -->|OnClick| handler["FUN_00ed25c0"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00ea9ca0"]
-    handler --> call3["FUN_00ecbca0"]
-    handler --> call4["FUN_00eccc30"]
-    handler --> call5["FUN_00ed2f60"]
+flowchart TD
+    control["PcbForm.Panel2.BtnDeleteModule"] -->|OnClick| handler["FUN_00ed25c0"]
+    handler --> action["Splice the selected footprint from the component definition"]
+    action --> outcome["Write the definition and refresh dependent PCB data"]
 ```
 
-## Handler evidence
+## Handler and call-path evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000000ED25C0__FUN_00ed25c0.c](../../../DecompiledSources/Tina16/functions/0000000000ED25C0__FUN_00ed25c0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: PcbForm.Panel2.BtnDeleteModule.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 5
+- [`FUN_00ed25c0`](../../../DecompiledSources/Tina16/functions/0000000000ED25C0__FUN_00ed25c0.c) — Delete the selected PCB footprint definition.
+- [`FUN_00ed2f60`](../../../DecompiledSources/Tina16/functions/0000000000ED2F60__FUN_00ed2f60.c) — remove one footprint or module segment.
+- [`FUN_00ecc490`](../../../DecompiledSources/Tina16/functions/0000000000ECC490__FUN_00ecc490.c) — rebuild the selected footprint node map.
+- [`FUN_00ecbca0`](../../../DecompiledSources/Tina16/functions/0000000000ECBCA0__FUN_00ecbca0.c) — refresh PCB form control availability.
 
-## Direct calls
+## Resource and glyph evidence
 
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00ea9ca0` — FUN_00ea9ca0
-- `function:00ecbca0` — FUN_00ecbca0
-- `function:00eccc30` — FUN_00eccc30
-- `function:00ed2f60` — FUN_00ed2f60
+- Recovered form resource: [`ui-evidence.json`](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json).
 
-## Resource evidence
+## Inputs, outputs, and limits
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
+- Input: an OnClick event from `PcbForm.Panel2.BtnDeleteModule`, plus the current form selections and state described above.
+- State change: Removes the selected footprint or module segment from its component definition, clears a matching saved selection, writes the result, and refreshes the UI.
+- Error or no-op behavior: The decision branches above identify the recovered validation, cancel, confirmation, boundary, or no-op path.
+- Analysis limit: The backend exposes the definition through virtual calls whose Delphi names are not recovered.
 
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Footprint list: at distance 297.
-- Rank 2: 3D component view: at distance 322.
-- Rank 3: Component list: at distance 478.
-
-## Analysis limits
-
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.

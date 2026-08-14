@@ -1,6 +1,6 @@
 ﻿# &Normal
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,26 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+When a document view is available, the handler keeps the current visible width and height, recenters that rectangle on the schematic center, and applies the resulting viewport. Without a view, it returns without changing zoom.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Normal"] -->|OnClick| handler["FUN_01c75250"]
-    handler --> call1["FUN_0198d430"]
-    handler --> call2["FUN_01a98060"]
-    handler --> call3["FUN_01a98210"]
-    handler --> call4["FUN_01c750d0"]
+flowchart TD
+    control["&Normal"] -->|"OnClick"| handler["ZoomNormalClick (01c75250)"]
+    handler --> guard{"Document view available?"}
+    guard -->|"No"| noChange["Keep current viewport"]
+    guard -->|"Yes"| action["Recenter current-size viewport"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C75250__FUN_01c75250.c](../../../DecompiledSources/Tina16/functions/0000000001C75250__FUN_01c75250.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Restore normal zoom around the schematic center.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.View.Zoom.ZoomNormal.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: When a document view is available, the handler keeps the current visible width and height, recenters that rectangle on the schematic center, and applies the resulting viewport. Without a view, it returns without changing zoom.
+- Current graph evidence: The recovered body checks the document/view pointers, calculates half-width and half-height from the current viewport, combines them with the document center, and passes the new rectangle to the viewport helper. The menu caption is Normal.
 - Complexity: complex
 - Distinct outgoing calls: 4
 
@@ -67,5 +66,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source exposes viewport members by offset.
+

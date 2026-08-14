@@ -1,6 +1,6 @@
 ﻿# Import
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source, call-path, state, and error evidence reviewed.
 
 ## Control
 
@@ -20,28 +20,36 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The click imports selected `DigitalICs` component definitions from another library file into the current library.
+
+The handler configures and opens the recovered file dialog. Cancel makes no change. After a file is selected, it opens the source library and an import-selection dialog populated with that file's `DigitalICs` items. For each selected item, it reads the source definition and calls [`FUN_00eab320`](../../../DecompiledSources/Tina16/functions/0000000000EAB320__FUN_00eab320.c) to resolve a destination-name conflict. That helper generates a numbered alternative and asks the user when the requested key already exists.
+
+An accepted item is written to the current library and marks its library entry for later persistence. A response value of `2` stops the remaining import loop. The handler destroys both temporary objects and calls [`FUN_00ec24d0`](../../../DecompiledSources/Tina16/functions/0000000000EC24D0__FUN_00ec24d0.c) to rebuild the filtered component view.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
+flowchart TD
     control["Import"] -->|OnClick| handler["FUN_00ec7d60"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["Delphi UnicodeString array finalization helper"]
-    handler --> call4["FUN_00416ad0"]
-    handler --> call5["FUN_00416ba0"]
-    handler --> call6["FUN_00441920"]
+    handler --> file{"Source file selected?"}
+    file -->|No| noChange["Leave the current library unchanged"]
+    file -->|Yes| select["Show source DigitalICs items"]
+    select --> item{"Selected item remains?"}
+    item -->|No| cleanup["Destroy temporary dialogs and refresh the component view"]
+    item -->|Yes| conflict["FUN_00eab320 resolves a destination-name conflict"]
+    conflict --> accepted{"Import accepted?"}
+    accepted -->|Yes| write["Write the definition and mark the current library"]
+    accepted -->|Stop| cleanup
+    write --> item
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000000EC7D60__FUN_00ec7d60.c](../../../DecompiledSources/Tina16/functions/0000000000EC7D60__FUN_00ec7d60.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Imports selected DigitalICs component definitions from another library.
 - Current graph summary: Handles 1 Delphi UI event: PcbForm4.Panel2.BtnImportComponent.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Opens a library file and an item-selection dialog, reads each selected DigitalICs definition, resolves destination-name conflicts, writes accepted items to the current library, marks the library entry, destroys temporary objects, and refreshes the component view.
+- Current graph evidence: FUN_00ec7d60 executes the file dialog, creates source-library and selection-dialog objects, enumerates selected rows with FUN_0068bca0, reads source definitions, calls FUN_00eab320, writes accepted definitions, stops on response 2, destroys both objects, and calls FUN_00ec24d0.
 - Complexity: complex
 - Distinct outgoing calls: 15
 
@@ -79,7 +87,14 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 - Rank 1: Component list: at distance 263.
 - Rank 2: Footprint list: at distance 443.
 
+## No-op and error behavior
+
+- Cancel in the file dialog makes no change.
+- Closing the item-selection dialog without OK imports no items.
+- A destination conflict can produce a numbered alternative name and a prompt. Response `2` stops the remaining items.
+- The handler has no local file-read or backend-write recovery.
+
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The imported file extension and dialog filter are built from global strings that are not named in the handler.
+- The localized conflict prompt text is not recovered.

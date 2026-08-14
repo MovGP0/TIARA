@@ -1,6 +1,6 @@
 ﻿# Open
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered menu wrapper, open dialog, load, and title-update path reviewed.
 
 ## Control
 
@@ -20,14 +20,19 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The menu handler calls the same routine as the toolbar **Open file** button. The routine opens `OpenDialog`. If the user cancels, it leaves the editor and current file name unchanged. If the user accepts, it loads the selected file into the main editor, stores that path as both the current and baseline file path, and updates the window caption.
+
+The handler does not validate the file contents or catch a load failure locally.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Open"] -->|OnClick| handler["FUN_0146f110"]
-    handler --> call1["FUN_0146f570"]
+flowchart TD
+    control["Click Open"] --> shared["Call the shared open-file handler"]
+    shared --> accepted{"User accepts OpenDialog?"}
+    accepted -->|No| noAction["Keep the current document"]
+    accepted -->|Yes| load["Load the selected file into the editor"]
+    load --> state["Store the path and update the caption"]
 ```
 
 ## Handler evidence
@@ -62,4 +67,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- File-format validation and load-error presentation are not present in the recovered handler.

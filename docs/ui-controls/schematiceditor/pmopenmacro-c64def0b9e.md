@@ -1,6 +1,6 @@
 ﻿# Enter Macro
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,26 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler enters a macro only when the selected object is a compatible and eligible component. With no qualifying selection it returns without changing the editing level. Sender is unused.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Enter Macro"] -->|OnClick| handler["FUN_01c8d130"]
-    handler --> call1["FUN_0198a580"]
-    handler --> call2["FUN_01993ec0"]
-    handler --> call3["FUN_01c8c8f0"]
-    handler --> call4["FUN_01d04d40"]
+flowchart TD
+    control["Enter Macro"] -->|"OnClick"| handler["mnOpenMacroClick (01c8d130)"]
+    handler --> guard{"Eligible macro component selected?"}
+    guard -->|"No"| noChange["Keep current editing level"]
+    guard -->|"Yes"| action["Enter selected macro"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C8D130__FUN_01c8d130.c](../../../DecompiledSources/Tina16/functions/0000000001C8D130__FUN_01c8d130.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Enter the selected macro.
 - Current graph summary: Handles 2 Delphi UI events: SchematicEditor.MainMenu.mnFile.mnOpenMacro.OnClick, SchematicEditor.SchPopup.pmOpenMacro.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler enters a macro only when the selected object is a compatible and eligible component. With no qualifying selection it returns without changing the editing level. Sender is unused.
+- Current graph evidence: The recovered body checks the selected-object pointer, class and eligibility fields, then calls the macro-entry helper. The menu and popup captions both say Enter Macro.
 - Complexity: complex
 - Distinct outgoing calls: 4
 
@@ -67,5 +66,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The eligible component class is not named in the recovered symbols.
+

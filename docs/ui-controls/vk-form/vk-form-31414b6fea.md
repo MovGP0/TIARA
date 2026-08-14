@@ -1,6 +1,6 @@
 ﻿# The Veitch-Karnaugh table
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and UI evidence.
 
 ## Control
 
@@ -20,14 +20,20 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Clicking the form surface sets the shared help-context ID to `3000`. The handler then calls `FUN_011ae560` to refresh both Karnaugh views. That coordinator reverses the current minterm-or-maxterm mode, calls the renderer for the other view, restores the original mode, and calls the renderer again.
+
+`FUN_011ae5b0` rebuilds each map from the stored truth function. It draws the grid, values, and implicant outlines. It also rebuilds the simplified Boolean expression and publishes the text to the form and shared result state. The click leaves the selected mode unchanged. The recovered path has no error or early-return branch.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
     control["The Veitch-Karnaugh table"] -->|OnClick| handler["FUN_011d28d0"]
-    handler --> call1["Dual minterm and maxterm Karnaugh-view refresh coordinator"]
+    handler --> helpContext["Set help context to 3000"]
+    helpContext --> refresh["FUN_011ae560: reverse the current mode"]
+    refresh --> otherView["Render the other Karnaugh view"]
+    otherView --> restoreMode["Restore the original mode"]
+    restoreMode --> currentView["Render the current Karnaugh view"]
 ```
 
 ## Handler evidence
@@ -61,5 +67,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered global mode byte has no Delphi field name.
+- The form click does not report renderer failures or invalid stored truth-function data.

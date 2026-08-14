@@ -1,7 +1,5 @@
 ﻿# bOK
 
-> Analysis status: Pending individual source review.
-
 ## Control
 
 | Property | Recovered value |
@@ -20,28 +18,49 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler first sets the form close-permission byte `+0xFA9` to `1`. It then validates the staged input for the active mode.
+
+### Validation
+
+- In ASM mode (`0`), an empty current ASM file-name field shows localized message `0x89F` and clears the close-permission byte.
+- In HEX/LST mode (`1`), empty HEX and LST lists show `HDLStrings.Msg_Vhdl_MCU_NoHexLstFile` and block closure.
+- If only the HEX list is empty, it shows `HDLStrings.Msg_Vhdl_MCU_NoHexFile` and blocks closure.
+- If the HEX list has data and the LST list is empty, it inserts an empty LST entry. This path remains valid.
+
+The handler performs no extra file-presence or content check in the other modes.
+
+### Accepted copy-back
+
+When validation keeps `+0xFA9` set, the handler copies staged state into the parent MCU model:
+
+- In the normal copy branch, it clears the destination ASM, HEX, and LST lists and copies the selector's three lists.
+- When both C-project status bytes `+0x769` and `+0x76A` are set, it refreshes the destination HEX list from the selector's HEX output list.
+- In flowchart mode (`2`), it copies the retained flowchart session/list state into the model's flowchart container.
+- Outside C-project mode (`3`), it resets the model's C-project data.
+- Outside kernel-image mode (`4`), it resets the model's kernel-image data.
+
+`FormCloseQuery` returns byte `+0xFA9` as `CanClose`. Thus, a validation failure keeps the dialog open. The handler shows messages for the recovered validation failures but has no local exception rollback for list-copy or model-call failures.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["bOK"] -->|OnClick| handler["FUN_01418c90"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_0041ddd0"]
-    handler --> call3["FUN_00b89270"]
-    handler --> call4["FUN_00b8e520"]
-    handler --> call5["FUN_00b8e650"]
-    handler --> call6["FUN_010afec0"]
+flowchart TD
+    Control["OK click"] --> Permit["Set close-permission flag"]
+    Permit --> Mode{"Validate active input mode"}
+    Mode -->|Missing ASM or required HEX| Error["Show localized message<br/>and clear permission"]
+    Error --> Stay["FormCloseQuery keeps dialog open"]
+    Mode -->|Valid| Copy["Copy staged lists and mode data<br/>to the parent MCU model"]
+    Copy --> Reset["Reset inactive C-project<br/>or kernel-image data"]
+    Reset --> Close["FormCloseQuery permits closure"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001418C90__FUN_01418c90.c](../../../DecompiledSources/Tina16/functions/0000000001418C90__FUN_01418c90.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Validate staged MCU input and commit it to the parent model.
 - Current graph summary: Handles 1 Delphi UI event: MCUAsmSelector.bOK.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Blocks closure for missing required ASM or HEX input. Otherwise it copies staged lists and active-mode state to the parent MCU model and clears inactive mode data.
+- Current graph evidence: `FUN_01418c90` controls byte `+0xFA9`, contains the mode-specific list-count tests, calls the localized message functions on failure, and performs all model copy-back only while the byte remains set.
 - Complexity: complex
 - Distinct outgoing calls: 8
 
@@ -73,5 +92,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- [OK handler `FUN_01418c90`](../../../DecompiledSources/Tina16/functions/0000000001418C90__FUN_01418c90.c) proves the validation, close-permission, list copy, flowchart copy, and inactive-mode reset branches.
+- [Form close-query handler `FUN_014194f0`](../../../DecompiledSources/Tina16/functions/00000000014194F0__FUN_014194f0.c) proves that byte `+0xFA9` controls closure.
+- [C-project reset `FUN_010afec0`](../../../DecompiledSources/Tina16/functions/00000000010AFEC0__FUN_010afec0.c) and [kernel-image reset `FUN_010b4300`](../../../DecompiledSources/Tina16/functions/00000000010B4300__FUN_010b4300.c) prove the inactive-data cleanup.
+- The string behind message identifier `0x89F` is not recovered here. Its ASM requirement follows from the exact mode-and-empty-name guard.
+- The handler has no local transaction. An exception during copy-back can leave a partial model update.

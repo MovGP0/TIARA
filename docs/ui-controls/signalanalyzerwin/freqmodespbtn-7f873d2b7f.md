@@ -1,6 +1,6 @@
 ﻿# FreqModeSpBtn
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed: the click switches between start-stop and center-span frequency fields.
 
 ## Control
 
@@ -20,21 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler compares the button's Down state with internal mode byte `+0xE4A`. A change to the first mode sets the byte to `1`, changes the two field captions to Start and Stop, and loads saved values from `+0xE50` and `+0xE58`.
+
+A change to the other mode sets the byte to `0`, changes the captions to Center and Span, and loads values from `+0xE60` and `+0xE68`. If the button state already matches the internal mode, the handler returns without a change. The four-part frequency glyph and nearby labels agree with this switch.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["FreqModeSpBtn"] -->|OnClick| handler["FUN_0138cc30"]
-    handler --> call1["VCL control text setter with change suppression"]
-    handler --> call2["FUN_00b90440"]
+flowchart TD
+    control["Frequency-mode button"] -->|OnClick| handler["FreqModeSpBtnClick"]
+    handler --> changed{"Button state differs from mode?"}
+    changed -->|No| noop["Return without change"]
+    changed -->|Start and Stop| bounds["Show Start and Stop values"]
+    changed -->|Center and Span| center["Show Center and Span values"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/000000000138CC30__FUN_0138cc30.c](../../../DecompiledSources/Tina16/functions/000000000138CC30__FUN_0138cc30.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Switches the frequency editors between Start/Stop and Center/Span representations.
 - Current graph summary: Handles 1 Delphi UI event: SignalAnalyzerWin.MeasurementGroupBox.FrequencyGroupBox.FreqModeSpBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -65,5 +69,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The handler updates the editor representation; it does not itself apply the values to hardware.
+- The recovered source identifies the saved numeric fields by offsets only.

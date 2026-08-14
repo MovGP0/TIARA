@@ -1,6 +1,6 @@
 ﻿# Modify &existing project
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the recovered handler, form initialization, OK consumer, and form resources.
 
 ## Control
 
@@ -20,22 +20,37 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler changes the wizard from new-project input to existing-project input. It enables the project combo box and **Show all projects**. It disables these controls:
+
+- **Autoplacement** and **Autorouting**
+- **Use board template** and **No template**
+- The template browse button and template-path label
+- The board-width and board-height labels and numeric edits
+
+The width and height edit states are copied from their corresponding label states after the labels have been disabled, so both edits become disabled. The handler does not rebuild the project list, change the selected project, or clear any new-project option or value.
+
+The later OK handler uses the selected combo-box entry for the existing-project launch arguments. If the combo list is empty, the shared OK and close-query validation blocks acceptance.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Modify &existing project"] -->|OnClick| handler["FUN_01bb2840"]
+flowchart TD
+    control["Modify existing project"] -->|OnClick| handler["FUN_01bb2840"]
+    handler --> project["Enable project list and Show all projects"]
+    handler --> options["Disable automation and template choices"]
+    handler --> dimensions["Disable board-size labels and edits"]
+    project --> unchanged["Keep existing selections and values"]
+    options --> unchanged
+    dimensions --> unchanged
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001BB2840__FUN_01bb2840.c](../../../DecompiledSources/Tina16/functions/0000000001BB2840__FUN_01bb2840.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Enable the PCB wizard controls for existing-project selection.
 - Current graph summary: Handles 1 Delphi UI event: PCBWizard.pnlProject.rbOpenProject.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Enables the existing-project controls and disables the new-project automation, template, and board-size inputs.
+- Current graph evidence: `FUN_01bb2840` applies enabled state to form fields `0x6e0` and `0x6d8`, and disabled state to fields `0x6f0`, `0x6f8`, `0x708`, `0x710`, `0x718`, `0x720`, `0x728`, and `0x730`. It then copies the disabled label states to numeric edits `0x738` and `0x740`. Form creation and `FUN_01bb2d60` identify these fields and show that the OK path reads the project combo in this mode.
 - Complexity: simple
 - Distinct outgoing calls: 0
 
@@ -60,5 +75,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered calls are virtual enabled-state operations, so the graph has no direct call edge for them.
+- The handler does not report an empty project list. That check occurs during OK and close-query validation.

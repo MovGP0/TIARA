@@ -1,6 +1,6 @@
 ﻿# Mirror|Mirror the selected component along the Y axis
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,23 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler delegates to the mirror operation. That operation checks command and lock state, creates an undo action, mirrors selected objects, redraws when required, and records the operation result.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Mirror|Mirror the selected component along the Y axis"] -->|OnClick| handler["FUN_01c70570"]
-    handler --> call1["FUN_01c6d440"]
+flowchart TD
+    control["Mirror|Mirror the selected component along the Y axis"] -->|"OnClick"| handler["ToolMirrorClick (01c70570)"]
+    handler --> guard{"Mirror allowed and schematic unlocked?"}
+    guard -->|"No"| noChange["Leave selection unchanged"]
+    guard -->|"Yes"| action["Create undo action and mirror selection"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C70570__FUN_01c70570.c](../../../DecompiledSources/Tina16/functions/0000000001C70570__FUN_01c70570.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Mirror selected schematic objects.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.TopToolBar.EditorTools.ToolMirror.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler delegates to the mirror operation. That operation checks command and lock state, creates an undo action, mirrors selected objects, redraws when required, and records the operation result.
+- Current graph evidence: FUN_01c70570 only calls FUN_01c6d440. The recovered callee contains the guard, undo, selected-object transform, redraw, and result paths.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -61,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The mirror axis is not named in the recovered function.
+

@@ -1,6 +1,6 @@
 ﻿# Find...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for mnFindClick.
 
 ## Control
 
@@ -20,15 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler first activates the search panel or search UI at form field `+0x8C0`, then opens the shared find dialog with replace mode disabled. The dialog is initialized from stored search options and the active selection. Canceling preserves the document. On acceptance it stores the new options and, when search text is present, runs the shared search path in find mode.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Find..."] -->|OnClick| handler["FUN_0108a960"]
-    handler --> call1["FUN_007e2da0"]
-    handler --> call2["FUN_0108fc80"]
+flowchart TD
+    control["Find..."] -->|OnClick| handler["TMCUProjectForm.mnFindClick<br/>FUN_0108a960"]
+    handler --> activate["Activate search UI"]
+    activate --> dialog["Open Find dialog with stored options"]
+    dialog --> accepted{"Accepted with search text?"}
+    accepted -->|No| noOp["Keep document unchanged"]
+    accepted -->|Yes| search["Run shared find search"]
 ```
 
 ## Handler evidence
@@ -61,7 +64,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

@@ -1,6 +1,6 @@
 ﻿# Paste
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The recovered focus test establishes the editor paste path and the forwarded Windows paste path.
 
 ## Control
 
@@ -20,21 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_015324c0` compares the current focused control with the Netlist Editor. When the editor owns focus, it calls `FUN_00bf9d90`, which requires a writable editor and available text clipboard data, preserves SynEdit block mode, replaces or inserts text, records grouped Undo data, and refreshes caret and selection state.
+
+When another control owns focus, the handler forwards Windows message `0x302` (`WM_PASTE`) to that control. The handler does not inspect `Sender`, so the toolbar control and `MIPaste` share this focus-dependent path.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Paste"] -->|OnClick| handler["FUN_015324c0"]
-    handler --> call1["FUN_0065b870"]
-    handler --> call2["FUN_00bf9d90"]
+flowchart TD
+    control["Click Paste toolbar button"] --> handler["FUN_015324c0"]
+    handler --> focus{"Is the Netlist Editor focused?"}
+    focus -->|Yes| editor["FUN_00bf9d90 pastes with Undo data"]
+    focus -->|No| forward["Forward WM_PASTE to focused control"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000015324C0__FUN_015324c0.c](../../../DecompiledSources/Tina16/functions/00000000015324C0__FUN_015324c0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Pastes into the Netlist Editor or forwards paste to the focused control.
 - Current graph summary: Handles 2 Delphi UI events: NetlistEditor.BtnPanel.PasteButton.OnClick, NetlistEditor.MainMenu.MEdit.MIPaste.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -63,5 +66,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The handler does not inspect `Sender`; focus, clipboard availability, read-only state, and selection mode decide the effect.
+- The forwarded control handles its own paste errors and validation outside this wrapper.

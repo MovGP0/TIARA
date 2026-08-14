@@ -1,6 +1,6 @@
 ﻿# Paste
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for mnPasteClick.
 
 ## Control
 
@@ -20,14 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler forwards the command to the active editor. The editor first checks whether paste is allowed. On success it opens an edit transaction, reads the clipboard format and content, replaces or inserts at the current selection, records undo information, recalculates editor state, and restores input and repaint state. If paste is not allowed or no compatible clipboard data exists, the editor returns without a document change.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Paste"] -->|OnClick| handler["FUN_0108a900"]
-    handler --> call1["FUN_00bf9d90"]
+flowchart TD
+    control["Paste"] -->|OnClick| handler["TMCUProjectForm.mnPasteClick<br/>FUN_0108a900"]
+    handler --> editor["Invoke active editor paste"]
+    editor --> allowed{"Compatible paste allowed?"}
+    allowed -->|No| noOp["Leave document unchanged"]
+    allowed -->|Yes| paste["Insert or replace selection<br/>Record undo and refresh editor"]
 ```
 
 ## Handler evidence
@@ -59,7 +62,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

@@ -1,6 +1,6 @@
 ﻿# Copy
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The shared handler and recovered SynEdit copy routine establish the selection guard and clipboard output.
 
 ## Control
 
@@ -20,20 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_015324a0` passes the Netlist Editor's SynEdit control at form offset `+0x958` to `FUN_00bf1d60`. That routine returns without clipboard access when the selection is empty. Otherwise, it extracts the selected text and writes standard text plus SynEdit selection-mode data to the clipboard.
+
+The handler does not inspect `Sender`, so the toolbar control and `MICopy` use the same path. Copy does not change the editor text.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Copy"] -->|OnClick| handler["FUN_015324a0"]
-    handler --> call1["FUN_00bf1d60"]
+flowchart TD
+    control["Click Copy toolbar button"] --> handler["FUN_015324a0"]
+    handler --> selected{"Selection present?"}
+    selected -->|No| noop["Return without clipboard access"]
+    selected -->|Yes| clipboard["Write text and SynEdit mode data"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000015324A0__FUN_015324a0.c](../../../DecompiledSources/Tina16/functions/00000000015324A0__FUN_015324a0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Copies the selected Netlist Editor text to the clipboard.
 - Current graph summary: Handles 2 Delphi UI events: NetlistEditor.BtnPanel.CopyButton.OnClick, NetlistEditor.MainMenu.MEdit.MICopy.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +65,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The handler does not inspect `Sender`; the toolbar button and menu item use the same selection state.
+- Clipboard allocation failures are handled inside the recovered SynEdit routine; this wrapper has no local message path.

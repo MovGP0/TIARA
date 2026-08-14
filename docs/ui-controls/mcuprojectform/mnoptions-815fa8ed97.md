@@ -1,6 +1,6 @@
 ﻿# Options
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for mnOptionsClick.
 
 ## Control
 
@@ -20,17 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler creates the debugger-options dialog and initializes it from form field `+0xAA8`. The initializer stores the full mask and reflects bits 0 and 1 in the recovered check boxes. Canceling leaves the form mask unchanged. On acceptance the handler reads the dialog-local mask and stores it back at `+0xAA8`, then frees the dialog.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Options"] -->|OnClick| handler["FUN_0108da80"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["FUN_007fc180"]
-    handler --> call3["FUN_01073870"]
-    handler --> call4["FUN_01073900"]
+flowchart TD
+    control["Options"] -->|OnClick| handler["TMCUProjectForm.mnOptionsClick<br/>FUN_0108da80"]
+    handler --> dialog["Open debugger options with current mask"]
+    dialog --> accepted{"Accepted?"}
+    accepted -->|No| noOp["Keep current mask"]
+    accepted -->|Yes| store["Read dialog mask and store at +0xAA8"]
 ```
 
 ## Handler evidence
@@ -65,7 +65,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

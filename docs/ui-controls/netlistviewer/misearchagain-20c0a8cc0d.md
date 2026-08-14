@@ -1,6 +1,6 @@
 ﻿# Search &Again
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the recovered handler and shared find callback.
 
 ## Control
 
@@ -20,20 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The menu item repeats a search without reopening the dialog. It calls the shared Find callback with the existing `TFindDialog`, so the current search text and direction, case, and whole-word options are reused. SynEdit selects the next match. If no match is found, the callback shows a localized not-found message. The command does not change document text.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Search &Again"] -->|OnClick| handler["FUN_014b59a0"]
-    handler --> call1["FUN_014b61e0"]
+flowchart TD
+    control["Choose Search Again"] --> handler["FUN_014b59a0"]
+    handler --> find["FUN_014b61e0 reads saved Find dialog state"]
+    find --> result{"SynEdit finds a match?"}
+    result -->|No| notice["Show localized not-found message"]
+    result -->|Yes| select["Select the next match"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000014B59A0__FUN_014b59a0.c](../../../DecompiledSources/Tina16/functions/00000000014B59A0__FUN_014b59a0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Repeat the current Netlist Viewer find operation.
 - Current graph summary: Handles 1 Delphi UI event: NetlistViewer.MainMenu.MEdit.MISearchAgain.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +64,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The command uses `FindDialog`, not `ReplaceDialog`.
+- The exact localized not-found text is not present in the recovered UI resource.

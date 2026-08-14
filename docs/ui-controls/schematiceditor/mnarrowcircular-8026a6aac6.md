@@ -1,6 +1,6 @@
 ﻿# &Circular
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,28 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+If shape insertion is allowed, the handler compares Sender with the eight shape-menu fields, constructs the matching line, arrow variant, polygon, rectangle, ellipse, or arc tool, and activates it. Each bound control selects the shape named by its own menu resource.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Circular"] -->|OnClick| handler["FUN_01c97500"]
-    handler --> call1["FUN_004113d0"]
-    handler --> call2["FUN_0136cce0"]
-    handler --> call3["FUN_0136cf80"]
-    handler --> call4["FUN_0136d9f0"]
-    handler --> call5["FUN_0136dcb0"]
-    handler --> call6["FUN_01c6cee0"]
+flowchart TD
+    control["&Circular"] -->|"OnClick"| handler["InsertShape (01c97500)"]
+    handler --> guard{"Shape insertion allowed and Sender recognized?"}
+    guard -->|"No"| noChange["Keep current command"]
+    guard -->|"Yes"| action["Construct and activate the Sender-selected shape tool"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C97500__FUN_01c97500.c](../../../DecompiledSources/Tina16/functions/0000000001C97500__FUN_01c97500.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Activate the shape tool selected by Sender.
 - Current graph summary: Handles 8 Delphi UI events: SchematicEditor.MainMenu.Insert.mnShape.mnLine.OnClick, SchematicEditor.MainMenu.Insert.mnShape.mnArrow.mnArrowLinear.OnClick, SchematicEditor.MainMenu.Insert.mnShape.mnArrow.mnArrowRoundedCorner.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: If shape insertion is allowed, the handler compares Sender with the eight shape-menu fields, constructs the matching line, arrow variant, polygon, rectangle, ellipse, or arc tool, and activates it. Each bound control selects the shape named by its own menu resource.
+- Current graph evidence: The recovered body has explicit Sender comparisons against form fields and distinct constructor or mode paths before one shared command-activation call. The DFM bindings enumerate Line, three Arrow variants, Polygon, Rectangle, Ellipse, and Arc.
 - Complexity: complex
 - Distinct outgoing calls: 8
 
@@ -73,5 +70,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Recovered field offsets cannot be mapped independently to constructor class names, so numeric class identities are not claimed.
+

@@ -1,6 +1,6 @@
 ﻿# sbBdNone
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from recovered source and graph evidence.
 
 ## Control
 
@@ -20,29 +20,34 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler calls the shared `NoColor` routine with the background paint box as `Sender`. That routine writes sentinel value `0x03000000` to background color field `0x79c` and invalidates the background paint box at form offset `0x738`.
+
+The recovered `PaintColor` handler then draws the special no-color preview instead of a filled color rectangle. The inspected two-state glyph includes a red cross, which agrees with this path. The source and paint behavior, not the glyph alone, establish the result. The click has no confirmation or error branch. Repeating it writes the same value and requests another repaint.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["sbBdNone"] -->|OnClick| handler["FUN_010b68c0"]
-    handler --> call1["FUN_010b67f0"]
+flowchart TD
+    control["Background None button"] -->|OnClick| handler["sbBdNoneClick at 010b68c0"]
+    handler --> shared["Call NoColor with the background paint box"]
+    shared --> clear["Set background color to sentinel 0x03000000"]
+    clear --> refresh["Invalidate the background preview"]
+    refresh --> paint["PaintColor draws the no-color preview"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000010B68C0__FUN_010b68c0.c](../../../DecompiledSources/Tina16/functions/00000000010B68C0__FUN_010b68c0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Clears the background fill color through the shared no-color handler.
 - Current graph summary: Handles 1 Delphi UI event: WMFPropsDlg.gbBackground.sbBdNone.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler selects the background branch of `NoColor`, stores the no-color sentinel, and refreshes the preview.
+- Current graph evidence: `sbBdNoneClick` passes form control `0x738` to `FUN_010b67f0`. That sender selects field `0x79c`, writes `0x03000000`, and invalidates the same paint box. `PaintColor` uses the sentinel branch for the preview.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
 ## Direct calls
 
-- `function:010b67f0` — Handles 2 Delphi UI events: WMFPropsDlg.gbBorder.pbFrColor.OnClick, WMFPropsDlg.gbBackground.pbBdColor.OnClick.
+- `function:010b67f0` — Selects the color field from `Sender`, writes the no-color sentinel, and invalidates its paint box.
 
 ## Resource evidence
 
@@ -61,5 +66,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The original Delphi name and external serialization meaning of sentinel `0x03000000` are not recovered. Its no-color UI meaning is established by the shared handler and paint path.
+- The exact drawing-method names used by the paint-box preview are not recovered.

@@ -1,6 +1,6 @@
 ﻿# Rename
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source, call-path, state, and error evidence reviewed.
 
 ## Control
 
@@ -20,28 +20,33 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The click stores the selected component definition under a new unique name and replaces the displayed Component list value.
+
+The handler reads the selected component and opens [`FUN_00ebd270`](../../../DecompiledSources/Tina16/functions/0000000000EBD270__FUN_00ebd270.c) with that name as the initial value. Cancel or an empty result makes no change. If the backend already contains the returned key, it shows localized message `0x846`.
+
+For a unique name, the handler reads the selected component's definition, replaces the current Component list row with the normalized new name, writes the definition under the new key, rebuilds the Footprint and mapping lists, refreshes action availability, and marks the active library entry.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Rename"] -->|OnClick| handler["FUN_00ec5500"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["Delphi UnicodeString assignment helper"]
-    handler --> call3["FUN_0043e130"]
-    handler --> call4["FUN_0043ea00"]
-    handler --> call5["FUN_00442f70"]
-    handler --> call6["FUN_0072d440"]
+flowchart TD
+    control["Rename component"] -->|OnClick| handler["FUN_00ec5500"]
+    handler --> prompt["Prompt with the selected component name"]
+    prompt --> name{"Non-empty name returned?"}
+    name -->|No| noChange["Keep the displayed and stored name"]
+    name -->|Yes| duplicate{"Destination key already exists?"}
+    duplicate -->|Yes| error["Show localized message 0x846"]
+    duplicate -->|No| store["Replace the list value and store the definition under the new key"]
+    store --> refresh["Rebuild dependent lists and mark the library"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000000EC5500__FUN_00ec5500.c](../../../DecompiledSources/Tina16/functions/0000000000EC5500__FUN_00ec5500.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Stores the selected component definition under a new unique name.
 - Current graph summary: Handles 1 Delphi UI event: PcbForm4.Panel2.BtnRenameComponent.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Prompts with the selected component name, rejects a duplicate destination with message 0x846, replaces the selected Component list value, stores the current definition under the returned key, refreshes dependent lists and actions, and marks the library entry.
+- Current graph evidence: FUN_00ec5500 reads the selected component, calls FUN_00ebd270, checks backend existence, reads the old definition, replaces the list row, writes the definition using the new key, calls FUN_00ec1150 and FUN_00ec0380, and marks the active library entry.
 - Complexity: complex
 - Distinct outgoing calls: 13
 
@@ -77,7 +82,13 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 - Rank 1: Component list: at distance 318.
 - Rank 2: Footprint list: at distance 340.
 
+## No-op and error behavior
+
+- Cancel or an empty name leaves the component unchanged.
+- A duplicate destination shows localized message `0x846` and makes no visible rename.
+- The handler has no local backend error recovery.
+
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered handler does not show a separate backend deletion call for the old key. The backend write or later persistence can implement the final rename semantics, but that boundary is not recovered.
+- The localized duplicate message text is not recovered.

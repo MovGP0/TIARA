@@ -1,6 +1,6 @@
 ﻿# Close (Ctrl+F4)
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The shared handler and recovered VCL close routine establish close-query, cancel, and close-action behavior.
 
 ## Control
 
@@ -20,20 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01532450` calls `FUN_00805200`, the recovered VCL form close routine. For a modeless form, it runs the virtual close query and returns if closure is rejected. Otherwise, it dispatches the form close event and honors the resulting hide, minimize, release, or main-form termination action.
+
+The handler does not inspect `Sender`, so the toolbar close button and `MIExit` use the same close path. Any modified-document prompt belongs to the form's close-query event, not this wrapper.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Close (Ctrl+F4)"] -->|OnClick| handler["FUN_01532450"]
-    handler --> call1["FUN_00805200"]
+flowchart TD
+    control["Click Close toolbar button"] --> handler["FUN_01532450"]
+    handler --> close["FUN_00805200"]
+    close --> query{"Close query accepts?"}
+    query -->|No| cancel["Keep form open"]
+    query -->|Yes| action["Dispatch close event and honor action"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001532450__FUN_01532450.c](../../../DecompiledSources/Tina16/functions/0000000001532450__FUN_01532450.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Closes the Netlist Editor through the VCL form close pipeline.
 - Current graph summary: Handles 2 Delphi UI events: NetlistEditor.BtnPanel.ToolClose.OnClick, NetlistEditor.MainMenu.MFile.MIExit.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +66,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The handler does not inspect `Sender`; both controls enter the same VCL close pipeline.
+- The exact NetlistEditor close-query handler is outside this recovered wrapper.

@@ -1,6 +1,6 @@
 ﻿# Run
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered start request, validation guards, acquisition loop, and restoration path reviewed.
 
 ## Control
 
@@ -20,14 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler builds start command `0x538` and passes it to the shared ScopeWin acquisition state machine. If the recovered channel-count byte `+0xd8a` is zero, the state machine leaves Run selected and shows localized message pair `0x106/0x1582`. If a start request is rejected by validation or delegated to an external owner, local acquisition does not begin.
+
+For an accepted local start, it sets the running flag, changes the Run/Stop control state, clears prior acquisition objects, prepares active curves, and enters the scope acquisition loop. Each iteration transfers a new buffer, updates curve state and the plot, and checks stop conditions. On exit it clears the running flag, restores the Run/Stop controls, refreshes the plot, and can close the form when a deferred-close flag is set.
+
+The handler has no local retry after a failed start.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Run"] -->|OnClick| handler["FUN_012afa80"]
-    handler --> call1["FUN_012afab0"]
+flowchart TD
+    control["Click Run"] --> request["Build start command 0x538"]
+    request --> channels{"At least one active channel?"}
+    channels -->|No| message["Show localized no-channel message"]
+    channels -->|Yes| accepted{"Local start accepted?"}
+    accepted -->|No| noRun["Leave acquisition stopped"]
+    accepted -->|Yes| prepare["Set running state and prepare curve buffers"]
+    prepare --> loop["Acquire, transfer, and redraw until a stop condition"]
+    loop --> restore["Clear running state and restore controls"]
 ```
 
 ## Handler evidence
@@ -62,4 +72,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Hardware-specific acquisition and validation calls remain unresolved behind virtual interfaces.

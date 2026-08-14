@@ -1,6 +1,6 @@
 ﻿# Save Log...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The recovered source-file check, string-list load, save dialog, and file write establish full-log export.
 
 ## Control
 
@@ -20,25 +20,30 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01a54ae0` constructs the internal `log.json` path from the local-LLM runner object and checks whether the file exists. If it is absent, the command returns without a message or save dialog. If the file exists, the handler loads it into a temporary string list. A load failure also stops the path before the dialog.
+
+After a successful load, it configures the save dialog for `Log file|*.log` and proposes `file.log`. Canceling the dialog leaves the source and destination unchanged. Accepting it saves the loaded list to the selected path with the recovered encoding object. This is a text export of the existing JSON log content; the handler does not regenerate the log, delete the source, or report success. File and dialog exceptions have no local handler.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Save Log..."] -->|OnClick| handler["FUN_01a54ae0"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["Delphi UnicodeString assignment helper"]
-    handler --> call4["FUN_00416cd0"]
-    handler --> call5["FUN_00440a20"]
-    handler --> call6["FUN_0045ae90"]
+flowchart TD
+    control["Click Save Log..."] --> path["Build internal log.json path"]
+    path --> exists{"Source exists?"}
+    exists -->|No| noop["Return without a dialog"]
+    exists -->|Yes| load["Load source into string list"]
+    load --> loaded{"Load succeeded?"}
+    loaded -->|No| stop["Return without destination output"]
+    loaded -->|Yes| dialog["Show LOG save dialog"]
+    dialog --> accepted{"Path accepted?"}
+    accepted -->|No| cancel["Return"]
+    accepted -->|Yes| write["Save loaded log to selected path"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001A54AE0__FUN_01a54ae0.c](../../../DecompiledSources/Tina16/functions/0000000001A54AE0__FUN_01a54ae0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Exports the full local-LLM JSON log to a selected log file.
 - Current graph summary: Handles 1 Delphi UI event: LocalLLMForm.MainMenu1.File1.mnSaveLog.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -75,5 +80,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The runner object's Delphi field name and the exact path separator constant are not recovered.
+- The exact encoding class and exception presentation for load or save failures are not named.

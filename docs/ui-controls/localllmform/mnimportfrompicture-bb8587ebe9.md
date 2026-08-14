@@ -1,6 +1,6 @@
 ﻿# Import from picture (current circuit)...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The recovered current-document path, image-request setup, and shared request pipeline establish current-circuit picture import.
 
 ## Control
 
@@ -20,24 +20,27 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01a5bad0` clears external-picture mode at `+0x293c`, copies the current application document path from global state into form field `+0x890`, and calls `FUN_01a5b280` without an external netlist or picture path. A normal menu click supplies a nonzero `Sender`, so the handler also clears mode byte `+0x2ae8`. The RunAll helper is the separate caller that passes a null second argument and sets that byte.
+
+The shared picture-import routine marks image processing busy, prepares a graph for the current circuit, generates `circuit.jpg` in the local-LLM temporary directory, stores picture-request state, and calls the local-LLM request pipeline. It checks whether the configured model supports image recognition and can display recovered model-compatibility messages. Those messages do not return from the function; processing continues into the request path.
+
+This command does not show a file-selection dialog. Its input is the current application circuit/document and the generated image. Request validation, model download prompts, and worker start behavior come from the shared `FUN_01a47dd0` pipeline.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Import from picture (current circuit)..."] -->|OnClick| handler["FUN_01a5bad0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString assignment helper"]
-    handler --> call3["FUN_0043e1a0"]
-    handler --> call4["FUN_01a5b280"]
-    handler --> call5["FUN_01a5bac0"]
+flowchart TD
+    control["Click current-circuit picture import"] --> handler["FUN_01a5bad0 clears external-picture mode"]
+    handler --> current["Copy current application document path"]
+    current --> prepare["FUN_01a5b280 prepares current-circuit graph"]
+    prepare --> image["Generate temp circuit.jpg and mark picture request"]
+    image --> request["Invoke shared local-LLM request pipeline"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001A5BAD0__FUN_01a5bad0.c](../../../DecompiledSources/Tina16/functions/0000000001A5BAD0__FUN_01a5bad0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Starts local-LLM picture recognition for the current circuit.
 - Current graph summary: Handles 1 Delphi UI event: LocalLLMForm.MainMenu1.mnTools.mnImportFromPicture.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -69,5 +72,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The current-document source is recovered as a global field without a Delphi name.
+- Model compatibility messages do not abort this routine. Later request startup can still fail or display another error.

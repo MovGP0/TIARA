@@ -1,6 +1,6 @@
 ﻿# PatternEditBox
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete; the custom OnClick handler is a no-op.
 
 ## Control
 
@@ -20,22 +20,29 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01521740` contains only `RET`. It reads no input, calls no function, and writes no application state. The custom Delphi `OnClick` binding therefore adds no behavior.
+
+Normal `TComboBox` behavior remains outside this empty handler. VCL can still open the drop-down and change its selection. The separate combo-change and pattern-edit paths can then show or edit the selected pattern. This article does not assign those later events to the no-op click method.
+
+There is no custom validation, message, error branch, persistence call, or rollback. Repeated handler calls return immediately.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["PatternEditBox"] -->|OnClick| handler["FUN_01521740"]
+flowchart TD
+    Click["Click PatternEditBox"] --> Vcl["Normal TComboBox interaction"]
+    Vcl --> Handler["FUN_01521740"]
+    Handler --> Return["Immediate return<br/>no custom state change"]
+    Vcl -. "separate selection event" .-> Change["Pattern selection change path"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001521740__FUN_01521740.c](../../../DecompiledSources/Tina16/functions/0000000001521740__FUN_01521740.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: No-op Logic Analyzer pattern-combo click handler.
 - Current graph summary: Handles 1 Delphi UI event: LogicAnalyzerWin.TriggerBox.PatternEditBox.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Returns immediately without application-level work.
+- Current graph evidence: The recovered function has one return instruction and no calls or writes.
 - Complexity: simple
 - Distinct outgoing calls: 0
 
@@ -61,5 +68,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The empty handler does not make the combo inert. Standard VCL interaction and other bound events remain active.
+- The nearby Pattern label identifies context only; it does not add behavior to this handler.

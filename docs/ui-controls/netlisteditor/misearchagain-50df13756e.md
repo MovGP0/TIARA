@@ -1,6 +1,6 @@
 ﻿# Search &Again
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The recovered dialog-option read, SynEdit search call, and not-found message establish the action.
 
 ## Control
 
@@ -20,20 +20,26 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_015325a0` calls `FUN_01533eb0` with the Netlist Editor and the Find dialog object. The callee reads the dialog's option flags and search text, converts them to recovered SynEdit search flags, and calls `FUN_00c09100` on the editor.
+
+When the search returns zero, it builds and displays a localized not-found message that includes the current search text. A nonzero result returns without that message. The handler does not change the dialog settings.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Search &Again"] -->|OnClick| handler["FUN_015325a0"]
-    handler --> call1["FUN_01533eb0"]
+flowchart TD
+    control["Click Search Again"] --> handler["FUN_015325a0"]
+    handler --> options["Read Find dialog text and flags"]
+    options --> search["FUN_00c09100 searches SynEdit"]
+    search --> found{"Search result nonzero?"}
+    found -->|Yes| done["Return"]
+    found -->|No| message["Show localized not-found message"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000015325A0__FUN_015325a0.c](../../../DecompiledSources/Tina16/functions/00000000015325A0__FUN_015325a0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Repeats the search using the current Find dialog text and options.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MEdit.MISearchAgain.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +67,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact mapping of all dialog option bits to SynEdit flags is recovered only as numeric masks.
+- The wrapper exposes no match count.

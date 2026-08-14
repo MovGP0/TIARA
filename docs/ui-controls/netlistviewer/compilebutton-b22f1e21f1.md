@@ -1,6 +1,6 @@
 ﻿# Compile
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the recovered handler, compiler call path, and form resource.
 
 ## Control
 
@@ -20,24 +20,22 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The toolbar button runs the same branch-free handler as the **Compile** menu item. The handler temporarily disables the other thread windows, passes the current `Memo` text, the form's netlist state, and the recovered compile options to `FUN_00ee4600`, and then re-enables the windows. It keeps no result in the button. The compiler and message objects own the produced netlist and diagnostics. The handler has no `Sender` test, cancel branch, or local error dialog.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Compile"] -->|OnClick| handler["FUN_014b5b50"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_0065b870"]
-    handler --> call3["FUN_007f94c0"]
-    handler --> call4["FUN_007f95c0"]
-    handler --> call5["FUN_00ee4600"]
+flowchart TD
+    control["Click Compile toolbar button"] --> handler["FUN_014b5b50"]
+    handler --> guard["Disable other thread windows"]
+    guard --> compile["Compile current Memo text through FUN_00ee4600"]
+    compile --> restore["Re-enable the disabled windows"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000014B5B50__FUN_014b5b50.c](../../../DecompiledSources/Tina16/functions/00000000014B5B50__FUN_014b5b50.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Compile the current Netlist Viewer source.
 - Current graph summary: Handles 2 Delphi UI events: NetlistViewer.BtnPanel.CompileButton.OnClick, NetlistViewer.MainMenu.MAnalysis.MICompile.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -69,5 +67,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- `FUN_00ee4600` is recovered as the shared compile front end, but names for its option record fields are not recovered.
+- The toolbar glyph supports the compile intent but does not add a separate behavior branch.

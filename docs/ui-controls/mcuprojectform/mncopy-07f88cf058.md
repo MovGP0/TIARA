@@ -1,6 +1,6 @@
 ﻿# Copy
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for mnCopyClick.
 
 ## Control
 
@@ -20,14 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler forwards the command to the active editor. The editor requires a selection. It temporarily clears one selection-mode flag when needed, extracts the selected text, passes it to the clipboard helper, and restores the flag. With no selection, it returns without changing the document or showing a message.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Copy"] -->|OnClick| handler["FUN_0108a8e0"]
-    handler --> call1["FUN_00bf1d60"]
+flowchart TD
+    control["Copy"] -->|OnClick| handler["TMCUProjectForm.mnCopyClick<br/>FUN_0108a8e0"]
+    handler --> editor["Invoke active editor copy"]
+    editor --> selection{"Selection available?"}
+    selection -->|No| noOp["Do not change document or clipboard"]
+    selection -->|Yes| copy["Extract selection and copy to clipboard<br/>Restore selection mode"]
 ```
 
 ## Handler evidence
@@ -59,7 +62,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

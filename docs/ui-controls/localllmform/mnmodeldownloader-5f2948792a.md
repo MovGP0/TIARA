@@ -1,6 +1,6 @@
 ﻿# Download models...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The framework branch, modal downloader path, and post-dialog model refresh are supported by recovered code.
 
 ## Control
 
@@ -20,25 +20,27 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01a47b10` reads the configured local-LLM framework at settings offset `+0x5c`. When the value is `1`, the handler identifies the interface as LM Studio and shows a message that models must be downloaded manually in LM Studio. It does not open Tina's downloader or refresh the model list in this branch.
+
+For other framework values, the handler creates the recovered model-management dialog, assigns this form as its owner, sets mode `4`, shows it modally, and destroys it after return. Dialog cancellation and acceptance lead to the same post-dialog refresh because the modal result is not tested here. The handler refreshes available models. If that refresh reports success, it reads the current model-list selection, stores the selected model text in settings, and updates the model field. A failed refresh leaves the prior selection without a message in this handler.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Download models..."] -->|OnClick| handler["FUN_01a47b10"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["Delphi UnicodeString assignment helper"]
-    handler --> call4["FUN_0072d440"]
-    handler --> call5["FUN_007fc180"]
-    handler --> call6["FUN_01a2f520"]
+flowchart TD
+    control["Click Download models..."] --> framework{"Framework is LM Studio?"}
+    framework -->|Yes| manual["Tell user to download models in LM Studio"]
+    framework -->|No| dialog["Open model-management dialog in mode 4"]
+    dialog --> refresh["Refresh available models after dialog closes"]
+    refresh --> success{"Refresh succeeded?"}
+    success -->|No| keep["Keep prior model selection"]
+    success -->|Yes| update["Store selected model and update model field"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001A47B10__FUN_01a47b10.c](../../../DecompiledSources/Tina16/functions/0000000001A47B10__FUN_01a47b10.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Opens local model management or explains LM Studio's manual download path.
 - Current graph summary: Handles 1 Delphi UI event: LocalLLMForm.MainMenu1.mnTools.mnModelDownloader.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -72,5 +74,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact class name and internal actions of the modal model-management dialog are not recovered from this call site.
+- The caller does not distinguish dialog cancellation from acceptance before refreshing models.

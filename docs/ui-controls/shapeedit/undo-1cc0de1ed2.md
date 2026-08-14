@@ -1,6 +1,6 @@
 ﻿# &Undo
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for TIARA-diz.6.7.1526.
 
 ## Control
 
@@ -11,59 +11,34 @@
 | Control class | TMenuItem |
 | Caption | &Undo |
 | Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | UndoClick |
 | Handler address | 017a0720 |
 | Graph node | `resource:dfm:ShapeEdit/ShapeEdit.MainMenu.Edit.Undo` |
 | Handler node | `function:017a0720` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Clears the current object selection or interaction state, asks the ShapeEdit undo manager to undo one command, and redraws the editor. The undo manager determines the no-history behavior.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Undo"] -->|OnClick| handler["FUN_017a0720"]
-    handler --> call1["FUN_0064e770"]
-    handler --> call2["FUN_00c5c7b0"]
-    handler --> call3["FUN_017956f0"]
+flowchart TD
+    control["&Undo"] --> handler["UndoClick at 017a0720"]
+    handler --> step1["Clear current selection state"]
+    handler --> step2["Ask undo manager to undo"]
+    handler --> step3["Redraw editor"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000017A0720__FUN_017a0720.c](../../../DecompiledSources/Tina16/functions/00000000017A0720__FUN_017a0720.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: ShapeEdit.MainMenu.Edit.Undo.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 3
-
-## Direct calls
-
-- `function:0064e770` — FUN_0064e770
-- `function:00c5c7b0` — FUN_00c5c7b0
-- `function:017956f0` — FUN_017956f0
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
+- Handler source: [00000000017A0720__FUN_017a0720.c](../../../DecompiledSources/Tina16/functions/00000000017A0720__FUN_017a0720.c)
 - Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Recovered path: The handler calls 017956f0, the undo-manager function 00c5c7b0 on field +0xd50, and the editor invalidation path.
+- Resource context: The recovered TMenuItem resource uses caption `&Undo`.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The handler does not expose whether the undo stack was empty; that decision belongs to the undo manager.
+- The caption, hint, and glyph support control identity only. They do not replace the recovered handler and callee evidence.
+

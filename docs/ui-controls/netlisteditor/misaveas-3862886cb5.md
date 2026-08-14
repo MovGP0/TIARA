@@ -1,6 +1,6 @@
 ﻿# Save &As...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The Save dialog gate, path update, editor write, recent-file update, and cancel no-op establish the action.
 
 ## Control
 
@@ -20,25 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_015320c0` builds the Save dialog's initial path from the current file name and recovered directory field, then executes the dialog. Cancellation returns after temporary-string cleanup without changing the document path or modified state.
+
+On acceptance, it reads and normalizes the selected path, stores it as the current file name, writes the editor text to that path, clears the modified flag, updates the displayed path, and calls `FUN_01530440`. That helper replaces or inserts the path in the recent-file list, trims the list to five entries, and refreshes related menu/UI state.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Save &As..."] -->|OnClick| handler["FUN_015320c0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["Delphi UnicodeString assignment helper"]
-    handler --> call4["FUN_0043e1a0"]
-    handler --> call5["FUN_00441920"]
-    handler --> call6["FUN_00442f70"]
+flowchart TD
+    control["Click Save As"] --> handler["FUN_015320c0"]
+    handler --> prepare["Set Save dialog path and file name"]
+    prepare --> dialog["Execute Save dialog"]
+    dialog --> accepted{"Accepted?"}
+    accepted -->|No| cancel["Keep path and modified state"]
+    accepted -->|Yes| path["Normalize and store selected path"]
+    path --> write["Write editor text and clear modified state"]
+    write --> recent["Update recent-file and UI state"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000015320C0__FUN_015320c0.c](../../../DecompiledSources/Tina16/functions/00000000015320C0__FUN_015320c0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Prompts for a path and saves the Netlist Editor document when accepted.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MFile.MISaveAs.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -77,5 +80,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered wrapper has no local exception or explicit write-result check.
+- File overwrite confirmation and path validation belong to the Save dialog.

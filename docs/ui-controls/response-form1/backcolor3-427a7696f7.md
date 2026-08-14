@@ -1,6 +1,6 @@
-﻿# Background Color
+# Background Color
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed. The handler changes `ListBox3` background color after dialog acceptance.
 
 ## Control
 
@@ -10,8 +10,6 @@
 | Component path | Response_form1.PopupMenu3.BackColor3 |
 | Control class | TMenuItem |
 | Caption | Background Color |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | BackColor3Click |
 | Handler address | 011792b0 |
 | Graph node | `resource:dfm:Response_form1/Response_form1.PopupMenu3.BackColor3` |
@@ -20,46 +18,30 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+[FUN_011792b0](../../../DecompiledSources/Tina16/functions/00000000011792B0__FUN_011792b0.c) executes `ColorDialog1`. If the user accepts, it passes the selected color to `FUN_0064e030` for `ListBox3`. If the user cancels, it returns without changing the view.
+
+The VCL setter changes the stored color only when it differs and then sends the color-change notification. The handler does not change the other five response views.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
+flowchart TD
     control["Background Color"] -->|OnClick| handler["FUN_011792b0"]
-    handler --> call1["FUN_0064e030"]
+    handler --> dialog["Execute ColorDialog1"]
+    dialog --> accepted{"Accepted?"}
+    accepted -->|No| keep["Keep ListBox3 color"]
+    accepted -->|Yes| apply["FUN_0064e030<br/>Set ListBox3 color"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000011792B0__FUN_011792b0.c](../../../DecompiledSources/Tina16/functions/00000000011792B0__FUN_011792b0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: Response_form1.PopupMenu3.BackColor3.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: simple
-- Distinct outgoing calls: 1
-
-## Direct calls
-
-- `function:0064e030` — FUN_0064e030
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
+- Recovered role: Set `ListBox3` background color from the accepted dialog.
+- Target mapping: form field `+0x7B8` is `ListBox3`; the paired view handlers and `FormCreate` confirm it.
+- Direct call: `FUN_0064e030`, the VCL color setter.
+- Resource dialog: `ColorDialog1`.
 - Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+The selected color is user input and is unknown before the dialog runs.
+

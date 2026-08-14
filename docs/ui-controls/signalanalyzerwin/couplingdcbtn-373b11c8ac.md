@@ -1,6 +1,6 @@
 ﻿# DC
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed: the click selects DC coupling and clears one selected-channel state flag.
 
 ## Control
 
@@ -20,19 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler calls the analyzer backend through virtual slot `+0x138` with mode value `0`. It then clears byte `+0x38` in the selected channel model at form field `+0x870`.
+
+The source proves the backend request and the state write. It does not identify the Delphi name of the cleared model field.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["DC"] -->|OnClick| handler["FUN_01389b00"]
+    control["DC button"] -->|OnClick| handler["CouplingDCBtnClick"]
+    handler -->|mode 0| backend["Set analyzer coupling"]
+    handler --> state["Clear selected-channel flag +0x38"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001389B00__FUN_01389b00.c](../../../DecompiledSources/Tina16/functions/0000000001389B00__FUN_01389b00.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Selects DC input coupling and clears a selected-channel model flag.
 - Current graph summary: Handles 1 Delphi UI event: SignalAnalyzerWin.ChannelGroupBox.CouplingGroupBox.CouplingDCBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -60,5 +64,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The Delphi name and purpose of selected-channel byte `+0x38` are not recovered.
+- Backend validation and hardware error behavior are not present in this handler.

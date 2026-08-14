@@ -1,6 +1,6 @@
 ﻿# Display...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed: the click shows the display-control panel.
 
 ## Control
 
@@ -20,20 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler shows the panel at form field `+0xB78`. It hides the trigger-control panel at `+0xD60` and the reference-window panel at `+0xDF8`.
+
+The three calls use the common VCL visibility helper. No data model or analyzer backend state changes in this handler.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Display..."] -->|OnClick| handler["FUN_0138d230"]
-    handler --> call1["FUN_0064dbe0"]
+    control["Display button"] -->|OnClick| handler["DisplayControlSpBtnClick"]
+    handler --> show["Show display panel +0xB78"]
+    handler --> hideTrigger["Hide trigger panel +0xD60"]
+    handler --> hideReference["Hide reference panel +0xDF8"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/000000000138D230__FUN_0138d230.c](../../../DecompiledSources/Tina16/functions/000000000138D230__FUN_0138d230.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Shows the display-control panel and hides the other inline control panels.
 - Current graph summary: Handles 1 Delphi UI event: SignalAnalyzerWin.ControlGroupBox.DisplayControlSpBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +65,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered field offsets do not provide the original Delphi panel names.
+- The source proves visibility changes only; it does not prove a persistent display setting change.

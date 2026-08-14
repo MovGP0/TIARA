@@ -1,6 +1,6 @@
 ﻿# &Set Parameters...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The dialog copy, OK branch, global update, and directive-write chain establish the transaction.
 
 ## Control
 
@@ -20,25 +20,30 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01532880` captures current focus/context, validates the active document path, and copies 50 doubles plus a string from the global simulation parameter block. It creates the Set Parameters dialog with those values and executes it modally.
+
+Only modal result 1 commits changes. The handler copies the dialog values back to the global block, then compares a recovered priority chain. It writes the first matched change as `.OPTIONS` with `TNOM`, `ABSTOL`, `VNTOL`, `RELTOL`, `PIVREL`, `PIVTOL`, `ITL1`, `ITL2`, `ITL4`, `CHGTOL`, `GMIN`, or `TRTOL`, or writes a `.TRAN` directive for the recovered transient group. Cancel leaves the copied global block unchanged. The dialog is always destroyed.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Set Parameters..."] -->|OnClick| handler["FUN_01532880"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString assignment helper"]
-    handler --> call3["FUN_0065b870"]
-    handler --> call4["FUN_007f94c0"]
-    handler --> call5["FUN_007f95c0"]
-    handler --> call6["FUN_00ee4f70"]
+flowchart TD
+    control["Click Set Parameters"] --> handler["FUN_01532880"]
+    handler --> snapshot["Copy current parameter block"]
+    snapshot --> dialog["Execute Set Parameters dialog"]
+    dialog --> ok{"Modal result is mrOk?"}
+    ok -->|No| keep["Keep original global block"]
+    ok -->|Yes| commit["Copy dialog values to global block"]
+    commit --> compare["Find first recovered changed group"]
+    compare --> write["Write one .OPTIONS or .TRAN directive"]
+    write --> destroy["Destroy dialog"]
+    keep --> destroy
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001532880__FUN_01532880.c](../../../DecompiledSources/Tina16/functions/0000000001532880__FUN_01532880.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Edits simulation parameters and writes the first recovered changed directive after OK.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MAnalysis.MISetParameters.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -73,5 +78,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The dialog class and many parameter fields have no recovered Delphi names.
+- The nested comparison chain writes at most one recovered directive per accepted dialog execution.

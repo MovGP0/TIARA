@@ -1,6 +1,6 @@
 ﻿# AC
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed: the click selects AC coupling for the analyzer input.
 
 ## Control
 
@@ -20,19 +20,22 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler calls the analyzer backend through virtual slot `+0x138` with mode value `1`. This is the complete recovered handler path.
+
+The handler has no local decision or error branch. Any validation or hardware error handling is inside the backend operation.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["AC"] -->|OnClick| handler["FUN_01389b30"]
+    control["AC button"] -->|OnClick| handler["CouplingACBtnClick"]
+    handler -->|mode 1| backend["Set analyzer coupling"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001389B30__FUN_01389b30.c](../../../DecompiledSources/Tina16/functions/0000000001389B30__FUN_01389b30.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Selects AC input coupling through the analyzer backend.
 - Current graph summary: Handles 1 Delphi UI event: SignalAnalyzerWin.ChannelGroupBox.CouplingGroupBox.CouplingACBtn.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -60,5 +63,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered source does not expose the Delphi name of the backend virtual method.
+- Backend validation and hardware error behavior are not present in this handler.

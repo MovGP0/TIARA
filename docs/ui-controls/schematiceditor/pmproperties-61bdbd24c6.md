@@ -1,6 +1,6 @@
 ﻿# Pr&operties...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,28 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler checks the editor mode and selection, finds the selected or hit-tested object, handles one special component path, opens the matching properties editor, and commits accepted changes. The UI Sender is non-null for both bound controls, so they follow the same branch.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Pr&operties..."] -->|OnClick| handler["FUN_01c77050"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_0041ddd0"]
-    handler --> call3["FUN_0064d3a0"]
-    handler --> call4["FUN_00664d10"]
-    handler --> call5["FUN_013b1c30"]
-    handler --> call6["FUN_017baeb0"]
+flowchart TD
+    control["Pr&operties..."] -->|"OnClick"| handler["mnEditAttributesClick (01c77050)"]
+    handler --> guard{"Editable object selected or hit?"}
+    guard -->|"No"| noChange["Do not open properties"]
+    guard -->|"Yes"| action["Open properties editor and commit accepted changes"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C77050__FUN_01c77050.c](../../../DecompiledSources/Tina16/functions/0000000001C77050__FUN_01c77050.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Edit properties of the selected schematic object.
 - Current graph summary: Handles 2 Delphi UI events: SchematicEditor.MainMenu.Edit.mnEditAttributes.OnClick, SchematicEditor.SchPopup.pmProperties.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler checks the editor mode and selection, finds the selected or hit-tested object, handles one special component path, opens the matching properties editor, and commits accepted changes. The UI Sender is non-null for both bound controls, so they follow the same branch.
+- Current graph evidence: The recovered body contains mode and selection guards, selected-object lookup, a special class test, modal property-edit calls, accepted-result commit, and redraw paths. Both DFM controls pass non-null Sender values.
 - Complexity: complex
 - Distinct outgoing calls: 16
 
@@ -81,5 +78,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The special component class name is not present in the recovered symbols.
+

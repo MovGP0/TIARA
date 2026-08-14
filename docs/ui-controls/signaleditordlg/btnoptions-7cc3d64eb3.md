@@ -1,6 +1,6 @@
 ﻿# Options...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the signal-options dialog and refresh path.
 
 ## Control
 
@@ -20,28 +20,33 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler constructs a temporary signal-options dialog, supplies the current
+compiled signal object and active mode, and shows it modally. It always destroys
+the temporary dialog after the modal call. Cancel performs no compile or preview
+refresh. If the result is OK (`1`), the handler compiles user-defined mode `8` or
+synchronizes the other editable mode, evaluates the active signal through
+`FUN_01125620`, and resets the editor selection or focus state.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Options..."] -->|OnClick| handler["FUN_01126a70"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["FUN_005ffa40"]
-    handler --> call3["FUN_007fc180"]
-    handler --> call4["FUN_011173b0"]
-    handler --> call5["FUN_01117680"]
-    handler --> call6["FUN_01125620"]
+    control["Options"] -->|"OnClick"| handler["FUN_01126a70"]
+    handler --> setup["Create dialog and load object/mode"]
+    setup --> accepted{"Modal result is OK?"}
+    accepted -->|"No"| dispose["Destroy dialog; keep editor state"]
+    accepted -->|"Yes"| prepare["Compile or synchronize active mode"]
+    prepare --> test["Evaluate and refresh preview"]
+    test --> focus["Reset editor selection or focus"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001126A70__FUN_01126a70.c](../../../DecompiledSources/Tina16/functions/0000000001126A70__FUN_01126a70.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Edit signal options and refresh the accepted result.
 - Current graph summary: Handles 1 Delphi UI event: SignalEditorDlg.pnlStdButtons.btnOptions.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Shows a mode-aware options dialog and refreshes only after modal result `1`.
+- Current graph evidence: The source constructs the dialog, calls its setup helpers, checks result `1`, and conditionally calls compile/sync and test helpers.
 - Complexity: complex
 - Distinct outgoing calls: 8
 
@@ -73,5 +78,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The individual option fields are not named in the recovered source.
+- Cancel is a verified no-op for compile and preview refresh.

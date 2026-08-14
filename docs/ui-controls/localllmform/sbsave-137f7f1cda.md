@@ -1,6 +1,6 @@
 ﻿# Save Chat
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The recovered save-dialog, chat-text read, and string-list write establish the chat export path.
 
 ## Control
 
@@ -20,25 +20,26 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01a54930` configures the form's save dialog for `Text file|*.txt` and proposes `file.txt`. It does not write until the dialog reports acceptance.
+
+On acceptance, the handler reads the complete current chat text from the chat control, creates a temporary string list, assigns the text to that list, obtains the selected file name, and saves the list with the recovered encoding object. Canceling the dialog is a no-op for the chat and file system. An empty chat is still passed to the save path if the user accepts. The handler has no recovered success message, overwrite decision, retry, or local exception handler.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Save Chat"] -->|OnClick| handler["FUN_01a54930"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["Delphi UnicodeString assignment helper"]
-    handler --> call4["FUN_0045ae90"]
-    handler --> call5["FUN_004b6930"]
-    handler --> call6["FUN_00724270"]
+flowchart TD
+    control["Click Save Chat"] --> dialog["Configure TXT save dialog with file.txt"]
+    dialog --> accepted{"Path accepted?"}
+    accepted -->|No| cancel["Return without file output"]
+    accepted -->|Yes| read["Read complete current chat text"]
+    read --> list["Assign text to temporary string list"]
+    list --> write["Save list to selected path"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001A54930__FUN_01a54930.c](../../../DecompiledSources/Tina16/functions/0000000001A54930__FUN_01a54930.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Exports the current local-LLM chat to a selected text file.
 - Current graph summary: Handles 1 Delphi UI event: LocalLLMForm.Panel1.sbSave.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -72,5 +73,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The two-state floppy-disk glyph agrees with save intent. The source establishes the actual text export.
+- The exact encoding class and failed-write exception presentation are not named in the recovered source.

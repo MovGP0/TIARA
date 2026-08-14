@@ -1,6 +1,6 @@
 ﻿# LBDevices
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for TIARA-diz.6.7.1585.
 
 ## Control
 
@@ -9,63 +9,36 @@
 | Form | ShapeEdit |
 | Component path | ShapeEdit.TemplatePanel.LBDevices |
 | Control class | TListBox |
-| Caption | Not present in the recovered resource. |
+| Caption | LBDevices |
 | Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | LBDevicesClick |
 | Handler address | 017a0070 |
 | Graph node | `resource:dfm:ShapeEdit/ShapeEdit.TemplatePanel.LBDevices` |
 | Handler node | `function:017a0070` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Formats the current list index plus one and the total device count as “N of M devices”, then writes that text to the status label. It does not change the selected device or model data. With current index -1, it reports 0 of the current count.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["LBDevices"] -->|OnClick| handler["FUN_017a0070"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_00414b50"]
-    handler --> call3["FUN_00442f70"]
-    handler --> call4["VCL control text setter with change suppression"]
+flowchart TD
+    control["LBDevices"] --> handler["LBDevicesClick at 017a0070"]
+    handler --> step1["Read current index and count"]
+    handler --> step2["Format one-based position"]
+    handler --> step3["Update status label"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000017A0070__FUN_017a0070.c](../../../DecompiledSources/Tina16/functions/00000000017A0070__FUN_017a0070.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: ShapeEdit.TemplatePanel.LBDevices.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 4
-
-## Direct calls
-
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00414b50` — FUN_00414b50
-- `function:00442f70` — FUN_00442f70
-- `function:0064de00` — VCL control text setter with change suppression
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: ("Amplifier", "NPN Transistor", "SR Flip-Flop", "74144", "NAND gate")
-- Image reference: Not present in the recovered resource.
+- Handler source: [00000000017A0070__FUN_017a0070.c](../../../DecompiledSources/Tina16/functions/00000000017A0070__FUN_017a0070.c)
 - Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Recovered path: The handler reads the list index and count, formats resource text with index + 1 and count, and writes only the caption field at form offset +0xa68.
+- Resource context: The recovered TListBox resource uses caption `LBDevices`.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No additional implementation gap was found in the recovered click path.
+- The caption, hint, and glyph support control identity only. They do not replace the recovered handler and callee evidence.
+

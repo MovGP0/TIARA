@@ -1,6 +1,6 @@
 ﻿# Harmonic Balance Analysis...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Blocked by an exact evidence gap.
 
 ## Control
 
@@ -20,28 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The OnClick binding reaches mnHarmonicBalanceDiscreteClick at 01ca4df0. The recovered body has 7 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Harmonic Balance Analysis..."] -->|OnClick| handler["FUN_01ca4df0"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["FUN_007fc180"]
-    handler --> call3["FUN_019a4600"]
-    handler --> call4["FUN_01b4c3a0"]
-    handler --> call5["FUN_01b4e970"]
-    handler --> call6["FUN_01b53190"]
+flowchart TD
+    control["Harmonic Balance Analysis..."] -->|"OnClick"| handler["mnHarmonicBalanceDiscreteClick (01ca4df0)"]
+    handler --> recovered["Recovered direct call path"]
+    recovered --> gap{"Application responsibility proven?"}
+    gap -->|"No"| blocked["Keep exact behavior unknown"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001CA4DF0__FUN_01ca4df0.c](../../../DecompiledSources/Tina16/functions/0000000001CA4DF0__FUN_01ca4df0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Evidence-blocked mnHarmonicBalanceDiscreteClick command.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnAnalysis.mnHBAnalysis.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The OnClick binding reaches mnHarmonicBalanceDiscreteClick at 01ca4df0. The recovered body has 7 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+- Current graph evidence: The DFM binds SchematicEditor.MainMenu.mnAnalysis.mnHBAnalysis to mnHarmonicBalanceDiscreteClick. The recovered source is DecompiledSources/Tina16/functions/0000000001CA4DF0__FUN_01ca4df0.c and directly references 00410f20, 007fc180, 019a4600, 01b4c3a0, 01b4e970, 01b53190, 01b53570. No accepted end-to-end role was established for this control path.
 - Complexity: complex
 - Distinct outgoing calls: 7
 
@@ -72,5 +69,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+

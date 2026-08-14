@@ -1,6 +1,6 @@
 ﻿# &Netlist Editor
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,22 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The recovered handler returns immediately without opening an editor or changing state.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Netlist Editor"] -->|OnClick| handler["FUN_01c806a0"]
+flowchart TD
+    control["&Netlist Editor"] -->|"OnClick"| handler["mnSPiceEditorClick (01c806a0)"]
+    handler --> return["Return without state change"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C806A0__FUN_01c806a0.c](../../../DecompiledSources/Tina16/functions/0000000001C806A0__FUN_01c806a0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: No-op Netlist Editor handler.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.mnTools.mnSPiceEditor.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The recovered handler returns immediately without opening an editor or changing state.
+- Current graph evidence: FUN_01c806a0 contains only a return and has zero outgoing graph calls. The DFM binds the Netlist Editor menu item to it.
 - Complexity: simple
 - Distinct outgoing calls: 0
 
@@ -60,5 +61,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Another action path can expose the netlist editor, but this handler does not.
+

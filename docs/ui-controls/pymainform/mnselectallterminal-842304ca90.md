@@ -1,6 +1,6 @@
 ﻿# Select All
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered whole-terminal selection path reviewed.
 
 ## Control
 
@@ -20,14 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler selects the complete terminal document, from line 1 column 1 through the final character, and requests a selection-state update. It does not copy the text to the clipboard.
+
+If the terminal has no text, the selection endpoints still resolve to the empty document and there is no visible error or message. The operation does not change terminal contents.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Select All"] -->|OnClick| handler["FUN_0146f250"]
-    handler --> call1["FUN_00bfa390"]
+flowchart TD
+    control["Click Select All"] --> bounds["Find the start and final document positions"]
+    bounds --> select["Apply both selection endpoints"]
+    select --> update["Refresh the terminal selection state"]
 ```
 
 ## Handler evidence
@@ -62,4 +65,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The original Delphi name of the recovered SynEdit select-all helper is not present.

@@ -1,17 +1,17 @@
-﻿# LbComponents
+﻿# Component list
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed: the handler makes the clicked component current and refreshes all component-dependent PCB data.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
 | Form | PcbForm |
+| Form caption | PCB information for SPICE macro components |
 | Component path | PcbForm.Panel2.LbComponents |
 | Control class | TListBox |
-| Caption | Not present in the recovered resource. |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Caption | Not present |
+| Hint | Not present |
 | Handler name | LbComponentsClick |
 | Handler address | 00ecde30 |
 | Graph node | `resource:dfm:PcbForm/PcbForm.Panel2.LbComponents` |
@@ -20,58 +20,37 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+1. When pin-swap comparison mode is active, the handler compares the selected component with the stored comparison component. A different component turns comparison mode off.
+2. It calls `FUN_00eccc30` to rebuild component-dependent footprint selections, `FUN_00ed3a60` to refresh the 3D view, and `FUN_00ecbca0` to refresh enabled controls.
+3. The shared label `Component list:` confirms the list's UI context. The handler does not show a message when the selection changes.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["LbComponents"] -->|OnClick| handler["FUN_00ecde30"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00416db0"]
-    handler --> call3["FUN_00ea9ca0"]
-    handler --> call4["FUN_00ecbca0"]
-    handler --> call5["FUN_00eccc30"]
-    handler --> call6["FUN_00ed3a60"]
+flowchart TD
+    control["PcbForm.Panel2.LbComponents"] -->|OnClick| handler["FUN_00ecde30"]
+    handler --> decision{"Selection still matches active pin-swap component?"}
+    decision -->|Yes| action["Keep comparison mode"]
+    decision -->|No| noop["Clear comparison mode"]
+    action --> outcome["Refresh footprints, controls, and the 3D preview"]
+    noop --> outcome
 ```
 
-## Handler evidence
+## Handler and call-path evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000000ECDE30__FUN_00ecde30.c](../../../DecompiledSources/Tina16/functions/0000000000ECDE30__FUN_00ecde30.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: PcbForm.Panel2.LbComponents.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 6
+- [`FUN_00ecde30`](../../../DecompiledSources/Tina16/functions/0000000000ECDE30__FUN_00ecde30.c) — Select a PCB component and refresh dependent data.
+- [`FUN_00eccc30`](../../../DecompiledSources/Tina16/functions/0000000000ECCC30__FUN_00eccc30.c) — refresh component-dependent selections.
+- [`FUN_00ed3a60`](../../../DecompiledSources/Tina16/functions/0000000000ED3A60__FUN_00ed3a60.c) — refresh the selected 3D footprint view.
+- [`FUN_00ecbca0`](../../../DecompiledSources/Tina16/functions/0000000000ECBCA0__FUN_00ecbca0.c) — refresh PCB form control availability.
 
-## Direct calls
+## Resource and glyph evidence
 
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00416db0` — FUN_00416db0
-- `function:00ea9ca0` — FUN_00ea9ca0
-- `function:00ecbca0` — FUN_00ecbca0
-- `function:00eccc30` — FUN_00eccc30
-- `function:00ed3a60` — FUN_00ed3a60
+- Recovered form resource: [`ui-evidence.json`](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json).
 
-## Resource evidence
+## Inputs, outputs, and limits
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
+- Input: an OnClick event from `PcbForm.Panel2.LbComponents`, plus the current form selections and state described above.
+- State change: Cancels pin-swap comparison when the component context changes, then rebuilds dependent footprint, control, and 3D-preview state.
+- Error or no-op behavior: The decision branches above identify the recovered validation, cancel, confirmation, boundary, or no-op path.
+- Analysis limit: The selected component is obtained through VCL list accessors; no separate invalid-index error branch is recovered.
 
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Component list: at distance 24.
-- Rank 2: Footprint list: at distance 205.
-- Rank 3: 3D component view: at distance 370.
-
-## Analysis limits
-
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.

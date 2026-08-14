@@ -1,6 +1,6 @@
 ﻿# Stop
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The recovered wrapper and stop routine establish the active-request guard, cleanup sequence, and no-op path.
 
 ## Control
 
@@ -20,20 +20,26 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01a43000` calls `FUN_01a42e10` with its full-stop flag set. The stop routine first clears state integer `+0x944`. If no local-LLM worker is active at byte `+0x2b40`, it returns after that state reset.
+
+For an active worker, it disables request processing, asks the scheduler/process object to stop, resets request and UI state, clears two recovered lists, waits briefly, and performs final UI cleanup. It then deletes `answer_done.txt` and `errors.txt` from the local-LLM temporary folder when those files exist. Delete return values are not checked. The handler has no success message and no local exception handler.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Stop"] -->|OnClick| handler["FUN_01a43000"]
-    handler --> call1["FUN_01a42e10"]
+flowchart TD
+    control["Click Stop"] --> wrapper["FUN_01a43000 requests full stop"]
+    wrapper --> reset["FUN_01a42e10 clears +0x944"]
+    reset --> active{"Worker active at +0x2b40?"}
+    active -->|No| noop["Return"]
+    active -->|Yes| stop["Stop worker and reset request/UI state"]
+    stop --> files["Delete answer_done.txt and errors.txt when present"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001A43000__FUN_01a43000.c](../../../DecompiledSources/Tina16/functions/0000000001A43000__FUN_01a43000.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Stops the active local-LLM request and removes completion/error markers.
 - Current graph summary: Handles 1 Delphi UI event: LocalLLMForm.Panel1.sbStop.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -61,5 +67,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The red-square glyph supports the stop intent, but the handler and callee establish the behavior.
+- The recovered names of several internal reset routines and the exact worker termination API are unknown.

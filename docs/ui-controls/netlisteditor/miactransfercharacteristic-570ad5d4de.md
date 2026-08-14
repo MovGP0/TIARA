@@ -1,6 +1,6 @@
 ﻿# &AC Transfer Characteristic...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The setup return branch and recovered AC result publisher establish the flow.
 
 ## Control
 
@@ -20,23 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01533320` saves analysis context in mode 2 and calls `FUN_01394040` for the active circuit. When the call returns zero, it passes the resulting circuit data and recovered global output mode to `FUN_013d4bc0`, which builds and registers the AC result views.
+
+A nonzero return skips publication. The handler always restores the prior context.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&AC Transfer Characteristic..."] -->|OnClick| handler["FUN_01533320"]
-    handler --> call1["FUN_01394040"]
-    handler --> call2["FUN_013d4bc0"]
-    handler --> call3["FUN_0152fca0"]
-    handler --> call4["FUN_0152fd80"]
+flowchart TD
+    control["Click AC Transfer Characteristic"] --> handler["FUN_01533320"]
+    handler --> prepare["Save analysis context in mode 2"]
+    prepare --> setup["FUN_01394040 AC transfer setup"]
+    setup --> zero{"Return is zero?"}
+    zero -->|Yes| publish["FUN_013d4bc0 builds AC results"]
+    zero -->|No| skip["Skip result publication"]
+    publish --> restore["Restore prior context"]
+    skip --> restore
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001533320__FUN_01533320.c](../../../DecompiledSources/Tina16/functions/0000000001533320__FUN_01533320.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Runs AC transfer-characteristic setup and publishes its result on success.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MAnalysis.MIACAnalysis.MIACTransferCharacteristic.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -67,5 +72,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact meanings of nonzero setup returns are not recovered.
+- The recovered global output-mode field has no Delphi name.

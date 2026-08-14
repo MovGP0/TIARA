@@ -1,6 +1,6 @@
 ﻿# Use board &template
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the recovered handler, template parser, dimension conversion helpers, and form resources.
 
 ## Control
 
@@ -20,25 +20,33 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler enables the template browse button and the template-path label. It then reads the current board width and height and converts them from the displayed unit to internal mil-based values.
+
+Next, it tries to read the stored template path. If the file passes the recovered path check and contains the expected board record, the parser replaces the two internal values with the template's board extents. The handler converts the resulting values back to the displayed unit and writes them to the width and height edits.
+
+If the path check fails or no expected board record is found, the parser leaves the supplied fallback values unchanged. The read-and-write conversion therefore preserves the current displayed dimensions, apart from normal floating-point formatting behavior. This click does not open the file dialog. **Browse...** performs file selection.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Use board &template"] -->|OnClick| handler["FUN_01bb2b10"]
-    handler --> call1["FUN_01bb3de0"]
-    handler --> call2["FUN_01bb3e80"]
-    handler --> call3["FUN_01bb3f00"]
+flowchart TD
+    control["Use board template"] -->|OnClick| handler["FUN_01bb2b10"]
+    handler --> enable["Enable template browse<br/>and the template-path label"]
+    enable --> fallback["Read current dimensions<br/>and convert them to internal mil values"]
+    fallback --> parse{"Does the stored template provide<br/>the expected board record?"}
+    parse -->|Yes| template["Use the template board extents"]
+    parse -->|No| keep["Keep the current dimensions"]
+    template --> display["Convert to the display unit<br/>and update both edits"]
+    keep --> display
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001BB2B10__FUN_01bb2b10.c](../../../DecompiledSources/Tina16/functions/0000000001BB2B10__FUN_01bb2b10.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Enable PCB template input and refresh dimensions from the stored template.
 - Current graph summary: Handles 1 Delphi UI event: PCBWizard.pnlTemplate.rbTemplate.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Enables template controls, uses the current dimensions as fallback values, reads board extents from the stored template when possible, and updates the displayed width and height.
+- Current graph evidence: `FUN_01bb2b10` enables form fields `0x718` and `0x710`, calls `FUN_01bb3de0` to read and normalize edits `0x738` and `0x740`, passes form field `0x780` to `FUN_01bb3f00`, and calls `FUN_01bb3e80` to convert and write both edit values. The parser changes its output parameters only after a file check and a recovered record-type test.
 - Complexity: complex
 - Distinct outgoing calls: 3
 
@@ -67,5 +75,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered parser does not expose a Delphi type name for the template file format or board record.
+- The handler shows no message for a missing file or missing expected record and has no local exception recovery for a malformed file.

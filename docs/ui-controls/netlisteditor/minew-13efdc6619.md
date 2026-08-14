@@ -1,6 +1,6 @@
 ﻿# &New
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The modified-document gate and recovered editor, file, message, circuit, and UI resets establish the action.
 
 ## Control
 
@@ -20,25 +20,27 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01531db0` first calls `FUN_0152fa50`. If the editor is modified, that helper asks whether to save, cancel, or continue. Cancel returns without resetting the document; the save choice calls the Save handler without checking its result.
+
+When allowed, the handler clears the SynEdit lines and Undo/Redo state, clears the modified flag, sets form state byte `+0x1c49`, assigns `noname.cir`, updates the displayed path, clears the message list and circuit state, resets recovered global option bytes from form fields, copies the global settings record to the form record, and focuses the message/editor control. The handler has no separate success message.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&New"] -->|OnClick| handler["FUN_01531db0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString assignment helper"]
-    handler --> call3["FUN_00417c40"]
-    handler --> call4["FUN_00441920"]
-    handler --> call5["FUN_00442f70"]
-    handler --> call6["VCL control text setter with change suppression"]
+flowchart TD
+    control["Click New"] --> handler["FUN_01531db0"]
+    handler --> gate["Modified-document prompt when needed"]
+    gate --> allow{"Continue?"}
+    allow -->|No| stop["Keep current document"]
+    allow -->|Yes| clear["Clear editor and Undo/Redo state"]
+    clear --> name["Set noname.cir and update path"]
+    name --> reset["Clear messages and reset circuit/UI state"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001531DB0__FUN_01531db0.c](../../../DecompiledSources/Tina16/functions/0000000001531DB0__FUN_01531db0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Creates a blank `noname.cir` document after the modified-document gate allows it.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MFile.MINew.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -76,5 +78,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The save choice in the modified-document prompt is called without a checked return value.
+- Several reset fields and the final focused control have no recovered Delphi names.

@@ -1,6 +1,6 @@
 ﻿# All
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source, call-path, state, and error evidence reviewed.
 
 ## Control
 
@@ -20,25 +20,34 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The click rebuilds the Component list with either all `DigitalICs` components or only components that match the current filter.
+
+The handler copies filter state from form field `+0x890` and calls [`FUN_00ec06e0`](../../../DecompiledSources/Tina16/functions/0000000000EC06E0__FUN_00ec06e0.c). That helper clears the Component, Footprint, and mapping lists, obtains all `DigitalICs` component names from the current library, and branches on this check box. The checked path adds every name. The clear path compares normalized names with the current filter and adds only matches.
+
+After population, the helper restores the cached component selection when it remains available, otherwise selects the first row. It then rebuilds the dependent Footprint and mapping lists. If no component remains, it only refreshes action availability and retains the cached filter state.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
+flowchart TD
     control["All"] -->|OnClick| handler["FUN_00ec24d0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_00ea9ca0"]
-    handler --> call3["FUN_00ec06e0"]
+    handler --> rebuild["FUN_00ec06e0 clears dependent lists"]
+    rebuild --> checked{"All checked?"}
+    checked -->|Yes| all["Add every DigitalICs component"]
+    checked -->|No| filter["Add only names that match the current filter"]
+    all --> restore["Restore cached selection or select the first row"]
+    filter --> restore
+    restore --> depend["Rebuild Footprint and mapping lists"]
+    depend --> actions["Refresh action availability"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000000EC24D0__FUN_00ec24d0.c](../../../DecompiledSources/Tina16/functions/0000000000EC24D0__FUN_00ec24d0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Toggles between all components and the current filtered component set.
 - Current graph summary: Handles 1 Delphi UI event: PcbForm4.Panel2.cbxShowAllComp.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Passes the current filter to FUN_00ec06e0. That helper clears dependent lists, populates all component names when checked or matching names when clear, restores a cached selection or selects the first item, rebuilds footprints and mappings, and refreshes actions.
+- Current graph evidence: FUN_00ec24d0 copies field +0x890 and calls FUN_00ec06e0. FUN_00ec06e0 reads the check-box state, enumerates DigitalICs names, has separate all and filtered population branches, restores selection, and calls the dependent-list refresh paths. The caption is All.
 - Complexity: complex
 - Distinct outgoing calls: 3
 
@@ -64,7 +73,13 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 - Rank 1: Component list: at distance 351.
 - Rank 2: Footprint list: at distance 361.
 
+## No-op and error behavior
+
+- If the selected filter produces no components, the dependent lists remain clear and action availability is refreshed.
+- Repeated clicks rebuild the lists even when the resulting set is unchanged.
+- The handler has no local backend enumeration recovery.
+
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The Delphi name and exact construction of filter field `+0x890` are not recovered.
+- The string matching uses normalized values, but the complete normalization rules are not recovered.

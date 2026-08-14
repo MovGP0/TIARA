@@ -1,6 +1,6 @@
 ﻿# Apply
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,26 +20,30 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler first checks for an active debugger engine at form offset `+0x1a70`. If no engine is active, the click returns without reading or changing the precision value.
+
+With an active engine, the handler reads the text from `ePrec`, converts it to an integer, writes it to engine field `+0x94`, and calls the shared debugger refresh routine. That precision field controls the numeric formatting used for the current simulation time and debugger values. Invalid integer text follows the Delphi conversion-exception path. The handler has no local error message, recovery, or range check.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Apply"] -->|OnClick| handler["FUN_010a4cb0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_0043fc00"]
-    handler --> call3["VCL control Unicode text reader"]
-    handler --> call4["FUN_010a3d40"]
+flowchart TD
+    control["Click Apply"] -->|"OnClick"| handler["TVerilogADebugger.bApplyPrecClick"]
+    handler --> active{"Debugger engine active?"}
+    active -->|"No"| unchanged["Return without a change"]
+    active -->|"Yes"| read["Read ePrec text"]
+    read --> convert["Convert text to an integer"]
+    convert --> store["Store engine precision at +0x94"]
+    store --> refresh["Refresh debugger values"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000010A4CB0__FUN_010a4cb0.c](../../../DecompiledSources/Tina16/functions/00000000010A4CB0__FUN_010a4cb0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Applies the entered numeric display precision to the active debugger engine.
 - Current graph summary: Handles 1 Delphi UI event: VerilogADebugger.pnToolbar.bApplyPrec.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Reads `ePrec`, converts the text to an integer, stores it in engine precision field `+0x94`, and refreshes the debugger.
+- Current graph evidence: The handler gates the path on form field `+0x1a70`, reads control field `+0x878`, calls the integer conversion helper, writes engine field `+0x94`, and calls [`FUN_010a3d40`](../../../DecompiledSources/Tina16/functions/00000000010A3D40__FUN_010a3d40.c). That refresh routine uses `+0x94` when it formats simulation time.
 - Complexity: complex
 - Distinct outgoing calls: 4
 
@@ -68,5 +72,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The nearby `IterCnt:` and `time:` labels do not identify this control. The handler and `ePrec` field establish the precision operation.
+- The recovered code has no explicit minimum or maximum precision check.
+- An invalid integer can raise through the Delphi conversion path. No local exception handler is present.

@@ -1,6 +1,6 @@
 ﻿# SchEditBox
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,24 +20,26 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler focuses the schematic edit box. If the active command is one of two recovered wire-like tool classes and that tool is active, it also sets the tool's next-click latch. Other active commands only receive the focus change.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["SchEditBox"] -->|OnClick| handler["FUN_01c6d5f0"]
-    handler --> call1["FUN_004113d0"]
-    handler --> call2["FUN_00801e40"]
+flowchart TD
+    control["SchEditBox"] -->|"OnClick"| handler["SchEditBoxClick (01c6d5f0)"]
+    handler --> focus["Focus schematic edit box"]
+    focus --> kind{"Active command is an eligible wire-like tool and active?"}
+    kind -->|"No"| done["Keep command state"]
+    kind -->|"Yes"| arm["Set next-click latch"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C6D5F0__FUN_01c6d5f0.c](../../../DecompiledSources/Tina16/functions/0000000001C6D5F0__FUN_01c6d5f0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Focus the schematic editor and arm an active wire tool.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.EditorPanel.SchEditBox.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler focuses the schematic edit box. If the active command is one of two recovered wire-like tool classes and that tool is active, it also sets the tool's next-click latch. Other active commands only receive the focus change.
+- Current graph evidence: The recovered body calls the edit box focus method, tests the active-command class against two VMT values, checks its active byte, and sets a second byte. The DFM binds this address to SchEditBox.OnClick.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -63,5 +65,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The two command class names and the latched field name are not present in the recovered symbols.
+

@@ -1,17 +1,17 @@
-﻿# Add
+﻿# Add component
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed: the handler creates an empty PCB component definition under a new unique name.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
 | Form | PcbForm |
+| Form caption | PCB information for SPICE macro components |
 | Component path | PcbForm.Panel2.BtnNewComponent |
 | Control class | TBitBtn |
 | Caption | Add |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | Not present |
 | Handler name | BtnNewComponentClick |
 | Handler address | 00ed0e70 |
 | Graph node | `resource:dfm:PcbForm/PcbForm.Panel2.BtnNewComponent` |
@@ -20,67 +20,37 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+1. The handler starts with the saved current component name. When the recovered suffix flag is set, it removes trailing digits before it asks `FUN_00ebd270` to normalize or edit the proposed name.
+2. If the result is nonempty and the backend reports that it does not exist, the handler adds and selects the name, stores it as the current component, and creates a backend component with no footprint definition. It clears the current-footprint field and refreshes dependent lists and the 3D preview.
+3. A duplicate name shows localized message 0x846. Canceling the name prompt is a no-op.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Add"] -->|OnClick| handler["FUN_00ed0e70"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["Delphi UnicodeString assignment helper"]
-    handler --> call4["FUN_00414b50"]
-    handler --> call5["FUN_00416e20"]
-    handler --> call6["FUN_0043e130"]
+flowchart TD
+    control["PcbForm.Panel2.BtnNewComponent"] -->|OnClick| handler["FUN_00ed0e70"]
+    handler --> decision{"New nonempty component name is unique?"}
+    decision -->|Yes| action["Create and select an empty component definition"]
+    decision -->|No| noop["Show duplicate-name error or do nothing after cancel"]
+    action --> outcome["Clear footprint selection and refresh dependent data"]
+    noop --> outcome
 ```
 
-## Handler evidence
+## Handler and call-path evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000000ED0E70__FUN_00ed0e70.c](../../../DecompiledSources/Tina16/functions/0000000000ED0E70__FUN_00ed0e70.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: PcbForm.Panel2.BtnNewComponent.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 15
+- [`FUN_00ed0e70`](../../../DecompiledSources/Tina16/functions/0000000000ED0E70__FUN_00ed0e70.c) — Create a PCB component definition.
+- [`FUN_00ebd270`](../../../DecompiledSources/Tina16/functions/0000000000EBD270__FUN_00ebd270.c) — prompt and normalize a component name.
+- [`FUN_00eccc30`](../../../DecompiledSources/Tina16/functions/0000000000ECCC30__FUN_00eccc30.c) — refresh component-dependent selections.
+- [`FUN_00ed3a60`](../../../DecompiledSources/Tina16/functions/0000000000ED3A60__FUN_00ed3a60.c) — refresh the selected 3D footprint view.
 
-## Direct calls
+## Resource and glyph evidence
 
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00414ad0` — Delphi UnicodeString assignment helper
-- `function:00414b50` — FUN_00414b50
-- `function:00416e20` — FUN_00416e20
-- `function:0043e130` — FUN_0043e130
-- `function:00442f70` — FUN_00442f70
-- `function:0072d440` — FUN_0072d440
-- `function:00b89270` — FUN_00b89270
-- `function:00b8e520` — FUN_00b8e520
-- `function:00ea9ef0` — FUN_00ea9ef0
-- `function:00ebd270` — FUN_00ebd270
-- `function:00ecbca0` — FUN_00ecbca0
-- `function:00ecc050` — FUN_00ecc050
-- `function:00eccc30` — FUN_00eccc30
+- Recovered form resource: [`ui-evidence.json`](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json).
 
-## Resource evidence
+## Inputs, outputs, and limits
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
+- Input: an OnClick event from `PcbForm.Panel2.BtnNewComponent`, plus the current form selections and state described above.
+- State change: Prompts for a unique component name, creates an empty backend definition, selects it, clears the current footprint, and refreshes dependent data.
+- Error or no-op behavior: The decision branches above identify the recovered validation, cancel, confirmation, boundary, or no-op path.
+- Analysis limit: The purpose of the recovered suffix flag is inferred only from its direct trailing-digit removal branch.
 
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Component list: at distance 233.
-- Rank 2: Footprint list: at distance 414.
-- Rank 3: 3D component view: at distance 579.
-
-## Analysis limits
-
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.

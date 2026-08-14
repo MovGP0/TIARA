@@ -1,6 +1,6 @@
 ﻿# Compile
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The recovered shared handler and compiler call establish this control's path.
 
 ## Control
 
@@ -20,21 +20,23 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01532670` calls `FUN_0152fdf0` with compile mode 0. The callee captures the active form context, obtains the editor and circuit objects, and passes them to `FUN_00ee3b90` for compilation. It restores the prior context before it returns.
+
+The handler does not inspect `Sender`, so the toolbar control and `MICompile` use the same path. The wrapper does not test a result or show a separate success message.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Compile"] -->|OnClick| handler["FUN_01532670"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_0152fdf0"]
+flowchart TD
+    control["Click Compile toolbar button"] --> handler["FUN_01532670"]
+    handler --> compile["FUN_0152fdf0 compiles mode 0"]
+    compile --> engine["FUN_00ee3b90 receives editor and circuit"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001532670__FUN_01532670.c](../../../DecompiledSources/Tina16/functions/0000000001532670__FUN_01532670.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Compiles the current Netlist Editor document.
 - Current graph summary: Handles 2 Delphi UI events: NetlistEditor.BtnPanel.CompileButton.OnClick, NetlistEditor.MainMenu.MAnalysis.MICompile.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -63,5 +65,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The handler does not inspect `Sender`; the toolbar button and menu item are behaviorally identical at this wrapper.
+- The recovered compiler call does not expose the meaning of all diagnostic outputs in this handler.

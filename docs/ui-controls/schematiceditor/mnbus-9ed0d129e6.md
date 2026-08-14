@@ -1,6 +1,6 @@
 ﻿# &Bus
 
-> Analysis status: Pending individual source review.
+> Analysis status: Blocked by an exact evidence gap.
 
 ## Control
 
@@ -20,26 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The OnClick binding reaches mnBusClick at 01c92b00. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Bus"] -->|OnClick| handler["FUN_01c92b00"]
-    handler --> call1["FUN_01367900"]
-    handler --> call2["FUN_01c6cee0"]
-    handler --> call3["FUN_01c6d670"]
-    handler --> call4["FUN_01c8cee0"]
+flowchart TD
+    control["&Bus"] -->|"OnClick"| handler["mnBusClick (01c92b00)"]
+    handler --> recovered["Recovered direct call path"]
+    recovered --> gap{"Application responsibility proven?"}
+    gap -->|"No"| blocked["Keep exact behavior unknown"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C92B00__FUN_01c92b00.c](../../../DecompiledSources/Tina16/functions/0000000001C92B00__FUN_01c92b00.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Evidence-blocked mnBusClick command.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.MainMenu.Insert.mnBus.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The OnClick binding reaches mnBusClick at 01c92b00. The recovered body has 4 distinct outgoing graph call(s), but the application-specific responsibilities and data effects of its downstream path are not established in the accepted graph evidence. The control's caption or name indicates user intent only; it is not enough to claim implementation behavior.
+- Current graph evidence: The DFM binds SchematicEditor.MainMenu.Insert.mnBus to mnBusClick. The recovered source is DecompiledSources/Tina16/functions/0000000001C92B00__FUN_01c92b00.c and directly references 01367900, 01c6cee0, 01c6d670, 01c8cee0. No accepted end-to-end role was established for this control path.
 - Complexity: complex
 - Distinct outgoing calls: 4
 
@@ -67,5 +66,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Exact gap: the recovered handler or one of its direct application callees lacks a source-supported role that proves the command's decisions, state changes, and output. Keep this Bead open until those callees are traced.
+

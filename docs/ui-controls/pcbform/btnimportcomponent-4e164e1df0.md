@@ -1,17 +1,17 @@
-﻿# Import
+﻿# Import component
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed: the handler imports selected component definitions from a user-selected file and rebuilds the component list.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
 | Form | PcbForm |
+| Form caption | PCB information for SPICE macro components |
 | Component path | PcbForm.Panel2.BtnImportComponent |
 | Control class | TBitBtn |
 | Caption | Import |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | Not present |
 | Handler name | BtnImportComponentClick |
 | Handler address | 00ed4e00 |
 | Graph node | `resource:dfm:PcbForm/PcbForm.Panel2.BtnImportComponent` |
@@ -20,67 +20,37 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+1. The handler executes its import-file dialog. When accepted, it constructs a parser and a component-selection modal form, loads the selected file in the current PCB-library context, and shows the selection form.
+2. If the selection form returns result 1, the handler iterates the selected imported components. `FUN_00eab320` handles name collisions: it finds a free numeric suffix, asks the user about the proposed replacement name through localized message 0x847, and returns the dialog result.
+3. A result of 6 writes the imported definition under the accepted name. A result of 2 stops the import loop. After cleanup, the handler calls the component-filter handler to rebuild the component list, including after dialog cancellation.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Import"] -->|OnClick| handler["FUN_00ed4e00"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["Delphi UnicodeString array finalization helper"]
-    handler --> call4["FUN_00416ad0"]
-    handler --> call5["FUN_00416ba0"]
-    handler --> call6["FUN_00441920"]
+flowchart TD
+    control["PcbForm.Panel2.BtnImportComponent"] -->|OnClick| handler["FUN_00ed4e00"]
+    handler --> decision{"Import file and component selection accepted?"}
+    decision -->|Yes| action["Resolve name collisions and write selected definitions"]
+    decision -->|No| noop["Skip imported definition writes"]
+    action --> outcome["Destroy temporary objects and rebuild the component list"]
+    noop --> outcome
 ```
 
-## Handler evidence
+## Handler and call-path evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000000ED4E00__FUN_00ed4e00.c](../../../DecompiledSources/Tina16/functions/0000000000ED4E00__FUN_00ed4e00.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: PcbForm.Panel2.BtnImportComponent.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 15
+- [`FUN_00ed4e00`](../../../DecompiledSources/Tina16/functions/0000000000ED4E00__FUN_00ed4e00.c) — Import PCB component definitions.
+- [`FUN_00eab320`](../../../DecompiledSources/Tina16/functions/0000000000EAB320__FUN_00eab320.c) — resolve an imported component-name collision.
+- [`FUN_00ecc070`](../../../DecompiledSources/Tina16/functions/0000000000ECC070__FUN_00ecc070.c) — rebuild the component list.
+- [`FUN_00ece0d0`](../../../DecompiledSources/Tina16/functions/0000000000ECE0D0__FUN_00ece0d0.c) — apply the current component filter.
 
-## Direct calls
+## Resource and glyph evidence
 
-- `function:00410f20` — Nil-safe Delphi object destruction helper
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00414560` — Delphi UnicodeString array finalization helper
-- `function:00416ad0` — FUN_00416ad0
-- `function:00416ba0` — FUN_00416ba0
-- `function:00441920` — FUN_00441920
-- `function:005dc9d0` — FUN_005dc9d0
-- `function:0064dd90` — VCL control Unicode text reader
-- `function:0064de00` — VCL control text setter with change suppression
-- `function:0068bca0` — FUN_0068bca0
-- `function:00724270` — FUN_00724270
-- `function:00724420` — FUN_00724420
-- `function:007fc180` — FUN_007fc180
-- `function:00eab320` — FUN_00eab320
-- `function:00ece0d0` — Handles 1 Delphi UI event: PcbForm.Panel2.cbxShowAllComp.OnClick.
+- Recovered form resource: [`ui-evidence.json`](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json).
 
-## Resource evidence
+## Inputs, outputs, and limits
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
+- Input: an OnClick event from `PcbForm.Panel2.BtnImportComponent`, plus the current form selections and state described above.
+- State change: Loads a selected import file, lets the user select components, resolves duplicate names, writes accepted definitions, and rebuilds the component list.
+- Error or no-op behavior: The decision branches above identify the recovered validation, cancel, confirmation, boundary, or no-op path.
+- Analysis limit: The selected import file format and localized message 0x847 text are not identified by recovered resource strings.
 
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Component list: at distance 279.
-- Rank 2: Footprint list: at distance 460.
-- Rank 3: 3D component view: at distance 625.
-
-## Analysis limits
-
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.

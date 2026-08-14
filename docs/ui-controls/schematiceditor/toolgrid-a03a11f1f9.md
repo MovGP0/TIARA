@@ -1,6 +1,6 @@
 ﻿# Grid On/Off|Turns the grid on or off in the schematic editor
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,24 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads the current schematic-grid setting and applies its opposite value, then refreshes the related UI state.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Grid On/Off|Turns the grid on or off in the schematic editor"] -->|OnClick| handler["FUN_01c73f30"]
-    handler --> call1["FUN_01995220"]
-    handler --> call2["FUN_01995280"]
+flowchart TD
+    control["Grid On/Off|Turns the grid on or off in the schematic editor"] -->|"OnClick"| handler["ToolGridClick (01c73f30)"]
+    handler --> current{"Current checked or visible state"}
+    current -->|"Off"| enable["Set grid visibility: enable"]
+    current -->|"On"| disable["Set grid visibility: disable"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C73F30__FUN_01c73f30.c](../../../DecompiledSources/Tina16/functions/0000000001C73F30__FUN_01c73f30.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Toggle the schematic grid.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.TopToolBar.EditorTools.ToolGrid.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler reads the current schematic-grid setting and applies its opposite value, then refreshes the related UI state.
+- Current graph evidence: The recovered body negates the grid-state byte and passes it to the grid-setting helper. The DFM binds the address to ToolGrid.OnClick.
 - Complexity: moderate
 - Distinct outgoing calls: 2
 
@@ -63,5 +64,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The grid-state field has no recovered Delphi name.
+

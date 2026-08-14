@@ -1,6 +1,6 @@
 ﻿# Absolute path
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered absolute/relative path conversion.
 
 ## Control
 
@@ -20,28 +20,35 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler converts the current WAV path in place. It does nothing during the
+guarded form state, for empty text, for `<embedded>`, or when the project base
+path cannot be derived. If the check box is checked, it joins the project
+directory with the current relative path and normalizes it to an absolute path.
+If it is unchecked, it computes a relative path from the project location to the
+current WAV file. It then writes the result back to the path edit. It does not
+reload the audio file in this handler.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Absolute path"] -->|OnClick| handler["FUN_01127b00"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString array finalization helper"]
-    handler --> call3["FUN_00414b50"]
-    handler --> call4["FUN_00416ad0"]
-    handler --> call5["FUN_0043e420"]
-    handler --> call6["FUN_00441640"]
+    control["Absolute path"] -->|"OnClick"| handler["FUN_01127b00"]
+    handler --> eligible{"Usable non-embedded path and base?"}
+    eligible -->|"No"| noop["Keep path text"]
+    eligible -->|"Yes"| checked{"Checked?"}
+    checked -->|"Yes"| absolute["Join and normalize absolute path"]
+    checked -->|"No"| relative["Compute project-relative path"]
+    absolute --> update["Update path edit"]
+    relative --> update
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001127B00__FUN_01127b00.c](../../../DecompiledSources/Tina16/functions/0000000001127B00__FUN_01127b00.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Convert the WAV reference between absolute and project-relative form.
 - Current graph summary: Handles 1 Delphi UI event: SignalEditorDlg.pnlNotebook.pctrlMode.tsSoundInput.chkbxAbsolutePath.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Guards unusable values, branches on check state, and rewrites the WAV path edit.
+- Current graph evidence: The handler compares against `<embedded>`, queries the check box, and uses separate relative-path and join/normalize call paths.
 - Complexity: complex
 - Distinct outgoing calls: 12
 
@@ -77,5 +84,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered path helpers do not expose filesystem-access errors in this handler.
+- The nearby Max voltage label is unrelated layout evidence.

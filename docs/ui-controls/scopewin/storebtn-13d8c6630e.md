@@ -1,6 +1,6 @@
 ﻿# Store
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered backend store command and captured-storage mode update reviewed.
 
 ## Control
 
@@ -20,13 +20,22 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler sends fixed storage command 2 to virtual slot `+0x148` on the scope backend. When ScopeWin is in Y/T mode, it also selects a stored-trace mode byte: value `0x0f` when the recovered acquisition-state control is inactive, or value 4 when it is active. It copies that mode to the shared global storage byte.
+
+In Y/X mode, the handler leaves these two local storage bytes unchanged after the backend command. The click does not open a file dialog or publish the curve to the application analysis workspace.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Store"] -->|OnClick| handler["FUN_012b01d0"]
+flowchart TD
+    control["Click Store"] --> backend["Send storage command 2 to the scope backend"]
+    backend --> mode{"Scope is in Y/T mode?"}
+    mode -->|No| finish["Keep local storage-mode bytes unchanged"]
+    mode -->|Yes| active{"Recovered acquisition state is active?"}
+    active -->|No| normal["Set storage mode to 0x0f"]
+    active -->|Yes| alternate["Set storage mode to 4"]
+    normal --> global["Copy the mode to shared storage state"]
+    alternate --> global
 ```
 
 ## Handler evidence
@@ -61,4 +70,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The backend implementation of storage command 2 and original enum names for values 0x0f and 4 are not recovered.

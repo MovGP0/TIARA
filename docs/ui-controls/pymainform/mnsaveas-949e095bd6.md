@@ -1,6 +1,6 @@
 ﻿# Save As...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered save dialog, path normalization, file write, and title update reviewed.
 
 ## Control
 
@@ -20,14 +20,20 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler seeds `SaveDialog` with the stored current name and opens it. If the user cancels, it leaves the file and editor state unchanged. If the user accepts, it reads the selected path, applies the recovered path-normalization helper, stores the result as the current name, updates the window caption, writes the editor lines to that path, and marks the editor as not modified.
+
+The recovered handler has no explicit overwrite check, retry, or local error catch.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Save As..."] -->|OnClick| handler["FUN_0146f120"]
-    handler --> call1["FUN_0146f360"]
+flowchart TD
+    control["Click Save As"] --> seed["Seed SaveDialog with the current name"]
+    seed --> accepted{"User accepts SaveDialog?"}
+    accepted -->|No| noAction["Keep the current file state"]
+    accepted -->|Yes| path["Normalize and store the selected path"]
+    path --> title["Update the window caption"]
+    title --> write["Write editor lines and clear modified state"]
 ```
 
 ## Handler evidence
@@ -62,4 +68,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact normalization performed by FUN_0043e1a0 is not recovered as a Delphi name.

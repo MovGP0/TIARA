@@ -1,6 +1,6 @@
 ﻿# Save
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for TIARA-diz.6.7.1607.
 
 ## Control
 
@@ -9,57 +9,40 @@
 | Form | ShapeEdit |
 | Component path | ShapeEdit.TopToolBar.GeneralTools.sbSave |
 | Control class | TSpeedButton |
-| Caption | Not present in the recovered resource. |
+| Caption | Save |
 | Hint | Save |
-| Text | Not present in the recovered resource. |
 | Handler name | SaveClick |
 | Handler address | 01795cf0 |
 | Graph node | `resource:dfm:ShapeEdit/ShapeEdit.TopToolBar.GeneralTools.sbSave` |
 | Handler node | `function:01795cf0` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Validates the current device. If the current name is NONAME.DDB, it shows the save dialog; cancel stops the save. Otherwise it writes to the current path. A successful write clears the dirty flag, stores the chosen path, and updates the interface.
+
+This control shares the recovered handler with `ShapeEdit.MainMenu.mnFile.Save`. This article keeps the resource evidence for this control separate.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Save"] -->|OnClick| handler["FUN_01795cf0"]
-    handler --> call1["FUN_01795eb0"]
+flowchart TD
+    control["Save"] --> handler["SaveClick at 01795cf0"]
+    handler --> step1["Validate current device"]
+    handler --> step2["Unnamed: request path"]
+    handler --> step3["Cancel or invalid: stop"]
+    handler --> step4["Write DDB file"]
+    handler --> step5["Clear dirty state"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001795CF0__FUN_01795cf0.c](../../../DecompiledSources/Tina16/functions/0000000001795CF0__FUN_01795cf0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 2 Delphi UI events: ShapeEdit.TopToolBar.GeneralTools.sbSave.OnClick, ShapeEdit.MainMenu.mnFile.Save.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: simple
-- Distinct outgoing calls: 1
-
-## Direct calls
-
-- `function:01795eb0` — FUN_01795eb0
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: [`0419_ShapeEdit_ShapeEdit_TopToolBar_GeneralTools_sbSave_Glyph_Data.png`](../../../glyph/0419_ShapeEdit_ShapeEdit_TopToolBar_GeneralTools_sbSave_Glyph_Data.png)
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Handler source: [0000000001795CF0__FUN_01795cf0.c](../../../DecompiledSources/Tina16/functions/0000000001795CF0__FUN_01795cf0.c)
+- Extracted glyph 1: [0419_ShapeEdit_ShapeEdit_TopToolBar_GeneralTools_sbSave_Glyph_Data.png](../../../glyph/0419_ShapeEdit_ShapeEdit_TopToolBar_GeneralTools_sbSave_Glyph_Data.png)
+- Recovered path: The handler calls 01795eb0 with Save As flag 0. That helper calls 0179d460, tests NONAME.DDB, conditionally shows the save dialog, calls 017963e0 to write, clears dirty state, stores the path, and updates the UI.
+- Resource context: The recovered TSpeedButton resource uses caption `Save` and hint `Save`. The extracted glyph was visually inspected. It agrees with the recovered resource intent, but the source path remains the behavior proof.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No additional implementation gap was found in the recovered click path.
+- The caption, hint, and glyph support control identity only. They do not replace the recovered handler and callee evidence.
+

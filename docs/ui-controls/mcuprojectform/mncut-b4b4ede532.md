@@ -1,6 +1,6 @@
 ﻿# Cut
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for mnCutClick.
 
 ## Control
 
@@ -20,14 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler forwards the command to the active editor. The editor rejects the operation when editing is protected or no selection exists. Otherwise it starts an edit transaction, extracts the selection, copies it through the editor clipboard path, deletes the selected text without a second confirmation, and closes the transaction. The wrapper has no local error message.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Cut"] -->|OnClick| handler["FUN_0108a8c0"]
-    handler --> call1["FUN_00bf1e50"]
+flowchart TD
+    control["Cut"] -->|OnClick| handler["TMCUProjectForm.mnCutClick<br/>FUN_0108a8c0"]
+    handler --> editor["Invoke active editor cut"]
+    editor --> selection{"Editable selection available?"}
+    selection -->|No| noOp["Leave document unchanged"]
+    selection -->|Yes| cut["Copy selection<br/>Delete selected text<br/>Close edit transaction"]
 ```
 
 ## Handler evidence
@@ -59,7 +62,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

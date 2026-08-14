@@ -1,6 +1,6 @@
 ﻿# Add watch
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered handler and relevant call path reviewed for Addwatch1Click.
 
 ## Control
 
@@ -20,19 +20,21 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler builds a selectable list from every register name reported by the MCU backend. For target type 2 it also appends `PIN0` through `PIN3`. It opens the watch-selection dialog with the current watch list. Canceling preserves the list. On acceptance it clears the current watch list, copies the dialog selection into it, refreshes the watch display, and frees both temporary objects.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Add watch"] -->|OnClick| handler["FUN_0108aad0"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["FUN_004144d0"]
-    handler --> call4["FUN_00416880"]
-    handler --> call5["FUN_00442ae0"]
-    handler --> call6["FUN_004b67b0"]
+flowchart TD
+    control["Add watch"] -->|OnClick| handler["TMCUProjectForm.Addwatch1Click<br/>FUN_0108aad0"]
+    handler --> registers["Build MCU register-name list"]
+    registers --> target{"Target type 2?"}
+    target -->|Yes| pins["Append PIN0 through PIN3"]
+    target -->|No| dialog["Open watch selection dialog"]
+    pins --> dialog
+    dialog --> accepted{"Accepted?"}
+    accepted -->|No| noOp["Keep watch list"]
+    accepted -->|Yes| replace["Replace watch list with dialog selection<br/>Refresh display"]
 ```
 
 ## Handler evidence
@@ -74,7 +76,8 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 - No same-parent label candidate is available.
 
-## Analysis limits
+## Reviewed boundaries
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The explanation comes from the recovered handler and the named call path. The caption, hint, and glyph are supporting UI evidence only.
+- Unnamed virtual calls are described only by the values passed at this call site and by the state that this handler reads or writes.
+- The handler has no local exception recovery unless the behavior section states otherwise.

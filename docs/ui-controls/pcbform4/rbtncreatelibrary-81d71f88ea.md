@@ -1,6 +1,6 @@
 ﻿# Create Library
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source, call-path, state, and error evidence reviewed.
 
 ## Control
 
@@ -20,22 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The click switches the library controls to Create Library mode. It does not create a file by itself.
+
+The radio group has already cleared the sibling Select Library radio when this handler runs. The handler reads that sibling state, disables the existing-library selector, enables the new-library name editor, and enables the Create Library speed button. The paired recovered handler and [`sbtnCreateLibrary` article](sbtncreatelibrary-640f694660.md) confirm the control identities and later creation boundary.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
+flowchart TD
     control["Create Library"] -->|OnClick| handler["FUN_00ec8160"]
+    handler --> sibling["Read the Select Library sibling state"]
+    sibling --> selector["Disable the existing-library selector"]
+    selector --> editor["Enable the new-library name editor"]
+    editor --> create["Enable the Create Library speed button"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000000EC8160__FUN_00ec8160.c](../../../DecompiledSources/Tina16/functions/0000000000EC8160__FUN_00ec8160.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Switches the form to new-library creation mode.
 - Current graph summary: Handles 1 Delphi UI event: PcbForm4.Panel2.rbtnCreateLibrary.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Uses the cleared Select Library sibling state to disable the existing-library selector and enable both the new-library name editor and its Create Library speed button. It does not create or persist a library.
+- Current graph evidence: FUN_00ec8160 reads one radio-button checked state and propagates that state and its inverse through three control enable setters. The paired Select Library handler performs the inverse configuration. FUN_00ec84d0 later reads the enabled name editor and performs creation.
 - Complexity: simple
 - Distinct outgoing calls: 0
 
@@ -59,7 +65,11 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 - Rank 1: Footprint list: at distance 112.
 - Rank 2: Component list: at distance 198.
 
+## No-op and error behavior
+
+- Clicking an already selected Create Library radio reapplies the same enable state.
+- The handler has no backend call, file creation, validation, or error message.
+
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The decompiler exposes controls by form offsets. Their identities are established from the paired radio handlers, the DFM bindings, and the later text-reader path.

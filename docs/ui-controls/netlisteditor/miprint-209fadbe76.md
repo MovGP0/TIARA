@@ -1,6 +1,6 @@
 ﻿# &Print...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The print-dialog gate, line enumeration, and recovered print-job lifecycle establish the action.
 
 ## Control
 
@@ -20,25 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_015322f0` executes the Print dialog at form offset `+0x8c8`. Cancellation returns without starting a print job. On acceptance, it initializes the recovered print context, begins the print pipeline, obtains the document title from the editor, and applies it to the job.
+
+The handler reads the editor line count and loops from index 0 through the final line. For each line, it obtains the text and sends it through the recovered print-line calls. It then closes the print context and finalizes the job. The wrapper has no local exception handler.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Print..."] -->|OnClick| handler["FUN_015322f0"]
-    handler --> call1["FUN_00409900"]
-    handler --> call2["FUN_0040ca00"]
-    handler --> call3["FUN_0040d150"]
-    handler --> call4["FUN_0040f200"]
-    handler --> call5["FUN_0040f590"]
-    handler --> call6["Delphi UnicodeString clear and finalization helper"]
+flowchart TD
+    control["Click Print"] --> handler["FUN_015322f0"]
+    handler --> dialog["Execute Print dialog"]
+    dialog --> accepted{"Accepted?"}
+    accepted -->|No| cancel["Return"]
+    accepted -->|Yes| begin["Initialize print job and title"]
+    begin --> lines["Enumerate all editor lines"]
+    lines --> print["Send each line to print pipeline"]
+    print --> finish["Finalize print job"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000015322F0__FUN_015322f0.c](../../../DecompiledSources/Tina16/functions/00000000015322F0__FUN_015322f0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Prints every Netlist Editor line when the Print dialog is accepted.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MFile.MIPrint.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -76,5 +79,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Printer errors are handled below this wrapper; no status result is returned here.
+- The exact recovered print-layout object types have no Delphi names.

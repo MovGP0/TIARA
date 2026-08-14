@@ -1,6 +1,6 @@
 ﻿# Log
 
-> Analysis status: Pending individual source review.
+> Analysis status: Evidence-backed source review complete.
 
 ## Control
 
@@ -20,23 +20,29 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The VCL changes `cbLog.Checked` before it dispatches this click. If no debugger engine is active at form offset `+0x1a70`, the handler returns and does not apply the checked state.
+
+With an active engine, the handler reads `cbLog.Checked`, writes that Boolean value to engine byte `+0x139ea`, and calls the common debugger refresh routine. Form initialization restores the checkbox from the same engine byte. The recovered source does not show the downstream consumer that turns this staged flag into emitted log records.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Log"] -->|OnClick| handler["FUN_010a4d40"]
-    handler --> call1["FUN_010a3d40"]
+flowchart TD
+    control["Change Log checkbox"] -->|"OnClick"| handler["TVerilogADebugger.cbLogClick"]
+    handler --> active{"Debugger engine active?"}
+    active -->|"No"| unchanged["Return without applying the state"]
+    active -->|"Yes"| read["Read cbLog.Checked"]
+    read --> store["Store the log-option byte at +0x139ea"]
+    store --> refresh["Refresh debugger state"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000010A4D40__FUN_010a4d40.c](../../../DecompiledSources/Tina16/functions/00000000010A4D40__FUN_010a4d40.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Applies the Log checkbox state to the active debugger engine.
 - Current graph summary: Handles 1 Delphi UI event: VerilogADebugger.pnToolbar.cbLog.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Copies `cbLog.Checked` to engine byte `+0x139ea` and refreshes the debugger when an engine is active.
+- Current graph evidence: The handler tests form field `+0x1a70`, gets the Boolean state from checkbox field `+0x930` through VMT slot `+0x260`, writes engine byte `+0x139ea`, and calls [`FUN_010a3d40`](../../../DecompiledSources/Tina16/functions/00000000010A3D40__FUN_010a3d40.c). [`FUN_010a58b0`](../../../DecompiledSources/Tina16/functions/00000000010A58B0__FUN_010a58b0.c) restores the checkbox from that byte when it attaches the engine.
 - Complexity: simple
 - Distinct outgoing calls: 1
 
@@ -62,5 +68,6 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The nearby `IterCnt:` and `time:` labels are layout candidates only and do not explain the checkbox.
+- The recovered sources prove the state transfer to engine byte `+0x139ea`. They do not expose the consumer that emits or stores log records.
+- The handler has no local error path or rollback.

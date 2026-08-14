@@ -1,6 +1,6 @@
 ﻿# Convert circuit to CSV...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered hidden menu, graph traversal, CSV construction, and editor replacement path reviewed.
 
 ## Control
 
@@ -20,19 +20,21 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The recovered resource marks this menu item as disabled and hidden. If code invokes its handler, the handler resets the active circuit graph to its start, creates a temporary string list, and traverses the graph. The traversal accepts element kinds 9, 13, and 14. For each accepted element it builds one comma-separated record with the recovered format `%s,%s,%.4f,%s,%s`.
+
+After the traversal, the handler clears the Python editor and assigns the generated list to it. A further graph-wide callback runs before the editor replacement. The click does not open `SaveDialog` and does not write a CSV file. The exact business names of the three accepted element kinds and the callback are not recovered.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Convert circuit to CSV..."] -->|OnClick| handler["FUN_01471190"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["FUN_004b6930"]
-    handler --> call3["FUN_013b73b0"]
-    handler --> call4["FUN_01471150"]
-    handler --> call5["FUN_0199cfa0"]
-    handler --> call6["FUN_019a4600"]
+flowchart TD
+    control["Invoke Convert circuit to CSV"] --> reset["Reset the active graph to its start"]
+    reset --> scan["Traverse circuit elements"]
+    scan --> kind{"Element kind is 9, 13, or 14?"}
+    kind -->|No| next["Continue traversal"]
+    kind -->|Yes| row["Append a five-field CSV record"]
+    row --> next
+    next --> replace["Clear the editor and assign the generated rows"]
 ```
 
 ## Handler evidence
@@ -72,4 +74,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The resource keeps this command hidden and disabled. The recovered code does not prove a normal user path that enables it.

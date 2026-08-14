@@ -1,6 +1,6 @@
 ﻿# Ellipse
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for TIARA-diz.6.7.1592.
 
 ## Control
 
@@ -9,61 +9,38 @@
 | Form | ShapeEdit |
 | Component path | ShapeEdit.TopToolBar.EditorTools.sbEllipse |
 | Control class | TSpeedButton |
-| Caption | Not present in the recovered resource. |
+| Caption | Ellipse |
 | Hint | Ellipse |
-| Text | Not present in the recovered resource. |
 | Handler name | sbEllipseClick |
 | Handler address | 01795ae0 |
 | Graph node | `resource:dfm:ShapeEdit/ShapeEdit.TopToolBar.EditorTools.sbEllipse` |
 | Handler node | `function:01795ae0` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Creates the recovered ellipse tool object, installs it as the active ShapeEdit interaction tool, and sets the corresponding toolbar button down. A previous active tool is released by the shared installation path. The shared rectangle-family tool receives mode value 1.
+
+This control shares the recovered handler with `ShapeEdit.MainMenu.mnDraw.mnuEllipse`. This article keeps the resource evidence for this control separate.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Ellipse"] -->|OnClick| handler["FUN_01795ae0"]
-    handler --> call1["FUN_0082a6c0"]
-    handler --> call2["FUN_00c5ef40"]
-    handler --> call3["FUN_01794b80"]
+flowchart TD
+    control["Ellipse"] --> handler["sbEllipseClick at 01795ae0"]
+    handler --> step1["Create ellipse tool"]
+    handler --> step2["Replace active interaction tool"]
+    handler --> step3["Set toolbar button down"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000001795AE0__FUN_01795ae0.c](../../../DecompiledSources/Tina16/functions/0000000001795AE0__FUN_01795ae0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 2 Delphi UI events: ShapeEdit.TopToolBar.EditorTools.sbEllipse.OnClick, ShapeEdit.MainMenu.mnDraw.mnuEllipse.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 3
-
-## Direct calls
-
-- `function:0082a6c0` — FUN_0082a6c0
-- `function:00c5ef40` — FUN_00c5ef40
-- `function:01794b80` — FUN_01794b80
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: [`0408_ShapeEdit_ShapeEdit_TopToolBar_EditorTools_sbEllipse_Glyph_Data.png`](../../../glyph/0408_ShapeEdit_ShapeEdit_TopToolBar_EditorTools_sbEllipse_Glyph_Data.png)
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Handler source: [0000000001795AE0__FUN_01795ae0.c](../../../DecompiledSources/Tina16/functions/0000000001795AE0__FUN_01795ae0.c)
+- Extracted glyph 1: [0408_ShapeEdit_ShapeEdit_TopToolBar_EditorTools_sbEllipse_Glyph_Data.png](../../../glyph/0408_ShapeEdit_ShapeEdit_TopToolBar_EditorTools_sbEllipse_Glyph_Data.png)
+- Recovered path: The handler constructs the ellipse tool class, calls 01794b80 to replace field +0xd20, and updates the recovered speed-button state.
+- Resource context: The recovered TSpeedButton resource uses caption `Ellipse` and hint `Ellipse`. The extracted glyph was visually inspected. It agrees with the recovered resource intent, but the source path remains the behavior proof.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No additional implementation gap was found in the recovered click path.
+- The caption, hint, and glyph support control identity only. They do not replace the recovered handler and callee evidence.
+

@@ -1,6 +1,6 @@
-﻿# bCancel
+# Clear the validation blocker and cancel
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the recovered handler, built-in button kind, OK error flag, and form close-query handler.
 
 ## Control
 
@@ -9,9 +9,7 @@
 | Form | MCUKernelImageProperties |
 | Component path | MCUKernelImageProperties.bCancel |
 | Control class | TBitBtn |
-| Caption | Not present in the recovered resource. |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Kind | bkCancel |
 | Handler name | bCancelClick |
 | Handler address | 014155b0 |
 | Graph node | `resource:dfm:MCUKernelImageProperties/MCUKernelImageProperties.bCancel` |
@@ -20,47 +18,36 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`TMCUKernelImageProperties.bCancelClick` has one operation: it clears form byte `+0x780`. The OK handler uses this byte as its validation and processing error flag. `FormCloseQuery` permits the form to close only when this byte is clear.
+
+The button's built-in `bkCancel` kind then requests the standard Cancel modal close. Because the custom click handler clears the blocker first, the close query accepts this request on the recovered path.
+
+The handler does not clear selected file names, selection flags, frame-buffer text, or the check-box state. It does not delete a generated file or undo work that a prior OK attempt completed. The caller's behavior after the Cancel modal result is not recovered in this article, so persistence outside this form remains unknown.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["bCancel"] -->|OnClick| handler["FUN_014155b0"]
+flowchart TD
+    click["Click bCancel"] --> clear["Set form error flag +0x780 to zero"]
+    clear --> request["bkCancel requests a modal Cancel close"]
+    request --> query{"FormCloseQuery sees +0x780 clear?"}
+    query -->|Yes on this path| close["Allow the form to close"]
 ```
 
 ## Handler evidence
 
-- Source: [DecompiledSources/Tina16/functions/00000000014155B0__FUN_014155b0.c](../../../DecompiledSources/Tina16/functions/00000000014155B0__FUN_014155b0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: MCUKernelImageProperties.bCancel.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: simple
-- Distinct outgoing calls: 0
-
-## Direct calls
-
-- No direct call edge is present in the recovered graph.
+- [FUN_014155b0](../../../DecompiledSources/Tina16/functions/00000000014155B0__FUN_014155b0.c) contains only the write of zero to `+0x780`.
+- [FUN_01415220](../../../DecompiledSources/Tina16/functions/0000000001415220__FUN_01415220.c) sets `+0x780` when required inputs are missing, the optional pair is inconsistent, or processing reports an error.
+- [FUN_014155a0](../../../DecompiledSources/Tina16/functions/00000000014155A0__FUN_014155a0.c) sets `CanClose` to the inverse of `+0x780`.
+- The DuckDB graph reports no outgoing calls from the Cancel handler.
 
 ## Resource evidence
 
-- Kind: bkCancel
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Optional at distance 220.
-- Rank 2: Frame buffer end at distance 290.
-- Rank 3: Frame buffer start:  at distance 320.
+- `bCancel` is a `TBitBtn` with kind `bkCancel` and no recovered caption, hint, image, or glyph.
+- Nearby frame-buffer and optional labels do not supply the handler's behavior. The error-flag data flow does.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No recovered modal caller was established for this form. The effect of the Cancel result on caller-owned data is unknown.
+- Clearing the blocker is not a rollback. The handler does not restore any form field.
+

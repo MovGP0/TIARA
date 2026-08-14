@@ -1,6 +1,6 @@
 ﻿# &Transient...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The setup return branch and normal-versus-mixed result branch establish the full flow.
 
 ## Control
 
@@ -20,24 +20,31 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01533570` saves analysis context in mode 2 and calls `FUN_01349310` with analysis selector 0. A nonzero return skips result publication. On zero, the handler checks the active circuit byte at `+0xe28`.
+
+When that byte is clear, it calls `FUN_013d2f60` to create and publish a `Transient` result. When set, it calls `FUN_013e5a30` with two recovered result-data fields to create and publish `Mixed Transient`. The handler restores the prior context on all paths.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Transient..."] -->|OnClick| handler["FUN_01533570"]
-    handler --> call1["FUN_01349310"]
-    handler --> call2["FUN_013d2f60"]
-    handler --> call3["FUN_013e5a30"]
-    handler --> call4["FUN_0152fca0"]
-    handler --> call5["FUN_0152fd80"]
+flowchart TD
+    control["Click Transient"] --> handler["FUN_01533570"]
+    handler --> prepare["Save analysis context in mode 2"]
+    prepare --> setup["FUN_01349310 selector 0"]
+    setup --> zero{"Return is zero?"}
+    zero -->|No| skip["Skip result publication"]
+    zero -->|Yes| mixed{"Circuit +0xe28 set?"}
+    mixed -->|No| normal["Publish Transient result"]
+    mixed -->|Yes| mixedresult["Publish Mixed Transient result"]
+    normal --> restore["Restore prior context"]
+    mixedresult --> restore
+    skip --> restore
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001533570__FUN_01533570.c](../../../DecompiledSources/Tina16/functions/0000000001533570__FUN_01533570.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Runs transient analysis and publishes a normal or mixed transient result.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MAnalysis.MITransient.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -69,5 +76,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact meanings of nonzero setup returns are not recovered.
+- The Delphi name and meaning of circuit byte `+0xe28` are not recovered beyond its normal-versus-mixed branch.

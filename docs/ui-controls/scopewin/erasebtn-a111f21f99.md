@@ -1,6 +1,6 @@
 ﻿# Erase
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered backend erase command, stored-curve trimming, state reconciliation, and redraw reviewed.
 
 ## Control
 
@@ -20,14 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler sends fixed storage command 3 to virtual slot `+0x148` on the scope backend. It then runs the shared curve-update routine with reason 2.
+
+That routine removes trailing stored curves until the collection matches the active channel count, releases cached stored data, chooses a valid current channel, reapplies display and cursor state, and redraws the plot. Current live-channel curves remain; the command targets stored traces. There is no confirmation, undo, or local error branch.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Erase"] -->|OnClick| handler["FUN_012b1db0"]
-    handler --> call1["FUN_012b0230"]
+flowchart TD
+    control["Click Erase"] --> backend["Send storage command 3 to the scope backend"]
+    backend --> trim["Remove stored curves beyond active channels"]
+    trim --> state["Release cached stored data and repair selection"]
+    state --> redraw["Reapply display state and redraw"]
 ```
 
 ## Handler evidence
@@ -62,4 +66,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The backend implementation of storage command 3 is unresolved; collection trimming proves the local erase effect.

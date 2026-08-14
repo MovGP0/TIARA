@@ -1,6 +1,6 @@
 ﻿# &Calculate nodal voltages
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The analysis context, DC solver return branch, and result-form call establish the flow.
 
 ## Control
 
@@ -20,23 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01533110` saves analysis context in mode 2, then calls `FUN_01320bb0` with the active circuit and recovered DC nodal-voltage arguments. If the solver returns zero, the handler calls `FUN_008059a0` to show and refresh the global result form.
+
+A nonzero return skips the result-form call. The prior context is restored on both branches.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Calculate nodal voltages"] -->|OnClick| handler["FUN_01533110"]
-    handler --> call1["FUN_008059a0"]
-    handler --> call2["FUN_01320bb0"]
-    handler --> call3["FUN_0152fca0"]
-    handler --> call4["FUN_0152fd80"]
+flowchart TD
+    control["Click DC Calculate nodal voltages"] --> handler["FUN_01533110"]
+    handler --> prepare["Save analysis context in mode 2"]
+    prepare --> solve["FUN_01320bb0 DC nodal calculation"]
+    solve --> zero{"Return is zero?"}
+    zero -->|Yes| show["Show and refresh result form"]
+    zero -->|No| skip["Skip result form"]
+    show --> restore["Restore prior context"]
+    skip --> restore
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001533110__FUN_01533110.c](../../../DecompiledSources/Tina16/functions/0000000001533110__FUN_01533110.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Runs the DC nodal-voltage calculation and shows its result on a zero solver return.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MAnalysis.MIDCAnalysis.MIDCCalculateNodalVoltages.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -67,5 +72,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact meanings of nonzero solver returns are not recovered.
+- The result table population occurs inside the solver and result form.

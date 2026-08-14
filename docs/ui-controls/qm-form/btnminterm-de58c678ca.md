@@ -1,6 +1,6 @@
 ﻿# Minterm
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered handler, detail-reset callee, and QM form resources.
 
 ## Control
 
@@ -20,23 +20,26 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler selects Minterm input mode. It stores help-context ID `0x1068`, hides the Stop control, hides the Prime Implicant Table form, and calls `FUN_01199b90` to clear and hide the triangular detail memo controls. It sets the recovered mode byte to `1` and copies the model's Minterm index list into the input memo.
+
+This radio button is initially checked in the form resource. The standard radio-button processing changes the checked state before this event runs. A repeated click performs the same reset. This handler does not start minimization.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Minterm"] -->|OnClick| handler["FUN_011a4e30"]
-    handler --> call1["FUN_0064dbe0"]
-    handler --> call2["VCL control text setter with change suppression"]
-    handler --> call3["FUN_00805990"]
-    handler --> call4["FUN_01199b90"]
+flowchart TD
+    control["Select Minterm"] --> handler["TQM_form.BtnmintermClick"]
+    handler --> context["Set help context 0x1068"]
+    context --> hide["Hide Stop and Prime Implicant Table"]
+    hide --> reset["Clear and hide detail memo controls"]
+    reset --> mode["Set Minterm mode"]
+    mode --> input["Load the Minterm index list"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011A4E30__FUN_011a4e30.c](../../../DecompiledSources/Tina16/functions/00000000011A4E30__FUN_011a4e30.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Select Minterm input mode and reset prior detail views.
 - Current graph summary: Handles 1 Delphi UI event: QM_form.GroupBox1.Btnminterm.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -68,5 +71,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered mode field has no Delphi field name.
+- The handler copies the existing model list. It does not validate or minimize the entered terms.

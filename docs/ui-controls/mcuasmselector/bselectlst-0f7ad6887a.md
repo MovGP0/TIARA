@@ -1,7 +1,5 @@
 ﻿# Select &LST...
 
-> Analysis status: Pending individual source review.
-
 ## Control
 
 | Property | Recovered value |
@@ -20,27 +18,31 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler configures the shared open dialog for `*.lst` files and shows it. If the user cancels, it returns without changing the selector's file names or lists.
+
+After an accepted selection, it clears the current LST list. If the input mode changed since the last accepted file operation, it also clears the ASM and HEX lists, clears both stored HEX/LST file-name fields, and updates the mode snapshot. It then reads the dialog file name, stores it as the LST file name, and adds it to the LST list.
+
+The handler also clears the retained flowchart session when the previous mode was flowchart. It does not read or validate the selected file contents. A dialog or string-list exception propagates without a local rollback.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Select &LST..."] -->|OnClick| handler["FUN_01418920"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["Delphi UnicodeString assignment helper"]
-    handler --> call3["FUN_00724270"]
-    handler --> call4["FUN_01417f80"]
-    handler --> call5["FUN_01419960"]
+flowchart TD
+    Control["Select LST click"] --> Filter["Set LST open-dialog filter"]
+    Filter --> Dialog{"Open dialog accepted?"}
+    Dialog -->|No| NoChange["Keep file names and lists unchanged"]
+    Dialog -->|Yes| Clear["Clear LST list<br/>and reset other lists if mode changed"]
+    Clear --> Read["Read selected dialog file name"]
+    Read --> Store["Store LST file name<br/>and add it to the LST list"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001418920__FUN_01418920.c](../../../DecompiledSources/Tina16/functions/0000000001418920__FUN_01418920.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Select and stage the LST input file.
 - Current graph summary: Handles 1 Delphi UI event: MCUAsmSelector.bSelectLST.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Runs the shared open dialog with the LST filter and replaces the staged LST list only after acceptance.
+- Current graph evidence: `FUN_01417f80` sets the filter. The handler guards all list and file-name writes with the dialog result and stores the selected file in form field `+0xF98` and the LST list.
 - Complexity: complex
 - Distinct outgoing calls: 5
 
@@ -69,5 +71,7 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- [Click handler `FUN_01418920`](../../../DecompiledSources/Tina16/functions/0000000001418920__FUN_01418920.c) proves the dialog guard, list clears, file-name assignment, and LST-list update.
+- [Dialog-filter helper `FUN_01417f80`](../../../DecompiledSources/Tina16/functions/0000000001417F80__FUN_01417f80.c) proves the `*.lst` filter.
+- [Dialog file-name getter `FUN_00724270`](../../../DecompiledSources/Tina16/functions/0000000000724270__FUN_00724270.c) proves where the accepted path is read.
+- The recovered handler does not prove that the selected file exists after the dialog closes or that its contents are valid.

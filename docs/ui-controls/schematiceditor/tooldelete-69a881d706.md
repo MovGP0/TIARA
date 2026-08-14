@@ -1,6 +1,6 @@
 ﻿# Delete|Delete the selected component
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,28 +20,27 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler checks the editor mode and selection state. In the embedded editor context it delegates to that editor's delete operation. Otherwise it creates the appropriate schematic delete operation, removes selected objects, and refreshes the view. Sender only affects one localized command-text choice, so the menu, popup, and toolbar controls use the same deletion path.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Delete|Delete the selected component"] -->|OnClick| handler["FUN_01c76c90"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_0041ddd0"]
-    handler --> call3["FUN_00b94e60"]
-    handler --> call4["FUN_00c08110"]
-    handler --> call5["FUN_00f836b0"]
-    handler --> call6["FUN_017baeb0"]
+flowchart TD
+    control["Delete|Delete the selected component"] -->|"OnClick"| handler["mnDeleteClick (01c76c90)"]
+    handler --> context{"Embedded editor active?"}
+    context -->|"Yes"| embedded["Delegate delete to embedded editor"]
+    context -->|"No"| guard{"Schematic deletion allowed and selection present?"}
+    guard -->|"No"| unchanged["Leave state unchanged"]
+    guard -->|"Yes"| remove["Delete selected schematic objects and refresh"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C76C90__FUN_01c76c90.c](../../../DecompiledSources/Tina16/functions/0000000001C76C90__FUN_01c76c90.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Delete the current schematic or embedded-editor selection.
 - Current graph summary: Handles 3 Delphi UI events: SchematicEditor.TopToolBar.EditorTools.ToolDelete.OnClick, SchematicEditor.MainMenu.Edit.mnDelete.OnClick, SchematicEditor.SchPopup.pmDelete.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler checks the editor mode and selection state. In the embedded editor context it delegates to that editor's delete operation. Otherwise it creates the appropriate schematic delete operation, removes selected objects, and refreshes the view. Sender only affects one localized command-text choice, so the menu, popup, and toolbar controls use the same deletion path.
+- Current graph evidence: The recovered body contains the embedded-editor mode branch, selection and command guards, deletion and refresh calls, and one comparison of Sender against a control field for localized text. Three DFM controls share the address.
 - Complexity: complex
 - Distinct outgoing calls: 16
 
@@ -81,5 +80,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact localized undo text selected by the Sender comparison is not recovered as a stable string.
+

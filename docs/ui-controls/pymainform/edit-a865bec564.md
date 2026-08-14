@@ -1,6 +1,6 @@
 ﻿# Edit
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered caret-position and status-panel update path reviewed.
 
 ## Control
 
@@ -20,14 +20,17 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+A click in the main SynEdit control calls the shared caret-status helper. The helper reads the current editor column and row, formats them with two localized resource strings, and writes the result to the bottom status panel. The recovered initial panel caption is ` Line:1 Col:1`.
+
+The click does not change the document text. The same helper is also used after other editor interactions, so the visible row and column can stay synchronized. There is no error branch or local catch.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Edit"] -->|OnClick| handler["FUN_0146f870"]
-    handler --> call1["FUN_0146f8e0"]
+flowchart TD
+    control["Click in the editor"] --> position["Read the caret row and column"]
+    position --> format["Format localized line and column text"]
+    format --> panel["Update the editor-status panel"]
 ```
 
 ## Handler evidence
@@ -62,4 +65,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The resource IDs for the localized line and column labels are known, but their original symbolic constant names are not recovered.

@@ -1,6 +1,6 @@
 ﻿# Show Details
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered handler and mapped detail controls.
 
 ## Control
 
@@ -20,20 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler stores help-context ID `0x1130` and calculates a safe detail depth from the current stage count and the display capacity. It then makes the applicable triangular detail memo controls visible. The first tier can show one more cell than the second tier, and each later tier can show one fewer cell through the seventh tier.
+
+This action reveals detail text that the minimization path already populated. It does not calculate, clear, or rewrite that text. A repeated click leaves the same controls visible. Counts below the display capacity leave the later tiers hidden.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Show Details"] -->|OnClick| handler["FUN_011a4bd0"]
-    handler --> call1["FUN_0064dbe0"]
+flowchart TD
+    control["Click Show Details"] --> handler["TQM_form.Button1Click"]
+    handler --> context["Set help context 0x1130"]
+    context --> depth["Limit detail depth to display capacity"]
+    depth --> reveal["Show valid triangular detail memo cells"]
+    reveal --> unchanged["Keep the existing detail text unchanged"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000011A4BD0__FUN_011a4bd0.c](../../../DecompiledSources/Tina16/functions/00000000011A4BD0__FUN_011a4bd0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Reveal populated Quine-McCluskey stage details.
 - Current graph summary: Handles 1 Delphi UI event: QM_form.GroupBox1.BtnShowres.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -62,5 +67,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered global counters do not have Delphi field names.
+- Visibility does not prove that every applicable memo contains non-empty text.

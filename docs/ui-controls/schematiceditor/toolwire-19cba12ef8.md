@@ -1,6 +1,6 @@
 ﻿# Wire|Click and drag to place wire
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,26 +20,25 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+If editing is allowed and the schematic is not locked, the handler constructs a wire-placement command, replaces the current command, and activates the wire tool button. If the guard fails, it makes no change.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Wire|Click and drag to place wire"] -->|OnClick| handler["FUN_01c6d6f0"]
-    handler --> call1["FUN_01367900"]
-    handler --> call2["FUN_01c6cee0"]
-    handler --> call3["FUN_01c6d670"]
-    handler --> call4["FUN_01c8cee0"]
+flowchart TD
+    control["Wire|Click and drag to place wire"] -->|"OnClick"| handler["ToolWireClick (01c6d6f0)"]
+    handler --> guard{"Editing allowed and schematic unlocked?"}
+    guard -->|"No"| noChange["Keep current command"]
+    guard -->|"Yes"| action["Construct and activate wire tool"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C6D6F0__FUN_01c6d6f0.c](../../../DecompiledSources/Tina16/functions/0000000001C6D6F0__FUN_01c6d6f0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Activate the wire placement tool.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.TopToolBar.EditorTools.ToolWire.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: If editing is allowed and the schematic is not locked, the handler constructs a wire-placement command, replaces the current command, and activates the wire tool button. If the guard fails, it makes no change.
+- Current graph evidence: The body checks the common permission and lock conditions, constructs a command with the recovered wire-tool VMT, passes it to FUN_01c6cee0, and activates the toolbar control through FUN_01c6d670.
 - Complexity: complex
 - Distinct outgoing calls: 4
 
@@ -67,5 +66,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered command class has no Delphi class name.
+

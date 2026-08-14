@@ -1,6 +1,6 @@
 ﻿# Power loss
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,28 +20,26 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads the clicked item's Tag. Depending on current selection state, it either starts a power-selection command or applies that mode to qualifying selected components, recalculates their geometry, and redraws. The four controls select None, Power loss, Power sink, or Power source by their resource identity.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Power loss"] -->|OnClick| handler["FUN_01c89950"]
-    handler --> call1["FUN_00b94e60"]
-    handler --> call2["FUN_01364e80"]
-    handler --> call3["FUN_017be0e0"]
-    handler --> call4["FUN_0198a580"]
-    handler --> call5["FUN_0198d430"]
-    handler --> call6["FUN_01993e20"]
+flowchart TD
+    control["Power loss"] -->|"OnClick"| handler["pmPowerClick (01c89950)"]
+    handler --> tag["Read mode from Sender Tag"]
+    tag --> selection{"Qualifying components already selected?"}
+    selection -->|"No"| tool["Start power-selection command"]
+    selection -->|"Yes"| apply["Apply mode, recalculate geometry, and redraw"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C89950__FUN_01c89950.c](../../../DecompiledSources/Tina16/functions/0000000001C89950__FUN_01c89950.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Select or apply an interactive power mode.
 - Current graph summary: Handles 4 Delphi UI events: SchematicEditor.PopupPower.pmPwrNone.OnClick, SchematicEditor.PopupPower.pmPwrSource.OnClick, SchematicEditor.PopupPower.pmPwrSink.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler reads the clicked item's Tag. Depending on current selection state, it either starts a power-selection command or applies that mode to qualifying selected components, recalculates their geometry, and redraws. The four controls select None, Power loss, Power sink, or Power source by their resource identity.
+- Current graph evidence: The recovered body reads Sender offset 0x18, branches on selection state, constructs a command in one branch, and in the other writes the mode to qualifying objects before geometry and redraw calls. Four captioned popup items share the address.
 - Complexity: complex
 - Distinct outgoing calls: 8
 
@@ -73,5 +71,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The checked-in UI evidence omits the numeric Tag assigned to each named mode.
+

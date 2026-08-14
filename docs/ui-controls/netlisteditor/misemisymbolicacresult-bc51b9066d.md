@@ -1,6 +1,6 @@
 ﻿# Semi-symbolic AC Result
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The wrapper selector and recovered symbolic-result loop establish the semi-symbolic AC result path.
 
 ## Control
 
@@ -20,22 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_015339c0` saves analysis context and calls `FUN_0145ecb0` with selector 1. The callee initializes the same AC symbolic-result pipeline as selector 0 but chooses the selector-1 formatting routines while processing entries. On completion without cancellation, it publishes the result text in the result/equation window.
+
+The handler restores the prior context after the callee returns.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Semi-symbolic AC Result"] -->|OnClick| handler["FUN_015339c0"]
-    handler --> call1["FUN_0145ecb0"]
-    handler --> call2["FUN_0152fca0"]
-    handler --> call3["FUN_0152fd80"]
+flowchart TD
+    control["Click Semi-symbolic AC Result"] --> handler["FUN_015339c0"]
+    handler --> prepare["Save analysis context"]
+    prepare --> action["FUN_0145ecb0 selector 1 AC result"]
+    action --> restore["Restore prior context"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000015339C0__FUN_015339c0.c](../../../DecompiledSources/Tina16/functions/00000000015339C0__FUN_015339c0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Generates and displays the AC result with semi-symbolic selector 1.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MAnalysis.MISymbolic.MISemisymbolicACResult.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -65,5 +67,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact symbolic terms retained by selector 1 are not named in this wrapper.
+- Cancellation is handled inside the callee without a wrapper message.

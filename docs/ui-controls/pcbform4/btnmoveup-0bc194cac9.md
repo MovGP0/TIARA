@@ -1,6 +1,6 @@
 ﻿# Move &Up
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source, call-path, state, and error evidence reviewed.
 
 ## Control
 
@@ -20,28 +20,29 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The click moves the selected pin-to-node mapping up by one row.
+
+The handler proceeds only when the selected index is greater than zero. It swaps the selected and preceding entries in both coordinated mapping lists, decrements the selection, calls [`FUN_00ec7250`](../../../DecompiledSources/Tina16/functions/0000000000EC7250__FUN_00ec7250.c) to rebuild the footprint definition in the new order, and marks the active library entry for later persistence.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Move &Up "] -->|OnClick| handler["FUN_00ec2540"]
-    handler --> call1["Delphi UnicodeString array finalization helper"]
-    handler --> call2["FUN_00416ad0"]
-    handler --> call3["FUN_00416dc0"]
-    handler --> call4["FUN_00416e20"]
-    handler --> call5["FUN_004170c0"]
-    handler --> call6["FUN_00ea9ca0"]
+flowchart TD
+    control["Move Up"] -->|OnClick| handler["FUN_00ec2540"]
+    handler --> movable{"Selected row index greater than zero?"}
+    movable -->|No| noChange["Keep the current order"]
+    movable -->|Yes| swap["Swap the row with its preceding row in both lists"]
+    swap --> select["Select the new upper position"]
+    select --> rebuild["Rebuild the footprint definition and mark the library"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000000EC2540__FUN_00ec2540.c](../../../DecompiledSources/Tina16/functions/0000000000EC2540__FUN_00ec2540.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Moves the selected pin-to-node mapping up by one position.
 - Current graph summary: Handles 1 Delphi UI event: PcbForm4.Panel1.BtnMoveUp.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: When the selected row is not first, swaps it with the preceding row in both coordinated mapping lists, moves the selection up, rebuilds the selected footprint definition, refreshes mapping state, and marks the active library entry.
+- Current graph evidence: FUN_00ec2540 requires ItemIndex > 0, performs paired string swaps at index and index - 1, sets ItemIndex to the decremented value, calls FUN_00ec7250, and sets item-associated state on the current library entry.
 - Complexity: complex
 - Distinct outgoing calls: 7
 
@@ -72,7 +73,11 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 - Rank 2: Swapped node at distance 141.
 - Rank 3: Part: at distance 160.
 
+## No-op and error behavior
+
+- No selection or selection of the first row causes no list, definition, or selection change.
+- The handler has no local exception recovery.
+
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The source proves coordinated reordering in two lists. Their internal item-string encoding is only partly recovered.

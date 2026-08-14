@@ -1,6 +1,6 @@
 ﻿# Assign SystemC DLL...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Individually reviewed.
 
 ## Control
 
@@ -20,28 +20,26 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler initializes and opens a file dialog. If the user accepts and the selected object is compatible, it assigns the chosen DLL path and reports that the SystemC DLL was assigned. Canceling the dialog or selecting an incompatible object produces no assignment.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Assign SystemC DLL..."] -->|OnClick| handler["FUN_01c71fe0"]
-    handler --> call1["FUN_004113f0"]
-    handler --> call2["Delphi UnicodeString clear and finalization helper"]
-    handler --> call3["FUN_00724270"]
-    handler --> call4["FUN_00724420"]
-    handler --> call5["FUN_0072d440"]
-    handler --> call6["FUN_013a9e80"]
+flowchart TD
+    control["Assign SystemC DLL..."] -->|"OnClick"| handler["pmAssignSystemCDLLClick (01c71fe0)"]
+    handler --> dialog["Open DLL file dialog"]
+    dialog --> accepted{"Accepted and selected object compatible?"}
+    accepted -->|"No"| unchanged["Do not assign a DLL"]
+    accepted -->|"Yes"| assign["Store DLL path and report assignment"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001C71FE0__FUN_01c71fe0.c](../../../DecompiledSources/Tina16/functions/0000000001C71FE0__FUN_01c71fe0.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Assign a SystemC DLL to a selected component.
 - Current graph summary: Handles 1 Delphi UI event: SchematicEditor.SchPopup.pmAssignSystemCDLL.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: The handler initializes and opens a file dialog. If the user accepts and the selected object is compatible, it assigns the chosen DLL path and reports that the SystemC DLL was assigned. Canceling the dialog or selecting an incompatible object produces no assignment.
+- Current graph evidence: The recovered body configures the open-dialog fields, tests the modal result, validates the selected object's class or type, writes the selected filename into its field, and emits the literal SystemC DLL assigned. The popup caption is Assign SystemC DLL....
 - Complexity: complex
 - Distinct outgoing calls: 8
 
@@ -73,5 +71,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The compatible component class name is not present in the recovered symbols.
+

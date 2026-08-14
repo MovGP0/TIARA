@@ -1,17 +1,17 @@
-﻿# &All
+﻿# All components
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed: the handler rebuilds the component list for either all components or the current context and tries to preserve the current selection.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
 | Form | PcbForm |
+| Form caption | PCB information for SPICE macro components |
 | Component path | PcbForm.Panel2.cbxShowAllComp |
 | Control class | TCheckBox |
 | Caption | &All |
-| Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Hint | Not present |
 | Handler name | cbxShowAllCompClick |
 | Handler address | 00ece0d0 |
 | Graph node | `resource:dfm:PcbForm/PcbForm.Panel2.cbxShowAllComp` |
@@ -20,54 +20,36 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+1. The handler copies the current component name and calls `FUN_00ecc070` with the checkbox state.
+2. `FUN_00ecc070` clears the component, footprint, and node-map lists and resets the preview. It requests candidate components from the backend. When the checkbox is clear, it filters candidates against the current context after removing a numeric suffix; when checked, it includes all candidates.
+3. The helper restores the previous component when it remains available. Otherwise, it selects the first available component. The click handler then calls `FUN_00ed3a60` to refresh the 3D preview.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&All"] -->|OnClick| handler["FUN_00ece0d0"]
-    handler --> call1["Delphi UnicodeString clear and finalization helper"]
-    handler --> call2["FUN_00ea9ca0"]
-    handler --> call3["FUN_00ecc070"]
-    handler --> call4["FUN_00ed3a60"]
+flowchart TD
+    control["PcbForm.Panel2.cbxShowAllComp"] -->|OnClick| handler["FUN_00ece0d0"]
+    handler --> decision{"All checkbox checked?"}
+    decision -->|Yes| action["Include all backend component candidates"]
+    decision -->|No| noop["Include only context-matching candidates"]
+    action --> outcome["Restore a valid selection and refresh the 3D preview"]
+    noop --> outcome
 ```
 
-## Handler evidence
+## Handler and call-path evidence
 
-- Source: [DecompiledSources/Tina16/functions/0000000000ECE0D0__FUN_00ece0d0.c](../../../DecompiledSources/Tina16/functions/0000000000ECE0D0__FUN_00ece0d0.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: PcbForm.Panel2.cbxShowAllComp.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 4
+- [`FUN_00ece0d0`](../../../DecompiledSources/Tina16/functions/0000000000ECE0D0__FUN_00ece0d0.c) — Toggle the PCB component-list filter.
+- [`FUN_00ecc070`](../../../DecompiledSources/Tina16/functions/0000000000ECC070__FUN_00ecc070.c) — rebuild and filter the PCB component list.
+- [`FUN_00ed3a60`](../../../DecompiledSources/Tina16/functions/0000000000ED3A60__FUN_00ed3a60.c) — refresh the selected 3D footprint view.
 
-## Direct calls
+## Resource and glyph evidence
 
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:00ea9ca0` — FUN_00ea9ca0
-- `function:00ecc070` — FUN_00ecc070
-- `function:00ed3a60` — FUN_00ed3a60
+- Recovered form resource: [`ui-evidence.json`](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json).
 
-## Resource evidence
+## Inputs, outputs, and limits
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
+- Input: an OnClick event from `PcbForm.Panel2.cbxShowAllComp`, plus the current form selections and state described above.
+- State change: Rebuilds the component list for all or context-matching candidates, preserves the current selection when possible, and refreshes dependent state.
+- Error or no-op behavior: The decision branches above identify the recovered validation, cancel, confirmation, boundary, or no-op path.
+- Analysis limit: The exact business name of the unchecked context key is not recovered, so the article does not call it a specific package or library filter.
 
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- Rank 1: Component list: at distance 358.
-- Rank 2: Footprint list: at distance 377.
-- Rank 3: 3D component view: at distance 542.
-
-## Analysis limits
-
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.

@@ -1,6 +1,6 @@
 ﻿# Pin &Order...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Source reviewed for TIARA-diz.6.7.1533.
 
 ## Control
 
@@ -11,69 +11,35 @@
 | Control class | TMenuItem |
 | Caption | Pin &Order... |
 | Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
 | Handler name | mnPinOrderClick |
 | Handler address | 0179a260 |
 | Graph node | `resource:dfm:ShapeEdit/ShapeEdit.MainMenu.Edit.mnPinOrder` |
 | Handler node | `function:0179a260` |
-| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+Builds a modal pin-order list from all pin objects, using each pin name or a numbered fallback. On OK, it writes the order selected in the dialog back to the pins and marks the document dirty. Cancel leaves the order unchanged.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Pin &Order..."] -->|OnClick| handler["FUN_0179a260"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["FUN_004113d0"]
-    handler --> call3["Delphi UnicodeString clear and finalization helper"]
-    handler --> call4["FUN_004169a0"]
-    handler --> call5["FUN_00416cd0"]
-    handler --> call6["FUN_0043f750"]
+flowchart TD
+    control["Pin &Order..."] --> handler["mnPinOrderClick at 0179a260"]
+    handler --> step1["Collect pin names"]
+    handler --> step2["Show pin-order dialog"]
+    handler --> step3["OK: apply order and mark dirty"]
+    handler --> step4["Cancel: no change"]
 ```
 
-## Handler evidence
+## Evidence
 
-- Source: [DecompiledSources/Tina16/functions/000000000179A260__FUN_0179a260.c](../../../DecompiledSources/Tina16/functions/000000000179A260__FUN_0179a260.c)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Handles 1 Delphi UI event: ShapeEdit.MainMenu.Edit.mnPinOrder.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: complex
-- Distinct outgoing calls: 10
-
-## Direct calls
-
-- `function:00410f20` — Nil-safe Delphi object destruction helper
-- `function:004113d0` — FUN_004113d0
-- `function:00414480` — Delphi UnicodeString clear and finalization helper
-- `function:004169a0` — FUN_004169a0
-- `function:00416cd0` — FUN_00416cd0
-- `function:0043f750` — FUN_0043f750
-- `function:004aeac0` — FUN_004aeac0
-- `function:004aedb0` — FUN_004aedb0
-- `function:007fc180` — FUN_007fc180
-- `function:01795670` — FUN_01795670
-
-## Resource evidence
-
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
+- Handler source: [000000000179A260__FUN_0179a260.c](../../../DecompiledSources/Tina16/functions/000000000179A260__FUN_0179a260.c)
 - Extracted glyph: None.
-
-## Nearby label candidates
-
-Nearby labels are layout candidates only. They are not proof of behavior.
-
-- No same-parent label candidate is available.
+- Recovered path: The handler filters class 017a79c0, populates the recovered PinOrder dialog, checks its modal result, updates each pin index from the dialog mapping, and calls 01795670 with 1 on the accepted path.
+- Resource context: The recovered TMenuItem resource uses caption `Pin &Order...`.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- No additional implementation gap was found in the recovered click path.
+- The caption, hint, and glyph support control identity only. They do not replace the recovered handler and callee evidence.
+

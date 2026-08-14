@@ -1,6 +1,6 @@
 ﻿# &Print...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed from the recovered handler, print dialog, and printer-canvas path.
 
 ## Control
 
@@ -20,25 +20,24 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The menu item opens `TPrintDialog`. Canceling it is a no-op. After acceptance, the handler initializes a printer job, copies the `Memo` font to the printer canvas, visits every memo line in order, and draws each line on the printer canvas before ending the job. The recovered wrapper has no page-range decision, pagination branch, progress dialog, or local printer-error recovery.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Print..."] -->|OnClick| handler["FUN_014b5620"]
-    handler --> call1["FUN_00409900"]
-    handler --> call2["FUN_0040ca00"]
-    handler --> call3["FUN_0040d150"]
-    handler --> call4["FUN_0040f200"]
-    handler --> call5["FUN_0040f590"]
-    handler --> call6["Delphi UnicodeString clear and finalization helper"]
+flowchart TD
+    control["Choose Print"] --> handler["FUN_014b5620"]
+    handler --> dialog{"PrintDialog accepted?"}
+    dialog -->|No| noop["Return without printing"]
+    dialog -->|Yes| start["Start printer job and copy Memo font"]
+    start --> lines["Draw each Memo line in order"]
+    lines --> finish["End printer job"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/00000000014B5620__FUN_014b5620.c](../../../DecompiledSources/Tina16/functions/00000000014B5620__FUN_014b5620.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Print all Netlist Viewer memo lines after dialog confirmation.
 - Current graph summary: Handles 1 Delphi UI event: NetlistViewer.MainMenu.MFile.MIPrint.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -76,5 +75,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The printer helpers' recovered symbols do not expose units, margins, or page-break policy.
+- Printer exceptions follow the normal Delphi exception path.

@@ -1,6 +1,6 @@
 ﻿# Set &Font...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Reviewed against the recovered font-dialog path.
 
 ## Control
 
@@ -20,25 +20,29 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler reads the current editor font, copies it into the form's
+`TFontDialog`, and shows the dialog. Cancel returns without changing the editor.
+If the dialog is accepted, the handler applies the selected font back to the
+editor. No file or signal-model state is changed.
 
 ## Click flow
 
 ```mermaid
 flowchart LR
-    control["Set &Font..."] -->|OnClick| handler["FUN_01127440"]
-    handler --> call1["FUN_00725900"]
-    handler --> call2["FUN_00bf2c10"]
-    handler --> call3["FUN_00bfafa0"]
+    control["Set Font"] -->|"OnClick"| handler["FUN_01127440"]
+    handler --> seed["Copy editor font into FontDialog"]
+    seed --> accepted{"Dialog accepted?"}
+    accepted -->|"No"| unchanged["Keep current font"]
+    accepted -->|"Yes"| apply["Apply selected font to editor"]
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001127440__FUN_01127440.c](../../../DecompiledSources/Tina16/functions/0000000001127440__FUN_01127440.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Change the user-defined editor font through the VCL font dialog.
 - Current graph summary: Handles 1 Delphi UI event: SignalEditorDlg.PopupMenu.pmiSetFont.OnClick.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
+- Current graph behavior: Seeds, shows, and conditionally applies the form's `TFontDialog`.
+- Current graph evidence: The handler reads the editor font, calls the dialog virtual method, and applies the dialog font only when the result is nonzero.
 - Complexity: complex
 - Distinct outgoing calls: 3
 
@@ -65,5 +69,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The exact font properties are managed by VCL objects and are not enumerated in this handler.
+- Cancel is a verified no-op.

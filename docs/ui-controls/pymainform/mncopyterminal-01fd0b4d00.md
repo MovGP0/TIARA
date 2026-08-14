@@ -1,6 +1,6 @@
 ﻿# Copy
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered whole-terminal selection and clipboard-copy path reviewed.
 
 ## Control
 
@@ -20,15 +20,18 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+The handler first selects the complete terminal document, from line 1 column 1 through the final character. It then copies that selection to the clipboard. The copy helper writes standard clipboard text and the SynEdit-specific selection-mode payload.
+
+This menu command therefore copies all terminal text, not only an existing partial selection. If the terminal is empty, the clipboard helper returns without writing. The full-document selection remains the active terminal selection after the operation.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["Copy"] -->|OnClick| handler["FUN_0146f180"]
-    handler --> call1["FUN_00bf1d60"]
-    handler --> call2["FUN_00bfa390"]
+flowchart TD
+    control["Click Copy"] --> select["Select the complete terminal document"]
+    select --> empty{"Selection is empty?"}
+    empty -->|Yes| noAction["Leave the clipboard unchanged"]
+    empty -->|No| copy["Write text and SynEdit selection mode to the clipboard"]
 ```
 
 ## Handler evidence
@@ -64,4 +67,4 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 ## Analysis limits
 
 - Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- Clipboard ownership and later clipboard-conversion behavior are handled by the VCL and operating system, outside this handler.

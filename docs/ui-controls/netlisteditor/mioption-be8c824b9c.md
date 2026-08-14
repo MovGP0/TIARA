@@ -1,6 +1,6 @@
 ﻿# &Options...
 
-> Analysis status: Pending individual source review.
+> Analysis status: Complete. The copied settings, modal-result test, and conditional commit establish the dialog transaction.
 
 ## Control
 
@@ -20,22 +20,28 @@
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`FUN_01533b40` creates the recovered Options dialog class through `FUN_014f15b0`, passing the current global simulation-settings record. It executes the dialog modally and tests the result.
+
+When the modal result is 1 (`mrOk`), the handler copies the dialog's settings record back to the global record. Other results leave the global record unchanged. The dialog is always destroyed.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["&Options..."] -->|OnClick| handler["FUN_01533b40"]
-    handler --> call1["Nil-safe Delphi object destruction helper"]
-    handler --> call2["FUN_00417c40"]
-    handler --> call3["FUN_014f15b0"]
+flowchart TD
+    control["Click Options"] --> handler["FUN_01533b40"]
+    handler --> create["Create Options dialog from current settings"]
+    create --> modal["Execute modal dialog"]
+    modal --> ok{"Modal result is mrOk?"}
+    ok -->|Yes| commit["Copy dialog settings to global record"]
+    ok -->|No| keep["Keep original settings"]
+    commit --> destroy["Destroy dialog"]
+    keep --> destroy
 ```
 
 ## Handler evidence
 
 - Source: [DecompiledSources/Tina16/functions/0000000001533B40__FUN_01533b40.c](../../../DecompiledSources/Tina16/functions/0000000001533B40__FUN_01533b40.c)
-- Recovered role: Not present in the recovered resource.
+- Recovered role: Opens the Options dialog and commits its settings only when the dialog returns OK.
 - Current graph summary: Handles 1 Delphi UI event: NetlistEditor.MainMenu.MAnalysis.MIOption.OnClick.
 - Current graph behavior: Not present in the recovered resource.
 - Current graph evidence: Not present in the recovered resource.
@@ -65,5 +71,5 @@ Nearby labels are layout candidates only. They are not proof of behavior.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- Do not replace the pending status until the handler source and relevant call path provide enough evidence.
+- The recovered settings record fields are not named in this wrapper.
+- Validation and user-facing errors occur inside the Options dialog.

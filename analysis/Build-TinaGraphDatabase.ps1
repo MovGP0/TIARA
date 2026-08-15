@@ -154,6 +154,50 @@ CHECKPOINT;
         }
     }
 
+    $expectedTraceCounts = @('0', '0', '0')
+    if ([System.IO.File]::Exists($resolvedDatabasePath))
+    {
+        $traceTableResult = & $duckDbCommand.Source $resolvedDatabasePath `
+            -readonly `
+            -noheader `
+            -list `
+            -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'main' AND table_name = 'rust_ui_traceability';"
+        if ($LASTEXITCODE -ne 0)
+        {
+            throw "DuckDB Rust UI trace-table inspection failed with exit code $LASTEXITCODE."
+        }
+
+        if (($traceTableResult | Select-Object -Last 1) -eq '1')
+        {
+            $traceCountResult = & $duckDbCommand.Source $resolvedDatabasePath `
+                -readonly `
+                -noheader `
+                -list `
+                -c "SELECT concat_ws('|', count(*), count(DISTINCT source_file), count(DISTINCT screenshot_path)) FROM rust_ui_traceability;"
+            if ($LASTEXITCODE -ne 0)
+            {
+                throw "DuckDB Rust UI trace count failed with exit code $LASTEXITCODE."
+            }
+            $expectedTraceCounts = ($traceCountResult | Select-Object -Last 1).Split('|')
+
+            $duckDbPreviousPath = $resolvedDatabasePath.Replace('\', '/').Replace("'", "''")
+            $copyTraceSql = @"
+ATTACH '$duckDbPreviousPath' AS previous_graph (READ_ONLY);
+INSERT INTO rust_ui_traceability
+SELECT * FROM previous_graph.rust_ui_traceability;
+DETACH previous_graph;
+CHECKPOINT;
+"@
+            & $duckDbCommand.Source $temporaryDatabasePath `
+                -bail `
+                -c $copyTraceSql
+            if ($LASTEXITCODE -ne 0)
+            {
+                throw "DuckDB Rust UI trace copy failed with exit code $LASTEXITCODE."
+            }
+        }
+    }
+
     $integritySql = @'
 SELECT concat_ws('|',
   (SELECT count(*) FROM nodes),
@@ -166,7 +210,10 @@ SELECT concat_ws('|',
   (SELECT count(*) FROM (SELECT node_id FROM layer_nodes GROUP BY node_id HAVING count(*) > 1)),
   (SELECT count(*) FROM function_annotations),
   (SELECT count(DISTINCT source_file) FROM function_annotations),
-  (SELECT count(DISTINCT address) FROM function_annotations)
+  (SELECT count(DISTINCT address) FROM function_annotations),
+  (SELECT count(*) FROM rust_ui_traceability),
+  (SELECT count(DISTINCT source_file) FROM rust_ui_traceability),
+  (SELECT count(DISTINCT screenshot_path) FROM rust_ui_traceability)
 );
 '@
     $integrityResult = & $duckDbCommand.Source $temporaryDatabasePath `
@@ -180,7 +227,7 @@ SELECT concat_ws('|',
     }
 
     $counts = ($integrityResult | Select-Object -Last 1).Split('|')
-    if ($counts.Count -ne 11)
+    if ($counts.Count -ne 14)
     {
         throw "DuckDB returned an invalid graph validation result."
     }
@@ -205,6 +252,14 @@ SELECT concat_ws('|',
     )
     {
         throw "DuckDB did not preserve the function annotation table."
+    }
+    if (
+        [long]$counts[11] -ne [long]$expectedTraceCounts[0] -or
+        [long]$counts[12] -ne [long]$expectedTraceCounts[1] -or
+        [long]$counts[13] -ne [long]$expectedTraceCounts[2]
+    )
+    {
+        throw "DuckDB did not preserve the Rust UI traceability table."
     }
 
     if ([System.IO.File]::Exists($resolvedDatabasePath))
@@ -233,6 +288,8 @@ SELECT concat_ws('|',
     Write-Output "Layers: $($counts[2])"
     Write-Output "Function annotations: $($counts[8])"
     Write-Output "Annotation sources: $($counts[9])"
+    Write-Output "Rust UI trace rows: $($counts[11])"
+    Write-Output "Rust UI trace sources: $($counts[12])"
     Write-Output "Bytes: $databaseSize"
     Write-Output "Source JSON removed: $($RemoveGraphJson.IsPresent)"
 }

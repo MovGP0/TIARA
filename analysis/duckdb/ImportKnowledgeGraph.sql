@@ -1,4 +1,4 @@
-SET threads = 4;
+﻿SET threads = 4;
 SET preserve_insertion_order = false;
 
 CREATE TEMP TABLE graph_source AS
@@ -36,7 +36,7 @@ FROM graph_source;
 
 CREATE TABLE storage_metadata AS
 SELECT
-  2 AS schema_version,
+  3 AS schema_version,
   sha256(content) AS source_sha256,
   size AS source_bytes,
   current_timestamp AS imported_at
@@ -56,6 +56,23 @@ CREATE TABLE function_annotations (
   evidence VARCHAR,
   tags VARCHAR[] NOT NULL,
   PRIMARY KEY (source_file, address)
+);
+
+CREATE TABLE rust_ui_traceability (
+  source_file VARCHAR NOT NULL,
+  trace_id VARCHAR NOT NULL,
+  bead_id VARCHAR NOT NULL,
+  screenshot_path VARCHAR NOT NULL,
+  form_resource VARCHAR NOT NULL,
+  component_path VARCHAR NOT NULL,
+  handler_address VARCHAR,
+  ghidra_source_path VARCHAR,
+  rust_crate VARCHAR NOT NULL,
+  rust_module_path VARCHAR NOT NULL,
+  rust_symbol VARCHAR NOT NULL,
+  implementation_scope VARCHAR NOT NULL,
+  notes VARCHAR,
+  PRIMARY KEY (source_file, trace_id)
 );
 
 CREATE TABLE nodes AS
@@ -130,6 +147,13 @@ SELECT
   count(DISTINCT source_file) AS source_count,
   count(DISTINCT address) AS address_count
 FROM function_annotations;
+
+CREATE VIEW rust_ui_traceability_statistics AS
+SELECT
+  count(*) AS trace_row_count,
+  count(DISTINCT source_file) AS source_count,
+  count(DISTINCT screenshot_path) AS screenshot_count
+FROM rust_ui_traceability;
 
 CREATE VIEW node_layers AS
 SELECT

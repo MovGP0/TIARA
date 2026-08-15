@@ -1,0 +1,16 @@
+[package]
+name = "tiara-ui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Iced user interface for TIARA"
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+iced.workspace = true
+iced_aw.workspace = true
+tiara-core = { path = "../tiara-core" }
+
+[lints]
+workspace = true

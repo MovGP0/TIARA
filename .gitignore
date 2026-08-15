@@ -21,11 +21,15 @@ target
 #.idea/
 
 # Beads / Dolt files (added by bd init)
+.beads/
 .dolt/
 *.db
 .beads-credential-key
-.beads/proxieddb/
 *.gate.lock*
+
+# Local agent state and temporary files
+.claude/
+.codex/
 .temp/
 
 # Generated Understand Anything dashboard compatibility file

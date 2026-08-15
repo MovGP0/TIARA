@@ -8,9 +8,13 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+csv.workspace = true
 iced.workspace = true
 iced_aw.workspace = true
+rfd.workspace = true
 tiara-core = { path = "../tiara-core" }
+walkdir.workspace = true
+xmltree.workspace = true
 
 [lints]
 workspace = true

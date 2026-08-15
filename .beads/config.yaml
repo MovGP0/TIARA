@@ -1,4 +1,4 @@
-# Beads Configuration File
+﻿# Beads Configuration File
 # This file configures default behavior for all bd commands in this repository
 # All settings can also be set via environment variables (BD_* prefix)
 # or overridden with command-line flags
@@ -72,3 +72,6 @@
 # - github.token    → use GITHUB_TOKEN env var instead
 
 sync.remote: "git+https://github.com/MovGP0/TIARA.git"
+dolt:
+  pool-read-timeout: 5m
+  pool-write-timeout: 5m

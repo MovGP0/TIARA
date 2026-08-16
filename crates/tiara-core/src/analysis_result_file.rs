@@ -52,6 +52,21 @@ pub trait AnalysisResultPayload {
     fn write_payload(&self, output: &mut dyn Write) -> io::Result<()>;
 }
 
+/// Shared storage boundary for a named curve inside an analysis-result file.
+///
+/// The clean-room UI can validate and route a curve rename without knowing the
+/// unrecovered binary container encoding. A format implementation owns the
+/// read-modify-write operation.
+pub trait AnalysisResultCurveStore {
+    /// Replaces one curve name and persists the changed result file.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first result-file read, format, index, write, or flush
+    /// error.
+    fn rename_curve(&mut self, path: &Path, curve_index: usize, new_name: &str) -> io::Result<()>;
+}
+
 /// Ports Ghidra function `FUN_012d19f0` at `0x012D19F0`.
 ///
 /// The database identifies the original responsibility as the shared writer

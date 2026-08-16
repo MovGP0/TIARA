@@ -1,8 +1,9 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use iced::widget::{button, checkbox, column, row, text, text_input};
 use iced::{Alignment, Element, Length, Task};
 use rfd::AsyncFileDialog;
+use tiara_core::circuit_files::{count_matching_files, matching_files, stem_before_first_dot};
 
 pub const TITLE: &str = "Decrypt Circuits";
 pub const FORM_RESOURCE: &str = "DecryptCircuits";
@@ -19,6 +20,32 @@ pub struct DecryptCircuitsRequest {
     pub source_folder: String,
     pub target_folder: String,
     pub target_prefix: String,
+}
+
+pub trait CircuitTransformer {
+    /// Loads the source circuit and writes a fresh target circuit.
+    ///
+    /// A false result means that the source did not produce a circuit and the
+    /// caller must skip the output without stopping the batch.
+    ///
+    /// # Errors
+    ///
+    /// Returns a text error when the circuit cannot be loaded or serialized.
+    fn rewrite(&mut self, source: &Path, target: &Path) -> Result<bool, String>;
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct BatchProgress {
+    pub current: usize,
+    pub total: usize,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct DecryptBatchResult {
+    pub discovered: usize,
+    pub processed: usize,
+    pub written: usize,
+    pub cancelled: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -153,6 +180,55 @@ impl Window {
         });
     }
 
+    /// Ports Ghidra function `FUN_012f5900` at `0x012F5900`.
+    ///
+    /// The recovered coordinator runs only after the Decrypt Circuits dialog
+    /// is accepted. It counts and enumerates direct `*.tsc` matches, rewrites
+    /// each successfully loaded circuit to `target/stem + prefix + .tsc`,
+    /// updates progress, and checks cancellation between files. Completed
+    /// outputs are retained. The accepted settings are persisted after normal
+    /// completion or cancellation, but not after a propagated transformer or
+    /// enumeration error.
+    ///
+    /// # Errors
+    ///
+    /// Returns a text error when file discovery, circuit loading, or circuit
+    /// serialization fails.
+    pub fn run_accepted_batch<T, C, P>(
+        &mut self,
+        transformer: &mut T,
+        is_cancelled: C,
+        update_progress: P,
+    ) -> Result<DecryptBatchResult, String>
+    where
+        T: CircuitTransformer,
+        C: FnMut() -> bool,
+        P: FnMut(BatchProgress),
+    {
+        let Some(request) = self.accepted_request.clone() else {
+            return Ok(DecryptBatchResult::default());
+        };
+
+        let source_folder = Path::new(&request.source_folder);
+        let total =
+            count_matching_files(source_folder, "*.tsc").map_err(|error| error.to_string())?;
+        let sources = matching_files(source_folder, "*.tsc").map_err(|error| error.to_string())?;
+        let result = process_circuit_paths(
+            &request,
+            &sources,
+            total,
+            transformer,
+            is_cancelled,
+            update_progress,
+        )?;
+        self.load_decrypt_circuits_settings(&StoredSettings {
+            source_folder: request.source_folder,
+            target_folder: request.target_folder,
+            target_prefix: request.target_prefix,
+        });
+        Ok(result)
+    }
+
     #[must_use]
     pub fn view(&self) -> Element<'_, Message> {
         column![
@@ -195,6 +271,57 @@ impl Window {
         .spacing(14)
         .into()
     }
+}
+
+fn process_circuit_paths<T, C, P>(
+    request: &DecryptCircuitsRequest,
+    sources: &[PathBuf],
+    total: usize,
+    transformer: &mut T,
+    mut is_cancelled: C,
+    mut update_progress: P,
+) -> Result<DecryptBatchResult, String>
+where
+    T: CircuitTransformer,
+    C: FnMut() -> bool,
+    P: FnMut(BatchProgress),
+{
+    let mut result = DecryptBatchResult {
+        discovered: total,
+        ..DecryptBatchResult::default()
+    };
+    update_progress(BatchProgress {
+        current: 0,
+        total: result.discovered,
+    });
+
+    for source in sources {
+        let file_name = source
+            .file_name()
+            .and_then(|name| name.to_str())
+            .ok_or_else(|| format!("source path has no Unicode filename: {}", source.display()))?;
+        let output_name = format!(
+            "{}{}.tsc",
+            stem_before_first_dot(file_name),
+            request.target_prefix
+        );
+        let target = Path::new(&request.target_folder).join(output_name);
+        if transformer.rewrite(source, &target)? {
+            result.written += 1;
+        }
+        result.processed += 1;
+        update_progress(BatchProgress {
+            current: result.processed,
+            total: result.discovered,
+        });
+
+        if is_cancelled() {
+            result.cancelled = true;
+            break;
+        }
+    }
+
+    Ok(result)
 }
 
 async fn pick_folder(initial_folder: String) -> Option<PathBuf> {
@@ -313,5 +440,106 @@ mod tests {
             window.target_folder,
             Path::new("new target").to_string_lossy()
         );
+    }
+
+    #[derive(Default)]
+    struct Transformer {
+        paths: Vec<(PathBuf, PathBuf)>,
+        skip_first: bool,
+    }
+
+    impl CircuitTransformer for Transformer {
+        fn rewrite(&mut self, source: &Path, target: &Path) -> Result<bool, String> {
+            self.paths
+                .push((source.to_path_buf(), target.to_path_buf()));
+            let write = !self.skip_first || self.paths.len() > 1;
+            Ok(write)
+        }
+    }
+
+    #[test]
+    fn batch_uses_first_dot_stem_skips_failed_load_and_cancels_between_files() {
+        let request = DecryptCircuitsRequest {
+            source_folder: "source".to_owned(),
+            target_folder: "target".to_owned(),
+            target_prefix: "_m".to_owned(),
+        };
+        let sources = vec![
+            PathBuf::from("source/filter.old.tsc"),
+            PathBuf::from("source/amplifier.tsc"),
+        ];
+        let mut transformer = Transformer {
+            skip_first: true,
+            ..Transformer::default()
+        };
+        let mut progress = Vec::new();
+        let mut cancellation_checks = 0;
+
+        let result = process_circuit_paths(
+            &request,
+            &sources,
+            2,
+            &mut transformer,
+            || {
+                cancellation_checks += 1;
+                cancellation_checks == 1
+            },
+            |value| progress.push(value),
+        )
+        .expect("batch");
+
+        assert_eq!(
+            result,
+            DecryptBatchResult {
+                discovered: 2,
+                processed: 1,
+                written: 0,
+                cancelled: true,
+            }
+        );
+        assert_eq!(
+            transformer.paths,
+            [(
+                PathBuf::from("source/filter.old.tsc"),
+                PathBuf::from("target/filter_m.tsc")
+            )]
+        );
+        assert_eq!(
+            progress,
+            [
+                BatchProgress {
+                    current: 0,
+                    total: 2,
+                },
+                BatchProgress {
+                    current: 1,
+                    total: 2,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn accepted_empty_source_persists_settings_and_reports_zero_progress() {
+        let mut window = Window {
+            accepted_request: Some(DecryptCircuitsRequest {
+                source_folder: "missing-tiara-decrypt-source".to_owned(),
+                target_folder: "target".to_owned(),
+                target_prefix: "_decoded".to_owned(),
+            }),
+            ..Window::default()
+        };
+        let mut transformer = Transformer::default();
+        let mut progress = Vec::new();
+
+        let result = window
+            .run_accepted_batch(&mut transformer, || false, |value| progress.push(value))
+            .expect("batch");
+
+        assert_eq!(result, DecryptBatchResult::default());
+        assert_eq!(progress, [BatchProgress::default()]);
+        assert_eq!(window.source_folder, "missing-tiara-decrypt-source");
+        assert_eq!(window.target_folder, "target");
+        assert_eq!(window.target_prefix, "_decoded");
     }
 }

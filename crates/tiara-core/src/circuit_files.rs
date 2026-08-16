@@ -19,13 +19,10 @@ impl std::fmt::Display for FileDiscoveryError {
 
 impl std::error::Error for FileDiscoveryError {}
 
-/// Ports Ghidra function `FUN_012f4ad0` at `0x012F4AD0`.
+/// Finds direct files that match a shell-style mask.
 ///
-/// The recovered function joins a folder and supplied file mask and counts
-/// each direct file-system match. The `glob` crate supplies the maintained
-/// shell-pattern implementation. Matching is ASCII case-insensitive to retain
-/// the observed Windows behavior. A missing folder or an empty match returns
-/// zero.
+/// The `glob` crate supplies the maintained pattern and enumeration behavior.
+/// Matching is ASCII case-insensitive to retain the observed Windows behavior.
 ///
 /// # Errors
 ///
@@ -41,13 +38,27 @@ pub fn matching_files(folder: &Path, mask: &str) -> Result<Vec<PathBuf>, FileDis
     let entries = glob_with(&pattern, options).map_err(FileDiscoveryError::InvalidMask)?;
 
     entries
-        .map(|entry| entry.map_err(|error| FileDiscoveryError::Read(error.into_error())))
+        .map(|entry| entry.map_err(|error| FileDiscoveryError::Read(error.into())))
         .filter_map(|entry| match entry {
             Ok(path) if path.is_file() => Some(Ok(path)),
             Ok(_) => None,
             Err(error) => Some(Err(error)),
         })
         .collect()
+}
+
+/// Ports Ghidra function `FUN_012f4ad0` at `0x012F4AD0`.
+///
+/// The recovered function joins a folder and supplied file mask and counts
+/// each direct file-system match. A missing folder or an empty match returns
+/// zero.
+///
+/// # Errors
+///
+/// Returns [`FileDiscoveryError`] when the mask is invalid or an enumerated
+/// path cannot be read.
+pub fn count_matching_files(folder: &Path, mask: &str) -> Result<usize, FileDiscoveryError> {
+    matching_files(folder, mask).map(|files| files.len())
 }
 
 /// Ports Ghidra function `FUN_012f5840` at `0x012F5840`.
@@ -76,6 +87,13 @@ mod tests {
     fn missing_folder_has_no_matches() {
         let folder = Path::new("path-that-does-not-exist-for-tiara-tests");
 
-        assert_eq!(matching_files(folder, "*.tsc").expect("valid mask"), []);
+        assert_eq!(
+            matching_files(folder, "*.tsc").expect("valid mask"),
+            Vec::<PathBuf>::new()
+        );
+        assert_eq!(
+            count_matching_files(folder, "*.tsc").expect("valid mask"),
+            0
+        );
     }
 }

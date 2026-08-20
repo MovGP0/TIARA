@@ -1,4 +1,5 @@
 use iced::Element;
+use tiara_core::analysis_result_publishing::AnalysisResultManager;
 
 use crate::shared::window_shell;
 
@@ -6,7 +7,8 @@ pub const TITLE: &str = "Analysis results";
 pub const SCREENSHOT: &str = "screenshots/Analysis_results_window.png";
 pub const FORM_RESOURCE: &str = "DFWindow";
 pub const ORIGINAL_FUNCTION: Option<&str> = Some("01a72620");
-const STATUS: &str = "Ready";
+const READY_STATUS: &str = "Ready";
+const PUBLISHED_STATUS: &str = "Result published";
 const MENUS: &[(&str, &[&str])] = &[
     (
         "File",
@@ -40,6 +42,7 @@ const TOOLBAR: &[&str] = &[
 #[derive(Debug, Default)]
 pub struct Window {
     command_selected: bool,
+    result_manager: AnalysisResultManager,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -52,13 +55,37 @@ impl Window {
         self.command_selected = true;
     }
 
+    #[must_use]
+    pub const fn result_manager(&self) -> &AnalysisResultManager {
+        &self.result_manager
+    }
+
+    pub const fn result_manager_mut(&mut self) -> &mut AnalysisResultManager {
+        &mut self.result_manager
+    }
+
+    #[must_use]
+    pub fn active_result_title(&self) -> Option<&str> {
+        self.result_manager
+            .active_result()
+            .map(|result| result.title.as_str())
+    }
+
     /// Builds the controls associated with `SCREENSHOT` and `FORM_RESOURCE`.
     /// `ORIGINAL_FUNCTION` preserves the recovered function connection when available.
+    #[must_use]
     pub fn view(&self) -> Element<'_, Message> {
-        let surface = if self.command_selected {
-            "Analysis diagram - command selected"
+        let surface = self.active_result_title().unwrap_or({
+            if self.command_selected {
+                "Analysis diagram - command selected"
+            } else {
+                "Analysis diagram"
+            }
+        });
+        let status = if self.result_manager.refresh_generation() == 0 {
+            READY_STATUS
         } else {
-            "Analysis diagram"
+            PUBLISHED_STATUS
         };
 
         window_shell::frame(
@@ -66,7 +93,44 @@ impl Window {
             window_shell::menu_bar(MENUS, Message::CommandSelected),
             window_shell::toolbar(TOOLBAR, Message::CommandSelected),
             window_shell::surface(surface),
-            STATUS,
+            status,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use tiara_core::analysis_result_publishing::{AnalysisPoint, AnalysisSeries, AxisLabels};
+
+    use super::{Message, Window};
+
+    fn series() -> AnalysisSeries {
+        AnalysisSeries::new(
+            "histogram",
+            AxisLabels::new("old x", "old y"),
+            [AnalysisPoint::new(1.0, 2.0)],
+        )
+    }
+
+    #[test]
+    fn update_logic_exposes_the_active_published_result_without_a_live_window() {
+        let mut window = Window::default();
+        assert_eq!(window.active_result_title(), None);
+
+        window
+            .result_manager_mut()
+            .publish_statistic(Some(series()));
+
+        assert_eq!(window.active_result_title(), Some("STATISTIC 1"));
+        assert_eq!(window.result_manager().refresh_generation(), 1);
+    }
+
+    #[test]
+    fn command_selection_remains_local_ui_state() {
+        let mut window = Window::default();
+        window.update(Message::CommandSelected);
+
+        assert_eq!(window.active_result_title(), None);
+        assert_eq!(window.result_manager().refresh_generation(), 0);
     }
 }

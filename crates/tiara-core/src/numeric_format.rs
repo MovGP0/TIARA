@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EngineeringScale {
     Automatic,
@@ -20,6 +22,69 @@ pub enum DecimalStepDirection {
 pub struct EngineeringNumber {
     pub mantissa: String,
     pub thousand_exponent: i8,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParseEngineeringNumberError {
+    source: String,
+}
+
+impl fmt::Display for ParseEngineeringNumberError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{0:?} is not an engineering number", self.source)
+    }
+}
+
+impl std::error::Error for ParseEngineeringNumberError {}
+
+/// Parses a decimal or scientific number with an optional SI/SPICE prefix.
+///
+/// This is the standard-library adapter for TIARA numeric editors. It accepts
+/// the same `f`, `p`, `n`, `u`, `µ`, `m`, `k`, `meg`, `g`, and `t` suffixes
+/// that the formatter emits. Callers apply their own field-specific bounds.
+///
+/// # Errors
+///
+/// Returns [`ParseEngineeringNumberError`] when the text or suffix is invalid.
+pub fn parse_engineering_number(source: &str) -> Result<f64, ParseEngineeringNumberError> {
+    let source = source.trim();
+    if let Ok(value) = source.parse::<f64>() {
+        return Ok(value);
+    }
+
+    let split = source
+        .char_indices()
+        .find_map(|(index, character)| character.is_alphabetic().then_some(index))
+        .ok_or_else(|| ParseEngineeringNumberError {
+            source: source.to_owned(),
+        })?;
+    let (number, suffix) = source.split_at(split);
+    let number = number
+        .parse::<f64>()
+        .map_err(|_| ParseEngineeringNumberError {
+            source: source.to_owned(),
+        })?;
+    let multiplier = if suffix == "M" {
+        1e6
+    } else {
+        match suffix.to_ascii_lowercase().as_str() {
+            "f" => 1e-15,
+            "p" => 1e-12,
+            "n" => 1e-9,
+            "u" | "µ" => 1e-6,
+            "m" => 1e-3,
+            "k" => 1e3,
+            "meg" => 1e6,
+            "g" => 1e9,
+            "t" => 1e12,
+            _ => {
+                return Err(ParseEngineeringNumberError {
+                    source: source.to_owned(),
+                });
+            }
+        }
+    };
+    Ok(number * multiplier)
 }
 
 /// Ports Ghidra function `FUN_00b8f7f0` at `0x00B8F7F0`.
@@ -201,6 +266,25 @@ mod tests {
         assert_eq!(format_display_value(0.001_25, 3), "1.25m");
         assert_eq!(format_display_value(1_500.0, 3), "1.5k");
         assert_eq!(format_display_value(0.0, 3), "0");
+    }
+
+    #[test]
+    fn parser_accepts_decimal_scientific_and_engineering_values() {
+        for (source, expected) in [
+            ("1.25", 1.25),
+            ("2e3", 2_000.0),
+            ("3.3k", 3_300.0),
+            ("4MEG", 4_000_000.0),
+            ("6M", 6_000_000.0),
+            ("6m", 0.006),
+            ("5µ", 0.000_005),
+        ] {
+            let Ok(actual) = parse_engineering_number(source) else {
+                panic!("{source} must be a valid engineering number");
+            };
+            assert_close(actual, expected);
+        }
+        assert!(parse_engineering_number("4watts").is_err());
     }
 
     #[test]

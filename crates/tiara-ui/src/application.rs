@@ -117,7 +117,7 @@ impl TiaraApplication {
                 self.design_tool.update(message);
             }
             Message::DigitalSignalGenerator(message) => {
-                self.digital_signal_generator.update(message);
+                let _ = self.digital_signal_generator.update(message);
             }
             Message::DrawingPreferences(message) => {
                 self.drawing_preferences.update(message);

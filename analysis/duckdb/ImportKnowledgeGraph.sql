@@ -36,7 +36,7 @@ FROM graph_source;
 
 CREATE TABLE storage_metadata AS
 SELECT
-  3 AS schema_version,
+  4 AS schema_version,
   sha256(content) AS source_sha256,
   size AS source_bytes,
   current_timestamp AS imported_at
@@ -73,6 +73,18 @@ CREATE TABLE rust_ui_traceability (
   implementation_scope VARCHAR NOT NULL,
   notes VARCHAR,
   PRIMARY KEY (source_file, trace_id)
+);
+
+CREATE TABLE rust_port_mappings (
+  source_file VARCHAR NOT NULL,
+  bead_id VARCHAR NOT NULL,
+  function_address VARCHAR NOT NULL,
+  ghidra_source_path VARCHAR NOT NULL,
+  rust_source_path VARCHAR NOT NULL,
+  rust_symbol VARCHAR,
+  mapping_kind VARCHAR NOT NULL,
+  notes VARCHAR,
+  PRIMARY KEY (source_file, function_address, rust_source_path)
 );
 
 CREATE TABLE nodes AS
@@ -154,6 +166,15 @@ SELECT
   count(DISTINCT source_file) AS source_count,
   count(DISTINCT screenshot_path) AS screenshot_count
 FROM rust_ui_traceability;
+
+CREATE VIEW rust_port_mapping_statistics AS
+SELECT
+  count(*) AS mapping_row_count,
+  count(DISTINCT source_file) AS source_count,
+  count(DISTINCT function_address) AS function_count,
+  count(DISTINCT ghidra_source_path) AS ghidra_file_count,
+  count(DISTINCT rust_source_path) AS rust_file_count
+FROM rust_port_mappings;
 
 CREATE VIEW node_layers AS
 SELECT

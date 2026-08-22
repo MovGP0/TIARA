@@ -239,7 +239,18 @@ impl Window {
             Message::ToggleNavigation => {
                 self.show_or_hide_navigation(!self.navigation_visibility.is_visible());
             }
-            Message::NavigationPageSelected(page) => self.navigation_page = page,
+            Message::NavigationPageSelected(page) => match page {
+                NavigationPage::Contents => {
+                    self.activate_contents_page();
+                }
+                NavigationPage::Index => {
+                    self.activate_index_page();
+                }
+                NavigationPage::Search => {
+                    self.navigation_page = NavigationPage::Search;
+                    self.refresh_selected_navigation_page();
+                }
+            },
             Message::ContentsSelected(path) => {
                 self.open_contents_topic(&path);
             }
@@ -436,6 +447,15 @@ impl Window {
         self.forward_history.clear();
     }
 
+    /// Ports Ghidra function `FUN_00b019b0` at `0x00B019B0`.
+    ///
+    /// The recovered setter replaces the form's help-data reference and then
+    /// reconciles all navigation controls. It does not load a page.
+    pub fn set_package(&mut self, package: HelpPackage) {
+        self.package = Some(package);
+        self.refresh_navigation_state();
+    }
+
     /// Ports Ghidra function `FUN_00b00ef0` at `0x00B00EF0`.
     ///
     /// The database maps the original event to `TFormHelp.FormShow`. It sizes
@@ -625,6 +645,50 @@ impl Window {
         }
     }
 
+    /// Ports Ghidra function `FUN_00b019d0` at `0x00B019D0`.
+    ///
+    /// It selects Contents when the package has a contents tree. Otherwise it
+    /// uses the package's default topic. Both paths refresh navigation state.
+    pub fn activate_contents_page(&mut self) -> bool {
+        let has_contents = self
+            .package
+            .as_ref()
+            .is_some_and(|package| !package.contents.is_empty());
+        if !has_contents {
+            return self.navigate_home();
+        }
+
+        self.navigation_page = NavigationPage::Contents;
+        self.refresh_navigation_state();
+        true
+    }
+
+    /// Ports Ghidra function `FUN_00b01a30` at `0x00B01A30`.
+    ///
+    /// It selects Index when the package has index data. Otherwise it uses the
+    /// package's default topic. Both paths refresh navigation state.
+    pub fn activate_index_page(&mut self) -> bool {
+        let has_index = self
+            .package
+            .as_ref()
+            .is_some_and(|package| !package.index.is_empty());
+        if !has_index {
+            return self.navigate_home();
+        }
+
+        self.navigation_page = NavigationPage::Index;
+        self.refresh_navigation_state();
+        true
+    }
+
+    /// Ports Ghidra function `FUN_00b01a90` at `0x00B01A90`.
+    ///
+    /// This recovered adapter only reconciles navigation state. It does not
+    /// select a page, load a topic, or mutate either history list.
+    pub fn refresh_selected_navigation_page(&mut self) {
+        self.refresh_navigation_state();
+    }
+
     /// Ports Ghidra function `FUN_00b01aa0` at `0x00B01AA0`.
     ///
     /// The database maps the original function to `TFormHelp.tvContentsClick`.
@@ -752,6 +816,10 @@ struct FlatTopic {
     depth: usize,
 }
 
+/// Ports Ghidra function `FUN_00b00de0` at `0x00B00DE0`.
+///
+/// The recovered routine recursively adds the parsed help records to the
+/// Contents tree. Iced builds the equivalent flattened rows for each view.
 fn flatten_topics(
     topics: &[HelpTopic],
     parent_path: &mut Vec<usize>,
@@ -774,7 +842,7 @@ fn flatten_topics(
 mod tests {
     use super::{
         CloseDisposition, HelpIndexEntry, HelpIndexMatch, HelpPackage, HelpTopic,
-        HotSpotDisposition, Window, build_default_topic_path,
+        HotSpotDisposition, Message, NavigationPage, Window, build_default_topic_path,
     };
     use std::collections::BTreeMap;
     use std::path::{Path, PathBuf};
@@ -920,6 +988,89 @@ mod tests {
 
         assert!(!window.navigation_visible());
         assert_eq!(window.displayed_document(), "Start");
+    }
+
+    #[test]
+    fn replacing_the_package_only_refreshes_navigation_availability() {
+        let mut window = Window::new(HelpPackage::default());
+        assert!(window.current_path().is_none());
+        assert!(!window.navigation_availability.is_enabled());
+
+        window.set_package(package());
+
+        assert!(window.navigation_availability.is_enabled());
+        assert!(window.contents_availability.is_enabled());
+        assert!(window.index_availability.is_enabled());
+        assert!(window.current_path().is_none());
+        assert!(window.back_history().is_empty());
+    }
+
+    #[test]
+    fn contents_and_index_activation_select_available_pages() {
+        let mut window = Window::new(package());
+
+        drop(window.update(Message::NavigationPageSelected(NavigationPage::Index)));
+        assert_eq!(window.navigation_page, NavigationPage::Index);
+        drop(window.update(Message::NavigationPageSelected(NavigationPage::Contents)));
+        assert_eq!(window.navigation_page, NavigationPage::Contents);
+    }
+
+    #[test]
+    fn unavailable_navigation_pages_fall_back_to_home() {
+        let mut contents_only = package();
+        contents_only.index.clear();
+        let mut window = Window::new(contents_only);
+        assert!(window.open_contents_topic(&[0, 0]));
+
+        assert!(window.activate_index_page());
+
+        assert_eq!(window.displayed_document(), "Home");
+        assert_eq!(window.navigation_page, NavigationPage::Contents);
+
+        let mut index_only = package();
+        index_only.contents.clear();
+        let mut window = Window::new(index_only);
+        assert!(window.open_index_entry(0));
+
+        assert!(window.activate_contents_page());
+
+        assert_eq!(window.displayed_document(), "Home");
+        assert_eq!(window.navigation_page, NavigationPage::Contents);
+    }
+
+    #[test]
+    fn recursive_contents_mapping_preserves_depth_and_tree_paths() {
+        let topics = vec![HelpTopic::group(
+            "Guide",
+            vec![HelpTopic::group(
+                "Basics",
+                vec![HelpTopic::leaf("Start", "start.html")],
+            )],
+        )];
+        let mut flattened = Vec::new();
+
+        super::flatten_topics(&topics, &mut Vec::new(), 0, &mut flattened);
+
+        assert_eq!(flattened.len(), 3);
+        assert_eq!(flattened[0].path, vec![0]);
+        assert_eq!(flattened[0].depth, 0);
+        assert_eq!(flattened[1].path, vec![0, 0]);
+        assert_eq!(flattened[1].depth, 1);
+        assert_eq!(flattened[2].path, vec![0, 0, 0]);
+        assert_eq!(flattened[2].depth, 2);
+    }
+
+    #[test]
+    fn selected_navigation_refresh_does_not_change_page_or_history() {
+        let mut window = Window::new(package());
+        assert!(window.activate_index_page());
+        let before = window.back_history().to_vec();
+
+        window.refresh_selected_navigation_page();
+
+        assert_eq!(window.navigation_page, NavigationPage::Index);
+        assert_eq!(window.back_history(), before);
+        assert!(window.forward_history().is_empty());
     }
 
     #[test]

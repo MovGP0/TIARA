@@ -334,6 +334,14 @@ well. Array order is stored explicitly to make the JSON export deterministic.
 - `function_annotations` stores source-file ownership, Bead and control IDs,
   function addresses, recovered scalar fields, and tag lists. Multiple sources
   can own the same address when their scalar fields agree.
+- `rust_ui_traceability` maps validated UI screenshots and recovered handlers
+  to Rust modules and symbols.
+- `rust_port_mappings` maps each verified recovered Ghidra-C function source
+  file to its Rust source file and optional Rust symbol. Use
+  `analysis/Import-TinaRustPortMappings.ps1` with a temporary JSON source. Run
+  mapping imports serially. The importer verifies both files, the graph address
+  and source path, the deterministic function Bead ID, and the Rust trace
+  comment before it writes the mapping.
 - `nodes` has one row for each graph node. `ordinal` preserves JSON order. The
   other columns are the union of graph node fields, including `id`, `name`,
   `type`, `filePath`, `summary`, `tags`, `complexity`, UI evidence, Delphi

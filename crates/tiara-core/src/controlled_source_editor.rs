@@ -79,6 +79,8 @@ pub struct TableDefinition {
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]
+/// Rust-owned strings and vectors replace the recovered Delphi cleanup helpers
+/// `FUN_01400430` at `0x01400430` and `FUN_01400e60` at `0x01400E60`.
 pub struct ControlledSourceDefinition {
     pub mode: SourceMode,
     pub linear: LinearDefinition,
@@ -110,6 +112,8 @@ pub struct MacroShape {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
+/// Rust collection ownership replaces the recovered cleanup helper
+/// `FUN_01400a20` at `0x01400A20`.
 pub struct ExpressionContext {
     pub symbols: BTreeSet<String>,
     pub functions: BTreeSet<String>,
@@ -145,6 +149,67 @@ pub trait ExpressionCompiler {
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct SymbolExpressionCompiler;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ControllerFamily {
+    Primary,
+    Secondary,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ControllerCandidate {
+    pub expression_name: String,
+    pub controller_name: String,
+    pub type_code: u16,
+}
+
+/// Ports Ghidra function `FUN_01400ae0` at `0x01400AE0`.
+#[must_use]
+pub const fn is_primary_controller_type(type_code: u16) -> bool {
+    matches!(type_code, 0x05 | 0x21 | 0x77 | 0x04)
+}
+
+/// Ports Ghidra function `FUN_01400b40` at `0x01400B40`.
+#[must_use]
+pub const fn is_secondary_controller_type(type_code: u16) -> bool {
+    matches!(type_code, 0x0E | 0x10 | 0x06 | 0x22)
+}
+
+/// Ports Ghidra function `FUN_01400ba0` at `0x01400BA0`.
+#[must_use]
+pub const fn is_controller_type(type_code: u16) -> bool {
+    is_primary_controller_type(type_code) || is_secondary_controller_type(type_code)
+}
+
+/// Ports Ghidra function `FUN_01400be0` at `0x01400BE0`.
+#[must_use]
+pub const fn controller_matches_family(type_code: u16, family: ControllerFamily) -> bool {
+    match family {
+        ControllerFamily::Primary => is_primary_controller_type(type_code),
+        ControllerFamily::Secondary => is_secondary_controller_type(type_code),
+    }
+}
+
+/// Ports Ghidra function `FUN_01400c40` at `0x01400C40`.
+///
+/// Typed Rust input replaces the recovered nil and runtime-class checks. Every
+/// supported controller is available to expressions. Only a controller in the
+/// active family is available to the LINEAR and POLY modes.
+pub fn append_controller_candidate(
+    expression_variables: &mut Vec<String>,
+    controller_choices: &mut Vec<String>,
+    candidate: &ControllerCandidate,
+    family: ControllerFamily,
+) {
+    if !is_controller_type(candidate.type_code) {
+        return;
+    }
+
+    expression_variables.push(candidate.expression_name.clone());
+    if controller_matches_family(candidate.type_code, family) {
+        controller_choices.push(candidate.controller_name.clone());
+    }
+}
 
 impl ExpressionCompiler for SymbolExpressionCompiler {
     fn compile(
@@ -361,6 +426,9 @@ pub fn rebuild_special_component_symbol(
     Ok(())
 }
 
+/// Rust's [`Vec`] ownership replaces the recovered cleanup helpers
+/// `FUN_01401c60` at `0x01401C60`, `FUN_01401db0` at `0x01401DB0`, and
+/// `FUN_01401f40` at `0x01401F40`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PolynomialStage {
     coefficient_buffer: Vec<f64>,
@@ -427,6 +495,11 @@ impl PolynomialStage {
     }
 }
 
+/// Rust's [`Vec`] ownership replaces the recovered cleanup helpers
+/// for table staging and file-dialog temporary values.
+///
+/// `FUN_014022b0` at `0x014022B0`, `FUN_01402390` at `0x01402390`,
+/// `FUN_014025e0` at `0x014025E0`, and `FUN_01402b40` at `0x01402B40`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TableStage {
     value_buffer: Vec<f64>,
@@ -708,5 +781,40 @@ mod tests {
             .expect("selected shape");
         assert_eq!(component.symbol.terminal_count, 5);
         assert_eq!(component.symbol.library, "BuiltIn");
+    }
+
+    #[test]
+    fn controller_candidates_follow_recovered_type_families() {
+        let primary = ControllerCandidate {
+            expression_name: "V(P)".to_owned(),
+            controller_name: "P".to_owned(),
+            type_code: 0x05,
+        };
+        let secondary = ControllerCandidate {
+            expression_name: "I(S)".to_owned(),
+            controller_name: "S".to_owned(),
+            type_code: 0x0E,
+        };
+        let unsupported = ControllerCandidate {
+            expression_name: "X".to_owned(),
+            controller_name: "X".to_owned(),
+            type_code: 0xFF,
+        };
+        let mut expressions = Vec::new();
+        let mut controllers = Vec::new();
+
+        for candidate in [&primary, &secondary, &unsupported] {
+            append_controller_candidate(
+                &mut expressions,
+                &mut controllers,
+                candidate,
+                ControllerFamily::Primary,
+            );
+        }
+
+        assert_eq!(expressions, ["V(P)", "I(S)"]);
+        assert_eq!(controllers, ["P"]);
+        assert!(is_controller_type(0x22));
+        assert!(!is_controller_type(0xFF));
     }
 }

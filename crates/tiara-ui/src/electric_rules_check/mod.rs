@@ -41,6 +41,39 @@ pub trait CheckEngine {
     ) -> Result<CheckReport, ErcUiError>;
 }
 
+/// Loads the shared ERC rule matrix and switches.
+///
+/// This adapter reimplements the settings-source boundary of Ghidra function
+/// `FUN_01d43e00` at `0x01D43E00`. A platform adapter can map the recovered
+/// named settings to [`ElectricalRulesSettings`] without coupling this module
+/// to one settings-file implementation.
+pub trait SettingsSource {
+    /// Loads the current ERC settings.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ErcUiError`] when the settings source cannot read the values.
+    fn load(&mut self) -> Result<ElectricalRulesSettings, ErcUiError>;
+}
+
+/// Loads the shared ERC settings through a platform adapter.
+///
+/// Reimplements Ghidra function `FUN_01d43e00` at `0x01D43E00`.
+///
+/// # Errors
+///
+/// Returns [`ErcUiError`] when the settings source cannot read the values.
+pub fn load_settings(
+    source: &mut impl SettingsSource,
+) -> Result<ElectricalRulesSettings, ErcUiError> {
+    source.load()
+}
+
+/// Writes the shared ERC rule matrix and switches.
+///
+/// This adapter reimplements Ghidra function `FUN_01d44460` at `0x01D44460`.
+/// The aggregate settings value contains the nine rule rows and the six
+/// recovered Boolean switches.
 pub trait SettingsStore {
     /// Persists the shared ERC matrix and switches.
     ///
@@ -132,6 +165,12 @@ pub struct Window {
 }
 
 impl Window {
+    /// Creates an ERC window from the shared settings state.
+    ///
+    /// Reimplements the application-state part of Ghidra function
+    /// `FUN_014b78f0` at `0x014B78F0`. The Rust view derives the checkbox state,
+    /// warning-control enablement, and help context from owned model state, so
+    /// it does not need VCL control writes or a form-owned INI object.
     #[must_use]
     pub const fn new(settings: ElectricalRulesSettings) -> Self {
         Self {
@@ -272,6 +311,15 @@ impl Window {
         store.persist(&self.settings)
     }
 
+    /// Clears schematic highlights when the window receives a close event.
+    ///
+    /// Reimplements Ghidra function `FUN_014b7c20` at `0x014B7C20`. Direct
+    /// hiding through [`Self::close_and_persist`] remains separate and does not
+    /// clear the current selection.
+    pub fn release_highlights_on_close(navigation: &mut impl EditorNavigation) {
+        navigation.clear_selection();
+    }
+
     /// Opens TINA help at the ERC context.
     ///
     /// Reimplements Ghidra function `FUN_014b7ac0` at `0x014B7AC0`. The help
@@ -311,6 +359,10 @@ impl Window {
         self.settings.presentation.recurse = enabled;
     }
 
+    /// Replaces the visible rows with one automatic-check result.
+    ///
+    /// The list replacement reimplements Ghidra function `FUN_014b7810` at
+    /// `0x014B7810`. Rust ownership also drops the replaced row targets.
     fn present_automatic_report(
         &mut self,
         settings: &ElectricalRulesSettings,
@@ -403,6 +455,36 @@ impl Window {
             .height(Length::Fill)
             .into()
     }
+}
+
+/// Destroys the application-owned ERC window.
+///
+/// Reimplements Ghidra function `FUN_014b7a90` at `0x014B7A90`. Taking the
+/// option drops all result rows and releases the application reference. Rust
+/// adapters own their settings resources outside the window and drop them at
+/// their normal ownership boundary.
+pub fn destroy_window(window: &mut Option<Window>) {
+    *window = None;
+}
+
+/// Opens the application-owned ERC window and runs a manual check.
+///
+/// Reimplements Ghidra function `FUN_01c93da0` at `0x01C93DA0`. The function
+/// creates the window only when needed, shows the retained instance, and runs
+/// the recovered mode-`0x0f` check.
+///
+/// # Errors
+///
+/// Returns [`ErcUiError`] when the engine cannot complete the check.
+pub fn open_and_recheck(
+    window: &mut Option<Window>,
+    settings: &ElectricalRulesSettings,
+    graph: GraphId,
+    engine: &mut impl CheckEngine,
+) -> Result<(), ErcUiError> {
+    let result_window = window.get_or_insert_with(|| Window::new(settings.clone()));
+    result_window.visibility = Visibility::Visible;
+    result_window.recheck(graph, engine)
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -579,6 +661,15 @@ mod tests {
         }
     }
 
+    struct Source(Option<ElectricalRulesSettings>);
+    impl SettingsSource for Source {
+        fn load(&mut self) -> Result<ElectricalRulesSettings, ErcUiError> {
+            self.0
+                .take()
+                .ok_or_else(|| ErcUiError::Persistence("settings are unavailable".to_owned()))
+        }
+    }
+
     #[derive(Default)]
     struct Help(Option<(PathBuf, u32)>);
     impl HelpAdapter for Help {
@@ -616,6 +707,16 @@ mod tests {
         fn operation_error(&mut self, status: i32, event_kind: u8) {
             self.operation.push((status, event_kind));
         }
+    }
+
+    #[test]
+    fn form_creation_uses_shared_presentation_settings() {
+        let settings = settings();
+        let window = Window::new(settings.clone());
+        assert_eq!(window.settings(), &settings);
+        assert_eq!(window.visibility(), Visibility::Visible);
+        assert_eq!(window.layout(), ResultLayout::Expanded);
+        assert_eq!(window.focus(), FocusTarget::None);
     }
 
     #[test]
@@ -677,6 +778,60 @@ mod tests {
         assert!(!store.0[0].presentation.show_on_warnings);
         assert!(store.0[0].presentation.recurse);
         Ok(())
+    }
+
+    #[test]
+    fn settings_source_loads_the_complete_shared_state() -> Result<(), ErcUiError> {
+        let expected = settings();
+        let mut source = Source(Some(expected.clone()));
+        assert_eq!(load_settings(&mut source)?, expected);
+        Ok(())
+    }
+
+    #[test]
+    fn close_event_clears_highlights_without_hiding_the_window() {
+        let window = Window::new(settings());
+        let mut navigation = Navigation::default();
+        Window::release_highlights_on_close(&mut navigation);
+        assert_eq!(navigation.events, ["clear"]);
+        assert_eq!(window.visibility(), Visibility::Visible);
+    }
+
+    #[test]
+    fn destruction_releases_the_application_window_reference() {
+        let mut window = Some(Window::new(settings()));
+        window.as_mut().expect("window").rows = report(1, "old").rows;
+        destroy_window(&mut window);
+        assert!(window.is_none());
+    }
+
+    #[test]
+    fn manual_open_reuses_hidden_window_and_replaces_results() -> Result<(), ErcUiError> {
+        let mut retained = Window::new(settings());
+        retained.visibility = Visibility::Hidden;
+        retained.rows = report(1, "old").rows;
+        let mut window = Some(retained);
+        let mut engine = Engine {
+            report: report(100, "new"),
+            calls: Vec::new(),
+        };
+        open_and_recheck(&mut window, &settings(), GraphId(9), &mut engine)?;
+        let window = window.as_ref().expect("window");
+        assert_eq!(engine.calls, [(GraphId(9), MANUAL_RECHECK_MODE)]);
+        assert_eq!(window.visibility(), Visibility::Visible);
+        assert_eq!(window.rows()[0].message, "new");
+        assert_eq!(window.rows().len(), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn automatic_report_replaces_rows_without_merging() {
+        let mut window = Window::new(settings());
+        window.rows = report(1, "old").rows;
+        window.present_automatic_report(&settings(), report(100, "new"));
+        assert_eq!(window.rows().len(), 1);
+        assert_eq!(window.rows()[0].message, "new");
+        assert_eq!(window.layout(), ResultLayout::InstructionVisible);
     }
 
     #[test]

@@ -37,6 +37,7 @@ pub mod optimization;
 pub mod ordered_list;
 pub mod parameter_editor;
 pub mod parameter_stepping;
+pub mod pcb_component_wizard;
 pub mod pmbus_data_record;
 pub mod project_settings;
 pub mod pulse_generator;

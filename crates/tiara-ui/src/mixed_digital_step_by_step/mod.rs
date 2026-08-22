@@ -4,6 +4,7 @@ use iced::{Element, Task};
 pub const TITLE: &str = "Control Panel";
 pub const FORM_RESOURCE: &str = "MixedDigitalStepByStep";
 pub const HELP_CONTEXT: u32 = 0x453;
+pub const LIBRARY_EVALUATION: &str = "iced owns grouped transport messages and the event loop. A typed Rust state adapter represents Schematic Editor interaction selection because iced does not provide application-specific editor modes, mixed-mode panel synchronization, or recovered activity-byte readiness.";
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum RunGate {
@@ -37,6 +38,110 @@ pub enum TransportSelection {
 pub enum EditorInteractionCommand {
     LeaveInteraction,
     ActivateDigitalStepByStep,
+}
+
+impl EditorInteractionCommand {
+    /// Applies one panel command to the Schematic Editor interaction adapter.
+    ///
+    /// Leave returns the recovered readiness result. Activation has no return
+    /// value in the recovered function and therefore returns `None`.
+    #[must_use = "the interaction shutdown readiness result must be handled"]
+    pub const fn apply(self, editor: &mut SchematicEditorInteractionState) -> Option<bool> {
+        match self {
+            Self::LeaveInteraction => Some(editor.leave_current_interaction()),
+            Self::ActivateDigitalStepByStep => {
+                editor.activate_digital_step_by_step();
+                None
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct SchematicEditorInteractionState {
+    interaction_mode: u8,
+    synchronized_toolbar_mode: Option<u8>,
+    primary_tool_down: bool,
+    interaction_change_generation: u64,
+    editor_state_18e8: bool,
+    mixed_mode_panel_selection: Option<bool>,
+    mixed_mode_change_generation: u64,
+    activity: [bool; 2],
+}
+
+impl SchematicEditorInteractionState {
+    /// Ports Ghidra `FUN_01c80a70` at `0x01C80A70`.
+    ///
+    /// Selects interaction mode 2, synchronizes the toolbar to that mode,
+    /// checks the primary interactive-tool button, invokes the common change
+    /// path, and sets the recovered editor-state byte at offset `0x18e8`.
+    pub const fn activate_digital_step_by_step(&mut self) {
+        self.interaction_mode = 2;
+        self.synchronized_toolbar_mode = Some(2);
+        self.primary_tool_down = true;
+        self.interaction_change_generation = self.interaction_change_generation.saturating_add(1);
+        self.editor_state_18e8 = true;
+    }
+
+    /// Ports Ghidra `FUN_01c87d20` at `0x01C87D20`.
+    ///
+    /// Unchecks the primary interactive tool and invokes its common change
+    /// path. When the optional mixed-mode panel exists, it also clears that
+    /// panel selection and invokes its change path. It returns `true` only
+    /// when both recovered editor activity bytes are clear.
+    #[must_use]
+    pub const fn leave_current_interaction(&mut self) -> bool {
+        self.primary_tool_down = false;
+        self.interaction_change_generation = self.interaction_change_generation.saturating_add(1);
+        if let Some(selection) = &mut self.mixed_mode_panel_selection {
+            *selection = false;
+            self.mixed_mode_change_generation = self.mixed_mode_change_generation.saturating_add(1);
+        }
+        !self.activity[0] && !self.activity[1]
+    }
+
+    pub const fn set_mixed_mode_panel_selection(&mut self, selection: Option<bool>) {
+        self.mixed_mode_panel_selection = selection;
+    }
+
+    pub const fn set_activity(&mut self, primary: bool, secondary: bool) {
+        self.activity = [primary, secondary];
+    }
+
+    #[must_use]
+    pub const fn interaction_mode(&self) -> u8 {
+        self.interaction_mode
+    }
+
+    #[must_use]
+    pub const fn synchronized_toolbar_mode(&self) -> Option<u8> {
+        self.synchronized_toolbar_mode
+    }
+
+    #[must_use]
+    pub const fn primary_tool_down(&self) -> bool {
+        self.primary_tool_down
+    }
+
+    #[must_use]
+    pub const fn interaction_change_generation(&self) -> u64 {
+        self.interaction_change_generation
+    }
+
+    #[must_use]
+    pub const fn editor_state_18e8(&self) -> bool {
+        self.editor_state_18e8
+    }
+
+    #[must_use]
+    pub const fn mixed_mode_panel_selection(&self) -> Option<bool> {
+        self.mixed_mode_panel_selection
+    }
+
+    #[must_use]
+    pub const fn mixed_mode_change_generation(&self) -> u64 {
+        self.mixed_mode_change_generation
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -509,5 +614,72 @@ mod tests {
         assert_eq!(window.run_gate(), RunGate::Running);
         assert_eq!(window.displayed_time(), "7");
         assert_eq!(window.close_disposition(), CloseDisposition::Release);
+    }
+
+    #[test]
+    fn digital_step_activation_synchronizes_editor_mode_toolbar_and_tool() {
+        let mut editor = SchematicEditorInteractionState::default();
+
+        editor.activate_digital_step_by_step();
+
+        assert_eq!(editor.interaction_mode(), 2);
+        assert_eq!(editor.synchronized_toolbar_mode(), Some(2));
+        assert!(editor.primary_tool_down());
+        assert_eq!(editor.interaction_change_generation(), 1);
+        assert!(editor.editor_state_18e8());
+    }
+
+    #[test]
+    fn leave_clears_both_controls_and_reports_activity_byte_readiness() {
+        let mut editor = SchematicEditorInteractionState::default();
+        editor.activate_digital_step_by_step();
+        editor.set_mixed_mode_panel_selection(Some(true));
+        editor.set_activity(true, false);
+
+        assert!(!editor.leave_current_interaction());
+        assert!(!editor.primary_tool_down());
+        assert_eq!(editor.mixed_mode_panel_selection(), Some(false));
+        assert_eq!(editor.interaction_change_generation(), 2);
+        assert_eq!(editor.mixed_mode_change_generation(), 1);
+
+        editor.set_activity(false, false);
+        assert!(editor.leave_current_interaction());
+        assert_eq!(editor.interaction_change_generation(), 3);
+        assert_eq!(editor.mixed_mode_change_generation(), 2);
+    }
+
+    #[test]
+    fn absent_mixed_mode_panel_skips_secondary_synchronization() {
+        let mut editor = SchematicEditorInteractionState::default();
+
+        assert!(editor.leave_current_interaction());
+
+        assert_eq!(editor.mixed_mode_panel_selection(), None);
+        assert_eq!(editor.mixed_mode_change_generation(), 0);
+        assert_eq!(editor.interaction_change_generation(), 1);
+    }
+
+    #[test]
+    fn stop_commands_leave_then_reactivate_digital_step_interaction() {
+        let mut window = Window::new("state".to_owned());
+        let mut editor = SchematicEditorInteractionState::default();
+        editor.set_mixed_mode_panel_selection(Some(true));
+        assert!(window.stop());
+
+        let results: Vec<_> = window
+            .editor_commands()
+            .iter()
+            .copied()
+            .map(|command| command.apply(&mut editor))
+            .collect();
+
+        assert_eq!(results, [Some(true), None]);
+        assert_eq!(editor.interaction_mode(), 2);
+        assert_eq!(editor.synchronized_toolbar_mode(), Some(2));
+        assert!(editor.primary_tool_down());
+        assert!(editor.editor_state_18e8());
+        assert_eq!(editor.mixed_mode_panel_selection(), Some(false));
+        assert_eq!(editor.interaction_change_generation(), 2);
+        assert_eq!(editor.mixed_mode_change_generation(), 1);
     }
 }

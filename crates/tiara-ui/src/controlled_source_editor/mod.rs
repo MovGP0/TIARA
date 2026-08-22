@@ -16,15 +16,24 @@ use iced::widget::{
 use iced::{Element, Length, Task};
 use rfd::AsyncFileDialog;
 use tiara_core::controlled_source_editor::{
-    CompiledExpression, ControlledSourceDefinition, ExpressionCompiler, ExpressionContext,
-    ExpressionError, IoTopology, MacroShape, OutputKind, PolynomialStage, SourceComponent,
-    SourceMode, SymbolError, TableLoadError, TableStage, load_table_text,
-    rebuild_special_component_symbol, save_table_text, shape_is_compatible,
+    CompiledExpression, ControlledSourceDefinition, ControllerCandidate, ControllerFamily,
+    ExpressionCompiler, ExpressionContext, ExpressionError, IoTopology, MacroShape, OutputKind,
+    PolynomialStage, SourceComponent, SourceMode, SymbolError, TableLoadError, TableStage,
+    append_controller_candidate, load_table_text, rebuild_special_component_symbol,
+    save_table_text, shape_is_compatible,
 };
 
 pub const TITLE: &str = "Controlled Source Editor";
 pub const FORM_RESOURCE: &str = "CspEditorDlg";
 pub const LIBRARY_EVALUATION: &str = "iced supplies messages, tasks, and widgets; rfd supplies maintained native file dialogs; tiara-core and std supply application-specific expressions, polynomial staging, line-oriented CSV-compatible text, and pin rules.";
+
+/// Rust owns module lifecycle state.
+///
+/// Static initialization and drop replace Ghidra functions
+/// `FUN_01403e60` at `0x01403E60` and `FUN_01403ea0` at `0x01403EA0`.
+/// The empty recovered registration function `FUN_01403e90` at `0x01403E90`
+/// maps to no Rust operation.
+pub const MODULE_RUNTIME_MAPPING: &str = "Rust initializes static text at compile time, drops owned state, and needs no registration hook.";
 
 pub type SharedComponent = Rc<RefCell<SourceComponent>>;
 
@@ -52,7 +61,9 @@ pub enum Message {
     RemovePolynomial,
     ClearPolynomial,
     ValueExpressionChanged(String),
+    ValueVariableSelected(String),
     TableExpressionChanged(String),
+    TableVariableSelected(String),
     AddTablePair,
     RemoveTablePair,
     ClearTable,
@@ -70,6 +81,48 @@ pub enum Message {
     CancelPressed,
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum Availability {
+    #[default]
+    Disabled,
+    Enabled,
+}
+
+impl Availability {
+    #[must_use]
+    pub const fn when(condition: bool) -> Self {
+        if condition {
+            Self::Enabled
+        } else {
+            Self::Disabled
+        }
+    }
+
+    #[must_use]
+    pub const fn is_enabled(self) -> bool {
+        matches!(self, Self::Enabled)
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct ControlAvailability {
+    pub accept: Availability,
+    pub add_polynomial: Availability,
+    pub remove_polynomial: Availability,
+    pub clear_polynomial: Availability,
+    pub remove_table: Availability,
+    pub clear_table: Availability,
+    pub save_table: Availability,
+    pub insert_value_variable: Availability,
+    pub insert_table_variable: Availability,
+}
+
+/// Ports the recovered constructors with Rust-owned state.
+///
+/// Ghidra constructors `FUN_014000e0` at `0x014000E0` and
+/// `FUN_01400ee0` at `0x01400EE0` with Rust-owned state. Rust unwinding and
+/// automatic drop replace `FUN_01400200` at `0x01400200`,
+/// `FUN_01401a20` at `0x01401A20`, and `FUN_01401ac0` at `0x01401AC0`.
 #[derive(Debug)]
 pub struct Window {
     component: SharedComponent,
@@ -86,6 +139,10 @@ pub struct Window {
     current_count_text: String,
     expression_variables: Vec<String>,
     controller_choices: Vec<String>,
+    controller_candidates: Vec<ControllerCandidate>,
+    controller_family: ControllerFamily,
+    value_insertion_offset: usize,
+    table_insertion_offset: usize,
     shape_name: String,
     selected_shape: Option<MacroShape>,
     poly_grid_status: GridCommitStatus,
@@ -96,7 +153,17 @@ pub struct Window {
 impl Window {
     #[must_use]
     pub fn new(component: SharedComponent, topology: IoTopology) -> Self {
-        let definition = component.borrow().definition.clone();
+        let (definition, controller_family) = {
+            let component = component.borrow();
+            let family = if matches!(component.type_code, 0x36 | 0x37 | 0x11 | 0x13) {
+                ControllerFamily::Secondary
+            } else {
+                ControllerFamily::Primary
+            };
+            (component.definition.clone(), family)
+        };
+        let value_insertion_offset = definition.expression.text.len();
+        let table_insertion_offset = definition.expression.text.len();
         let mut window = Self {
             component,
             mode: definition.mode,
@@ -116,6 +183,10 @@ impl Window {
             current_count_text: topology.current_count.to_string(),
             expression_variables: Vec::new(),
             controller_choices: Vec::new(),
+            controller_candidates: Vec::new(),
+            controller_family,
+            value_insertion_offset,
+            table_insertion_offset,
             shape_name: String::new(),
             selected_shape: None,
             poly_grid_status: GridCommitStatus::Valid,
@@ -126,6 +197,8 @@ impl Window {
         window
     }
 
+    /// Iced message dispatch includes the page-selection responsibility of
+    /// Ghidra function `FUN_01403e30` at `0x01403E30`.
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::ModeSelected(value) => self.mode = value,
@@ -137,8 +210,16 @@ impl Window {
             Message::AddPolynomial => self.polynomial.add_coefficient(),
             Message::RemovePolynomial => self.polynomial.remove_last_coefficient(),
             Message::ClearPolynomial => self.polynomial.clear(),
-            Message::ValueExpressionChanged(value) => self.value_expression = value,
-            Message::TableExpressionChanged(value) => self.table_expression = value,
+            Message::ValueExpressionChanged(value) => {
+                self.value_insertion_offset = value.len();
+                self.value_expression = value;
+            }
+            Message::ValueVariableSelected(value) => self.insert_value_variable(&value),
+            Message::TableExpressionChanged(value) => {
+                self.table_insertion_offset = value.len();
+                self.table_expression = value;
+            }
+            Message::TableVariableSelected(value) => self.insert_table_variable(&value),
             Message::AddTablePair => self.table.add_pair(),
             Message::RemoveTablePair => self.table.remove_last_pair(),
             Message::ClearTable => self.table.clear(),
@@ -203,6 +284,21 @@ impl Window {
             self.expression_variables.push(format!("I(V{index})"));
             self.controller_choices.push(format!("V{index}"));
         }
+        for candidate in &self.controller_candidates {
+            append_controller_candidate(
+                &mut self.expression_variables,
+                &mut self.controller_choices,
+                candidate,
+                self.controller_family,
+            );
+        }
+    }
+
+    /// Supplies the typed circuit-component catalog used by Ghidra function
+    /// `FUN_01400c40` at `0x01400C40`.
+    pub fn set_controller_candidates(&mut self, candidates: Vec<ControllerCandidate>) {
+        self.controller_candidates = candidates;
+        self.rebuild_topology_choices();
     }
 
     /// Ports Ghidra function `FUN_01401b00` at `0x01401B00`.
@@ -221,6 +317,8 @@ impl Window {
     }
 
     /// Ports Ghidra function `FUN_014020d0` at `0x014020D0`.
+    /// Rust-owned temporary strings replace cleanup helper `FUN_014020a0` at
+    /// `0x014020A0`.
     /// # Errors
     /// Returns the compiler diagnostic without changing staged or caller state.
     pub fn check_value_expression(
@@ -231,7 +329,23 @@ impl Window {
         compiler.compile(&self.value_expression.lines().collect::<String>(), context)
     }
 
+    /// Ports Ghidra function `FUN_01401fc0` at `0x01401FC0`.
+    pub fn remember_value_insertion_offset(&mut self, offset: usize) {
+        self.value_insertion_offset = valid_insertion_offset(&self.value_expression, offset);
+    }
+
+    /// Ports Ghidra function `FUN_01401ff0` at `0x01401FF0`.
+    pub fn insert_value_variable(&mut self, variable: &str) {
+        insert_at_offset(
+            &mut self.value_expression,
+            &mut self.value_insertion_offset,
+            variable,
+        );
+    }
+
     /// Ports Ghidra function `FUN_014022e0` at `0x014022E0`.
+    /// Rust-owned temporary strings replace cleanup helper `FUN_014021a0` at
+    /// `0x014021A0`.
     /// # Errors
     /// Returns the compiler diagnostic without validating the numeric table.
     pub fn check_table_expression(
@@ -242,6 +356,20 @@ impl Window {
         compiler.compile(&self.table_expression, context)
     }
 
+    /// Ports Ghidra function `FUN_014021d0` at `0x014021D0`.
+    pub fn remember_table_insertion_offset(&mut self, offset: usize) {
+        self.table_insertion_offset = valid_insertion_offset(&self.table_expression, offset);
+    }
+
+    /// Ports Ghidra function `FUN_01402200` at `0x01402200`.
+    pub fn insert_table_variable(&mut self, variable: &str) {
+        insert_at_offset(
+            &mut self.table_expression,
+            &mut self.table_insertion_offset,
+            variable,
+        );
+    }
+
     /// Ports Ghidra function `FUN_01402730` at `0x01402730`.
     /// # Errors
     /// Returns the first conversion error after preserving the loaded prefix.
@@ -249,7 +377,8 @@ impl Window {
         load_table_text(&mut self.table, source)
     }
 
-    /// Ports Ghidra function `FUN_01402e30` at `0x01402E30`.
+    /// Ports Ghidra functions `FUN_01402e30` at `0x01402E30` and
+    /// `FUN_01402e40` at `0x01402E40`.
     pub fn refresh_io_configuration(&mut self) {
         self.rebuild_topology_choices();
     }
@@ -267,6 +396,9 @@ impl Window {
     }
 
     /// Ports Ghidra function `FUN_01402f10` at `0x01402F10`.
+    /// Rust-owned temporary values replace its cleanup helper
+    /// `FUN_01402ef0` at `0x01402EF0` and the browse cleanup helper
+    /// `FUN_01402df0` at `0x01402DF0`.
     #[must_use]
     pub fn compatible_shapes(&self, shapes: &[MacroShape]) -> Vec<MacroShape> {
         shapes
@@ -276,7 +408,36 @@ impl Window {
             .collect()
     }
 
+    /// Ports the idle enablement handler `FUN_01403b60` at `0x01403B60`.
+    /// Rust-owned temporary strings replace `FUN_01403e10` at `0x01403E10`.
+    #[must_use]
+    pub fn control_availability(&self) -> ControlAvailability {
+        let has_polynomial = !self.polynomial.coefficients().is_empty();
+        let has_table = !self.table.values().is_empty();
+        let value_has_text = !self.value_expression.is_empty();
+        let table_has_text = !self.table_expression.is_empty();
+        let accept = match self.mode {
+            SourceMode::Linear => self.linear_controller.is_some(),
+            SourceMode::Polynomial => has_polynomial,
+            SourceMode::Value => value_has_text,
+            SourceMode::Table => has_table && table_has_text,
+        };
+        ControlAvailability {
+            accept: Availability::when(accept),
+            add_polynomial: Availability::when(!self.polynomial.variables().is_empty()),
+            remove_polynomial: Availability::when(has_polynomial),
+            clear_polynomial: Availability::when(has_polynomial),
+            remove_table: Availability::when(has_table),
+            clear_table: Availability::when(has_table),
+            save_table: Availability::when(has_table),
+            insert_value_variable: Availability::when(value_has_text),
+            insert_table_variable: Availability::when(table_has_text),
+        }
+    }
+
     /// Ports Ghidra function `FUN_01403320` at `0x01403320`.
+    /// Rust ownership replaces cleanup helpers `FUN_01403280` at `0x01403280`
+    /// and `FUN_01403af0` at `0x01403AF0`.
     /// TABLE commits expression fields before grid validation. Special type
     /// `0xA1` rebuilds symbol and terminals after a normal validation veto.
     /// # Errors
@@ -305,7 +466,24 @@ impl Window {
 
     #[must_use]
     pub fn view(&self) -> Element<'_, Message> {
-        let mode = row![
+        let availability = self.control_availability();
+        container(scrollable(
+            column![
+                self.mode_controls(),
+                self.topology_controls(),
+                self.mode_content(availability),
+                Self::dialog_controls(availability)
+            ]
+            .spacing(12),
+        ))
+        .padding(12)
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
+    }
+
+    fn mode_controls(&self) -> iced::widget::Row<'_, Message> {
+        row![
             radio(
                 "Linear",
                 SourceMode::Linear,
@@ -331,8 +509,11 @@ impl Window {
                 Message::ModeSelected
             )
         ]
-        .spacing(8);
-        let content = match self.mode {
+        .spacing(8)
+    }
+
+    fn mode_content(&self, availability: ControlAvailability) -> iced::widget::Column<'_, Message> {
+        match self.mode {
             SourceMode::Linear => column![
                 text_input("Gain", &self.gain_text).on_input(Message::GainChanged),
                 pick_list(
@@ -345,47 +526,91 @@ impl Window {
                 text(format!("Dimension: {}", self.polynomial.variables().len())),
                 text(self.polynomial.labels().join(", ")),
                 row![
-                    button("Add").on_press(Message::AddPolynomial),
-                    button("Remove").on_press(Message::RemovePolynomial),
-                    button("Clear").on_press(Message::ClearPolynomial)
+                    button("Add").on_press_maybe(
+                        availability
+                            .add_polynomial
+                            .is_enabled()
+                            .then_some(Message::AddPolynomial)
+                    ),
+                    button("Remove").on_press_maybe(
+                        availability
+                            .remove_polynomial
+                            .is_enabled()
+                            .then_some(Message::RemovePolynomial)
+                    ),
+                    button("Clear").on_press_maybe(
+                        availability
+                            .clear_polynomial
+                            .is_enabled()
+                            .then_some(Message::ClearPolynomial)
+                    )
                 ]
                 .spacing(8)
             ],
             SourceMode::Value => column![
                 text_input("Expression", &self.value_expression)
-                    .on_input(Message::ValueExpressionChanged)
+                    .on_input(Message::ValueExpressionChanged),
+                pick_list(
+                    if availability.insert_value_variable.is_enabled() {
+                        self.expression_variables.clone()
+                    } else {
+                        Vec::new()
+                    },
+                    None::<String>,
+                    Message::ValueVariableSelected
+                )
             ],
             SourceMode::Table => column![
                 text_input("Expression", &self.table_expression)
                     .on_input(Message::TableExpressionChanged),
+                pick_list(
+                    if availability.insert_table_variable.is_enabled() {
+                        self.expression_variables.clone()
+                    } else {
+                        Vec::new()
+                    },
+                    None::<String>,
+                    Message::TableVariableSelected
+                ),
                 text(format!("{} staged values", self.table.values().len())),
                 row![
                     button("Add").on_press(Message::AddTablePair),
-                    button("Remove").on_press(Message::RemoveTablePair),
-                    button("Clear").on_press(Message::ClearTable),
+                    button("Remove").on_press_maybe(
+                        availability
+                            .remove_table
+                            .is_enabled()
+                            .then_some(Message::RemoveTablePair)
+                    ),
+                    button("Clear").on_press_maybe(
+                        availability
+                            .clear_table
+                            .is_enabled()
+                            .then_some(Message::ClearTable)
+                    ),
                     button("Load").on_press(Message::LoadTablePressed),
-                    button("Save").on_press(Message::SaveTablePressed)
+                    button("Save").on_press_maybe(
+                        availability
+                            .save_table
+                            .is_enabled()
+                            .then_some(Message::SaveTablePressed)
+                    )
                 ]
                 .spacing(8)
             ],
-        };
-        container(scrollable(
-            column![
-                mode,
-                self.topology_controls(),
-                content,
-                row![
-                    button("OK").on_press(Message::AcceptPressed),
-                    button("Cancel").on_press(Message::CancelPressed)
-                ]
-                .spacing(8)
-            ]
-            .spacing(12),
-        ))
-        .padding(12)
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .into()
+        }
+    }
+
+    fn dialog_controls(availability: ControlAvailability) -> iced::widget::Row<'static, Message> {
+        row![
+            button("OK").on_press_maybe(
+                availability
+                    .accept
+                    .is_enabled()
+                    .then_some(Message::AcceptPressed)
+            ),
+            button("Cancel").on_press(Message::CancelPressed)
+        ]
+        .spacing(8)
     }
 
     fn topology_controls(&self) -> iced::widget::Row<'_, Message> {
@@ -511,6 +736,20 @@ impl Window {
         component.definition.table.values = self.table.values().to_vec();
         Ok(CommitOutcome::Accepted)
     }
+}
+
+fn valid_insertion_offset(text: &str, requested: usize) -> usize {
+    let mut offset = requested.min(text.len());
+    while !text.is_char_boundary(offset) {
+        offset -= 1;
+    }
+    offset
+}
+
+fn insert_at_offset(text: &mut String, insertion_offset: &mut usize, value: &str) {
+    let offset = valid_insertion_offset(text, *insertion_offset);
+    text.insert_str(offset, value);
+    *insertion_offset = offset + value.len();
 }
 
 #[derive(Debug)]
@@ -674,5 +913,55 @@ mod tests {
             MacroShape::default(),
         ];
         assert_eq!(w.compatible_shapes(&shapes).len(), 1);
+    }
+
+    #[test]
+    fn controller_catalog_filters_choices_and_keeps_expression_names() {
+        let mut w = Window::new(component(0), IoTopology::default());
+        w.set_controller_candidates(vec![
+            ControllerCandidate {
+                expression_name: "V(P)".to_owned(),
+                controller_name: "P".to_owned(),
+                type_code: 0x05,
+            },
+            ControllerCandidate {
+                expression_name: "I(S)".to_owned(),
+                controller_name: "S".to_owned(),
+                type_code: 0x0E,
+            },
+        ]);
+        assert_eq!(w.expression_variables(), ["V(N1)", "V(P)", "I(S)"]);
+        assert_eq!(w.controller_choices(), ["N1", "P"]);
+    }
+
+    #[test]
+    fn variable_selection_inserts_at_the_remembered_offsets() {
+        let mut w = Window::new(component(0), IoTopology::default());
+        w.value_expression = "1+2".to_owned();
+        w.remember_value_insertion_offset(2);
+        w.insert_value_variable("N1");
+        assert_eq!(w.value_expression, "1+N12");
+
+        w.table_expression = "α+2".to_owned();
+        w.remember_table_insertion_offset(1);
+        w.insert_table_variable("N1");
+        assert_eq!(w.table_expression, "N1α+2");
+    }
+
+    #[test]
+    fn idle_availability_follows_active_mode_state() {
+        let mut w = Window::new(component(0), IoTopology::default());
+        assert!(!w.control_availability().accept.is_enabled());
+        w.linear_controller = Some("N1".to_owned());
+        assert!(w.control_availability().accept.is_enabled());
+
+        w.mode = SourceMode::Table;
+        w.table_expression = "N1".to_owned();
+        assert!(!w.control_availability().accept.is_enabled());
+        w.table.add_pair();
+        let availability = w.control_availability();
+        assert!(availability.accept.is_enabled());
+        assert!(availability.remove_table.is_enabled());
+        assert!(availability.save_table.is_enabled());
     }
 }

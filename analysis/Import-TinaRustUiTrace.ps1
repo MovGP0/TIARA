@@ -223,7 +223,7 @@ SELECT
   count(DISTINCT screenshot_path) AS screenshot_count
 FROM rust_ui_traceability;
 
-UPDATE storage_metadata SET schema_version = 3;
+UPDATE storage_metadata SET schema_version = 4;
 
 COMMIT;
 

@@ -1,6 +1,11 @@
+use std::cmp::Ordering;
+
 use iced::{Point, Rectangle, Task};
 
 const VIEWPORT_MARGIN: f32 = 50.0;
+const TREE_HIT_ON_BUTTON: u16 = 0x10;
+const TREE_COLOR_NORMAL: u32 = 0xff00_0005;
+const TREE_COLOR_SEARCH_SELECTION: u32 = 0x0000_8000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TreeNodeId(pub u64);
@@ -76,25 +81,42 @@ pub trait SchematicNavigation {
     fn pan_to_reveal(&mut self, target: CircuitObject, margin: f32);
 }
 
-/// A minimal node contract used by the recovered `ComponentExplorer` callbacks.
-pub trait CategorizedNode {
-    /// Returns the Delphi category code for this node.
-    fn category(&self) -> u16;
+/// Supplies the category of the payload attached to a tree node's parent.
+pub trait DockRefreshNode {
+    fn parent_payload_category(&self) -> Option<u16>;
 }
 
-impl CategorizedNode for CircuitObject {
-    fn category(&self) -> u16 {
-        self.selection_identity as u16
+/// Supplies the recovered fields used to order two Component Explorer rows.
+pub trait ComparableTreeNode {
+    fn payload_category(&self) -> Option<u16>;
+
+    fn label(&self) -> &str;
+}
+
+/// Clears the host's singleton reference when the explorer is destroyed.
+pub trait ComponentExplorerRegistry {
+    fn clear_component_explorer(&mut self);
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CloseDisposition {
+    Free,
+}
+
+impl CloseDisposition {
+    #[must_use]
+    pub const fn recovered_code(self) -> u8 {
+        match self {
+            Self::Free => 2,
+        }
     }
 }
 
 #[derive(Debug, Default)]
 pub struct Window {
     selected_node: Option<TreeNode>,
-    dock_requested: bool,
-    home_panel_active: bool,
-    destroyed: bool,
-    close_code: Option<u8>,
+    docking_active: bool,
+    search_focus_active: bool,
 }
 
 impl Window {
@@ -106,13 +128,6 @@ impl Window {
         match message {
             Message::TreeSelectionChanged(node) => self.selected_node = node,
             Message::CircuitTreeClicked => self.synchronize_tree_selection(schematic),
-            Message::CloseRequested => {
-                let code = self.on_close();
-                self.close_code = Some(code);
-            }
-            Message::WindowDestroyed => self.on_destroy(),
-            Message::StartDock => self.on_start_dock(),
-            Message::HomePanelStateChanged(active) => self.set_home_panel_active(active),
         }
 
         Task::none()
@@ -158,96 +173,96 @@ impl Window {
         }
     }
 
-    /// Translates `frmComponentExplorer.OnClose` (Ghidra `0x013AB310`,
-    /// symbol `FUN_013ab310`) and returns the close result expected by the
-    /// original Delphi event.
-    pub fn on_close(&mut self) -> u8 {
-        self.close_code = Some(2);
-        2
-    }
-
-    /// Translates `frmComponentExplorer.OnDestroy` (Ghidra `0x013AB320`,
-    /// symbol `FUN_013ab320`) and clears internal form state.
-    pub fn on_destroy(&mut self) {
-        self.destroyed = true;
-        self.dock_requested = false;
-        self.home_panel_active = false;
-    }
-
-    /// Returns whether the host form was marked destroyed.
+    /// Maps `frmComponentExplorer.OnClose` to the recovered free-on-close
+    /// result (Ghidra `0x013AB310`, symbol `FUN_013ab310`).
     #[must_use]
-    pub const fn is_destroyed(&self) -> bool {
-        self.destroyed
+    pub const fn close_disposition(&self) -> CloseDisposition {
+        CloseDisposition::Free
+    }
+
+    /// Clears the singleton form reference for `frmComponentExplorer.OnDestroy`
+    /// (Ghidra `0x013AB320`, symbol `FUN_013ab320`).
+    pub fn on_destroy(registry: &mut impl ComponentExplorerRegistry) {
+        registry.clear_component_explorer();
     }
 
     /// Translates `frmComponentExplorer.OnStartDock` (Ghidra `0x013AB330`,
-    /// symbol `FUN_013ab330`) and marks a dock operation as active.
-    pub fn on_start_dock(&mut self) {
-        self.dock_requested = true;
+    /// symbol `FUN_013ab330`) and marks the recovered docking flag as active.
+    pub const fn on_start_dock(&mut self) {
+        self.docking_active = true;
     }
 
-    /// Indicates whether the host is currently handling a dock interaction.
     #[must_use]
-    pub const fn is_dock_requested(&self) -> bool {
-        self.dock_requested
+    pub const fn is_docking_active(&self) -> bool {
+        self.docking_active
     }
 
-    /// Updates the cached form-host state equivalent to the Delphi docking panel
-    /// tracking used by `frmComponentExplorer.OnStartDock`/`OnEndDock`.
-    pub const fn set_home_panel_active(&mut self, active: bool) {
-        self.home_panel_active = active;
+    /// Supplies the search-focus state used by the recovered draw and expansion
+    /// handlers. The corresponding focus callbacks are separate porting tasks.
+    pub const fn set_search_focus_active(&mut self, active: bool) {
+        self.search_focus_active = active;
     }
 
     /// Translates `frmComponentExplorer.OnEndDock` (Ghidra `0x013AB340`,
-    /// symbol `FUN_013ab340`). Drops the dock state, then refreshes nodes that
-    /// belong to category `0x39` through the supplied callback.
-    pub fn on_end_dock<T: CategorizedNode>(
-        &mut self,
-        nodes: &[T],
-        mut refresh_39: impl FnMut(&T),
-    ) {
+    /// symbol `FUN_013ab340`). Refreshes each row whose parent payload has
+    /// category `0x39`, then clears the docking flag.
+    pub fn on_end_dock<T: DockRefreshNode>(&mut self, nodes: &[T], mut refresh_39: impl FnMut(&T)) {
         for node in nodes {
-            if node.category() == 0x39 {
+            if node.parent_payload_category() == Some(0x39) {
                 refresh_39(node);
             }
         }
 
-        self.dock_requested = false;
+        self.docking_active = false;
     }
 
-    /// Translates `frmComponentExplorer.OnExpanding` (Ghidra `0x013AB740`,
-    /// symbol `FUN_013ab740`) using recovered semantics:
-    /// allow the operation unless not docking, no home panel, and helper state
-    /// reports any code except `0x10`.
-    pub fn can_expand(&self, current_state: impl FnOnce() -> u16) -> bool {
-        let state = current_state();
-        self.dock_requested || self.home_panel_active || state == 0x10
+    /// Allows `frmComponentExplorer.pnlHome.tvCircuit.OnCollapsing` when a dock
+    /// interaction is active or the cursor is on the tree expansion button
+    /// (Ghidra `0x013AB500`, symbol `FUN_013ab500`).
+    #[must_use]
+    pub const fn can_collapse(&self, hit_test: u16) -> bool {
+        self.docking_active || hit_test == TREE_HIT_ON_BUTTON
     }
 
-    /// Translates `frmComponentExplorer.OnClose`-adjacent gating check
-    /// recovered at `0x013AB500`/`FUN_013ab500`.
-    pub fn can_close(&self, current_state: impl FnOnce() -> u16) -> bool {
-        self.dock_requested || current_state() == 0x10
+    /// Allows `frmComponentExplorer.pnlHome.tvCircuit.OnExpanding` when docking,
+    /// search focus, or an expansion-button hit is active (Ghidra `0x013AB740`,
+    /// symbol `FUN_013ab740`).
+    #[must_use]
+    pub const fn can_expand(&self, hit_test: u16) -> bool {
+        self.docking_active || self.search_focus_active || hit_test == TREE_HIT_ON_BUTTON
     }
 
     /// Translates `frmComponentExplorer.OnDblClick` (Ghidra `0x013AB6E0`,
-    /// symbol `FUN_013ab6e0`) by delegating to caller-provided gating/opening.
-    pub fn on_dbl_click(&self, can_open: bool, open_selected: impl FnOnce()) -> bool {
-        if can_open {
-            open_selected();
-            return true;
+    /// symbol `FUN_013ab6e0`). An available payload must pass the recovered
+    /// eligibility check before the Schematic Editor properties command runs.
+    pub fn on_dbl_click<T>(
+        &self,
+        selected_payload: Option<&T>,
+        is_eligible: impl FnOnce(&T) -> bool,
+        edit_properties: impl FnOnce(),
+    ) -> bool {
+        let Some(payload) = selected_payload else {
+            return false;
+        };
+
+        if !is_eligible(payload) {
+            return false;
         }
-        false
+
+        edit_properties();
+        true
     }
 
-    /// Returns the expected custom-draw color for `frmComponentExplorer.pnlHome.tvCircuit`
-    /// draw callbacks (`0x013AB670`, `FUN_013ab670`) when home-panel behavior is active.
-    pub const fn custom_draw_style(&self, selected: bool) -> Option<u32> {
-        if self.home_panel_active {
+    /// Returns the recovered brush color for
+    /// `frmComponentExplorer.pnlHome.tvCircuit.OnCustomDrawItem` while search
+    /// focus is active (Ghidra `0x013AB670`, symbol `FUN_013ab670`).
+    #[must_use]
+    pub const fn custom_draw_color(&self, selected: bool) -> Option<u32> {
+        if self.search_focus_active {
             if selected {
-                Some(0x8000)
+                Some(TREE_COLOR_SEARCH_SELECTION)
             } else {
-                Some(0xff000005)
+                Some(TREE_COLOR_NORMAL)
             }
         } else {
             None
@@ -255,31 +270,34 @@ impl Window {
     }
 
     /// Translates `frmComponentExplorer` comparator helper at
-    /// `0x013AB570` (`FUN_013ab570`): category `0x39` entries are ordered before
-    /// non-`0x39` items; all other comparisons are delegated to a caller-supplied
-    /// comparator.
-    pub fn compare_circuit_node<T: CategorizedNode>(
+    /// `0x013AB570` (`FUN_013ab570`): category `0x39` entries precede other
+    /// payloads. Rows with missing or excluded payloads compare equal. All
+    /// remaining rows use the host's locale-aware label comparison.
+    pub fn compare_circuit_node<T: ComparableTreeNode>(
         &self,
         left: Option<&T>,
         right: Option<&T>,
-        fallback_cmp: impl FnOnce(u16, u16) -> i32,
-    ) -> i32 {
+        compare_labels: impl FnOnce(&str, &str) -> Ordering,
+    ) -> Ordering {
         let (Some(left), Some(right)) = (left, right) else {
-            return 0;
+            return Ordering::Equal;
         };
 
-        let left_category = left.category();
-        let right_category = right.category();
+        let (Some(left_category), Some(right_category)) =
+            (left.payload_category(), right.payload_category())
+        else {
+            return Ordering::Equal;
+        };
 
         if left_category == 0x39 && right_category != 0x39 {
-            return -1;
+            return Ordering::Less;
         }
 
         if left_category != 0x39 && right_category == 0x39 {
-            return 1;
+            return Ordering::Greater;
         }
 
-        fallback_cmp(left_category, right_category)
+        compare_labels(left.label(), right.label())
     }
 }
 
@@ -485,124 +503,232 @@ mod tests {
     }
 
     #[test]
-    fn close_request_records_original_form_result() {
-        let mut window = Window::default();
-        assert_eq!(window.update(Message::CloseRequested, &mut NavigationRecorder::default()), Task::none());
-        assert!(window.is_destroyed());
+    fn close_disposition_frees_the_form() {
+        let window = Window::default();
+
+        let disposition = window.close_disposition();
+
+        assert_eq!(disposition, CloseDisposition::Free);
+        assert_eq!(disposition.recovered_code(), 2);
     }
 
-    #[test]
-    fn on_destroy_clears_dock_and_home_state() {
-        let mut window = Window::default();
-        let mut recorder = NavigationRecorder::default();
-        let _ = window.update(Message::StartDock, &mut recorder);
-        window.set_home_panel_active(true);
-        window.on_destroy();
-
-        assert!(!window.is_dock_requested());
-        assert!(!window.is_destroyed() == false);
-        assert!(window.is_destroyed());
+    #[derive(Default)]
+    struct RegistryRecorder {
+        clear_count: usize,
     }
 
-    #[test]
-    fn docking_start_marks_and_end_refreshes_category_39_nodes() {
-        let mut window = Window::default();
-        let mut refreshed = Vec::<u16>::new();
-        let nodes = [1_u16, 0x39, 0x10, 0x39];
-
-        window.on_start_dock();
-        assert!(window.is_dock_requested());
-
-        window.on_end_dock(&nodes, |category| refreshed.push(*category));
-
-        assert_eq!(refreshed, vec![0x39, 0x39]);
-        assert!(!window.is_dock_requested());
-    }
-
-    #[test]
-    fn can_expand_checks_dock_or_home_and_state_override() {
-        let mut window = Window::default();
-        window.on_start_dock();
-        window.set_home_panel_active(false);
-        assert!(window.can_expand(|| 0x20));
-
-        let mut window = Window::default();
-        assert!(!window.can_expand(|| 0x11));
-        window.set_home_panel_active(true);
-        assert!(window.can_expand(|| 0x11));
-        window.set_home_panel_active(false);
-        assert!(window.can_expand(|| 0x10));
-    }
-
-    #[test]
-    fn can_close_checks_dock_or_special_state() {
-        let mut window = Window::default();
-        assert!(!window.can_close(|| 0x11));
-        window.on_start_dock();
-        assert!(window.can_close(|| 0x11));
-        window.on_destroy();
-        assert!(!window.can_close(|| 0x10));
-    }
-
-    #[derive(Debug, Clone, Copy)]
-    struct TestNode {
-        category: u16,
-    }
-
-    impl CategorizedNode for TestNode {
-        fn category(&self) -> u16 {
-            self.category
+    impl ComponentExplorerRegistry for RegistryRecorder {
+        fn clear_component_explorer(&mut self) {
+            self.clear_count += 1;
         }
     }
 
     #[test]
-    fn comparator_orders_category_39_before_non_39() {
-        let mut window = Window::default();
-        let left = TestNode { category: 0x39 };
-        let right = TestNode { category: 0x10 };
-        let other = TestNode { category: 0x22 };
+    fn destroy_clears_the_singleton_form_reference() {
+        let mut registry = RegistryRecorder::default();
 
-        assert_eq!(
-            window.compare_circuit_node(Some(&left), Some(&right), |_, _| {
-                panic!("fallback not used for 39-vs-non-39")
-            }),
-            -1
-        );
-        assert_eq!(window.compare_circuit_node(Some(&right), Some(&left), |_, _| 0), 1);
-        assert_eq!(
-            window.compare_circuit_node(Some(&other), Some(&left), |_, _| 0),
-            1
-        );
-        assert_eq!(
-            window.compare_circuit_node(Some(&left), Some(&other), |_, _| 0),
-            -1
-        );
+        Window::on_destroy(&mut registry);
+
+        assert_eq!(registry.clear_count, 1);
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    struct RefreshNode {
+        id: u8,
+        parent_category: Option<u16>,
+    }
+
+    impl DockRefreshNode for RefreshNode {
+        fn parent_payload_category(&self) -> Option<u16> {
+            self.parent_category
+        }
     }
 
     #[test]
-    fn custom_draw_style_uses_home_state_gate() {
+    fn docking_start_marks_and_end_refreshes_rows_with_category_39_parents() {
         let mut window = Window::default();
-        assert_eq!(window.custom_draw_style(false), None);
+        let mut refreshed = Vec::<u8>::new();
+        let nodes = [
+            RefreshNode {
+                id: 1,
+                parent_category: None,
+            },
+            RefreshNode {
+                id: 2,
+                parent_category: Some(0x39),
+            },
+            RefreshNode {
+                id: 3,
+                parent_category: Some(0x10),
+            },
+            RefreshNode {
+                id: 4,
+                parent_category: Some(0x39),
+            },
+        ];
 
-        let mut window = Window::default();
-        window.set_home_panel_active(true);
-        assert_eq!(window.custom_draw_style(false), Some(0xff000005));
-        assert_eq!(window.custom_draw_style(true), Some(0x8000));
+        window.on_start_dock();
+        assert!(window.is_docking_active());
+
+        window.on_end_dock(&nodes, |node| refreshed.push(node.id));
+
+        assert_eq!(refreshed, vec![2, 4]);
+        assert!(!window.is_docking_active());
     }
 
     #[test]
-    fn dbl_click_opens_only_when_allowed() {
+    fn collapse_requires_docking_or_an_expansion_button_hit() {
+        let mut window = Window::default();
+        assert!(!window.can_collapse(0x20));
+        assert!(window.can_collapse(TREE_HIT_ON_BUTTON));
+
+        window.on_start_dock();
+        assert!(window.can_collapse(0x20));
+    }
+
+    #[test]
+    fn expand_accepts_docking_search_focus_or_an_expansion_button_hit() {
+        let mut window = Window::default();
+        assert!(!window.can_expand(0x20));
+        assert!(window.can_expand(TREE_HIT_ON_BUTTON));
+
+        window.on_start_dock();
+        assert!(window.can_expand(0x20));
+
+        let mut window = Window::default();
+        window.set_search_focus_active(true);
+        assert!(window.can_expand(0x20));
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    struct TestNode {
+        category: Option<u16>,
+        label: &'static str,
+    }
+
+    impl ComparableTreeNode for TestNode {
+        fn payload_category(&self) -> Option<u16> {
+            self.category
+        }
+
+        fn label(&self) -> &str {
+            self.label
+        }
+    }
+
+    #[test]
+    fn comparator_orders_category_39_before_other_payloads() {
         let window = Window::default();
+        let prioritized = TestNode {
+            category: Some(0x39),
+            label: "Zeta",
+        };
+        let ordinary = TestNode {
+            category: Some(0x10),
+            label: "Alpha",
+        };
+
+        assert_eq!(
+            window.compare_circuit_node(Some(&prioritized), Some(&ordinary), |_, _| {
+                panic!("label comparison is not used for mixed categories")
+            }),
+            Ordering::Less
+        );
+        assert_eq!(
+            window.compare_circuit_node(Some(&ordinary), Some(&prioritized), |_, _| {
+                panic!("label comparison is not used for mixed categories")
+            }),
+            Ordering::Greater
+        );
+    }
+
+    #[test]
+    fn comparator_delegates_other_rows_to_label_ordering() {
+        let window = Window::default();
+        let left = TestNode {
+            category: Some(0x10),
+            label: "Alpha",
+        };
+        let right = TestNode {
+            category: Some(0x22),
+            label: "Beta",
+        };
+
+        let ordering = window.compare_circuit_node(Some(&left), Some(&right), Ord::cmp);
+
+        assert_eq!(ordering, Ordering::Less);
+    }
+
+    #[test]
+    fn comparator_treats_missing_or_excluded_payloads_as_equal() {
+        let window = Window::default();
+        let excluded = TestNode {
+            category: None,
+            label: "Excluded",
+        };
+        let ordinary = TestNode {
+            category: Some(0x10),
+            label: "Ordinary",
+        };
+
+        assert_eq!(
+            window.compare_circuit_node(Some(&excluded), Some(&ordinary), |_, _| {
+                panic!("label comparison is not used for excluded payloads")
+            }),
+            Ordering::Equal
+        );
+        assert_eq!(
+            window.compare_circuit_node::<TestNode>(None, Some(&ordinary), |_, _| {
+                panic!("label comparison is not used for missing rows")
+            }),
+            Ordering::Equal
+        );
+    }
+
+    #[test]
+    fn custom_draw_color_is_active_only_during_search_focus() {
+        let mut window = Window::default();
+        assert_eq!(window.custom_draw_color(false), None);
+
+        window.set_search_focus_active(true);
+        assert_eq!(window.custom_draw_color(false), Some(TREE_COLOR_NORMAL));
+        assert_eq!(
+            window.custom_draw_color(true),
+            Some(TREE_COLOR_SEARCH_SELECTION)
+        );
+    }
+
+    #[test]
+    fn double_click_edits_only_an_eligible_selected_payload() {
+        let window = Window::default();
+        let payload = 7_u8;
         let mut opened = false;
-        assert!(window.on_dbl_click(true, || {
-            opened = true;
-        }));
+        assert!(window.on_dbl_click(
+            Some(&payload),
+            |value| *value == 7,
+            || {
+                opened = true;
+            }
+        ));
         assert!(opened);
 
         let mut opened = false;
-        assert!(!window.on_dbl_click(false, || {
-            opened = true;
-        }));
+        assert!(!window.on_dbl_click(
+            Some(&payload),
+            |_| false,
+            || {
+                opened = true;
+            }
+        ));
+        assert!(!opened);
+
+        assert!(!window.on_dbl_click::<u8>(
+            None,
+            |_| panic!("eligibility is not checked without a payload"),
+            || {
+                opened = true;
+            }
+        ));
         assert!(!opened);
     }
 }

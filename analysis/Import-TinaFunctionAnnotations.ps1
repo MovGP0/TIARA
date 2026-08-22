@@ -200,7 +200,7 @@ SELECT
   count(DISTINCT address) AS address_count
 FROM function_annotations;
 
-UPDATE storage_metadata SET schema_version = 3;
+UPDATE storage_metadata SET schema_version = 4;
 
 COMMIT;
 

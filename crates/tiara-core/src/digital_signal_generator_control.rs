@@ -337,6 +337,248 @@ pub enum WaveformEditOperation {
     Repeat(u32),
 }
 
+pub const IGNORED_LOGIC_STATE: u8 = 5;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DigitalTransition {
+    pub time: f64,
+    pub state: u8,
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct DigitalTransitionList {
+    transitions: Vec<DigitalTransition>,
+}
+
+impl DigitalTransitionList {
+    #[must_use]
+    pub const fn new(transitions: Vec<DigitalTransition>) -> Self {
+        Self { transitions }
+    }
+
+    #[must_use]
+    pub fn transitions(&self) -> &[DigitalTransition] {
+        &self.transitions
+    }
+
+    /// Ports Ghidra function `FUN_01d3ab30` at `0x01D3AB30`.
+    ///
+    /// Inserts a time interval into the ordered transition list. Later points
+    /// move by the interval width. A changed state receives start and end
+    /// transitions so the state that preceded the insertion resumes afterward.
+    pub fn insert_interval(&mut self, start: f64, end: f64, state: u8) {
+        if state == IGNORED_LOGIC_STATE {
+            return;
+        }
+        let Some(anchor_index) = self.index_at_or_before(start) else {
+            return;
+        };
+        let anchor_state = self.transitions[anchor_index].state;
+        let width = end - start;
+        for transition in &mut self.transitions[anchor_index + 1..] {
+            transition.time += width;
+        }
+        if anchor_state != state {
+            self.transitions
+                .insert(anchor_index + 1, DigitalTransition { time: start, state });
+            self.transitions.insert(
+                anchor_index + 2,
+                DigitalTransition {
+                    time: end,
+                    state: anchor_state,
+                },
+            );
+        }
+    }
+
+    /// Ports Ghidra function `FUN_01d3ad60` at `0x01D3AD60`.
+    ///
+    /// Replaces the state in one interval without shifting later time values.
+    /// Existing interior points are removed and only necessary boundary points
+    /// remain. State code 5 and missing boundary anchors are no-ops.
+    pub fn set_interval(&mut self, start: f64, end: f64, state: u8) {
+        if state == IGNORED_LOGIC_STATE {
+            return;
+        }
+        let Some(start_index) = self.index_at_or_before(start) else {
+            return;
+        };
+        let Some(end_index) = self.index_at_or_before(end) else {
+            return;
+        };
+        let start_state = self.transitions[start_index].state;
+        let end_state = self.transitions[end_index].state;
+
+        if end_index < start_index {
+            self.set_reversed_interval(
+                start_index,
+                end_index,
+                start,
+                end,
+                state,
+                start_state,
+                end_state,
+            );
+            return;
+        }
+        if end_index > start_index {
+            self.transitions.drain(start_index + 1..=end_index);
+        }
+        let mut insertion_index = start_index + 1;
+        if start_state != state {
+            self.transitions
+                .insert(insertion_index, DigitalTransition { time: start, state });
+            insertion_index += 1;
+        }
+        if end_state != state {
+            self.transitions.insert(
+                insertion_index,
+                DigitalTransition {
+                    time: end,
+                    state: end_state,
+                },
+            );
+        }
+    }
+
+    /// Ports Ghidra function `FUN_01d3b080` at `0x01D3B080`.
+    ///
+    /// Removes the selected time span, preserves the state that applies at its
+    /// end, and shifts every later transition left by the removed width.
+    pub fn delete_interval(&mut self, start: f64, end: f64) {
+        let Some(start_index) = self.index_before(start) else {
+            return;
+        };
+        let Some(end_index) = self.index_at_or_before(end) else {
+            return;
+        };
+        let start_state = self.transitions[start_index].state;
+        let end_state = self.transitions[end_index].state;
+        let width = end - start;
+
+        if end_index < start_index {
+            if start_state != end_state {
+                self.transitions[end_index].time = start;
+            }
+            let shift_start = end_index.saturating_add(2);
+            for transition in &mut self.transitions[shift_start..] {
+                transition.time -= width;
+            }
+            return;
+        }
+        if end_index > start_index {
+            self.transitions.drain(start_index + 1..=end_index);
+        }
+        let mut later_index = start_index + 1;
+        if start_state != end_state {
+            self.transitions.insert(
+                later_index,
+                DigitalTransition {
+                    time: start,
+                    state: end_state,
+                },
+            );
+            later_index += 1;
+        }
+        for transition in &mut self.transitions[later_index..] {
+            transition.time -= width;
+        }
+    }
+
+    /// Ports Ghidra function `FUN_01d3b2f0` at `0x01D3B2F0`.
+    ///
+    /// Copies the selected state segments into later equal-width intervals.
+    /// Writes stop after the first segment that reaches the measurement end.
+    pub fn repeat_interval(&mut self, start: f64, end: f64, measurement_end: f64, count: u32) {
+        let Some(start_index) = self.index_at_or_before(start) else {
+            return;
+        };
+        let Some(end_index) = self.index_at_or_before(end) else {
+            return;
+        };
+        if start_index > end_index || count == 0 {
+            return;
+        }
+        let segments: Vec<_> = (start_index..=end_index)
+            .map(|index| DigitalSegment {
+                start: if index == start_index {
+                    start
+                } else {
+                    self.transitions[index].time
+                },
+                end: if index < end_index {
+                    self.transitions[index + 1].time
+                } else {
+                    end
+                },
+                state: self.transitions[index].state,
+            })
+            .collect();
+        let width = end - start;
+        for repetition in 1..=count {
+            let offset = f64::from(repetition) * width;
+            for segment in &segments {
+                let shifted_start = segment.start + offset;
+                let shifted_end = segment.end + offset;
+                if measurement_end < shifted_end {
+                    self.set_interval(shifted_start, measurement_end, segment.state);
+                    return;
+                }
+                self.set_interval(shifted_start, shifted_end, segment.state);
+            }
+        }
+    }
+
+    fn index_at_or_before(&self, time: f64) -> Option<usize> {
+        self.transitions
+            .iter()
+            .rposition(|transition| transition.time <= time)
+    }
+
+    fn index_before(&self, time: f64) -> Option<usize> {
+        self.transitions
+            .iter()
+            .rposition(|transition| transition.time < time)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn set_reversed_interval(
+        &mut self,
+        start_index: usize,
+        end_index: usize,
+        start: f64,
+        end: f64,
+        state: u8,
+        start_state: u8,
+        end_state: u8,
+    ) {
+        if start_state == end_state {
+            if start_state != state {
+                self.transitions
+                    .insert(start_index + 1, DigitalTransition { time: start, state });
+                self.transitions.insert(
+                    start_index + 2,
+                    DigitalTransition {
+                        time: end,
+                        state: start_state,
+                    },
+                );
+            }
+        } else if start_state == state {
+            self.transitions[end_index].time = end;
+        } else {
+            self.transitions[end_index].time = start;
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct DigitalSegment {
+    start: f64,
+    end: f64,
+    state: u8,
+}
+
 pub trait WaveformEditAdapter {
     fn parse_pattern(&mut self, pattern: &str) -> Vec<u8>;
     fn apply(&mut self, channel_index: usize, operation: WaveformEditOperation, pattern: &[u8]);
@@ -703,6 +945,143 @@ mod tests {
         assert!(adapter.applied.is_empty());
         assert_eq!(adapter.rebuilds, 1);
         assert_eq!(adapter.refreshes, 0);
+    }
+
+    fn transition(time: f64, state: u8) -> DigitalTransition {
+        DigitalTransition { time, state }
+    }
+
+    fn waveform() -> DigitalTransitionList {
+        DigitalTransitionList::new(vec![
+            transition(0.0, 0),
+            transition(2.0, 1),
+            transition(4.0, 0),
+            transition(6.0, 1),
+            transition(10.0, 0),
+        ])
+    }
+
+    #[test]
+    fn insert_shifts_later_transitions_and_restores_the_anchor_state() {
+        let mut waveform = waveform();
+
+        waveform.insert_interval(3.0, 5.0, 0);
+
+        assert_eq!(
+            waveform.transitions(),
+            [
+                transition(0.0, 0),
+                transition(2.0, 1),
+                transition(3.0, 0),
+                transition(5.0, 1),
+                transition(6.0, 0),
+                transition(8.0, 1),
+                transition(12.0, 0),
+            ]
+        );
+    }
+
+    #[test]
+    fn insert_with_the_anchor_state_only_creates_time() {
+        let mut waveform = waveform();
+
+        waveform.insert_interval(3.0, 5.0, 1);
+
+        assert_eq!(
+            waveform.transitions(),
+            [
+                transition(0.0, 0),
+                transition(2.0, 1),
+                transition(6.0, 0),
+                transition(8.0, 1),
+                transition(12.0, 0),
+            ]
+        );
+    }
+
+    #[test]
+    fn set_replaces_interior_transitions_and_preserves_the_end_state() {
+        let mut waveform = waveform();
+
+        waveform.set_interval(1.0, 5.0, 1);
+
+        assert_eq!(
+            waveform.transitions(),
+            [
+                transition(0.0, 0),
+                transition(1.0, 1),
+                transition(5.0, 0),
+                transition(6.0, 1),
+                transition(10.0, 0),
+            ]
+        );
+    }
+
+    #[test]
+    fn delete_closes_the_time_gap_without_a_redundant_boundary() {
+        let mut waveform = waveform();
+
+        waveform.delete_interval(1.0, 5.0);
+
+        assert_eq!(
+            waveform.transitions(),
+            [transition(0.0, 0), transition(2.0, 1), transition(6.0, 0),]
+        );
+    }
+
+    #[test]
+    fn delete_preserves_a_different_end_state_at_the_start() {
+        let mut waveform = waveform();
+
+        waveform.delete_interval(1.0, 3.0);
+
+        assert_eq!(
+            waveform.transitions(),
+            [
+                transition(0.0, 0),
+                transition(1.0, 1),
+                transition(2.0, 0),
+                transition(4.0, 1),
+                transition(8.0, 0),
+            ]
+        );
+    }
+
+    #[test]
+    fn repeat_copies_segments_and_clips_at_the_measurement_end() {
+        let mut waveform = DigitalTransitionList::new(vec![
+            transition(0.0, 0),
+            transition(2.0, 1),
+            transition(4.0, 0),
+            transition(8.0, 1),
+        ]);
+
+        waveform.repeat_interval(0.0, 4.0, 10.0, 2);
+
+        assert_eq!(
+            waveform.transitions(),
+            [
+                transition(0.0, 0),
+                transition(2.0, 1),
+                transition(4.0, 0),
+                transition(6.0, 1),
+                transition(8.0, 0),
+                transition(8.0, 1),
+                transition(8.0, 0),
+                transition(10.0, 1),
+            ]
+        );
+    }
+
+    #[test]
+    fn missing_anchors_ignored_state_and_zero_repeat_are_no_ops() {
+        let original = waveform();
+        let mut changed = original.clone();
+        changed.insert_interval(-2.0, -1.0, 1);
+        changed.insert_interval(1.0, 2.0, IGNORED_LOGIC_STATE);
+        changed.set_interval(1.0, 2.0, IGNORED_LOGIC_STATE);
+        changed.repeat_interval(0.0, 2.0, 10.0, 0);
+        assert_eq!(changed, original);
     }
 
     #[derive(Default)]

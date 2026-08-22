@@ -198,6 +198,50 @@ CHECKPOINT;
         }
     }
 
+    $expectedPortMappingCounts = @('0', '0', '0', '0', '0')
+    if ([System.IO.File]::Exists($resolvedDatabasePath))
+    {
+        $portMappingTableResult = & $duckDbCommand.Source $resolvedDatabasePath `
+            -readonly `
+            -noheader `
+            -list `
+            -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'main' AND table_name = 'rust_port_mappings';"
+        if ($LASTEXITCODE -ne 0)
+        {
+            throw "DuckDB Rust port-mapping table inspection failed with exit code $LASTEXITCODE."
+        }
+
+        if (($portMappingTableResult | Select-Object -Last 1) -eq '1')
+        {
+            $portMappingCountResult = & $duckDbCommand.Source $resolvedDatabasePath `
+                -readonly `
+                -noheader `
+                -list `
+                -c "SELECT concat_ws('|', count(*), count(DISTINCT source_file), count(DISTINCT function_address), count(DISTINCT ghidra_source_path), count(DISTINCT rust_source_path)) FROM rust_port_mappings;"
+            if ($LASTEXITCODE -ne 0)
+            {
+                throw "DuckDB Rust port-mapping count failed with exit code $LASTEXITCODE."
+            }
+            $expectedPortMappingCounts = ($portMappingCountResult | Select-Object -Last 1).Split('|')
+
+            $duckDbPreviousPath = $resolvedDatabasePath.Replace('\', '/').Replace("'", "''")
+            $copyPortMappingSql = @"
+ATTACH '$duckDbPreviousPath' AS previous_graph (READ_ONLY);
+INSERT INTO rust_port_mappings
+SELECT * FROM previous_graph.rust_port_mappings;
+DETACH previous_graph;
+CHECKPOINT;
+"@
+            & $duckDbCommand.Source $temporaryDatabasePath `
+                -bail `
+                -c $copyPortMappingSql
+            if ($LASTEXITCODE -ne 0)
+            {
+                throw "DuckDB Rust port-mapping copy failed with exit code $LASTEXITCODE."
+            }
+        }
+    }
+
     $integritySql = @'
 SELECT concat_ws('|',
   (SELECT count(*) FROM nodes),
@@ -213,7 +257,12 @@ SELECT concat_ws('|',
   (SELECT count(DISTINCT address) FROM function_annotations),
   (SELECT count(*) FROM rust_ui_traceability),
   (SELECT count(DISTINCT source_file) FROM rust_ui_traceability),
-  (SELECT count(DISTINCT screenshot_path) FROM rust_ui_traceability)
+  (SELECT count(DISTINCT screenshot_path) FROM rust_ui_traceability),
+  (SELECT count(*) FROM rust_port_mappings),
+  (SELECT count(DISTINCT source_file) FROM rust_port_mappings),
+  (SELECT count(DISTINCT function_address) FROM rust_port_mappings),
+  (SELECT count(DISTINCT ghidra_source_path) FROM rust_port_mappings),
+  (SELECT count(DISTINCT rust_source_path) FROM rust_port_mappings)
 );
 '@
     $integrityResult = & $duckDbCommand.Source $temporaryDatabasePath `
@@ -227,7 +276,7 @@ SELECT concat_ws('|',
     }
 
     $counts = ($integrityResult | Select-Object -Last 1).Split('|')
-    if ($counts.Count -ne 14)
+    if ($counts.Count -ne 19)
     {
         throw "DuckDB returned an invalid graph validation result."
     }
@@ -261,6 +310,16 @@ SELECT concat_ws('|',
     {
         throw "DuckDB did not preserve the Rust UI traceability table."
     }
+    if (
+        [long]$counts[14] -ne [long]$expectedPortMappingCounts[0] -or
+        [long]$counts[15] -ne [long]$expectedPortMappingCounts[1] -or
+        [long]$counts[16] -ne [long]$expectedPortMappingCounts[2] -or
+        [long]$counts[17] -ne [long]$expectedPortMappingCounts[3] -or
+        [long]$counts[18] -ne [long]$expectedPortMappingCounts[4]
+    )
+    {
+        throw "DuckDB did not preserve the Rust port-mapping table."
+    }
 
     if ([System.IO.File]::Exists($resolvedDatabasePath))
     {
@@ -290,6 +349,9 @@ SELECT concat_ws('|',
     Write-Output "Annotation sources: $($counts[9])"
     Write-Output "Rust UI trace rows: $($counts[11])"
     Write-Output "Rust UI trace sources: $($counts[12])"
+    Write-Output "Rust port mappings: $($counts[14])"
+    Write-Output "Mapped Ghidra functions: $($counts[16])"
+    Write-Output "Mapped Rust files: $($counts[18])"
     Write-Output "Bytes: $databaseSize"
     Write-Output "Source JSON removed: $($RemoveGraphJson.IsPresent)"
 }

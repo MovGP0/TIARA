@@ -19,6 +19,11 @@ use tiara_core::hexadecimal_text_file::load_hexadecimal_u32_file;
 pub const TITLE: &str = "SPI Transmitter";
 pub const FORM_RESOURCE: &str = "DataSPI";
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HelpRequest {
+    pub form_resource: &'static str,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum NumericMode {
     #[default]
@@ -118,6 +123,7 @@ pub enum Message {
     LoadCompleted(Result<ImportDescriptor, String>),
     Accept,
     AcceptAlternate(bool),
+    Help,
     CloseRequested,
 }
 
@@ -176,6 +182,8 @@ pub struct Window {
     lifecycle: Lifecycle,
     error_flag: bool,
     last_close_allowed: Option<bool>,
+    focused_grid_input: Option<usize>,
+    help_request: Option<HelpRequest>,
     status: Option<String>,
 }
 
@@ -186,6 +194,10 @@ impl Default for Window {
 }
 
 impl Window {
+    /// Ports Ghidra function `FUN_014109f0` at `0x014109F0`.
+    ///
+    /// Creates private staged storage from the caller record, restores every
+    /// editable setting, derives the numeric limits, and builds the first grid.
     #[must_use]
     pub fn new(target: DataSpiRecord, bit_width: u32) -> Self {
         let staged_words = target.words.clone();
@@ -206,6 +218,8 @@ impl Window {
             lifecycle: Lifecycle::default(),
             error_flag: false,
             last_close_allowed: None,
+            focused_grid_input: None,
+            help_request: None,
             status: None,
         }
     }
@@ -244,6 +258,9 @@ impl Window {
             }
             Message::AcceptAlternate(grid_result) => {
                 self.commit_direct(false, grid_result);
+            }
+            Message::Help => {
+                self.request_help();
             }
             Message::CloseRequested => {
                 self.last_close_allowed = Some(self.close_query());
@@ -456,10 +473,37 @@ impl Window {
         )
     }
 
+    /// Ports Ghidra function `FUN_01411090` at `0x01411090`.
+    ///
+    /// Allows closing only when the current operation has no error, then clears
+    /// the transient error flag so the user can correct the input and retry.
     pub const fn close_query(&mut self) -> bool {
         let can_close = !self.error_flag;
         self.error_flag = false;
         can_close
+    }
+
+    /// Ports Ghidra function `FUN_01411100` at `0x01411100`.
+    ///
+    /// Requests focus for the first data editor when the form becomes visible.
+    pub fn show(&mut self) -> Task<Message> {
+        self.focused_grid_input = Some(0);
+        text_input::focus(grid_input_id(0))
+    }
+
+    /// Ports Ghidra function `FUN_01411a00` at `0x01411A00`.
+    ///
+    /// Requests the shared TINA help resolver for this form. The application
+    /// host owns localized help-file resolution and external help dispatch.
+    pub const fn request_help(&mut self) {
+        self.help_request = Some(HelpRequest {
+            form_resource: FORM_RESOURCE,
+        });
+    }
+
+    #[must_use]
+    pub const fn take_help_request(&mut self) -> Option<HelpRequest> {
+        self.help_request.take()
     }
 
     #[must_use]
@@ -486,6 +530,7 @@ impl Window {
             grid = grid.push(row![
                 text(format!("{index:X}")).width(Length::FillPortion(1)),
                 text_input("", &self.grid_inputs[index])
+                    .id(grid_input_id(index))
                     .on_input(move |value| Message::GridValueChanged(index, value))
                     .width(Length::FillPortion(3)),
             ]);
@@ -532,6 +577,7 @@ impl Window {
             row![
                 button("OK").on_press(Message::Accept),
                 button("Cancel").on_press(Message::CloseRequested),
+                button("Help").on_press(Message::Help),
             ]
             .spacing(8),
         ]
@@ -607,6 +653,10 @@ fn format_words(words: &[u32], mode: NumericMode, bit_width: u32) -> Vec<String>
         .collect()
 }
 
+fn grid_input_id(index: usize) -> text_input::Id {
+    text_input::Id::new(format!("data-spi-grid-{index}"))
+}
+
 const fn width_mask(bit_width: u32) -> u32 {
     if bit_width >= u32::BITS {
         u32::MAX
@@ -619,6 +669,10 @@ fn parse_hex_address(label: &str, value: &str) -> Result<usize, String> {
     usize::from_str_radix(value.trim(), 16).map_err(|_| format!("{label}: invalid value!"))
 }
 
+/// Ports Ghidra function `FUN_014111b0` at `0x014111B0`.
+///
+/// The Iced port uses `u32::from_str` instead of a VCL integer editor. The
+/// returned message follows the same first-error path through `record_error`.
 fn parse_u32(label: &str, value: &str) -> Result<u32, String> {
     value
         .trim()
@@ -626,6 +680,11 @@ fn parse_u32(label: &str, value: &str) -> Result<u32, String> {
         .map_err(|_| format!("{label}: invalid value!"))
 }
 
+/// Ports Ghidra function `FUN_01411190` at `0x01411190`.
+///
+/// The Iced port uses `f64::from_str` instead of VCL float-editor `OnError`
+/// events. The returned message follows the same first-error path through
+/// `record_error`.
 fn parse_finite(label: &str, value: &str) -> Result<f64, String> {
     let parsed = value
         .trim()
@@ -785,5 +844,68 @@ mod tests {
         let window = Window::default();
         drop(window.load_selected(None));
         assert_eq!(window.staged_words, vec![0; 8]);
+    }
+
+    #[test]
+    fn construction_stages_the_complete_caller_record() {
+        let target = DataSpiRecord {
+            words: vec![1, 2],
+            mode: NumericMode::Hexadecimal,
+            simulation: SimulationSettings {
+                bit_count: 16,
+                start_address: 0,
+                stop_address: 1,
+                step_time: 0.5,
+                frame_time: 1.0,
+            },
+            pattern: PatternDescriptor {
+                method: PatternMethod::CountUp,
+                first: 0,
+                last: 1,
+                initial: 1,
+                step: 1,
+                limit: 0xFF,
+            },
+            repeat_pattern: true,
+        };
+        let window = Window::new(target.clone(), 16);
+        assert_eq!(window.target, target);
+        assert_eq!(window.staged_words, [1, 2]);
+        assert_eq!(window.grid_inputs, ["0001", "0002"]);
+        assert!(window.lifecycle.initialized);
+    }
+
+    #[test]
+    fn show_focuses_the_first_data_input() {
+        let mut window = Window::default();
+        drop(window.show());
+        assert_eq!(window.focused_grid_input, Some(0));
+    }
+
+    #[test]
+    fn help_requests_the_shared_form_context() {
+        let mut window = Window::default();
+        drop(window.update(Message::Help));
+        assert_eq!(
+            window.take_help_request(),
+            Some(HelpRequest {
+                form_resource: FORM_RESOURCE,
+            })
+        );
+    }
+
+    #[test]
+    fn numeric_parser_errors_use_the_close_veto_path() {
+        let mut window = Window::default();
+        window.draft.step_time = "not-a-number".to_owned();
+        assert!(!window.commit_direct(true, false));
+        assert_eq!(window.status.as_deref(), Some("Step time: invalid value!"));
+        assert!(!window.close_query());
+        assert!(window.close_query());
+
+        window.draft.step_time = "0".to_owned();
+        window.draft.bit_count = "not-an-integer".to_owned();
+        assert!(!window.commit_direct(true, false));
+        assert_eq!(window.status.as_deref(), Some("Bit count: invalid value!"));
     }
 }

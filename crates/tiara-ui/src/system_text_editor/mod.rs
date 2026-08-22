@@ -16,7 +16,56 @@ pub const TITLE: &str = "System Text Editor";
 pub const TEQ_DEFAULT_FILE_NAME: &str = "tinaequ.teq";
 pub const TEQ_EXTENSION: &str = "teq";
 pub const TEQ_FILTER_NAME: &str = "Tina equation (*.teq)";
-pub const LIBRARY_EVALUATION: &str = "iced supplies editing, selection, tasks, and native clipboard commands; rfd supplies native open/save dialogs; std::fs supplies byte I/O; std::char::decode_utf16 supplies BOM-aware UTF-16 decoding. Rendering and history conversion remain typed adapters because they use application-specific semantics.";
+pub const PREFERENCE_SECTION: &str = "Text Dialog Setup";
+pub const BACKGROUND_KEY: &str = "Background";
+pub const BACKGROUND_COLOR_KEY: &str = "BgndColor";
+pub const BORDER_KEY: &str = "Border";
+pub const FORM_HELP_CONTEXT: u32 = 0x20b;
+pub const POPUP_HELP_CONTEXT: u32 = 0x20d;
+pub const INITIAL_CLIENT_WIDTH: u32 = 0x195;
+pub const INITIAL_CLIENT_HEIGHT: u32 = 0x118;
+pub const ACTIVE_PAGE_LAYOUT_WIDTH: u32 = 0x96;
+pub const LIBRARY_EVALUATION: &str = "iced supplies editing, selection, responsive layout, tasks, and native clipboard commands; rfd supplies native open/save dialogs; std::fs supplies byte I/O; std::char::decode_utf16 supplies BOM-aware UTF-16 decoding. Rust RAII replaces the explicit staged-object destruction. Preference storage, host-product policy, rendering, and history conversion remain typed adapters because they use application-specific semantics.";
+
+pub trait TextDialogPreferenceStore {
+    type Error;
+
+    /// # Errors
+    ///
+    /// Returns a store-specific read error.
+    fn read_integer(&mut self, section: &str, key: &str, default: i32) -> Result<i32, Self::Error>;
+
+    /// # Errors
+    ///
+    /// Returns a store-specific write error.
+    fn write_integer(&mut self, section: &str, key: &str, value: i32) -> Result<(), Self::Error>;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DialogLayout {
+    pub client_width: u32,
+    pub client_height: u32,
+    pub button_column_width: u32,
+    pub active_page_width: u32,
+}
+
+impl Default for DialogLayout {
+    fn default() -> Self {
+        Self {
+            client_width: INITIAL_CLIENT_WIDTH,
+            client_height: INITIAL_CLIENT_HEIGHT,
+            button_column_width: 46,
+            active_page_width: ACTIVE_PAGE_LAYOUT_WIDTH,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+struct LifecycleState {
+    ok_enabled: bool,
+    tools_panel_visible: bool,
+    preview_auto_scroll: bool,
+}
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum EditorMode {
@@ -153,6 +202,9 @@ pub struct Window {
     popup: Option<PopupMenu>,
     accepted: Option<SystemText>,
     last_error: Option<String>,
+    retained_background_color: [u8; 4],
+    lifecycle: LifecycleState,
+    layout: DialogLayout,
 }
 
 impl Default for Window {
@@ -167,12 +219,17 @@ impl Window {
     pub fn new(source: SystemText, autoformat: EquationAutoformatSettings) -> Self {
         let document = text_editor::Content::with_text(&source.text);
         let popup_text_checked = source.popup_text_mode == 3;
+        let ok_enabled = !source.text.is_empty();
+        let retained_background_color = match source.background {
+            Background::Transparent => [255; 4],
+            Background::Opaque(color) => color,
+        };
         Self {
             document,
             staged: source,
             autoformat,
             autoformat_cache_generation: 0,
-            mode: EditorMode::View,
+            mode: EditorMode::Edit,
             preview: Preview::default(),
             wrap: false,
             popup_text_checked,
@@ -180,7 +237,55 @@ impl Window {
             popup: None,
             accepted: None,
             last_error: None,
+            retained_background_color,
+            lifecycle: LifecycleState {
+                ok_enabled,
+                tools_panel_visible: true,
+                preview_auto_scroll: false,
+            },
+            layout: DialogLayout::default(),
         }
+    }
+
+    /// Ports Ghidra `FUN_0146a2a0` at `0x0146A2A0`.
+    ///
+    /// The recovered VCL handler also assigns help-context values. Iced does
+    /// not have that numeric help-context mechanism, so the values are exposed
+    /// as [`FORM_HELP_CONTEXT`] and [`POPUP_HELP_CONTEXT`] for a host adapter.
+    ///
+    /// # Errors
+    ///
+    /// Returns the preference-adapter error when a saved default cannot be read.
+    pub fn create<S: TextDialogPreferenceStore>(
+        autoformat: EquationAutoformatSettings,
+        preferences: &mut S,
+    ) -> Result<Self, S::Error> {
+        let background_mode = preferences.read_integer(PREFERENCE_SECTION, BACKGROUND_KEY, 0)?;
+        let background_color =
+            preferences.read_integer(PREFERENCE_SECTION, BACKGROUND_COLOR_KEY, 0x00ff_ffff)?;
+        let border = preferences.read_integer(PREFERENCE_SECTION, BORDER_KEY, 0)?;
+        let background_color = color_from_tcolor(background_color);
+        let background = if background_mode == 1 {
+            Background::Opaque(background_color)
+        } else {
+            Background::Transparent
+        };
+        let border = match border {
+            1 => BorderStyle::Solid,
+            2 => BorderStyle::Dotted,
+            _ => BorderStyle::None,
+        };
+        let mut window = Self::new(
+            SystemText {
+                background,
+                border,
+                ..SystemText::default()
+            },
+            autoformat,
+        );
+        window.lifecycle.tools_panel_visible = false;
+        window.retained_background_color = background_color;
+        Ok(window)
     }
 
     #[must_use]
@@ -230,6 +335,105 @@ impl Window {
     #[must_use]
     pub const fn popup(&self) -> Option<PopupMenu> {
         self.popup
+    }
+
+    #[must_use]
+    pub const fn ok_enabled(&self) -> bool {
+        self.lifecycle.ok_enabled
+    }
+
+    #[must_use]
+    pub const fn tools_panel_visible(&self) -> bool {
+        self.lifecycle.tools_panel_visible
+    }
+
+    #[must_use]
+    pub const fn preview_auto_scroll(&self) -> bool {
+        self.lifecycle.preview_auto_scroll
+    }
+
+    #[must_use]
+    pub const fn layout(&self) -> DialogLayout {
+        self.layout
+    }
+
+    /// Ports Ghidra `FUN_01469a80` at `0x01469A80`.
+    ///
+    /// The original application-idle event enables OK only when `Memo.Text`
+    /// contains at least one character.
+    pub fn synchronize_idle_state(&mut self) {
+        self.lifecycle.ok_enabled = !self.memo_text().is_empty();
+    }
+
+    /// Ports Ghidra `FUN_0146a540` at `0x0146A540`.
+    ///
+    /// Rust drops the staged object through RAII after the three defaults are
+    /// written. The writes intentionally also occur after a canceled dialog.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first preference-adapter error.
+    pub fn persist_defaults<S: TextDialogPreferenceStore>(
+        &self,
+        preferences: &mut S,
+    ) -> Result<(), S::Error> {
+        let background = i32::from(matches!(self.staged.background, Background::Opaque(_)));
+        preferences.write_integer(PREFERENCE_SECTION, BACKGROUND_KEY, background)?;
+        preferences.write_integer(
+            PREFERENCE_SECTION,
+            BACKGROUND_COLOR_KEY,
+            tcolor_from_color(self.retained_background_color),
+        )?;
+        let border = match self.staged.border {
+            BorderStyle::None => 0,
+            BorderStyle::Solid => 1,
+            BorderStyle::Dotted => 2,
+        };
+        preferences.write_integer(PREFERENCE_SECTION, BORDER_KEY, border)
+    }
+
+    /// Ports Ghidra `FUN_0146af30` at `0x0146AF30` and its layout helper
+    /// `FUN_0146a900` at `0x0146A900`.
+    pub const fn synchronize_responsive_layout(
+        &mut self,
+        client_width: u32,
+        client_height: u32,
+        tools_panel_height: u32,
+        last_button_bottom: u32,
+    ) {
+        let minimum_height = if self.lifecycle.tools_panel_visible {
+            tools_panel_height
+        } else {
+            0
+        };
+        self.layout.client_height = if client_height > minimum_height {
+            client_height
+        } else {
+            minimum_height
+        };
+        let minimum_width = last_button_bottom
+            .saturating_add(self.layout.button_column_width)
+            .saturating_add(10);
+        self.layout.client_width = if client_width > minimum_width {
+            client_width
+        } else {
+            minimum_width
+        };
+    }
+
+    /// Ports Ghidra `FUN_0146c720` at `0x0146C720`.
+    pub const fn synchronize_tools_page_layout(&mut self) {
+        self.layout.active_page_width = ACTIVE_PAGE_LAYOUT_WIDTH;
+    }
+
+    /// Ports Ghidra `FUN_0146c750` at `0x0146C750`.
+    ///
+    /// Ghidra did not recover the three compared application-name literals.
+    /// The host supplies whether its current identifier matched one of them.
+    pub const fn synchronize_show_state(&mut self, suppress_preview_auto_scroll: bool) {
+        if !suppress_preview_auto_scroll {
+            self.lifecycle.preview_auto_scroll = true;
+        }
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
@@ -447,11 +651,10 @@ impl Window {
 
     /// Ports Ghidra `FUN_0146ba00` at `0x0146BA00`.
     pub fn select_opaque_background(&mut self, selected_color: Option<[u8; 4]>) {
-        let old_color = match self.staged.background {
-            Background::Opaque(color) => color,
-            Background::Transparent => [255, 255, 255, 255],
-        };
-        self.staged.background = Background::Opaque(selected_color.unwrap_or(old_color));
+        if let Some(color) = selected_color {
+            self.retained_background_color = color;
+        }
+        self.staged.background = Background::Opaque(self.retained_background_color);
         self.invalidate_acceptance();
     }
 
@@ -730,6 +933,15 @@ fn decode_utf16(bytes: &[u8], convert: fn([u8; 2]) -> u16) -> Result<String, Teq
         .map_err(TeqError::InvalidUtf16)
 }
 
+const fn color_from_tcolor(value: i32) -> [u8; 4] {
+    let [red, green, blue, _] = value.to_le_bytes();
+    [red, green, blue, 255]
+}
+
+const fn tcolor_from_color([red, green, blue, _]: [u8; 4]) -> i32 {
+    i32::from_le_bytes([red, green, blue, 0])
+}
+
 fn normalized_content_text(content: &text_editor::Content) -> String {
     let mut text = content.text();
     if text.ends_with('\n') {
@@ -823,7 +1035,42 @@ async fn select_teq_save_file(contents: String) -> Result<Option<PathBuf>, Strin
 mod tests {
     use super::*;
     use std::cell::Cell;
+    use std::collections::BTreeMap;
     use std::rc::Rc;
+
+    #[derive(Debug, Default)]
+    struct PreferenceStore {
+        values: BTreeMap<(String, String), i32>,
+        writes: Vec<(String, String, i32)>,
+    }
+
+    impl TextDialogPreferenceStore for PreferenceStore {
+        type Error = String;
+
+        fn read_integer(
+            &mut self,
+            section: &str,
+            key: &str,
+            default: i32,
+        ) -> Result<i32, Self::Error> {
+            Ok(self
+                .values
+                .get(&(section.to_owned(), key.to_owned()))
+                .copied()
+                .unwrap_or(default))
+        }
+
+        fn write_integer(
+            &mut self,
+            section: &str,
+            key: &str,
+            value: i32,
+        ) -> Result<(), Self::Error> {
+            self.writes
+                .push((section.to_owned(), key.to_owned(), value));
+            Ok(())
+        }
+    }
 
     struct Runner {
         accepted: bool,
@@ -876,6 +1123,102 @@ mod tests {
         ));
         assert_eq!(original.text, "changed");
         assert_eq!(drops.get(), 2);
+    }
+
+    #[test]
+    fn form_create_restores_defaults_and_initializes_edit_layout() {
+        let mut preferences = PreferenceStore::default();
+        preferences.values.insert(
+            (PREFERENCE_SECTION.to_owned(), BACKGROUND_KEY.to_owned()),
+            1,
+        );
+        preferences.values.insert(
+            (
+                PREFERENCE_SECTION.to_owned(),
+                BACKGROUND_COLOR_KEY.to_owned(),
+            ),
+            0x0033_2211,
+        );
+        preferences
+            .values
+            .insert((PREFERENCE_SECTION.to_owned(), BORDER_KEY.to_owned()), 2);
+
+        let window = Window::create(EquationAutoformatSettings::default(), &mut preferences)
+            .expect("preferences");
+
+        assert_eq!(window.mode(), EditorMode::Edit);
+        assert!(!window.tools_panel_visible());
+        assert!(!window.ok_enabled());
+        assert_eq!(
+            window.staged().background,
+            Background::Opaque([0x11, 0x22, 0x33, 255])
+        );
+        assert_eq!(window.staged().border, BorderStyle::Dotted);
+        assert_eq!(window.layout(), DialogLayout::default());
+    }
+
+    #[test]
+    fn idle_enables_ok_only_for_nonempty_live_text() {
+        let mut window = Window::default();
+        assert!(!window.ok_enabled());
+        window.paste_text("x".to_owned());
+        assert!(!window.ok_enabled());
+        window.synchronize_idle_state();
+        assert!(window.ok_enabled());
+        window.select_all();
+        let _task = window.cut_native();
+        window.synchronize_idle_state();
+        assert!(!window.ok_enabled());
+    }
+
+    #[test]
+    fn destroy_persists_style_defaults_independently_of_acceptance() {
+        let mut preferences = PreferenceStore::default();
+        preferences.values.insert(
+            (
+                PREFERENCE_SECTION.to_owned(),
+                BACKGROUND_COLOR_KEY.to_owned(),
+            ),
+            0x0066_5544,
+        );
+        let mut window = Window::create(EquationAutoformatSettings::default(), &mut preferences)
+            .expect("preferences");
+        window.select_transparent_background();
+        window.select_solid_border();
+
+        window
+            .persist_defaults(&mut preferences)
+            .expect("write preferences");
+
+        assert_eq!(
+            preferences.writes,
+            vec![
+                (PREFERENCE_SECTION.to_owned(), BACKGROUND_KEY.to_owned(), 0,),
+                (
+                    PREFERENCE_SECTION.to_owned(),
+                    BACKGROUND_COLOR_KEY.to_owned(),
+                    0x0066_5544,
+                ),
+                (PREFERENCE_SECTION.to_owned(), BORDER_KEY.to_owned(), 1,),
+            ]
+        );
+        assert!(window.accepted().is_none());
+    }
+
+    #[test]
+    fn resize_tabs_and_show_keep_the_recovered_layout_rules() {
+        let mut window = Window::default();
+        window.synchronize_responsive_layout(100, 10, 36, 164);
+        assert_eq!(window.layout().client_width, 220);
+        assert_eq!(window.layout().client_height, 36);
+        window.synchronize_tools_page_layout();
+        assert_eq!(window.layout().active_page_width, 150);
+        window.synchronize_show_state(true);
+        assert!(!window.preview_auto_scroll());
+        window.synchronize_show_state(false);
+        assert!(window.preview_auto_scroll());
+        window.synchronize_show_state(true);
+        assert!(window.preview_auto_scroll());
     }
 
     #[test]
@@ -1022,6 +1365,7 @@ mod tests {
     #[test]
     fn teq_load_refreshes_view_but_leaves_edit_staging_until_later() {
         let mut view = Window::default();
+        view.show_view();
         view.load_teq_text("view");
         assert_eq!(view.preview.text, "view");
         let mut edit = Window::default();

@@ -14,6 +14,76 @@ pub const ORIGINAL_FUNCTION: Option<&str> = Some("01462ae0");
 pub const LIBRARY_EVALUATION: &str = "iced supplies editing; std supplies UTF-8 files, Mathcad template copying, and direct target creation; rendering, clipboard, help, Interpreter syntax rules, EMF, Mathcad record encoding, and dispatch use typed application adapters.";
 pub const MATHCAD_RECORD_HEADER: &[u8] = b".EQN 6 0 ";
 pub const MATHCAD_RECORD_TERMINATOR: u8 = 0x11;
+pub const HELP_CONTEXT: u32 = 0x210;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WindowPlacement {
+    pub left: i32,
+    pub top: i32,
+    pub width: u32,
+    pub height: u32,
+}
+
+impl Default for WindowPlacement {
+    fn default() -> Self {
+        Self {
+            left: 491,
+            top: 159,
+            width: 749,
+            height: 343,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Labels {
+    pub new: String,
+    pub edit: String,
+    pub view: String,
+}
+
+impl Default for Labels {
+    fn default() -> Self {
+        Self {
+            new: "New".to_owned(),
+            edit: "Edit".to_owned(),
+            view: "View".to_owned(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CloseAction {
+    Hide,
+}
+
+pub trait LifecycleAdapter {
+    fn restore_placement(&mut self) -> WindowPlacement;
+
+    fn save_placement(&mut self, placement: WindowPlacement);
+
+    fn equation_directory(&mut self) -> PathBuf;
+}
+
+pub trait LocalizationAdapter {
+    fn localize_equation_editor(&mut self, labels: &mut Labels);
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PreviewBitmap<'a> {
+    pub width: u32,
+    pub height: u32,
+    pub bytes: &'a [u8],
+}
+
+pub trait PreviewSurface {
+    /// Resizes the iced or platform-owned preview and paints at its origin.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the host cannot resize or paint the surface.
+    fn paint(&mut self, width: u32, height: u32, bytes: &[u8]) -> Result<(), String>;
+}
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct InterpreterSupportSections {
@@ -201,6 +271,10 @@ pub struct Window {
     selection: Range<usize>,
     settings: Settings,
     retain: bool,
+    help_context: u32,
+    placement: WindowPlacement,
+    dialog_directory: PathBuf,
+    labels: Labels,
 }
 impl Default for Window {
     fn default() -> Self {
@@ -213,6 +287,10 @@ impl Default for Window {
             selection: 0..0,
             settings: Settings::default(),
             retain: false,
+            help_context: 0,
+            placement: WindowPlacement::default(),
+            dialog_directory: PathBuf::new(),
+            labels: Labels::default(),
         }
     }
 }
@@ -239,6 +317,105 @@ impl Window {
         self.style.clone_from(style);
         self.style_refresh_generation = self.style_refresh_generation.saturating_add(1);
     }
+
+    /// Ports Ghidra `FUN_01463690` at `0x01463690`.
+    ///
+    /// The host restores the recovered window rectangle and supplies the
+    /// shared initial directory for the Open and Save dialogs. Rust owns the
+    /// style and render-adapter lifetimes, so no process-global graphics
+    /// objects are required. The first preview is prepared before View mode is
+    /// exposed, as in the recovered form-create path.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the renderer cannot prepare the first preview.
+    pub fn on_create(
+        &mut self,
+        renderer: &impl Renderer,
+        lifecycle: &mut impl LifecycleAdapter,
+    ) -> Result<(), String> {
+        self.help_context = HELP_CONTEXT;
+        self.placement = lifecycle.restore_placement();
+        self.dialog_directory = lifecycle.equation_directory();
+        self.style = EquationStyle::default();
+        self.view_mode(renderer)
+    }
+
+    /// Ports Ghidra `FUN_01463c80` at `0x01463C80`.
+    ///
+    /// The recovered handler stores the current rectangle before it releases
+    /// its shared graphics and equation-style objects. Rust releases those
+    /// owned objects automatically after this lifecycle callback.
+    pub fn on_destroy(&self, lifecycle: &mut impl LifecycleAdapter) {
+        lifecycle.save_placement(self.placement);
+    }
+
+    /// Ports Ghidra `FUN_01464180` at `0x01464180`.
+    ///
+    /// Activation delegates to the recovered resize handler, which is an
+    /// explicit no-op.
+    pub const fn on_activate(&mut self) {
+        self.on_resize();
+    }
+
+    /// Ports Ghidra `FUN_014643F0` at `0x014643F0`.
+    ///
+    /// The host surface receives the bitmap dimensions before it paints the
+    /// complete backing bitmap at origin `(0, 0)`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the preview host cannot resize or paint.
+    pub fn paint_preview(
+        &self,
+        bitmap: PreviewBitmap<'_>,
+        surface: &mut impl PreviewSurface,
+    ) -> Result<(), String> {
+        surface.paint(bitmap.width, bitmap.height, bitmap.bytes)
+    }
+
+    /// Ports Ghidra `FUN_01464580` at `0x01464580`.
+    ///
+    /// The recovered memo key-down event has no application behavior.
+    pub const fn on_memo_key_down(&mut self) {}
+
+    /// Ports Ghidra `FUN_014645A0` at `0x014645A0`.
+    ///
+    /// The recovered form-resize event has no application behavior.
+    pub const fn on_resize(&mut self) {}
+
+    /// Ports Ghidra `FUN_014645B0` at `0x014645B0`.
+    ///
+    /// The application localization host updates the strings that this iced
+    /// window displays. The adapter owns catalog lookup and locale selection.
+    pub fn on_show(&mut self, localizer: &mut impl LocalizationAdapter) {
+        localizer.localize_equation_editor(&mut self.labels);
+    }
+
+    /// Ports Ghidra `FUN_01464E40` at `0x01464E40`.
+    ///
+    /// Closing hides the reusable Equation Editor. It does not save, prompt,
+    /// or destroy the document.
+    #[must_use]
+    pub const fn on_close(&self) -> CloseAction {
+        CloseAction::Hide
+    }
+
+    #[must_use]
+    pub const fn help_context(&self) -> u32 {
+        self.help_context
+    }
+
+    #[must_use]
+    pub const fn placement(&self) -> WindowPlacement {
+        self.placement
+    }
+
+    #[must_use]
+    pub fn dialog_directory(&self) -> &Path {
+        &self.dialog_directory
+    }
+
     /// Ports Ghidra `FUN_01462ae0` at `0x01462AE0` and `FUN_01463de0` at `0x01463DE0`.
     pub const fn edit_mode(&mut self) {
         self.mode = Mode::Edit;
@@ -507,9 +684,9 @@ impl Window {
         };
         column![
             row![
-                button("New").on_press(Message::New),
-                button("Edit").on_press(Message::EditMode),
-                button("View").on_press(Message::ViewMode)
+                button(self.labels.new.as_str()).on_press(Message::New),
+                button(self.labels.edit.as_str()).on_press(Message::EditMode),
+                button(self.labels.view.as_str()).on_press(Message::ViewMode)
             ]
             .spacing(8),
             body
@@ -676,6 +853,113 @@ mod tests {
             Ok(Some("x".into()))
         }
     }
+
+    struct Lifecycle {
+        restored: WindowPlacement,
+        saved: Option<WindowPlacement>,
+        directory: PathBuf,
+    }
+
+    impl LifecycleAdapter for Lifecycle {
+        fn restore_placement(&mut self) -> WindowPlacement {
+            self.restored
+        }
+
+        fn save_placement(&mut self, placement: WindowPlacement) {
+            self.saved = Some(placement);
+        }
+
+        fn equation_directory(&mut self) -> PathBuf {
+            self.directory.clone()
+        }
+    }
+
+    struct Localizer;
+
+    impl LocalizationAdapter for Localizer {
+        fn localize_equation_editor(&mut self, labels: &mut Labels) {
+            labels.new = "Neu".to_owned();
+            labels.edit = "Bearbeiten".to_owned();
+            labels.view = "Ansicht".to_owned();
+        }
+    }
+
+    #[derive(Default)]
+    struct Surface {
+        paint: Option<(u32, u32, Vec<u8>)>,
+    }
+
+    impl PreviewSurface for Surface {
+        fn paint(&mut self, width: u32, height: u32, bytes: &[u8]) -> Result<(), String> {
+            self.paint = Some((width, height, bytes.to_vec()));
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn lifecycle_restores_and_saves_editor_window_state() {
+        let restored = WindowPlacement {
+            left: 10,
+            top: 20,
+            width: 800,
+            height: 600,
+        };
+        let mut lifecycle = Lifecycle {
+            restored,
+            saved: None,
+            directory: PathBuf::from("equations"),
+        };
+        let mut window = Window::default();
+
+        window.on_create(&R, &mut lifecycle).expect("create");
+
+        assert_eq!(window.help_context(), HELP_CONTEXT);
+        assert_eq!(window.placement(), restored);
+        assert_eq!(window.dialog_directory(), Path::new("equations"));
+        assert_eq!(window.mode, Mode::View);
+        window.on_destroy(&mut lifecycle);
+        assert_eq!(lifecycle.saved, Some(restored));
+    }
+
+    #[test]
+    fn editor_events_preserve_explicit_noops_hide_and_localized_labels() {
+        let mut window = Window::default();
+        window.set_source("x=1".to_owned());
+        let original_source = window.source.clone();
+        let original_mode = window.mode;
+
+        window.on_memo_key_down();
+        window.on_resize();
+        window.on_activate();
+
+        assert_eq!(window.source, original_source);
+        assert_eq!(window.mode, original_mode);
+        assert_eq!(window.on_close(), CloseAction::Hide);
+        window.on_show(&mut Localizer);
+        assert_eq!(window.labels.new, "Neu");
+        assert_eq!(window.labels.edit, "Bearbeiten");
+        assert_eq!(window.labels.view, "Ansicht");
+    }
+
+    #[test]
+    fn paint_event_resizes_surface_and_draws_complete_bitmap() {
+        let window = Window::default();
+        let mut surface = Surface::default();
+
+        window
+            .paint_preview(
+                PreviewBitmap {
+                    width: 41,
+                    height: 23,
+                    bytes: b"bitmap",
+                },
+                &mut surface,
+            )
+            .expect("paint");
+
+        assert_eq!(surface.paint, Some((41, 23, b"bitmap".to_vec())));
+    }
+
     #[test]
     fn markup_and_export() {
         let mut w = Window::default();

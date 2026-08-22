@@ -10,6 +10,9 @@ use tiara_core::equation_style::{
 pub const TITLE: &str = "Settings";
 pub const FORM_RESOURCE: &str = "EEConfigDlg";
 pub const PREVIEW_DELAY: Duration = Duration::from_millis(200);
+pub const HELP_CONTEXT: u32 = 0x20e;
+pub const SOURCE_HEADER_RESOURCE_ID: u32 = 0x857;
+pub const TARGET_HEADER_RESOURCE_ID: u32 = 0x858;
 const TIMER_POLL_INTERVAL: Duration = Duration::from_millis(25);
 const MINIMUM_AUTOFORMAT_ROWS: usize = 6;
 const SAMPLE_EXPRESSION: &str = "f(x) = (a + b) / (c + d)";
@@ -84,6 +87,10 @@ pub trait FontDialogAdapter {
     fn select_font(&mut self, current: &EquationFont) -> Option<EquationFont>;
 }
 
+pub trait ResourceTextAdapter {
+    fn text(&mut self, resource_id: u32) -> String;
+}
+
 #[derive(Debug)]
 pub struct Window {
     caller_style: EquationStyle,
@@ -97,6 +104,8 @@ pub struct Window {
     font_dialog_seed: Option<EquationFont>,
     accepted_settings: Option<EquationStyleSettingsResult>,
     visible: bool,
+    help_context: u32,
+    autoformat_headers: [String; 2],
 }
 
 impl Window {
@@ -129,6 +138,8 @@ impl Window {
             font_dialog_seed: None,
             accepted_settings: None,
             visible: true,
+            help_context: 0,
+            autoformat_headers: [String::new(), String::new()],
         };
         window.rebuild_sample();
         window
@@ -205,6 +216,36 @@ impl Window {
     /// flags. Color and other complete font fields remain staged but omitted.
     pub fn update_font_summary(&mut self) {
         self.font_summary = self.private_style.font.summary();
+    }
+
+    /// Implements Ghidra function `FUN_01466950` at `0x01466950`.
+    ///
+    /// Consuming the window lets Rust release its dialog-private equation
+    /// style and all other staged resources without a manual destructor.
+    pub fn on_destroy(self) {
+        drop(self);
+    }
+
+    /// Implements Ghidra function `FUN_01466CA0` at `0x01466CA0`.
+    ///
+    /// Activation refreshes the private font summary and does not commit it to
+    /// the caller.
+    pub fn on_activate(&mut self) {
+        self.update_font_summary();
+    }
+
+    /// Implements Ghidra function `FUN_01466CE0` at `0x01466CE0`.
+    ///
+    /// The recovered create handler assigns help context `0x20e` and obtains
+    /// the two replacement-grid headers from application string resources
+    /// `0x857` and `0x858`. The adapter keeps proprietary catalog data outside
+    /// the distributable crate.
+    pub fn on_create(&mut self, resources: &mut impl ResourceTextAdapter) {
+        self.help_context = HELP_CONTEXT;
+        self.autoformat_headers = [
+            resources.text(SOURCE_HEADER_RESOURCE_ID),
+            resources.text(TARGET_HEADER_RESOURCE_ID),
+        ];
     }
 
     /// Implements Ghidra function `FUN_01466970` at `0x01466970`.
@@ -339,9 +380,9 @@ impl Window {
             |rules, (index, rule)| {
                 rules.push(
                     row![
-                        text_input("Source", &rule.source)
+                        text_input(&self.autoformat_headers[0], &rule.source)
                             .on_input(move |value| Message::AutoformatSourceChanged(index, value)),
-                        text_input("Target", &rule.target)
+                        text_input(&self.autoformat_headers[1], &rule.target)
                             .on_input(move |value| Message::AutoformatTargetChanged(index, value)),
                         button("+").on_press(Message::AutoformatCellSelected {
                             column: 1,
@@ -430,6 +471,16 @@ impl Window {
         self.visible
     }
 
+    #[must_use]
+    pub const fn help_context(&self) -> u32 {
+        self.help_context
+    }
+
+    #[must_use]
+    pub const fn autoformat_headers(&self) -> &[String; 2] {
+        &self.autoformat_headers
+    }
+
     fn stage_ratio(&mut self, kind: RatioKind, percent: i32, now: Instant) {
         let ratio = f64::from(percent) / 100.0;
         match kind {
@@ -476,7 +527,7 @@ fn normalize_autoformat_rows(
 mod tests {
     use std::time::{Duration, Instant};
 
-    use super::{FontDialogAdapter, PREVIEW_DELAY, Window};
+    use super::{FontDialogAdapter, PREVIEW_DELAY, ResourceTextAdapter, Window};
     use tiara_core::equation_style::{
         AutoformatRule, EquationAutoformatSettings, EquationFont, EquationStyle,
     };
@@ -491,6 +542,40 @@ mod tests {
             self.seed = Some(current.clone());
             self.selection.clone()
         }
+    }
+
+    #[derive(Default)]
+    struct Resources {
+        requests: Vec<u32>,
+    }
+
+    impl ResourceTextAdapter for Resources {
+        fn text(&mut self, resource_id: u32) -> String {
+            self.requests.push(resource_id);
+            format!("resource-{resource_id:x}")
+        }
+    }
+
+    #[test]
+    fn lifecycle_loads_grid_headers_refreshes_font_and_releases_staging() {
+        let mut window = Window::new(
+            EquationStyle::default(),
+            EquationAutoformatSettings::default(),
+        );
+        let mut resources = Resources::default();
+
+        window.on_create(&mut resources);
+
+        assert_eq!(window.help_context(), super::HELP_CONTEXT);
+        assert_eq!(resources.requests, [0x857, 0x858]);
+        assert_eq!(
+            window.autoformat_headers(),
+            &["resource-857".to_owned(), "resource-858".to_owned()]
+        );
+        window.private_style.font.family = "Lifecycle Font".to_owned();
+        window.on_activate();
+        assert!(window.font_summary().contains("Lifecycle Font"));
+        window.on_destroy();
     }
 
     #[test]

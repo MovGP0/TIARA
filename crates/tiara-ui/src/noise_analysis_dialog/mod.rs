@@ -3,6 +3,11 @@
 //! The implementation uses `iced` for widgets and update messages and uses
 //! `tiara_core::numeric_format` for engineering-number input. No new crate is
 //! needed: standard integer parsing supplies the bounded point editor.
+//!
+//! The iced text inputs validate on collection. A host that supplies numeric
+//! editor widgets can route their editor-specific text through
+//! [`Message::FloatEditorError`] or [`Message::PointEditorError`]. The exact
+//! legacy parser-exception event order is not recoverable from static evidence.
 
 use std::fmt;
 use std::ops::RangeInclusive;
@@ -150,9 +155,15 @@ impl fmt::Display for NumericField {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValidationError {
     InvalidNumber(NumericField),
-    PointCountOutsideBounds { minimum: u32, maximum: u32 },
+    PointCountOutsideBounds {
+        minimum: u32,
+        maximum: u32,
+    },
     FrequencyRange,
-    Editor(String),
+    Editor {
+        kind: EditorErrorKind,
+        message: String,
+    },
 }
 
 impl fmt::Display for ValidationError {
@@ -166,7 +177,7 @@ impl fmt::Display for ValidationError {
             Self::FrequencyRange => formatter.write_str(
                 "Start frequency must be greater than zero, and end frequency must be greater than start frequency and no greater than 1e50.",
             ),
-            Self::Editor(message) => formatter.write_str(message),
+            Self::Editor { message, .. } => formatter.write_str(message),
         }
     }
 }
@@ -185,12 +196,20 @@ pub enum ModalResult {
     Cancel,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EditorErrorKind {
+    Float,
+    PointCount,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Message {
     StartFrequencyChanged(String),
     EndFrequencyChanged(String),
     PointCountChanged(String),
     SignalAmplitudeChanged(String),
+    FloatEditorError(String),
+    PointEditorError(String),
     DiagramToggled(NoiseDiagram, bool),
     Accept,
     Cancel,
@@ -245,6 +264,8 @@ impl Window {
             Message::EndFrequencyChanged(value) => self.edits.end_frequency = value,
             Message::PointCountChanged(value) => self.edits.point_count = value,
             Message::SignalAmplitudeChanged(value) => self.edits.signal_amplitude = value,
+            Message::FloatEditorError(message) => self.report_float_editor_error(message),
+            Message::PointEditorError(message) => self.report_point_editor_error(message),
             Message::DiagramToggled(diagram, selected) => {
                 self.diagrams.set_selected(diagram, selected);
             }
@@ -330,8 +351,21 @@ impl Window {
         can_close
     }
 
-    pub fn report_editor_error(&mut self, message: String) {
-        self.report_first_error(ValidationError::Editor(message));
+    /// Ports Ghidra function `FUN_0149ce90` at `0x0149CE90`.
+    ///
+    /// `EditStartVal`, `EditEndVal`, and `feSNSignalAmpl` share this float
+    /// editor route. It forwards the editor-supplied text to the common frame
+    /// guard. The guard retains only the first error until close is queried.
+    pub fn report_float_editor_error(&mut self, message: String) {
+        self.report_editor_error(EditorErrorKind::Float, message);
+    }
+
+    /// Ports Ghidra function `FUN_0149ceb0` at `0x0149CEB0`.
+    ///
+    /// `EditPoints` uses a distinct integer-editor error field. This route
+    /// forwards that text to the same first-error-only frame guard.
+    pub fn report_point_editor_error(&mut self, message: String) {
+        self.report_editor_error(EditorErrorKind::PointCount, message);
     }
 
     fn report_first_error(&mut self, error: ValidationError) {
@@ -339,6 +373,10 @@ impl Window {
             self.first_error = Some(error);
         }
         self.close_guard.validation_error = true;
+    }
+
+    fn report_editor_error(&mut self, kind: EditorErrorKind, message: String) {
+        self.report_first_error(ValidationError::Editor { kind, message });
     }
 
     fn parse_point_count(&mut self) -> Option<u32> {
@@ -520,14 +558,57 @@ mod tests {
     }
 
     #[test]
-    fn prior_editor_error_blocks_valid_collection_until_close_query_clears_it() {
+    fn float_editor_error_routes_text_and_blocks_commit_until_close_query() {
         let original = settings();
         let mut window = window();
-        window.report_editor_error("editor error".to_owned());
+        let _ = window.update(Message::FloatEditorError("float editor error".to_owned()));
+
+        assert_eq!(
+            window.first_error(),
+            Some(&ValidationError::Editor {
+                kind: EditorErrorKind::Float,
+                message: "float editor error".to_owned(),
+            })
+        );
         assert_eq!(window.collect_and_validate(), CommitOutcome::Rejected);
         assert_eq!(window.committed(), &original);
         assert!(!window.query_close());
         assert_eq!(window.collect_and_validate(), CommitOutcome::Committed);
+    }
+
+    #[test]
+    fn point_editor_error_uses_the_integer_route_and_preserves_its_text() {
+        let mut window = window();
+
+        let _ = window.update(Message::PointEditorError(
+            "point count editor error".to_owned(),
+        ));
+
+        assert_eq!(
+            window.first_error(),
+            Some(&ValidationError::Editor {
+                kind: EditorErrorKind::PointCount,
+                message: "point count editor error".to_owned(),
+            })
+        );
+        assert!(!window.query_close());
+        assert!(window.query_close());
+    }
+
+    #[test]
+    fn first_editor_error_wins_across_float_and_integer_routes() {
+        let mut window = window();
+
+        window.report_float_editor_error("first".to_owned());
+        window.report_point_editor_error("second".to_owned());
+
+        assert_eq!(
+            window.first_error(),
+            Some(&ValidationError::Editor {
+                kind: EditorErrorKind::Float,
+                message: "first".to_owned(),
+            })
+        );
     }
 
     #[test]

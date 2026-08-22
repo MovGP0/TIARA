@@ -11,6 +11,32 @@ use tiara_core::electrical_rules::{
 pub const TITLE: &str = "Electric Rules Check";
 pub const HELP_CONTEXT: u32 = 1086;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WindowSize {
+    pub width: i32,
+    pub height: i32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MonitorBounds {
+    pub left: i32,
+    pub top: i32,
+    pub width: i32,
+    pub height: i32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WindowPosition {
+    pub left: i32,
+    pub top: i32,
+}
+
+pub trait WindowPlacementAdapter {
+    fn active_monitor_bounds(&mut self) -> MonitorBounds;
+    fn window_size(&mut self) -> WindowSize;
+    fn set_window_position(&mut self, position: WindowPosition);
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ErcUiError {
     Engine(String),
@@ -162,6 +188,7 @@ pub struct Window {
     layout: ResultLayout,
     focus: FocusTarget,
     pending_action: Option<Action>,
+    initial_position_pending: bool,
 }
 
 impl Window {
@@ -180,7 +207,33 @@ impl Window {
             layout: ResultLayout::Expanded,
             focus: FocusTarget::None,
             pending_action: None,
+            initial_position_pending: true,
         }
+    }
+
+    /// Positions the form once near the lower-right corner of its active monitor.
+    ///
+    /// Reimplements Ghidra function `FUN_014b7ca0` at `0x014B7CA0`.
+    /// The recovered form keeps a 40-pixel right inset and a 120-pixel bottom
+    /// inset. Later show events clear the pending flag without moving the form.
+    pub fn show(&mut self, host: &mut impl WindowPlacementAdapter) {
+        if self.initial_position_pending {
+            let monitor = host.active_monitor_bounds();
+            let size = host.window_size();
+            host.set_window_position(WindowPosition {
+                left: monitor
+                    .left
+                    .saturating_add(monitor.width)
+                    .saturating_sub(size.width)
+                    .saturating_sub(40),
+                top: monitor
+                    .top
+                    .saturating_add(monitor.height)
+                    .saturating_sub(size.height)
+                    .saturating_sub(120),
+            });
+        }
+        self.initial_position_pending = false;
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
@@ -709,6 +762,33 @@ mod tests {
         }
     }
 
+    #[derive(Default)]
+    struct Placement {
+        positions: Vec<WindowPosition>,
+    }
+
+    impl WindowPlacementAdapter for Placement {
+        fn active_monitor_bounds(&mut self) -> MonitorBounds {
+            MonitorBounds {
+                left: 100,
+                top: 50,
+                width: 1_920,
+                height: 1_080,
+            }
+        }
+
+        fn window_size(&mut self) -> WindowSize {
+            WindowSize {
+                width: 500,
+                height: 220,
+            }
+        }
+
+        fn set_window_position(&mut self, position: WindowPosition) {
+            self.positions.push(position);
+        }
+    }
+
     #[test]
     fn form_creation_uses_shared_presentation_settings() {
         let settings = settings();
@@ -717,6 +797,23 @@ mod tests {
         assert_eq!(window.visibility(), Visibility::Visible);
         assert_eq!(window.layout(), ResultLayout::Expanded);
         assert_eq!(window.focus(), FocusTarget::None);
+    }
+
+    #[test]
+    fn first_show_positions_near_monitor_corner_and_later_shows_are_noops() {
+        let mut window = Window::new(settings());
+        let mut placement = Placement::default();
+
+        window.show(&mut placement);
+        window.show(&mut placement);
+
+        assert_eq!(
+            placement.positions,
+            [WindowPosition {
+                left: 1_480,
+                top: 790,
+            }]
+        );
     }
 
     #[test]

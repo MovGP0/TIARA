@@ -8,6 +8,30 @@ use iced::{Element, Length, Task};
 
 pub const TITLE: &str = "Manage Libraries";
 pub const FORM_RESOURCE: &str = "CompilePackage";
+pub const DEFAULT_XILINX_HOME: &str = r"D:\Xilinx\14.7\ISE_DS\ISE";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MouseButton {
+    Left,
+    Right,
+    Middle,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Point {
+    pub x: i32,
+    pub y: i32,
+}
+
+pub trait MemoPopupAdapter {
+    fn memo_screen_origin(&mut self) -> Point;
+    fn open_popup(&mut self, position: Point);
+}
+
+pub trait CompilePackageSettings {
+    fn load_xilinx_home(&mut self) -> Option<PathBuf>;
+    fn store_xilinx_home(&mut self, path: &Path);
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompilerRequest {
@@ -146,6 +170,9 @@ pub struct Window {
     cancellation: Arc<AtomicBool>,
     status: OperationStatus,
     progress: u8,
+    xilinx_home: PathBuf,
+    advanced_panel_height: u32,
+    source_dialog_filter_index: u32,
 }
 
 impl Default for Window {
@@ -161,11 +188,62 @@ impl Default for Window {
             cancellation: Arc::new(AtomicBool::new(false)),
             status: OperationStatus::Idle,
             progress: 0,
+            xilinx_home: PathBuf::new(),
+            advanced_panel_height: 0,
+            source_dialog_filter_index: 1,
         }
     }
 }
 
 impl Window {
+    /// Loads persisted compiler settings and initializes form-local state.
+    ///
+    /// Reimplements Ghidra function `FUN_014ec080` at `0x014EC080`. A missing
+    /// Xilinx home uses the recovered ISE 14.7 default. The caller supplies the
+    /// measured advanced-panel height because iced does not expose VCL fields.
+    pub fn form_create(
+        &mut self,
+        settings: &mut impl CompilePackageSettings,
+        advanced_panel_height: u32,
+    ) {
+        self.xilinx_home = settings
+            .load_xilinx_home()
+            .filter(|path| !path.as_os_str().is_empty())
+            .unwrap_or_else(|| PathBuf::from(DEFAULT_XILINX_HOME));
+        self.advanced_panel_height = advanced_panel_height;
+        self.expanded = true;
+        self.source_dialog_filter_index = 1;
+        self.cancellation.store(false, Ordering::Release);
+    }
+
+    /// Persists the current Xilinx home when the form closes.
+    ///
+    /// Reimplements Ghidra function `FUN_014ec070` at `0x014EC070` through a
+    /// typed settings adapter instead of direct registry access.
+    pub fn form_close(&self, settings: &mut impl CompilePackageSettings) {
+        settings.store_xilinx_home(&self.xilinx_home);
+    }
+
+    /// Opens the memo popup at the mouse position in screen coordinates.
+    ///
+    /// Reimplements Ghidra function `FUN_014ebfd0` at `0x014EBFD0`. Delphi's
+    /// mouse-button value `1` is the right button. Other buttons are no-ops.
+    pub fn memo_mouse_down(
+        &self,
+        button: MouseButton,
+        memo_position: Point,
+        host: &mut impl MemoPopupAdapter,
+    ) {
+        if button != MouseButton::Right {
+            return;
+        }
+        let origin = host.memo_screen_origin();
+        host.open_popup(Point {
+            x: origin.x.saturating_add(memo_position.x),
+            y: origin.y.saturating_add(memo_position.y),
+        });
+    }
+
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::LibrarySelected(library) => self.selected_library = Some(library),
@@ -430,6 +508,21 @@ impl Window {
     pub fn libraries(&self) -> &[String] {
         &self.libraries
     }
+
+    #[must_use]
+    pub fn xilinx_home(&self) -> &Path {
+        &self.xilinx_home
+    }
+
+    #[must_use]
+    pub const fn advanced_panel_height(&self) -> u32 {
+        self.advanced_panel_height
+    }
+
+    #[must_use]
+    pub const fn source_dialog_filter_index(&self) -> u32 {
+        self.source_dialog_filter_index
+    }
     #[must_use]
     pub const fn selected_library(&self) -> Option<&String> {
         self.selected_library.as_ref()
@@ -532,6 +625,66 @@ mod tests {
                 ignored_components: vec!["unsupported".to_owned()],
             })
         }
+    }
+
+    #[derive(Default)]
+    struct Settings {
+        loaded: Option<PathBuf>,
+        stored: Option<PathBuf>,
+    }
+
+    impl CompilePackageSettings for Settings {
+        fn load_xilinx_home(&mut self) -> Option<PathBuf> {
+            self.loaded.clone()
+        }
+
+        fn store_xilinx_home(&mut self, path: &Path) {
+            self.stored = Some(path.to_path_buf());
+        }
+    }
+
+    #[derive(Default)]
+    struct Popup {
+        opened_at: Option<Point>,
+    }
+
+    impl MemoPopupAdapter for Popup {
+        fn memo_screen_origin(&mut self) -> Point {
+            Point { x: 100, y: 200 }
+        }
+
+        fn open_popup(&mut self, position: Point) {
+            self.opened_at = Some(position);
+        }
+    }
+
+    #[test]
+    fn form_lifecycle_loads_defaults_and_persists_xilinx_home() {
+        let mut settings = Settings::default();
+        let mut window = Window::default();
+
+        window.form_create(&mut settings, 91);
+
+        assert_eq!(window.xilinx_home(), Path::new(DEFAULT_XILINX_HOME));
+        assert_eq!(window.advanced_panel_height(), 91);
+        assert_eq!(window.source_dialog_filter_index(), 1);
+        assert!(window.expanded());
+        window.form_close(&mut settings);
+        assert_eq!(
+            settings.stored.as_deref(),
+            Some(Path::new(DEFAULT_XILINX_HOME))
+        );
+    }
+
+    #[test]
+    fn memo_popup_uses_screen_coordinates_only_for_right_button() {
+        let window = Window::default();
+        let mut popup = Popup::default();
+
+        window.memo_mouse_down(MouseButton::Left, Point { x: 7, y: 11 }, &mut popup);
+        assert_eq!(popup.opened_at, None);
+        window.memo_mouse_down(MouseButton::Right, Point { x: 7, y: 11 }, &mut popup);
+        assert_eq!(popup.opened_at, Some(Point { x: 107, y: 211 }));
     }
 
     #[test]

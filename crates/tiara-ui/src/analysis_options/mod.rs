@@ -8,11 +8,29 @@ use crate::advanced_analysis_options::{AdvancedOptions, Window as AdvancedOption
 
 pub const TITLE: &str = "Analysis Options";
 pub const FORM_RESOURCE: &str = "AnalysisOptionDlg";
-pub const LIBRARY_EVALUATION: &str = "iced 0.13 supplies the window, widgets, and message/update flow; Rust fixed-size arrays and owned Clone values supply the symmetric ERC grid and modal transaction; str::parse with an ASCII-leading-space adapter supplies strict floating-point conversion; no additional crate is required";
+pub const HELP_CONTEXT: u32 = 0x461;
+pub const OPTIONS_PAGE_HELP_CONTEXT: u32 = 0x96;
+pub const ERC_COLUMN_HEADERS: [&str; 9] = [
+    "In (I)",
+    "Out (O)",
+    "Bidirectional (BIDI)",
+    "Power (PWR)",
+    "Passive (PAS)",
+    "3-State (3S)",
+    "Open Collector (OC)",
+    "Open Emitter (OE)",
+    "Unconnected (uc)",
+];
+pub const ERC_ROW_HEADERS: [&str; 9] = ["I", "O", "BIDI", "PWR", "PAS", "3S", "OC", "OE", "uc"];
+pub const LIBRARY_EVALUATION: &str = "iced 0.13 supplies the window, widgets, style values, and message/update flow; Rust fixed-size arrays and owned Clone values supply the symmetric ERC grid and modal transaction; typed traits isolate configuration lifetime and help-context integration; str::parse with an ASCII-leading-space adapter supplies strict floating-point conversion; no additional crate is required";
 const FLAG_ADVANCED_MODIFIED: u8 = 1;
 const FLAG_CLOSE_ERROR: u8 = 1 << 1;
 const FLAG_ADVANCED_REQUESTED: u8 = 1 << 2;
 const FLAG_VISIBLE: u8 = 1 << 3;
+const FLAG_GLITCH_EDITOR_ENABLED: u8 = 1 << 4;
+const FLAG_GLITCH_TOGGLE_ENABLED: u8 = 1 << 5;
+const FLAG_NONLINEAR_PWL_ENABLED: u8 = 1 << 6;
+const FLAG_ACCELERATION_CONTROLS_ENABLED: u8 = 1 << 7;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IntegrationMethod {
@@ -38,6 +56,156 @@ impl fmt::Display for IntegrationMethod {
             Self::Gear => "Gear",
         })
     }
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum OptionsPage {
+    #[default]
+    AnalogSimulation,
+    DigitalSimulation,
+    Diagram,
+    Miscellaneous,
+    Erc,
+}
+
+impl OptionsPage {
+    const ALL: [Self; 5] = [
+        Self::AnalogSimulation,
+        Self::DigitalSimulation,
+        Self::Diagram,
+        Self::Miscellaneous,
+        Self::Erc,
+    ];
+}
+
+impl fmt::Display for OptionsPage {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::AnalogSimulation => "Analog simulation",
+            Self::DigitalSimulation => "Digital simulation",
+            Self::Diagram => "Diagram",
+            Self::Miscellaneous => "Miscellaneous",
+            Self::Erc => "ERC",
+        })
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DelayMode {
+    Default,
+    Always,
+    Ideal,
+}
+
+impl DelayMode {
+    const ALL: [Self; 3] = [Self::Default, Self::Always, Self::Ideal];
+
+    const fn recovered_index(self) -> u8 {
+        match self {
+            Self::Default => 0,
+            Self::Always => 1,
+            Self::Ideal => 2,
+        }
+    }
+
+    const fn from_recovered_index(index: u8) -> Option<Self> {
+        match index {
+            0 => Some(Self::Default),
+            1 => Some(Self::Always),
+            2 => Some(Self::Ideal),
+            _ => None,
+        }
+    }
+}
+
+impl fmt::Display for DelayMode {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Default => "Default",
+            Self::Always => "Always",
+            Self::Ideal => "Ideal",
+        })
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NonlinearSolver {
+    NewtonRaphson,
+    NewtonRaphsonPwl,
+    PwlModelsAndSolver,
+    PwlSearch,
+}
+
+impl NonlinearSolver {
+    const ALL: [Self; 4] = [
+        Self::NewtonRaphson,
+        Self::NewtonRaphsonPwl,
+        Self::PwlModelsAndSolver,
+        Self::PwlSearch,
+    ];
+
+    const fn recovered_index(self) -> u8 {
+        match self {
+            Self::NewtonRaphson => 0,
+            Self::NewtonRaphsonPwl => 1,
+            Self::PwlModelsAndSolver => 2,
+            Self::PwlSearch => 3,
+        }
+    }
+
+    const fn from_recovered_index(index: u8) -> Option<Self> {
+        match index {
+            0 => Some(Self::NewtonRaphson),
+            1 => Some(Self::NewtonRaphsonPwl),
+            2 => Some(Self::PwlModelsAndSolver),
+            3 => Some(Self::PwlSearch),
+            _ => None,
+        }
+    }
+}
+
+impl fmt::Display for NonlinearSolver {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::NewtonRaphson => "Newton-Raphson",
+            Self::NewtonRaphsonPwl => "Newton-Raphson (PWL models)",
+            Self::PwlModelsAndSolver => "PWL Models & Solver",
+            Self::PwlSearch => "PWL Search",
+        })
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ErcCellAlignment {
+    Center,
+    Right,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ErcCellTone {
+    Normal,
+    HeaderOrDuplicate,
+    Warning,
+    Error,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ErcCellPresentation {
+    pub alignment: ErcCellAlignment,
+    pub tone: ErcCellTone,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct AnalysisOptionsStartup {
+    pub options: AnalysisOptions,
+    pub advanced_options: AdvancedOptions,
+    pub active_page: OptionsPage,
+}
+
+pub trait AnalysisOptionsHostAdapter {
+    fn load_startup(&mut self) -> AnalysisOptionsStartup;
+    fn release_configuration(&mut self);
+    fn set_page_help_context(&mut self, page: OptionsPage, help_context: u32);
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -97,8 +265,11 @@ impl AnalysisOptionsCommitAdapter for Vec<CommitEvent> {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    PageChanged(OptionsPage),
     GlitchControlChanged(String),
     GlitchControlToggled(bool),
+    DelayModeChanged(DelayMode),
+    NonlinearSolverChanged(NonlinearSolver),
     AccelerationToggled(bool),
     IntegrationMethodChanged(IntegrationMethod),
     IntegrationOrderChanged(u8),
@@ -106,6 +277,15 @@ pub enum Message {
         row: usize,
         column: usize,
         marker: char,
+    },
+    ErcCellDoubleClicked {
+        row: usize,
+        column: usize,
+    },
+    ErcKeyPressed {
+        row: usize,
+        column: usize,
+        key: char,
     },
     ResetErcDefaults,
     RequestAdvancedOptions,
@@ -120,26 +300,41 @@ pub struct Window {
     original_advanced_options: AdvancedOptions,
     advanced_options: AdvancedOptions,
     glitch_control_text: String,
-    glitch_editor_enabled: bool,
-    acceleration_controls_enabled: bool,
     integration_method_index: i32,
     integration_orders: Vec<u8>,
     integration_order_index: usize,
     erc_grid: [[char; ERC_MATRIX_SIZE]; ERC_MATRIX_SIZE],
     validation_error: Option<ValidationError>,
     dialog_flags: u8,
+    form_help_context: u32,
+    active_page_help_context: u32,
+    active_page: OptionsPage,
+    host_configuration_active: bool,
     accepted_settings: Option<AcceptedAnalysisOptions>,
     pending_commit_events: Vec<CommitEvent>,
 }
 
 impl Window {
+    /// Builds the typed dialog state used by the recovered creation path.
+    /// Host-backed creation is available through [`Self::from_host`].
     #[must_use]
     pub fn new(options: AnalysisOptions, advanced_options: AdvancedOptions) -> Self {
         let integration_method_index = i32::from(options.transient.integration_method) - 1;
+        let mut dialog_flags = FLAG_VISIBLE;
+        if options.digital.glitch_control_enabled {
+            dialog_flags |= FLAG_GLITCH_EDITOR_ENABLED;
+        }
+        if options.digital.delay_mode != DelayMode::Ideal.recovered_index() {
+            dialog_flags |= FLAG_GLITCH_TOGGLE_ENABLED;
+        }
+        if options.performance.nonlinear_solver != 0 {
+            dialog_flags |= FLAG_NONLINEAR_PWL_ENABLED;
+        }
+        if options.performance.acceleration {
+            dialog_flags |= FLAG_ACCELERATION_CONTROLS_ENABLED;
+        }
         let mut window = Self {
             glitch_control_text: format!("{}%", options.digital.glitch_control_percent),
-            glitch_editor_enabled: options.digital.glitch_control_enabled,
-            acceleration_controls_enabled: options.performance.acceleration,
             integration_method_index,
             integration_orders: Vec::new(),
             integration_order_index: 0,
@@ -149,7 +344,11 @@ impl Window {
             original_advanced_options: advanced_options.clone(),
             advanced_options,
             validation_error: None,
-            dialog_flags: FLAG_VISIBLE,
+            dialog_flags,
+            form_help_context: HELP_CONTEXT,
+            active_page_help_context: 0,
+            active_page: OptionsPage::AnalogSimulation,
+            host_configuration_active: false,
             accepted_settings: None,
             pending_commit_events: Vec::new(),
         };
@@ -160,11 +359,37 @@ impl Window {
         window
     }
 
+    /// Implements Ghidra function `FUN_014f1700` at `0x014F1700`.
+    ///
+    /// The host supplies one typed settings snapshot. The Rust dialog stages
+    /// an owned copy, initializes the ERC grid and dependent controls, assigns
+    /// help context `0x461`, and retains the configuration lease until the
+    /// destroy event.
+    pub fn from_host(host: &mut impl AnalysisOptionsHostAdapter) -> Self {
+        let startup = host.load_startup();
+        let mut window = Self::new(startup.options, startup.advanced_options);
+        window.active_page = startup.active_page;
+        window.host_configuration_active = true;
+        window
+    }
+
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::PageChanged(page) => {
+                self.active_page = page;
+                self.active_page_help_context = OPTIONS_PAGE_HELP_CONTEXT;
+            }
             Message::GlitchControlChanged(value) => self.glitch_control_text = value,
             Message::GlitchControlToggled(checked) => {
-                self.synchronize_glitch_control(checked);
+                if self.glitch_toggle_enabled() {
+                    self.synchronize_glitch_control(checked);
+                }
+            }
+            Message::DelayModeChanged(mode) => {
+                self.synchronize_delay_mode(mode);
+            }
+            Message::NonlinearSolverChanged(solver) => {
+                self.synchronize_nonlinear_solver(solver);
             }
             Message::AccelerationToggled(checked) => {
                 self.synchronize_acceleration_controls(checked);
@@ -187,6 +412,12 @@ impl Window {
                 marker,
             } => {
                 let _ = self.set_erc_grid_marker(row, column, marker);
+            }
+            Message::ErcCellDoubleClicked { row, column } => {
+                let _ = self.cycle_erc_grid_cell(row, column);
+            }
+            Message::ErcKeyPressed { row, column, key } => {
+                let _ = self.handle_erc_key_press(row, column, key);
             }
             Message::ResetErcDefaults => self.reset_erc_defaults(),
             Message::RequestAdvancedOptions => {
@@ -273,6 +504,78 @@ impl Window {
         true
     }
 
+    /// Implements Ghidra function `FUN_014f3be0` at `0x014F3BE0`.
+    ///
+    /// Coordinates use the recovered string-grid layout: zero selects a
+    /// header and values one through nine select rule cells. Row headers align
+    /// right. Other cells align centrally. Headers and the duplicate upper
+    /// triangle use one neutral tone; editable `W` and `E` cells use warning
+    /// and error tones.
+    #[must_use]
+    pub const fn erc_cell_presentation(
+        &self,
+        column: usize,
+        row: usize,
+    ) -> Option<ErcCellPresentation> {
+        if column > ERC_MATRIX_SIZE || row > ERC_MATRIX_SIZE {
+            return None;
+        }
+        let alignment = if column == 0 && row > 0 {
+            ErcCellAlignment::Right
+        } else {
+            ErcCellAlignment::Center
+        };
+        let tone = if column == 0 || row == 0 || row < column {
+            ErcCellTone::HeaderOrDuplicate
+        } else {
+            match self.erc_grid[row - 1][column - 1] {
+                'E' | 'e' => ErcCellTone::Error,
+                'W' | 'w' => ErcCellTone::Warning,
+                _ => ErcCellTone::Normal,
+            }
+        };
+        Some(ErcCellPresentation { alignment, tone })
+    }
+
+    /// Implements Ghidra function `FUN_014f3e40` at `0x014F3E40`.
+    ///
+    /// The handler preserves an earlier selection veto, rejects both headers,
+    /// and permits only the editable lower triangle of the symmetric grid.
+    #[must_use]
+    pub const fn can_select_erc_cell(current_acceptance: bool, column: usize, row: usize) -> bool {
+        current_acceptance
+            && column > 0
+            && row > 0
+            && column <= ERC_MATRIX_SIZE
+            && row <= ERC_MATRIX_SIZE
+            && row >= column
+    }
+
+    /// Implements Ghidra function `FUN_014f3e70` at `0x014F3E70`.
+    ///
+    /// An editable cell cycles from blank to warning, warning to error, and
+    /// error back to blank. Headers and duplicate cells are no-ops.
+    pub const fn cycle_erc_grid_cell(&mut self, column: usize, row: usize) -> bool {
+        if !Self::can_select_erc_cell(true, column, row) {
+            return false;
+        }
+        let marker = &mut self.erc_grid[row - 1][column - 1];
+        *marker = match *marker {
+            'W' | 'w' => 'E',
+            'E' | 'e' => ' ',
+            _ => 'W',
+        };
+        true
+    }
+
+    /// Implements Ghidra function `FUN_014f3fa0` at `0x014F3FA0`.
+    ///
+    /// Space invokes the same edit cycle as a double click. Every other key is
+    /// left for normal grid handling.
+    pub const fn handle_erc_key_press(&mut self, column: usize, row: usize, key: char) -> bool {
+        key == ' ' && self.cycle_erc_grid_cell(column, row)
+    }
+
     /// Implements Ghidra function `FUN_014f3fc0` at `0x014F3FC0`.
     ///
     /// The projection writes all 81 cells, uses dots for the noneditable
@@ -303,7 +606,28 @@ impl Window {
     /// text or parsed percentage value.
     pub const fn synchronize_glitch_control(&mut self, checked: bool) {
         self.working.digital.glitch_control_enabled = checked;
-        self.glitch_editor_enabled = checked;
+        self.set_dialog_flag(FLAG_GLITCH_EDITOR_ENABLED, checked);
+    }
+
+    /// Implements Ghidra function `FUN_014f41c0` at `0x014F41C0`.
+    ///
+    /// The plain Newton-Raphson selection disables its dependent PWL control.
+    /// Every other recovered solver selection enables that control.
+    pub const fn synchronize_nonlinear_solver(&mut self, solver: NonlinearSolver) {
+        self.working.performance.nonlinear_solver = solver.recovered_index();
+        self.set_dialog_flag(FLAG_NONLINEAR_PWL_ENABLED, solver.recovered_index() != 0);
+    }
+
+    /// Implements Ghidra function `FUN_014f42a0` at `0x014F42A0`.
+    ///
+    /// Ideal-delay mode clears and disables glitch control. Default and Always
+    /// select and enable it. This handler does not change the separate glitch
+    /// edit field; its click handler owns that enabled state.
+    pub const fn synchronize_delay_mode(&mut self, mode: DelayMode) {
+        self.working.digital.delay_mode = mode.recovered_index();
+        let glitch_control_available = mode.recovered_index() != 2;
+        self.set_dialog_flag(FLAG_GLITCH_TOGGLE_ENABLED, glitch_control_available);
+        self.working.digital.glitch_control_enabled = glitch_control_available;
     }
 
     /// Implements Ghidra function `FUN_014f4200` at `0x014F4200`.
@@ -312,7 +636,7 @@ impl Window {
     /// compilation checkbox. Their staged values and matrix solver are kept.
     pub const fn synchronize_acceleration_controls(&mut self, checked: bool) {
         self.working.performance.acceleration = checked;
-        self.acceleration_controls_enabled = checked;
+        self.set_dialog_flag(FLAG_ACCELERATION_CONTROLS_ENABLED, checked);
     }
 
     /// Implements Ghidra function `FUN_014f4320` at `0x014F4320`.
@@ -347,6 +671,33 @@ impl Window {
         true
     }
 
+    /// Implements Ghidra function `FUN_014f4160` at `0x014F4160`.
+    ///
+    /// Rust owns the staged values. The host adapter releases only the
+    /// configuration resource acquired by [`Self::from_host`]. A repeated
+    /// destroy notification is safe and has no second host effect.
+    pub fn form_destroy(&mut self, host: &mut impl AnalysisOptionsHostAdapter) {
+        if self.host_configuration_active {
+            host.release_configuration();
+            self.host_configuration_active = false;
+        }
+        self.set_dialog_flag(FLAG_VISIBLE, false);
+    }
+
+    /// Implements Ghidra function `FUN_014f4670` at `0x014F4670`.
+    ///
+    /// Each selected tab receives the shared options-page help context. The
+    /// host owns the native help system; the dialog retains the typed page.
+    pub fn options_page_changed(
+        &mut self,
+        page: OptionsPage,
+        host: &mut impl AnalysisOptionsHostAdapter,
+    ) {
+        self.active_page = page;
+        self.active_page_help_context = OPTIONS_PAGE_HELP_CONTEXT;
+        host.set_page_help_context(page, OPTIONS_PAGE_HELP_CONTEXT);
+    }
+
     pub const fn set_erc_grid_marker(&mut self, row: usize, column: usize, marker: char) -> bool {
         if row >= ERC_MATRIX_SIZE || column >= ERC_MATRIX_SIZE || row < column {
             return false;
@@ -377,8 +728,11 @@ impl Window {
             .integration_orders
             .get(self.integration_order_index)
             .copied();
+        let selected_delay_mode = DelayMode::from_recovered_index(self.working.digital.delay_mode);
+        let selected_nonlinear_solver =
+            NonlinearSolver::from_recovered_index(self.working.performance.nonlinear_solver);
         let glitch_input = text_input("Glitch control", &self.glitch_control_text);
-        let glitch_input = if self.glitch_editor_enabled {
+        let glitch_input = if self.glitch_editor_enabled() {
             glitch_input.on_input(Message::GlitchControlChanged)
         } else {
             glitch_input
@@ -390,16 +744,45 @@ impl Window {
                 rows.push(text(cells.iter().collect::<String>()))
             });
 
+        let glitch_toggle = checkbox(
+            "Enable glitch control",
+            self.working.digital.glitch_control_enabled,
+        );
+        let glitch_toggle = if self.glitch_toggle_enabled() {
+            glitch_toggle.on_toggle(Message::GlitchControlToggled)
+        } else {
+            glitch_toggle
+        };
+
         container(
             column![
                 text(TITLE).size(24),
+                pick_list(
+                    OptionsPage::ALL,
+                    Some(self.active_page),
+                    Message::PageChanged,
+                ),
                 row![
-                    checkbox(
-                        "Enable glitch control",
-                        self.working.digital.glitch_control_enabled
-                    )
-                    .on_toggle(Message::GlitchControlToggled),
+                    pick_list(
+                        DelayMode::ALL,
+                        selected_delay_mode,
+                        Message::DelayModeChanged,
+                    ),
+                    glitch_toggle,
                     glitch_input,
+                ]
+                .spacing(8),
+                row![
+                    pick_list(
+                        NonlinearSolver::ALL,
+                        selected_nonlinear_solver,
+                        Message::NonlinearSolverChanged,
+                    ),
+                    text(if self.nonlinear_pwl_controls_enabled() {
+                        "PWL controls enabled"
+                    } else {
+                        "PWL controls disabled"
+                    }),
                 ]
                 .spacing(8),
                 checkbox("Acceleration", self.working.performance.acceleration)
@@ -452,12 +835,22 @@ impl Window {
 
     #[must_use]
     pub const fn glitch_editor_enabled(&self) -> bool {
-        self.glitch_editor_enabled
+        self.dialog_flag(FLAG_GLITCH_EDITOR_ENABLED)
+    }
+
+    #[must_use]
+    pub const fn glitch_toggle_enabled(&self) -> bool {
+        self.dialog_flag(FLAG_GLITCH_TOGGLE_ENABLED)
+    }
+
+    #[must_use]
+    pub const fn nonlinear_pwl_controls_enabled(&self) -> bool {
+        self.dialog_flag(FLAG_NONLINEAR_PWL_ENABLED)
     }
 
     #[must_use]
     pub const fn acceleration_controls_enabled(&self) -> bool {
-        self.acceleration_controls_enabled
+        self.dialog_flag(FLAG_ACCELERATION_CONTROLS_ENABLED)
     }
 
     #[must_use]
@@ -502,6 +895,21 @@ impl Window {
         self.dialog_flag(FLAG_VISIBLE)
     }
 
+    #[must_use]
+    pub const fn form_help_context(&self) -> u32 {
+        self.form_help_context
+    }
+
+    #[must_use]
+    pub const fn active_page_help_context(&self) -> u32 {
+        self.active_page_help_context
+    }
+
+    #[must_use]
+    pub const fn active_page(&self) -> OptionsPage {
+        self.active_page
+    }
+
     const fn dialog_flag(&self, flag: u8) -> bool {
         self.dialog_flags & flag != 0
     }
@@ -532,8 +940,10 @@ fn parse_glitch_control(text: &str) -> Option<f64> {
 #[cfg(test)]
 mod tests {
     use super::{
-        AcceptOutcome, AnalysisOptionsCommitAdapter, CommitEvent, IntegrationMethod, Message,
-        ValidationError, Window,
+        AcceptOutcome, AnalysisOptionsCommitAdapter, AnalysisOptionsHostAdapter,
+        AnalysisOptionsStartup, CommitEvent, DelayMode, ErcCellAlignment, ErcCellPresentation,
+        ErcCellTone, IntegrationMethod, Message, NonlinearSolver, OPTIONS_PAGE_HELP_CONTEXT,
+        OptionsPage, ValidationError, Window,
     };
     use crate::advanced_analysis_options::{AdvancedOptions, Message as AdvancedMessage};
     use tiara_core::analysis_options::{AnalysisOptions, ErcRule};
@@ -560,6 +970,39 @@ mod tests {
         }
     }
 
+    struct HostRecorder {
+        startup: Option<AnalysisOptionsStartup>,
+        loads: usize,
+        releases: usize,
+        help_contexts: Vec<(OptionsPage, u32)>,
+    }
+
+    impl HostRecorder {
+        fn new(startup: AnalysisOptionsStartup) -> Self {
+            Self {
+                startup: Some(startup),
+                loads: 0,
+                releases: 0,
+                help_contexts: Vec::new(),
+            }
+        }
+    }
+
+    impl AnalysisOptionsHostAdapter for HostRecorder {
+        fn load_startup(&mut self) -> AnalysisOptionsStartup {
+            self.loads += 1;
+            self.startup.take().expect("startup is loaded once")
+        }
+
+        fn release_configuration(&mut self) {
+            self.releases += 1;
+        }
+
+        fn set_page_help_context(&mut self, page: OptionsPage, help_context: u32) {
+            self.help_contexts.push((page, help_context));
+        }
+    }
+
     fn advanced_options() -> AdvancedOptions {
         AdvancedOptions {
             rollback_enabled: true,
@@ -567,6 +1010,97 @@ mod tests {
             library_search_list: "work".to_owned(),
             ..AdvancedOptions::default()
         }
+    }
+
+    #[test]
+    fn host_startup_page_change_and_destroy_preserve_typed_lifetime() {
+        let mut options = AnalysisOptions::default();
+        options.performance.nonlinear_solver = 2;
+        options.digital.delay_mode = 1;
+        let mut host = HostRecorder::new(AnalysisOptionsStartup {
+            options,
+            advanced_options: advanced_options(),
+            active_page: OptionsPage::DigitalSimulation,
+        });
+        let mut window = Window::from_host(&mut host);
+
+        assert_eq!(host.loads, 1);
+        assert_eq!(window.form_help_context(), super::HELP_CONTEXT);
+        assert_eq!(window.active_page(), OptionsPage::DigitalSimulation);
+        assert!(window.nonlinear_pwl_controls_enabled());
+        assert!(window.glitch_toggle_enabled());
+
+        window.options_page_changed(OptionsPage::Erc, &mut host);
+        assert_eq!(window.active_page(), OptionsPage::Erc);
+        assert_eq!(window.active_page_help_context(), OPTIONS_PAGE_HELP_CONTEXT);
+        assert_eq!(
+            host.help_contexts,
+            vec![(OptionsPage::Erc, OPTIONS_PAGE_HELP_CONTEXT)]
+        );
+
+        window.form_destroy(&mut host);
+        window.form_destroy(&mut host);
+        assert_eq!(host.releases, 1);
+        assert!(!window.is_visible());
+    }
+
+    #[test]
+    fn erc_draw_selection_double_click_and_space_share_grid_rules() {
+        let mut window = Window::new(AnalysisOptions::default(), advanced_options());
+        assert_eq!(
+            window.erc_cell_presentation(0, 1),
+            Some(ErcCellPresentation {
+                alignment: ErcCellAlignment::Right,
+                tone: ErcCellTone::HeaderOrDuplicate,
+            })
+        );
+        assert_eq!(
+            window.erc_cell_presentation(2, 1),
+            Some(ErcCellPresentation {
+                alignment: ErcCellAlignment::Center,
+                tone: ErcCellTone::HeaderOrDuplicate,
+            })
+        );
+        assert!(!Window::can_select_erc_cell(true, 0, 1));
+        assert!(!Window::can_select_erc_cell(false, 1, 1));
+        assert!(!Window::can_select_erc_cell(true, 2, 1));
+        assert!(Window::can_select_erc_cell(true, 1, 1));
+
+        assert!(window.cycle_erc_grid_cell(1, 1));
+        assert_eq!(window.erc_grid()[0][0], 'W');
+        assert_eq!(
+            window.erc_cell_presentation(1, 1).map(|cell| cell.tone),
+            Some(ErcCellTone::Warning)
+        );
+        assert!(window.handle_erc_key_press(1, 1, ' '));
+        assert_eq!(window.erc_grid()[0][0], 'E');
+        assert!(window.cycle_erc_grid_cell(1, 1));
+        assert_eq!(window.erc_grid()[0][0], ' ');
+        assert!(!window.handle_erc_key_press(1, 1, 'x'));
+        assert!(!window.cycle_erc_grid_cell(2, 1));
+    }
+
+    #[test]
+    fn solver_and_delay_changes_update_only_recovered_dependents() {
+        let mut window = Window::new(AnalysisOptions::default(), advanced_options());
+        window.synchronize_nonlinear_solver(NonlinearSolver::PwlSearch);
+        assert_eq!(window.working().performance.nonlinear_solver, 3);
+        assert!(window.nonlinear_pwl_controls_enabled());
+        window.synchronize_nonlinear_solver(NonlinearSolver::NewtonRaphson);
+        assert!(!window.nonlinear_pwl_controls_enabled());
+
+        window.synchronize_delay_mode(DelayMode::Ideal);
+        assert_eq!(window.working().digital.delay_mode, 2);
+        assert!(!window.working().digital.glitch_control_enabled);
+        assert!(!window.glitch_toggle_enabled());
+        assert!(window.glitch_editor_enabled());
+        drop(window.update(Message::GlitchControlToggled(true)));
+        assert!(!window.working().digital.glitch_control_enabled);
+
+        window.synchronize_delay_mode(DelayMode::Always);
+        assert!(window.working().digital.glitch_control_enabled);
+        assert!(window.glitch_toggle_enabled());
+        assert!(window.glitch_editor_enabled());
     }
 
     #[test]

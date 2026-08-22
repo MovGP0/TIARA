@@ -24,6 +24,31 @@ pub const SCREENSHOT: &str = "screenshots/Serial_Monitor_Window.png";
 pub const FORM_RESOURCE: &str = "HTerm";
 pub const ORIGINAL_FUNCTION: Option<&str> = Some("014ba210");
 const STATUS: &str = "Serial data";
+const DEFAULT_SERIAL_MONITOR_OPTIONS: u32 = 1;
+const ENTER_KEY_CODE: u16 = 0x0d;
+
+/// The recovered `HTerm` configuration words whose Delphi field names are not
+/// present in the executable evidence.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct NativeStartupConfiguration {
+    pub field_0730: u32,
+    pub field_0734: u32,
+    pub field_0738: u32,
+    pub field_073c: u32,
+    pub field_0744: u32,
+}
+
+impl Default for NativeStartupConfiguration {
+    fn default() -> Self {
+        Self {
+            field_0730: 0,
+            field_0734: 8,
+            field_0738: 1,
+            field_073c: 115_200,
+            field_0744: 0,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TerminalState {
@@ -64,10 +89,64 @@ pub trait Backend {
     fn send_text(&mut self, handle: u64, nul_terminated_payload: &[u8]) -> Result<(), Error>;
 }
 
+/// Supplies the registry and global-window effects owned by the application
+/// shell rather than this Iced model.
+pub trait LifecycleAdapter {
+    /// Reads the `SermonOptions` registry value. `None` means that the value is
+    /// absent and the recovered default value must be used.
+    ///
+    /// # Errors
+    ///
+    /// Returns a backend error when the settings store cannot be opened or
+    /// read.
+    fn load_serial_monitor_options(&mut self) -> Result<Option<u32>, Error>;
+
+    /// Writes the `SermonOptions` registry value.
+    ///
+    /// # Errors
+    ///
+    /// Returns a backend error when the settings store cannot be opened or
+    /// written.
+    fn save_serial_monitor_options(&mut self, options: u32) -> Result<(), Error>;
+
+    /// Selects the Delphi `caFree` close action.
+    fn request_release_on_close(&mut self);
+
+    /// Clears the application-owned reference to the serial-monitor window.
+    fn clear_window_registration(&mut self);
+}
+
+/// Supplies native receive polling and the application refresh performed by
+/// each active timer tick.
+pub trait PollAdapter {
+    /// Polls one configured `HTerm` handle and converts the returned native
+    /// string to Unicode.
+    ///
+    /// # Errors
+    ///
+    /// Returns a backend error if native polling or conversion fails.
+    fn poll_text(&mut self, handle: u64) -> Result<Option<String>, Error>;
+
+    fn refresh_application(&mut self);
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SendOutcome {
     Inactive,
     Sent,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeyDownOutcome {
+    Ignored,
+    Sent,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PollOutcome {
+    Inactive,
+    NoData,
+    Appended,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -81,6 +160,7 @@ pub struct Window {
     send_text: String,
     received_text: String,
     line_endings: LineEndings,
+    native_startup_configuration: NativeStartupConfiguration,
     terminal_state: TerminalState,
     timed_sequence: EncodedTimedSequence,
     pending_action: Option<PendingAction>,
@@ -89,6 +169,14 @@ pub struct Window {
 
 impl Default for Window {
     fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Window {
+    /// Ports Ghidra function `FUN_014ba210` at `0x014BA210`.
+    #[must_use]
+    pub fn new() -> Self {
         Self {
             send_text: String::new(),
             received_text: String::new(),
@@ -96,6 +184,7 @@ impl Default for Window {
                 carriage_return: true,
                 line_feed: false,
             },
+            native_startup_configuration: NativeStartupConfiguration::default(),
             terminal_state: TerminalState::Inactive,
             timed_sequence: EncodedTimedSequence::default(),
             pending_action: None,
@@ -133,6 +222,77 @@ impl Window {
     /// Ports Ghidra function `FUN_014ba1a0` at `0x014BA1A0`.
     pub fn clear_received(&mut self) {
         self.received_text.clear();
+    }
+
+    /// Ports Ghidra function `FUN_014ba1e0` at `0x014BA1E0`.
+    ///
+    /// # Errors
+    ///
+    /// Returns a settings error before changing the close action or clearing
+    /// the application window reference.
+    pub fn close(&mut self, adapter: &mut impl LifecycleAdapter) -> Result<(), Error> {
+        adapter.save_serial_monitor_options(line_ending_options(self.line_endings))?;
+        adapter.request_release_on_close();
+        adapter.clear_window_registration();
+        self.deactivate();
+        Ok(())
+    }
+
+    /// Ports Ghidra function `FUN_014ba280` at `0x014BA280`.
+    ///
+    /// # Errors
+    ///
+    /// Returns a settings error without changing the current check-box state.
+    pub fn show(&mut self, adapter: &mut impl LifecycleAdapter) -> Result<(), Error> {
+        let options = adapter
+            .load_serial_monitor_options()?
+            .unwrap_or(DEFAULT_SERIAL_MONITOR_OPTIONS);
+        self.line_endings = line_endings_from_options(options);
+        Ok(())
+    }
+
+    /// Ports Ghidra function `FUN_014ba290` at `0x014BA290`.
+    ///
+    /// # Errors
+    ///
+    /// Returns a backend error if the active handle cannot be polled. As in
+    /// the recovered handler, the application refresh occurs after a normal
+    /// poll even when it returns no text.
+    pub fn poll_timer(&mut self, adapter: &mut impl PollAdapter) -> Result<PollOutcome, Error> {
+        let TerminalState::Active { handle } = self.terminal_state else {
+            return Ok(PollOutcome::Inactive);
+        };
+        let received = adapter.poll_text(handle)?;
+        let outcome = match received.as_deref() {
+            Some(text) if !text.is_empty() => {
+                self.received_text.push_str(text);
+                PollOutcome::Appended
+            }
+            Some(_) | None => PollOutcome::NoData,
+        };
+        adapter.refresh_application();
+        Ok(outcome)
+    }
+
+    /// Ports Ghidra function `FUN_014ba450` at `0x014BA450`.
+    ///
+    /// The recovered handler does not consume or rewrite the key value.
+    ///
+    /// # Errors
+    ///
+    /// Returns an encoding or backend error from the Enter-key send path.
+    pub fn send_key_down(
+        &mut self,
+        key_code: u16,
+        backend: &mut impl Backend,
+    ) -> Result<KeyDownOutcome, Error> {
+        if key_code != ENTER_KEY_CODE {
+            return Ok(KeyDownOutcome::Ignored);
+        }
+        match self.send_now(backend)? {
+            SendOutcome::Inactive => Ok(KeyDownOutcome::Ignored),
+            SendOutcome::Sent => Ok(KeyDownOutcome::Sent),
+        }
     }
 
     /// Ports Ghidra function `FUN_014ba4f0` at `0x014BA4F0`.
@@ -250,6 +410,11 @@ impl Window {
     }
 
     #[must_use]
+    pub const fn native_startup_configuration(&self) -> NativeStartupConfiguration {
+        self.native_startup_configuration
+    }
+
+    #[must_use]
     pub const fn take_pending_action(&mut self) -> Option<PendingAction> {
         self.pending_action.take()
     }
@@ -306,6 +471,19 @@ impl Window {
     }
 }
 
+const fn line_endings_from_options(options: u32) -> LineEndings {
+    LineEndings {
+        carriage_return: options & 1 != 0,
+        line_feed: options & 2 != 0,
+    }
+}
+
+const fn line_ending_options(line_endings: LineEndings) -> u32 {
+    let carriage_return = if line_endings.carriage_return { 1 } else { 0 };
+    let line_feed = if line_endings.line_feed { 2 } else { 0 };
+    carriage_return | line_feed
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -336,6 +514,173 @@ mod tests {
                 Ok(())
             }
         }
+    }
+
+    #[derive(Debug, Default)]
+    struct TestLifecycleAdapter {
+        loaded: Option<u32>,
+        load_error: bool,
+        save_error: bool,
+        saved: Vec<u32>,
+        events: Vec<&'static str>,
+    }
+
+    impl LifecycleAdapter for TestLifecycleAdapter {
+        fn load_serial_monitor_options(&mut self) -> Result<Option<u32>, Error> {
+            if self.load_error {
+                Err(Error::Backend(String::from("load failed")))
+            } else {
+                Ok(self.loaded)
+            }
+        }
+
+        fn save_serial_monitor_options(&mut self, options: u32) -> Result<(), Error> {
+            if self.save_error {
+                Err(Error::Backend(String::from("save failed")))
+            } else {
+                self.saved.push(options);
+                self.events.push("save");
+                Ok(())
+            }
+        }
+
+        fn request_release_on_close(&mut self) {
+            self.events.push("release");
+        }
+
+        fn clear_window_registration(&mut self) {
+            self.events.push("clear registration");
+        }
+    }
+
+    #[derive(Debug, Default)]
+    struct TestPollAdapter {
+        results: Vec<Option<String>>,
+        handles: Vec<u64>,
+        refreshes: usize,
+    }
+
+    impl PollAdapter for TestPollAdapter {
+        fn poll_text(&mut self, handle: u64) -> Result<Option<String>, Error> {
+            self.handles.push(handle);
+            Ok(self.results.pop().flatten())
+        }
+
+        fn refresh_application(&mut self) {
+            self.refreshes += 1;
+        }
+    }
+
+    #[test]
+    fn create_applies_recovered_native_and_checkbox_defaults() {
+        let window = Window::new();
+
+        assert_eq!(window.terminal_state, TerminalState::Inactive);
+        assert_eq!(
+            window.native_startup_configuration(),
+            NativeStartupConfiguration {
+                field_0730: 0,
+                field_0734: 8,
+                field_0738: 1,
+                field_073c: 115_200,
+                field_0744: 0,
+            }
+        );
+        assert_eq!(
+            window.line_endings(),
+            LineEndings {
+                carriage_return: true,
+                line_feed: false,
+            }
+        );
+    }
+
+    #[test]
+    fn show_loads_option_bits_and_uses_one_when_value_is_absent() {
+        let mut window = Window::new();
+        let mut adapter = TestLifecycleAdapter::default();
+
+        window.show(&mut adapter).unwrap();
+        assert_eq!(window.line_endings(), line_endings_from_options(1));
+
+        adapter.loaded = Some(2);
+        window.show(&mut adapter).unwrap();
+        assert_eq!(window.line_endings(), line_endings_from_options(2));
+    }
+
+    #[test]
+    fn close_saves_option_bits_then_releases_and_unregisters_window() {
+        let mut window = Window::new();
+        window.activate(27);
+        window.update(Message::AddLineFeedChanged(true));
+        let mut adapter = TestLifecycleAdapter::default();
+
+        window.close(&mut adapter).unwrap();
+
+        assert_eq!(adapter.saved, [3]);
+        assert_eq!(adapter.events, ["save", "release", "clear registration"]);
+        assert_eq!(window.terminal_state, TerminalState::Inactive);
+    }
+
+    #[test]
+    fn close_stops_before_lifecycle_changes_when_settings_write_fails() {
+        let mut window = Window::new();
+        window.activate(27);
+        let mut adapter = TestLifecycleAdapter {
+            save_error: true,
+            ..TestLifecycleAdapter::default()
+        };
+
+        assert!(window.close(&mut adapter).is_err());
+        assert!(adapter.events.is_empty());
+        assert_eq!(window.terminal_state, TerminalState::Active { handle: 27 });
+    }
+
+    #[test]
+    fn timer_skips_inactive_window_and_refreshes_each_normal_active_poll() {
+        let mut window = Window::new();
+        let mut adapter = TestPollAdapter::default();
+
+        assert_eq!(window.poll_timer(&mut adapter), Ok(PollOutcome::Inactive));
+        assert!(adapter.handles.is_empty());
+        assert_eq!(adapter.refreshes, 0);
+
+        window.activate(41);
+        adapter.results.push(None);
+        assert_eq!(window.poll_timer(&mut adapter), Ok(PollOutcome::NoData));
+        assert_eq!(adapter.handles, [41]);
+        assert_eq!(adapter.refreshes, 1);
+
+        adapter.results.push(Some(String::from("answer")));
+        assert_eq!(window.poll_timer(&mut adapter), Ok(PollOutcome::Appended));
+        assert_eq!(window.received_text(), "answer");
+        assert_eq!(adapter.handles, [41, 41]);
+        assert_eq!(adapter.refreshes, 2);
+    }
+
+    #[test]
+    fn key_down_sends_only_enter_while_terminal_is_active() {
+        let mut window = Window::new();
+        window.set_send_text("AT");
+        let mut backend = TestBackend::default();
+
+        assert_eq!(
+            window.send_key_down(u16::from(b'A'), &mut backend),
+            Ok(KeyDownOutcome::Ignored)
+        );
+        assert_eq!(
+            window.send_key_down(ENTER_KEY_CODE, &mut backend),
+            Ok(KeyDownOutcome::Ignored)
+        );
+        assert_eq!(window.send_text(), "AT");
+
+        window.activate(55);
+        assert_eq!(
+            window.send_key_down(ENTER_KEY_CODE, &mut backend),
+            Ok(KeyDownOutcome::Sent)
+        );
+        assert_eq!(backend.sends, [(55, b"AT\r\0".to_vec())]);
+        assert!(window.send_text().is_empty());
     }
 
     #[test]

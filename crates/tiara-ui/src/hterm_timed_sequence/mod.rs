@@ -92,7 +92,22 @@ pub struct Window {
     error: Option<Error>,
 }
 
+impl Default for Window {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Window {
+    /// Ports Ghidra function `FUN_014b8fe0` at `0x014B8FE0`.
+    ///
+    /// Rust ownership keeps the caller's optional target model outside this
+    /// staged editor, replacing the recovered null raw pointer.
+    #[must_use]
+    pub fn new() -> Self {
+        Self::from_config(&TimedSequenceConfig::default())
+    }
+
     /// Ports Ghidra function `FUN_014b8c20` at `0x014B8C20`.
     #[must_use]
     pub fn from_config(config: &TimedSequenceConfig) -> Self {
@@ -317,6 +332,15 @@ mod tests {
             enabled: true,
             lines: vec![String::from("10, 1"), String::from("20, 2")],
         }
+    }
+
+    #[test]
+    fn create_starts_with_empty_disabled_data_and_allows_close() {
+        let mut window = Window::new();
+
+        assert!(window.staged_lines().is_empty());
+        assert!(!window.enabled());
+        assert!(window.close_query());
     }
 
     #[test]

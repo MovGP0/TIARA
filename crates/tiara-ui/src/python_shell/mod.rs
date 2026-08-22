@@ -8,7 +8,11 @@
 use std::path::{Path, PathBuf};
 
 use iced::widget::{button, column, container, row, scrollable, text, text_editor};
-use iced::{Element, Length, Task};
+use iced::{
+    Element, Length, Point, Task,
+    keyboard::{Key, Modifiers, key::Named},
+    mouse,
+};
 use rfd::AsyncFileDialog;
 use tiara_core::python_shell::{
     CaretPosition, CircuitElement, Document, ExecutionOutcome, FontSettings, PlaceAction,
@@ -25,6 +29,59 @@ pub enum SampleLoadOutcome {
     Loaded(String),
     Missing,
     Failed(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct ShellPreferences {
+    pub font: FontSettings,
+    pub last_file: Option<PathBuf>,
+}
+
+/// Safe boundary for registry, startup-file, and application-session effects.
+pub trait PythonShellHost {
+    /// Loads the saved font and last document.
+    ///
+    /// # Errors
+    ///
+    /// Returns a host-defined persistence error.
+    fn load_preferences(&mut self) -> Result<ShellPreferences, String>;
+
+    /// Saves the current font and last document.
+    ///
+    /// # Errors
+    ///
+    /// Returns a host-defined persistence error.
+    fn save_preferences(&mut self, preferences: &ShellPreferences) -> Result<(), String>;
+
+    /// Reads a startup document when it exists.
+    ///
+    /// # Errors
+    ///
+    /// Returns a host-defined file access error.
+    fn read_startup_document(&mut self, path: &Path) -> Result<Option<String>, String>;
+
+    /// Writes diagnostics when the host needs the recovered Wine report.
+    ///
+    /// # Errors
+    ///
+    /// Returns a host-defined diagnostic write error.
+    fn write_optional_wine_diagnostics(&mut self) -> Result<(), String>;
+
+    fn finish_shell_session(&mut self);
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TerminalKeyDecision {
+    #[default]
+    Accept,
+    Suppress,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CloseAction {
+    #[default]
+    Hide,
+    Free,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -53,6 +110,22 @@ enum ApplicationContextState {
 pub enum Message {
     EditorAction(text_editor::Action),
     CaretMoved(CaretPosition),
+    EditorKeyUp(CaretPosition),
+    EditorMouseDown(CaretPosition),
+    EditorMouseUp(CaretPosition),
+    TerminalKeyDown {
+        caret_column: usize,
+        key: Key,
+    },
+    TerminalKeyUp {
+        key: Key,
+        modifiers: Modifiers,
+    },
+    TerminalMouseDown {
+        button: mouse::Button,
+        client_position: Point,
+        screen_origin: Point,
+    },
     Exit,
     CloseQueried(bool),
     HideMarker,
@@ -106,7 +179,15 @@ pub struct Window {
     font: FontSettings,
     font_dialog: FontDialogState,
     lifecycle: WindowLifecycle,
+    close_action: CloseAction,
     application_context: ApplicationContextState,
+    execution_model_initialized: bool,
+    syntax_highlighting_enabled: bool,
+    editor_gutter_enabled: bool,
+    tab_width: u8,
+    last_file: Option<PathBuf>,
+    last_terminal_key_decision: TerminalKeyDecision,
+    terminal_context_menu_position: Option<Point>,
     last_run_request: Option<RunRequest>,
     last_place_action: Option<PlaceAction>,
     last_image_request: Option<PathBuf>,
@@ -141,7 +222,15 @@ impl Window {
             font: FontSettings::default(),
             font_dialog: FontDialogState::Idle,
             lifecycle: WindowLifecycle::Open,
+            close_action: CloseAction::Hide,
             application_context: ApplicationContextState::Uninitialized,
+            execution_model_initialized: false,
+            syntax_highlighting_enabled: false,
+            editor_gutter_enabled: false,
+            tab_width: 4,
+            last_file: None,
+            last_terminal_key_decision: TerminalKeyDecision::Accept,
+            terminal_context_menu_position: None,
             last_run_request: None,
             last_place_action: None,
             last_image_request: None,
@@ -160,6 +249,20 @@ impl Window {
                 self.document.set_text(self.editor.text());
             }
             Message::CaretMoved(caret) => self.refresh_caret_panel(caret),
+            Message::EditorKeyUp(caret) => self.editor_key_up(caret),
+            Message::EditorMouseDown(caret) => self.editor_mouse_down(caret),
+            Message::EditorMouseUp(caret) => self.editor_mouse_up(caret),
+            Message::TerminalKeyDown { caret_column, key } => {
+                self.terminal_key_down(caret_column, &key);
+            }
+            Message::TerminalKeyUp { key, modifiers } => {
+                self.terminal_key_up(&key, modifiers);
+            }
+            Message::TerminalMouseDown {
+                button,
+                client_position,
+                screen_origin,
+            } => self.terminal_mouse_down(button, client_position, screen_origin),
             Message::Exit => self.request_close(),
             Message::CloseQueried(allowed) => self.finish_close_query(allowed),
             Message::HideMarker => self.insert_hide_marker(),
@@ -254,6 +357,41 @@ impl Window {
     }
 
     #[must_use]
+    pub const fn close_action(&self) -> CloseAction {
+        self.close_action
+    }
+
+    #[must_use]
+    pub const fn execution_model_initialized(&self) -> bool {
+        self.execution_model_initialized
+    }
+
+    #[must_use]
+    pub const fn syntax_highlighting_enabled(&self) -> bool {
+        self.syntax_highlighting_enabled
+    }
+
+    #[must_use]
+    pub const fn editor_gutter_enabled(&self) -> bool {
+        self.editor_gutter_enabled
+    }
+
+    #[must_use]
+    pub const fn tab_width(&self) -> u8 {
+        self.tab_width
+    }
+
+    #[must_use]
+    pub const fn last_terminal_key_decision(&self) -> TerminalKeyDecision {
+        self.last_terminal_key_decision
+    }
+
+    #[must_use]
+    pub const fn terminal_context_menu_position(&self) -> Option<Point> {
+        self.terminal_context_menu_position
+    }
+
+    #[must_use]
     pub const fn last_run_request(&self) -> Option<&RunRequest> {
         self.last_run_request.as_ref()
     }
@@ -294,6 +432,81 @@ impl Window {
     #[must_use]
     pub fn status(&self) -> Option<&str> {
         self.status.as_deref()
+    }
+
+    /// Creates the shell-owned execution state and restores host preferences.
+    ///
+    /// Reimplements Ghidra function `FUN_0146ff20` at `0x0146FF20`. Registry
+    /// access stays behind [`PythonShellHost`]. Iced owns the editor state.
+    pub fn on_create(&mut self, host: &mut impl PythonShellHost) {
+        self.syntax_highlighting_enabled = true;
+        self.execution_model_initialized = true;
+        self.application_context = ApplicationContextState::Uninitialized;
+        self.mode = PythonMode::Normal;
+        self.checked_mode = PythonMode::Normal;
+        self.tab_width = 4;
+        match host.load_preferences() {
+            Ok(preferences) => {
+                self.font = preferences.font;
+                self.last_file = preferences.last_file;
+                self.status = None;
+            }
+            Err(error) => self.status = Some(error),
+        }
+    }
+
+    /// Saves preferences, finishes the host session, and frees the form.
+    ///
+    /// Reimplements Ghidra function `FUN_0146fef0` at `0x0146FEF0`. The host
+    /// owns preference persistence and application-wide session cleanup.
+    pub fn on_close(&mut self, host: &mut impl PythonShellHost) {
+        let preferences = ShellPreferences {
+            font: self.font.clone(),
+            last_file: self.last_file.clone(),
+        };
+        if let Err(error) = host.save_preferences(&preferences) {
+            self.status = Some(error);
+        }
+        host.finish_shell_session();
+        self.close_action = CloseAction::Free;
+        self.lifecycle = WindowLifecycle::Closed;
+    }
+
+    /// Releases the shell-owned execution state.
+    ///
+    /// Reimplements Ghidra function `FUN_0146ffe0` at `0x0146FFE0`. Rust owns
+    /// the value lifetime; the explicit state makes the form event testable.
+    pub const fn on_destroy(&mut self) {
+        self.execution_model_initialized = false;
+    }
+
+    /// Initializes the visible shell from the last file or bundled sample.
+    ///
+    /// Reimplements Ghidra function `FUN_01470000` at `0x01470000`. File reads
+    /// and optional Wine diagnostics stay behind [`PythonShellHost`].
+    pub fn on_show(&mut self, host: &mut impl PythonShellHost) {
+        self.editor_gutter_enabled = true;
+        let path = self
+            .last_file
+            .clone()
+            .unwrap_or_else(|| self.examples_root.join("programs/bubblesort.py"));
+        if !self.document.modified {
+            match host.read_startup_document(&path) {
+                Ok(Some(contents)) => {
+                    self.document.replace_from_file(path.clone(), contents);
+                    self.last_file = Some(path);
+                    self.sync_editor_from_document();
+                    self.status = None;
+                }
+                Ok(None) => {}
+                Err(error) => self.status = Some(error),
+            }
+        }
+        self.terminal.clear_and_restore_prompt();
+        self.font.size = 10.0;
+        if let Err(error) = host.write_optional_wine_diagnostics() {
+            self.status = Some(error);
+        }
     }
 
     /// Requests the recovered form-close pipeline.
@@ -413,6 +626,7 @@ impl Window {
     pub fn finish_open_document(&mut self, path: PathBuf, result: Result<String, String>) {
         match result {
             Ok(contents) => {
+                self.last_file = Some(path.clone());
                 self.document.replace_from_file(path, contents);
                 self.sync_editor_from_document();
                 self.status = None;
@@ -449,6 +663,85 @@ impl Window {
     pub fn refresh_caret_panel(&mut self, caret: CaretPosition) {
         self.caret = caret;
         self.caret_panel = caret.panel_text();
+    }
+
+    /// Refreshes the caret panel after an editor key-up event.
+    ///
+    /// Reimplements Ghidra function `FUN_0146f880` at `0x0146F880`.
+    pub fn editor_key_up(&mut self, caret: CaretPosition) {
+        self.refresh_caret_panel(caret);
+    }
+
+    /// Refreshes the caret panel after an editor mouse-down event.
+    ///
+    /// Reimplements Ghidra function `FUN_0146f8a0` at `0x0146F8A0`.
+    pub fn editor_mouse_down(&mut self, caret: CaretPosition) {
+        self.refresh_caret_panel(caret);
+    }
+
+    /// Refreshes the caret panel after an editor mouse-up event.
+    ///
+    /// Reimplements Ghidra function `FUN_0146f8c0` at `0x0146F8C0`.
+    pub fn editor_mouse_up(&mut self, caret: CaretPosition) {
+        self.refresh_caret_panel(caret);
+    }
+
+    /// Prevents Left and Backspace from moving into the terminal prompt.
+    ///
+    /// Reimplements Ghidra function `FUN_0146fb10` at `0x0146FB10`. The
+    /// recovered editor uses a one-based caret column and a five-character
+    /// prompt boundary.
+    pub const fn terminal_key_down(
+        &mut self,
+        caret_column: usize,
+        key: &Key,
+    ) -> TerminalKeyDecision {
+        let protected_key = matches!(key, Key::Named(Named::ArrowLeft | Named::Backspace));
+        let decision = if caret_column < 6 && protected_key {
+            TerminalKeyDecision::Suppress
+        } else {
+            TerminalKeyDecision::Accept
+        };
+        self.last_terminal_key_decision = decision;
+        decision
+    }
+
+    /// Prepares the newest prompt command when Enter is released without Shift.
+    ///
+    /// Reimplements Ghidra function `FUN_0146fb90` at `0x0146FB90`. Execution
+    /// remains a typed host request through [`RunRequest`].
+    pub fn terminal_key_up(&mut self, key: &Key, modifiers: Modifiers) {
+        if !matches!(key, Key::Named(Named::Enter)) || modifiers.shift() {
+            return;
+        }
+        let Some(command) = self
+            .terminal
+            .text
+            .lines()
+            .rev()
+            .find(|line| line.contains(">>> "))
+            .map(|line| line.replacen(">>> ", "", 1))
+        else {
+            return;
+        };
+        self.last_run_request = Some(prepare_run(self.mode, command));
+    }
+
+    /// Opens the terminal context menu at the right-click screen position.
+    ///
+    /// Reimplements Ghidra function `FUN_0146fcd0` at `0x0146FCD0`.
+    pub fn terminal_mouse_down(
+        &mut self,
+        button: mouse::Button,
+        client_position: Point,
+        screen_origin: Point,
+    ) {
+        if button == mouse::Button::Right {
+            self.terminal_context_menu_position = Some(Point::new(
+                screen_origin.x + client_position.x,
+                screen_origin.y + client_position.y,
+            ));
+        }
     }
 
     /// Clears the terminal and exposes a typed 60-second execution request.
@@ -725,12 +1018,55 @@ async fn select_terminal_path() -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Message, SampleLoadOutcome, Window};
+    use super::{
+        CloseAction, Message, PythonShellHost, SampleLoadOutcome, ShellPreferences,
+        TerminalKeyDecision, Window,
+    };
+    use iced::{
+        Point,
+        keyboard::{Key, Modifiers, key::Named},
+        mouse,
+    };
     use std::path::{Path, PathBuf};
     use tiara_core::python_shell::{
         CaretPosition, CircuitElement, ExecutionOutcome, FontSettings, HIDE_MARKER, PlaceRequest,
         PythonMode, RunProgram,
     };
+
+    #[derive(Default)]
+    struct FakeHost {
+        preferences: ShellPreferences,
+        startup_text: Option<String>,
+        startup_path: Option<PathBuf>,
+        saved_preferences: Option<ShellPreferences>,
+        diagnostics_written: bool,
+        session_finished: bool,
+    }
+
+    impl PythonShellHost for FakeHost {
+        fn load_preferences(&mut self) -> Result<ShellPreferences, String> {
+            Ok(self.preferences.clone())
+        }
+
+        fn save_preferences(&mut self, preferences: &ShellPreferences) -> Result<(), String> {
+            self.saved_preferences = Some(preferences.clone());
+            Ok(())
+        }
+
+        fn read_startup_document(&mut self, path: &Path) -> Result<Option<String>, String> {
+            self.startup_path = Some(path.to_path_buf());
+            Ok(self.startup_text.clone())
+        }
+
+        fn write_optional_wine_diagnostics(&mut self) -> Result<(), String> {
+            self.diagnostics_written = true;
+            Ok(())
+        }
+
+        fn finish_shell_session(&mut self) {
+            self.session_finished = true;
+        }
+    }
 
     fn window() -> Window {
         Window::new(PathBuf::from("Examples/Python"))
@@ -984,5 +1320,120 @@ mod tests {
         update(&mut window, Message::ConvertCircuit(elements));
         assert_eq!(window.document.text, "n1,n2,2.0000,a,b");
         assert!(window.document.modified);
+    }
+
+    #[test]
+    fn editor_key_and_mouse_events_share_the_caret_status_refresh() {
+        let mut window = window();
+
+        window.editor_key_up(CaretPosition { row: 2, column: 3 });
+        assert_eq!(window.caret_panel(), "Line:2 Col:3");
+        window.editor_mouse_down(CaretPosition { row: 4, column: 5 });
+        assert_eq!(window.caret_panel(), "Line:4 Col:5");
+        window.editor_mouse_up(CaretPosition { row: 6, column: 7 });
+        assert_eq!(window.caret_panel(), "Line:6 Col:7");
+    }
+
+    #[test]
+    fn terminal_key_down_protects_only_left_and_backspace_inside_the_prompt() {
+        let mut window = window();
+
+        assert_eq!(
+            window.terminal_key_down(5, &Key::Named(Named::ArrowLeft)),
+            TerminalKeyDecision::Suppress
+        );
+        assert_eq!(
+            window.terminal_key_down(5, &Key::Named(Named::Backspace)),
+            TerminalKeyDecision::Suppress
+        );
+        assert_eq!(
+            window.terminal_key_down(6, &Key::Named(Named::Backspace)),
+            TerminalKeyDecision::Accept
+        );
+        assert_eq!(
+            window.terminal_key_down(2, &Key::Named(Named::ArrowRight)),
+            TerminalKeyDecision::Accept
+        );
+    }
+
+    #[test]
+    fn unshifted_enter_prepares_the_newest_terminal_prompt_line() {
+        let mut window = window();
+        window.terminal.text = ">>>  first\noutput\n>>>  second".to_owned();
+
+        window.terminal_key_up(&Key::Named(Named::Enter), Modifiers::SHIFT);
+        assert!(window.last_run_request().is_none());
+        window.terminal_key_up(&Key::Named(Named::Enter), Modifiers::empty());
+
+        assert_eq!(
+            window
+                .last_run_request()
+                .map(|request| request.source.as_str()),
+            Some(" second")
+        );
+    }
+
+    #[test]
+    fn terminal_right_click_maps_client_coordinates_to_screen_coordinates() {
+        let mut window = window();
+
+        window.terminal_mouse_down(
+            mouse::Button::Left,
+            Point::new(3.0, 4.0),
+            Point::new(10.0, 20.0),
+        );
+        assert_eq!(window.terminal_context_menu_position(), None);
+        window.terminal_mouse_down(
+            mouse::Button::Right,
+            Point::new(3.0, 4.0),
+            Point::new(10.0, 20.0),
+        );
+        assert_eq!(
+            window.terminal_context_menu_position(),
+            Some(Point::new(13.0, 24.0))
+        );
+    }
+
+    #[test]
+    fn lifecycle_uses_the_host_for_preferences_startup_and_session_cleanup() {
+        let mut window = window();
+        let mut host = FakeHost {
+            preferences: ShellPreferences {
+                font: FontSettings {
+                    family: "Recovered Mono".to_owned(),
+                    size: 14.0,
+                    bold: false,
+                    italic: false,
+                },
+                last_file: Some(PathBuf::from("saved.py")),
+            },
+            startup_text: Some("print('saved')".to_owned()),
+            ..FakeHost::default()
+        };
+
+        window.on_create(&mut host);
+        assert!(window.execution_model_initialized());
+        assert!(window.syntax_highlighting_enabled());
+        assert_eq!(window.tab_width(), 4);
+        window.on_show(&mut host);
+        assert_eq!(host.startup_path, Some(PathBuf::from("saved.py")));
+        assert_eq!(window.document().text, "print('saved')");
+        assert!((window.font().size - 10.0).abs() < f32::EPSILON);
+        assert!(window.editor_gutter_enabled());
+        assert!(host.diagnostics_written);
+
+        window.on_close(&mut host);
+        assert_eq!(window.close_action(), CloseAction::Free);
+        assert!(window.is_closed());
+        assert!(host.session_finished);
+        assert_eq!(
+            host.saved_preferences
+                .as_ref()
+                .and_then(|preferences| preferences.last_file.as_deref()),
+            Some(Path::new("saved.py"))
+        );
+
+        window.on_destroy();
+        assert!(!window.execution_model_initialized());
     }
 }

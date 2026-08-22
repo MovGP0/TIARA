@@ -6,6 +6,7 @@ use iced::{Element, Length, Task};
 
 pub const TITLE: &str = "Advanced Options";
 pub const FORM_RESOURCE: &str = "AnaloptVHDLAdvanced";
+pub const HELP_CONTEXT: u32 = 0x49c;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AdvancedOptions {
@@ -18,6 +19,17 @@ pub struct AdvancedOptions {
 
 pub trait ArduinoToolchainValidator {
     fn is_valid_arduino_root(&mut self, path: &Path) -> bool;
+}
+
+pub trait AtmelStudioPathAdapter {
+    fn detect_atmel_studio_path(&mut self) -> Option<PathBuf>;
+    fn remember_atmel_studio_path(&mut self, path: &Path);
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ArduinoOptimizationAvailability {
+    Available,
+    Unavailable,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -71,6 +83,8 @@ pub struct Window {
     modal_result: Option<u8>,
     manager_open: bool,
     manager_generation: u64,
+    help_context: u32,
+    arduino_optimization_availability: ArduinoOptimizationAvailability,
 }
 
 impl Window {
@@ -86,6 +100,35 @@ impl Window {
             modal_result: None,
             manager_open: false,
             manager_generation: 0,
+            help_context: 0,
+            arduino_optimization_availability: ArduinoOptimizationAvailability::Available,
+        }
+    }
+
+    /// Sets the recovered help context for the advanced-options form.
+    ///
+    /// Reimplements Ghidra function `FUN_014ef3f0` at `0x014EF3F0`.
+    pub const fn form_create(&mut self) {
+        self.help_context = HELP_CONTEXT;
+    }
+
+    /// Synchronizes staged values before the advanced-options form is shown.
+    ///
+    /// Reimplements Ghidra function `FUN_014eec50` at `0x014EEC50`. iced reads
+    /// most controls directly from `working`; this method synchronizes the one
+    /// derived rollback editor, disables the unavailable Arduino optimization,
+    /// and detects an Atmel Studio path only when its staged value is empty.
+    pub fn form_show(&mut self, host: &mut impl AtmelStudioPathAdapter) {
+        self.rollback_subdivision_text = self.working.rollback_subdivision.to_string();
+        self.synchronize_rollback_editor();
+        self.arduino_optimization_availability = ArduinoOptimizationAvailability::Unavailable;
+        if self.working.atmel_studio_path.as_os_str().is_empty()
+            && let Some(path) = host
+                .detect_atmel_studio_path()
+                .filter(|path| !path.as_os_str().is_empty())
+        {
+            host.remember_atmel_studio_path(&path);
+            self.working.atmel_studio_path = path;
         }
     }
 
@@ -258,6 +301,19 @@ impl Window {
     }
 
     #[must_use]
+    pub const fn help_context(&self) -> u32 {
+        self.help_context
+    }
+
+    #[must_use]
+    pub const fn arduino_optimization_available(&self) -> bool {
+        matches!(
+            self.arduino_optimization_availability,
+            ArduinoOptimizationAvailability::Available
+        )
+    }
+
+    #[must_use]
     pub fn view(&self) -> Element<'_, Message> {
         let content = column![
             text(TITLE).size(18),
@@ -304,6 +360,22 @@ mod tests {
         }
     }
 
+    #[derive(Default)]
+    struct AtmelPaths {
+        detected: Option<PathBuf>,
+        remembered: Vec<PathBuf>,
+    }
+
+    impl AtmelStudioPathAdapter for AtmelPaths {
+        fn detect_atmel_studio_path(&mut self) -> Option<PathBuf> {
+            self.detected.clone()
+        }
+
+        fn remember_atmel_studio_path(&mut self, path: &Path) {
+            self.remembered.push(path.to_path_buf());
+        }
+    }
+
     fn options() -> AdvancedOptions {
         AdvancedOptions {
             rollback_enabled: true,
@@ -312,6 +384,46 @@ mod tests {
             arduino_path: PathBuf::from("old-arduino"),
             atmel_studio_path: PathBuf::from("old-atmel"),
         }
+    }
+
+    #[test]
+    fn create_and_show_apply_help_rollback_and_missing_atmel_defaults() {
+        let mut source = options();
+        source.atmel_studio_path = PathBuf::new();
+        let mut window = Window::new(source);
+        let mut paths = AtmelPaths {
+            detected: Some(PathBuf::from("detected-atmel")),
+            remembered: Vec::new(),
+        };
+
+        window.form_create();
+        window.form_show(&mut paths);
+
+        assert_eq!(window.help_context(), HELP_CONTEXT);
+        assert!(window.subdivision_enabled());
+        assert!(!window.arduino_optimization_available());
+        assert_eq!(
+            window.working().atmel_studio_path,
+            PathBuf::from("detected-atmel")
+        );
+        assert_eq!(paths.remembered, [PathBuf::from("detected-atmel")]);
+    }
+
+    #[test]
+    fn show_preserves_existing_atmel_path_without_detection() {
+        let mut window = Window::new(options());
+        let mut paths = AtmelPaths {
+            detected: Some(PathBuf::from("detected-atmel")),
+            remembered: Vec::new(),
+        };
+
+        window.form_show(&mut paths);
+
+        assert_eq!(
+            window.working().atmel_studio_path,
+            PathBuf::from("old-atmel")
+        );
+        assert!(paths.remembered.is_empty());
     }
 
     #[test]

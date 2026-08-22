@@ -453,6 +453,36 @@ impl Window {
         Ok(true)
     }
 
+    /// Refreshes the preview after the right splitter moves.
+    ///
+    /// Reimplements Ghidra function `FUN_014bf0b0` at `0x014BF0B0`. The
+    /// recovered handler delegates without changing any other window state.
+    ///
+    /// # Errors
+    ///
+    /// Returns the preview adapter error unchanged.
+    pub fn right_splitter_moved(
+        &mut self,
+        adapter: &mut impl RemoteOpenAdapter,
+    ) -> Result<bool, String> {
+        self.download_selected_preview(adapter)
+    }
+
+    /// Refreshes the preview after the right panel changes size.
+    ///
+    /// Reimplements Ghidra function `FUN_014bf0c0` at `0x014BF0C0`. Both
+    /// layout events use the same size-specific preview workflow.
+    ///
+    /// # Errors
+    ///
+    /// Returns the preview adapter error unchanged.
+    pub fn right_panel_resized(
+        &mut self,
+        adapter: &mut impl RemoteOpenAdapter,
+    ) -> Result<bool, String> {
+        self.download_selected_preview(adapter)
+    }
+
     /// Ports Ghidra function `FUN_014be5c0` at `0x014BE5C0`.
     ///
     /// Clears the existing file rows before constructing the recovered
@@ -1006,6 +1036,29 @@ mod tests {
         );
         assert_eq!((request.width, request.height), (320, 200));
         assert_eq!(window.preview_path(), Some(Path::new("preview.gif")));
+    }
+
+    #[test]
+    fn splitter_and_panel_layout_events_share_preview_refresh() -> Result<(), String> {
+        let mut window = window();
+        select_first_file(&mut window);
+        window.preview_width = 320;
+        window.preview_height = 180;
+        let mut adapter = TestAdapter {
+            preview_result: Ok(RemoteFetch::Available(PathBuf::from("preview.gif"))),
+            ..TestAdapter::default()
+        };
+
+        assert!(window.right_splitter_moved(&mut adapter)?);
+        assert!(window.right_panel_resized(&mut adapter)?);
+        assert_eq!(adapter.preview_requests.len(), 2);
+        assert!(
+            adapter
+                .preview_requests
+                .iter()
+                .all(|request| request.width == 320 && request.height == 180)
+        );
+        Ok(())
     }
 
     #[test]

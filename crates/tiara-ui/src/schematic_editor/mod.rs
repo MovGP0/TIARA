@@ -1,13 +1,13 @@
+mod chrome;
 mod inventory;
 mod menu;
 
 use std::fmt;
 
-use iced::widget::{
-    button, column, container, horizontal_rule, horizontal_space, pick_list, row, text,
-};
-use iced::{Alignment, Background, Border, Color, Element, Length, Shadow, Theme};
+use iced::widget::{button, column, container, horizontal_space, pick_list, row, text};
+use iced::{Alignment, Element, Length};
 
+use crate::shared::theme::{CustomThemeFile, ThemeTokens};
 use inventory::{COMPONENT_CATEGORIES, COMPONENT_SYMBOLS};
 const DOT_ROW: &str = "·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·   ·";
 
@@ -78,17 +78,25 @@ impl SchematicEditor {
     /// This is the Rust presentation counterpart of the structure initialized
     /// by Ghidra function `01c69770`. It does not reproduce that function's
     /// file, configuration, timer, or callback behavior.
-    pub(crate) fn view(&self) -> Element<'_, Message> {
+    pub(crate) fn view(&self, theme: &CustomThemeFile) -> Element<'_, Message> {
+        let tokens = theme.tokens;
+        let canvas = theme.canvas;
         let content = column![
-            container(menu::view()).width(Length::Fill),
-            horizontal_rule(1),
-            self.general_toolbar(),
-            Self::editor_toolbar(),
-            Self::component_palette(),
-            self.category_tabs(),
-            Self::schematic_canvas(),
-            Self::document_tabs(),
-            Self::status_bar(),
+            container(menu::view(tokens))
+                .width(Length::Fill)
+                .height(Length::Fixed(chrome::MENU_BAR_HEIGHT))
+                .style(move |iced_theme| chrome::toolbar_style(tokens, iced_theme)),
+            container(horizontal_space())
+                .width(Length::Fill)
+                .height(Length::Fixed(1.0))
+                .style(move |iced_theme| chrome::separator_style(tokens, iced_theme)),
+            self.general_toolbar(tokens),
+            Self::editor_toolbar(tokens),
+            Self::component_palette(tokens),
+            self.category_tabs(tokens),
+            Self::schematic_canvas(tokens, canvas),
+            Self::document_tabs(tokens),
+            Self::status_bar(tokens),
         ]
         .width(Length::Fill)
         .height(Length::Fill);
@@ -96,10 +104,11 @@ impl SchematicEditor {
         container(content)
             .width(Length::Fill)
             .height(Length::Fill)
+            .style(move |iced_theme| chrome::application_style(tokens, iced_theme))
             .into()
     }
 
-    fn general_toolbar(&self) -> Element<'_, Message> {
+    fn general_toolbar(&self, tokens: ThemeTokens) -> Element<'_, Message> {
         let tools = [
             ("New", "N"),
             ("Open", "O"),
@@ -111,7 +120,7 @@ impl SchematicEditor {
         ];
         let buttons = tools
             .into_iter()
-            .map(|(name, symbol)| toolbar_button(symbol, name));
+            .map(move |(name, symbol)| toolbar_button(symbol, name, tokens));
 
         container(
             row(buttons)
@@ -127,11 +136,11 @@ impl SchematicEditor {
         )
         .padding([3, 6])
         .width(Length::Fill)
-        .style(toolbar_style)
+        .style(move |iced_theme| chrome::toolbar_style(tokens, iced_theme))
         .into()
     }
 
-    fn editor_toolbar() -> Element<'static, Message> {
+    fn editor_toolbar(tokens: ThemeTokens) -> Element<'static, Message> {
         let tools = [
             ("Select", "SEL"),
             ("Edit", "ED"),
@@ -157,96 +166,102 @@ impl SchematicEditor {
         container(
             row(tools
                 .into_iter()
-                .map(|(name, symbol)| toolbar_button(symbol, name)))
+                .map(move |(name, symbol)| toolbar_button(symbol, name, tokens)))
             .spacing(3)
             .align_y(Alignment::Center),
         )
         .padding([3, 6])
         .width(Length::Fill)
-        .style(toolbar_style)
+        .style(move |iced_theme| chrome::toolbar_style(tokens, iced_theme))
         .into()
     }
 
-    fn component_palette() -> Element<'static, Message> {
-        let symbols = COMPONENT_SYMBOLS.iter().map(|symbol| {
+    fn component_palette(tokens: ThemeTokens) -> Element<'static, Message> {
+        let symbols = COMPONENT_SYMBOLS.iter().map(move |symbol| {
             Element::from(
                 button(text(*symbol).size(14))
                     .padding([8, 10])
-                    .on_press(Message::NoOp),
+                    .on_press(Message::NoOp)
+                    .style(move |theme, status| {
+                        chrome::toolbar_button_style(tokens, theme, status)
+                    }),
             )
         });
 
         container(row(symbols).spacing(3).align_y(Alignment::Center))
             .padding([4, 6])
             .width(Length::Fill)
-            .style(palette_style)
+            .style(move |iced_theme| chrome::palette_style(tokens, iced_theme))
             .into()
     }
 
-    fn category_tabs(&self) -> Element<'_, Message> {
+    fn category_tabs(&self, tokens: ThemeTokens) -> Element<'_, Message> {
         let tabs = COMPONENT_CATEGORIES
             .iter()
             .enumerate()
             .map(|(index, category)| {
-                let label = if index == self.selected_category {
-                    format!("[{category}]")
-                } else {
-                    (*category).to_owned()
-                };
+                let is_selected = index == self.selected_category;
 
                 Element::from(
-                    button(text(label).size(12))
+                    button(text(*category).size(12))
                         .padding([4, 7])
-                        .on_press(Message::SelectComponentCategory(index)),
+                        .on_press(Message::SelectComponentCategory(index))
+                        .style(move |theme, status| {
+                            chrome::category_button_style(tokens, is_selected, theme, status)
+                        }),
                 )
             });
 
         container(row(tabs).spacing(1).align_y(Alignment::Center))
             .padding([2, 4])
             .width(Length::Fill)
-            .style(toolbar_style)
+            .style(move |iced_theme| chrome::toolbar_style(tokens, iced_theme))
             .into()
     }
 
-    fn schematic_canvas() -> Element<'static, Message> {
-        let dots = (0..24).map(|_| {
-            Element::from(
-                text(DOT_ROW)
-                    .size(12)
-                    .color(Color::from_rgb8(215, 215, 215)),
-            )
-        });
+    fn schematic_canvas(
+        tokens: ThemeTokens,
+        canvas: crate::shared::theme::CanvasColors,
+    ) -> Element<'static, Message> {
+        let dots =
+            (0..24).map(move |_| Element::from(text(DOT_ROW).size(12).color(canvas.grid.iced())));
 
         container(column(dots).spacing(8))
             .padding(12)
             .width(Length::Fill)
             .height(Length::Fill)
-            .style(canvas_style)
+            .style(move |iced_theme| chrome::canvas_style(tokens, canvas, iced_theme))
             .into()
     }
 
-    fn document_tabs() -> Element<'static, Message> {
+    fn document_tabs(tokens: ThemeTokens) -> Element<'static, Message> {
         container(
             row![
                 button(text("Noname"))
                     .padding([4, 18])
-                    .on_press(Message::NoOp),
+                    .on_press(Message::NoOp)
+                    .style(move |theme, status| {
+                        chrome::category_button_style(tokens, true, theme, status)
+                    }),
                 horizontal_space(),
             ]
             .align_y(Alignment::Center),
         )
         .padding([2, 5])
         .width(Length::Fill)
-        .style(toolbar_style)
+        .style(move |iced_theme| chrome::toolbar_style(tokens, iced_theme))
         .into()
     }
 
-    fn status_bar() -> Element<'static, Message> {
+    fn status_bar(tokens: ThemeTokens) -> Element<'static, Message> {
         container(
             row![
                 button(text("Exit"))
                     .padding([3, 12])
-                    .on_press(Message::NoOp),
+                    .on_press(Message::NoOp)
+                    .style(move |theme, status| {
+                        chrome::toolbar_button_style(tokens, theme, status)
+                    }),
                 horizontal_space(),
                 text("X: 0.0000"),
                 text("Y: 0.0000"),
@@ -256,51 +271,19 @@ impl SchematicEditor {
         )
         .padding([3, 6])
         .width(Length::Fill)
-        .style(toolbar_style)
+        .style(move |iced_theme| chrome::status_style(tokens, iced_theme))
         .into()
     }
 }
 
-fn toolbar_button<'a>(label: &'a str, _tooltip: &'a str) -> Element<'a, Message> {
+fn toolbar_button<'a>(
+    label: &'a str,
+    _tooltip: &'a str,
+    tokens: ThemeTokens,
+) -> Element<'a, Message> {
     button(text(label).size(12))
         .padding([6, 8])
         .on_press(Message::NoOp)
+        .style(move |theme, status| chrome::toolbar_button_style(tokens, theme, status))
         .into()
-}
-
-fn toolbar_style(_theme: &Theme) -> iced::widget::container::Style {
-    iced::widget::container::Style {
-        background: Some(Background::Color(Color::from_rgb8(238, 238, 238))),
-        border: Border {
-            color: Color::from_rgb8(188, 188, 188),
-            width: 0.5,
-            radius: 0.0.into(),
-        },
-        shadow: Shadow::default(),
-        ..Default::default()
-    }
-}
-
-fn palette_style(_theme: &Theme) -> iced::widget::container::Style {
-    iced::widget::container::Style {
-        background: Some(Background::Color(Color::from_rgb8(246, 246, 246))),
-        border: Border {
-            color: Color::from_rgb8(176, 176, 176),
-            width: 0.5,
-            radius: 0.0.into(),
-        },
-        ..Default::default()
-    }
-}
-
-fn canvas_style(_theme: &Theme) -> iced::widget::container::Style {
-    iced::widget::container::Style {
-        background: Some(Background::Color(Color::WHITE)),
-        border: Border {
-            color: Color::from_rgb8(150, 150, 150),
-            width: 1.0,
-            radius: 0.0.into(),
-        },
-        ..Default::default()
-    }
 }

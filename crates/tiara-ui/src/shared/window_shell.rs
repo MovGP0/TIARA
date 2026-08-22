@@ -1,27 +1,6 @@
-use iced::widget::{
-    button, column, container, horizontal_rule, horizontal_space, pick_list, row, text,
-};
+use iced::widget::{button, column, container, horizontal_rule, horizontal_space, row, text};
 use iced::{Alignment, Background, Border, Color, Element, Length, Theme};
 use iced_aw::menu::{Item, Menu, MenuBar};
-
-use crate::application::Message;
-use crate::window_catalog::WindowKind;
-
-pub fn selector(active_window: WindowKind) -> Element<'static, Message> {
-    container(
-        row![
-            text("Window shell:"),
-            pick_list(WindowKind::ALL, Some(active_window), Message::SelectWindow),
-            horizontal_space(),
-        ]
-        .spacing(8)
-        .align_y(Alignment::Center),
-    )
-    .padding([5, 8])
-    .width(Length::Fill)
-    .style(toolbar_style)
-    .into()
-}
 
 pub fn frame<'a, M>(
     title: &'a str,

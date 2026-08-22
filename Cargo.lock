@@ -3455,6 +3455,8 @@ dependencies = [
  "iced",
  "iced_aw",
  "rfd",
+ "serde",
+ "serde_json",
  "tiara-core",
  "walkdir",
  "xmltree",

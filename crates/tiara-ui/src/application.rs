@@ -1,13 +1,12 @@
-use iced::widget::{column, container};
+use iced::widget::container;
 use iced::{Element, Length};
 
 use crate::schematic_editor;
-use crate::shared::window_shell;
+use crate::shared::theme::CustomThemeFile;
 use crate::window_catalog::WindowKind;
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    SelectWindow(WindowKind),
     SchematicEditor(schematic_editor::Message),
     AnalysisResults(crate::analysis_results::Message),
     BillOfMaterials(crate::bill_of_materials::Message),
@@ -49,6 +48,7 @@ pub enum Message {
 #[derive(Debug, Default)]
 pub struct TiaraApplication {
     active_window: WindowKind,
+    theme: CustomThemeFile,
     schematic_editor: schematic_editor::SchematicEditor,
     analysis_results: crate::analysis_results::Window,
     bill_of_materials: crate::bill_of_materials::Window,
@@ -92,12 +92,24 @@ impl TiaraApplication {
         self.active_window.title().to_owned()
     }
 
+    pub(crate) fn iced_theme(&self) -> iced::Theme {
+        self.theme.iced_theme()
+    }
+
+    /// Replaces the active theme with a complete Signex-shape theme document.
+    ///
+    /// # Errors
+    ///
+    /// Returns a JSON error when the document is malformed or does not contain
+    /// the complete `name`, `tokens`, and `canvas` fields.
+    pub fn apply_theme_json(&mut self, source: &str) -> Result<(), serde_json::Error> {
+        self.theme = CustomThemeFile::from_json(source)?;
+        Ok(())
+    }
+
     #[allow(clippy::too_many_lines)]
     pub(crate) fn update(&mut self, message: Message) {
         match message {
-            Message::SelectWindow(window) => {
-                self.active_window = window;
-            }
             Message::SchematicEditor(message) => {
                 self.schematic_editor.update(message);
             }
@@ -210,6 +222,8 @@ impl TiaraApplication {
     }
 
     pub(crate) fn view(&self) -> Element<'_, Message> {
+        debug_assert!(WindowKind::ALL.contains(&self.active_window));
+
         if let Some(trace) = self.active_window.trace() {
             debug_assert!(!trace.screenshot.is_empty());
             debug_assert!(!trace.form_resource.is_empty());
@@ -221,9 +235,10 @@ impl TiaraApplication {
         }
 
         let content = match self.active_window {
-            WindowKind::SchematicEditor => {
-                self.schematic_editor.view().map(Message::SchematicEditor)
-            }
+            WindowKind::SchematicEditor => self
+                .schematic_editor
+                .view(&self.theme)
+                .map(Message::SchematicEditor),
             WindowKind::AnalysisResults => {
                 self.analysis_results.view().map(Message::AnalysisResults)
             }
@@ -302,13 +317,52 @@ impl TiaraApplication {
             WindowKind::XyRecorder => self.xy_recorder.view().map(Message::XyRecorder),
         };
 
-        container(
-            column![window_shell::selector(self.active_window), content]
-                .width(Length::Fill)
-                .height(Length::Fill),
-        )
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .into()
+        container(content)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn application_opens_the_schematic_editor_without_a_window_switcher() {
+        let application = TiaraApplication::default();
+
+        assert_eq!(application.active_window, WindowKind::SchematicEditor);
+        assert_eq!(application.title(), "Schematic Editor");
+    }
+
+    #[test]
+    fn application_applies_a_signex_shape_custom_theme() {
+        let mut application = TiaraApplication::default();
+        let default_theme = CustomThemeFile::default();
+        let custom_theme = CustomThemeFile {
+            name: "TIARA Blue".to_owned(),
+            tokens: crate::shared::theme::ThemeTokens {
+                accent: crate::shared::theme::ThemeColor::rgb(0x11, 0x66, 0xCC),
+                ..default_theme.tokens
+            },
+            ..default_theme
+        };
+        let json = serde_json::to_string(&custom_theme).expect("custom theme JSON");
+
+        application
+            .apply_theme_json(&json)
+            .expect("applied custom theme");
+
+        assert_eq!(application.theme, custom_theme);
+    }
+
+    #[test]
+    fn invalid_custom_theme_keeps_the_active_theme() {
+        let mut application = TiaraApplication::default();
+        let original_theme = application.theme.clone();
+
+        assert!(application.apply_theme_json("{}").is_err());
+        assert_eq!(application.theme, original_theme);
     }
 }

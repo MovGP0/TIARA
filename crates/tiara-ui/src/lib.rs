@@ -161,7 +161,7 @@ pub fn run() -> iced::Result {
         TiaraApplication::update,
         TiaraApplication::view,
     )
-    .theme(|_| iced::Theme::Light)
+    .theme(TiaraApplication::iced_theme)
     .window_size(Size::new(1_280.0, 800.0))
     .run()
 }

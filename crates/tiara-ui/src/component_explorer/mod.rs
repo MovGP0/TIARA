@@ -24,6 +24,273 @@ pub struct CircuitObject {
     pub bounds: Rectangle,
 }
 
+impl CircuitObject {
+    /// Returns the owning schematic page stored by a circuit object.
+    ///
+    /// This is the typed Rust mapping for Ghidra function `0x017FF620`,
+    /// symbol `FUN_017ff620`. Rust field access replaces the recovered pointer
+    /// load from object offset `+0x68`.
+    #[must_use]
+    pub const fn owning_page(&self) -> PageId {
+        self.owning_page
+    }
+}
+
+/// Supplies the recovered identity and selection operations of a schematic
+/// object.
+pub trait SchematicSelectionObject {
+    type Identity: Clone + Eq;
+
+    fn selection_identity(&self) -> Option<Self::Identity>;
+
+    fn is_selected(&self) -> bool;
+
+    fn select(&mut self, selection_mode: u8);
+
+    fn clear_selection(&mut self);
+}
+
+/// Applies one selection state to a target and collection objects with the
+/// same recovered identity.
+///
+/// This ports Ghidra function `0x01993F30`, symbol `FUN_01993f30`. The target
+/// always receives the requested operation. Identity propagation occurs only
+/// when the target supplies an identity. The recovered selection-mode byte is
+/// forwarded only for selection, as in the original virtual calls.
+pub fn apply_selection_state<T: SchematicSelectionObject>(
+    collection: &mut [T],
+    target: &mut T,
+    selected: bool,
+    selection_mode: u8,
+) {
+    let identity = target.selection_identity();
+    set_selection_state(target, selected, selection_mode);
+
+    let Some(identity) = identity else {
+        return;
+    };
+    for object in collection {
+        if object.selection_identity().as_ref() == Some(&identity) {
+            set_selection_state(object, selected, selection_mode);
+        }
+    }
+}
+
+/// Clears every selected object in a schematic selection collection.
+///
+/// This ports Ghidra function `0x01994230`, symbol `FUN_01994230`, and its
+/// per-object selected-state guard in `FUN_01994100`. Empty collections and
+/// objects that are already clear cause no update.
+pub fn clear_schematic_selection<T: SchematicSelectionObject>(collection: &mut [T]) {
+    for object in collection {
+        if object.is_selected() {
+            object.clear_selection();
+        }
+    }
+}
+
+fn set_selection_state<T: SchematicSelectionObject>(
+    object: &mut T,
+    selected: bool,
+    selection_mode: u8,
+) {
+    if selected {
+        object.select(selection_mode);
+    } else {
+        object.clear_selection();
+    }
+}
+
+/// Supplies the main editor callback that owns the active selection
+/// collection.
+pub trait ActiveSelectionProvider {
+    type Collection;
+
+    fn active_selection_collection(&mut self) -> Option<&mut Self::Collection>;
+}
+
+/// Gets the active schematic selection collection when the main editor exists.
+///
+/// This ports Ghidra function `0x019A45D0`, symbol `FUN_019a45d0`. `None`
+/// represents either an absent main editor or a callback that has no active
+/// collection.
+pub fn active_schematic_selection<P: ActiveSelectionProvider>(
+    editor: Option<&mut P>,
+) -> Option<&mut P::Collection> {
+    editor.and_then(ActiveSelectionProvider::active_selection_collection)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SecondaryContextId(pub u64);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OpenPageRecord {
+    pub owning_page: PageId,
+    pub secondary_context: Option<SecondaryContextId>,
+    pub tab_index: usize,
+}
+
+/// Finds the last matching open-page record.
+///
+/// This ports Ghidra function `0x01C8A290`, symbol `FUN_01c8a290`. A missing
+/// secondary context is a wildcard. The reverse-position search preserves the
+/// recovered last-match result when duplicate records exist.
+#[must_use]
+pub fn find_open_page_index(
+    records: &[OpenPageRecord],
+    owning_page: PageId,
+    secondary_context: Option<SecondaryContextId>,
+) -> Option<usize> {
+    records.iter().rposition(|record| {
+        record.owning_page == owning_page
+            && secondary_context.is_none_or(|context| record.secondary_context == Some(context))
+    })
+}
+
+/// Adapter for the editor-specific branches of schematic page activation.
+///
+/// Record creation owns the recovered lock, encrypted-macro, and modified-
+/// macro decisions. The remaining callbacks preserve the observable switch,
+/// active-record, tab-selection, and dependent-window refresh sequence without
+/// inventing unrecovered Delphi record types.
+pub trait SchematicPageActivation {
+    type Error;
+
+    fn current_secondary_context(&self) -> Option<SecondaryContextId>;
+
+    /// Creates an open-page record for a page that is not open yet.
+    ///
+    /// `Ok(None)` represents a cancelled or unavailable page, including the
+    /// recovered locked or encrypted branches that do not create a record.
+    ///
+    /// # Errors
+    ///
+    /// Returns an editor-specific creation or policy error.
+    fn create_page_record(
+        &mut self,
+        owning_page: PageId,
+        secondary_context: Option<SecondaryContextId>,
+    ) -> Result<Option<OpenPageRecord>, Self::Error>;
+
+    fn store_current_context(&mut self);
+
+    fn set_active_record(&mut self, record: OpenPageRecord);
+
+    fn select_schematic_tab(&mut self, tab_index: usize);
+
+    fn refresh_dependent_editors(&mut self, record: OpenPageRecord);
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ActivationSource {
+    Existing,
+    Created,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ActivationOutcome {
+    ReentrantNoOp,
+    Unavailable,
+    Activated {
+        record_index: usize,
+        source: ActivationSource,
+    },
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct PageActivationState {
+    open_pages: Vec<OpenPageRecord>,
+    active_record_index: Option<usize>,
+    activation_in_progress: bool,
+}
+
+impl PageActivationState {
+    #[must_use]
+    pub const fn new(open_pages: Vec<OpenPageRecord>) -> Self {
+        Self {
+            open_pages,
+            active_record_index: None,
+            activation_in_progress: false,
+        }
+    }
+
+    /// Opens or activates a schematic editor context for an owning page.
+    ///
+    /// This is the Component Explorer adapter for Ghidra function
+    /// `0x01C8AB30`, symbol `FUN_01c8ab30`. Re-entry is a no-op. A missing
+    /// explicit context uses the active editor context. The function reuses the
+    /// last matching record or delegates record creation, stores the outgoing
+    /// context, applies the active record, selects its tab, refreshes dependent
+    /// editors, and clears the guard on every result.
+    ///
+    /// # Errors
+    ///
+    /// Returns the editor-specific page-record creation error after clearing
+    /// the re-entry guard.
+    pub fn activate_page<A: SchematicPageActivation>(
+        &mut self,
+        adapter: &mut A,
+        owning_page: PageId,
+        requested_context: Option<SecondaryContextId>,
+    ) -> Result<ActivationOutcome, A::Error> {
+        if self.activation_in_progress {
+            return Ok(ActivationOutcome::ReentrantNoOp);
+        }
+
+        self.activation_in_progress = true;
+        let result = self.activate_page_inner(adapter, owning_page, requested_context);
+        self.activation_in_progress = false;
+        result
+    }
+
+    #[must_use]
+    pub fn open_pages(&self) -> &[OpenPageRecord] {
+        &self.open_pages
+    }
+
+    #[must_use]
+    pub const fn active_record_index(&self) -> Option<usize> {
+        self.active_record_index
+    }
+
+    #[must_use]
+    pub const fn activation_in_progress(&self) -> bool {
+        self.activation_in_progress
+    }
+
+    fn activate_page_inner<A: SchematicPageActivation>(
+        &mut self,
+        adapter: &mut A,
+        owning_page: PageId,
+        requested_context: Option<SecondaryContextId>,
+    ) -> Result<ActivationOutcome, A::Error> {
+        let secondary_context = requested_context.or_else(|| adapter.current_secondary_context());
+        let (record_index, source) = if let Some(index) =
+            find_open_page_index(&self.open_pages, owning_page, secondary_context)
+        {
+            (index, ActivationSource::Existing)
+        } else {
+            let Some(record) = adapter.create_page_record(owning_page, secondary_context)? else {
+                return Ok(ActivationOutcome::Unavailable);
+            };
+            self.open_pages.push(record);
+            (self.open_pages.len() - 1, ActivationSource::Created)
+        };
+
+        let record = self.open_pages[record_index];
+        adapter.store_current_context();
+        adapter.set_active_record(record);
+        self.active_record_index = Some(record_index);
+        adapter.select_schematic_tab(record.tab_index);
+        adapter.refresh_dependent_editors(record);
+
+        Ok(ActivationOutcome::Activated {
+            record_index,
+            source,
+        })
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TreeNode {
     pub id: TreeNodeId,
@@ -157,8 +424,8 @@ impl Window {
             return;
         };
 
-        if schematic.open_page_index(target.owning_page) != schematic.active_page_index() {
-            schematic.activate_page(target.owning_page);
+        if schematic.open_page_index(target.owning_page()) != schematic.active_page_index() {
+            schematic.activate_page(target.owning_page());
         }
 
         if !schematic.has_active_selection_collection() {
@@ -730,5 +997,322 @@ mod tests {
             }
         ));
         assert!(!opened);
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    struct SelectionObject {
+        identity: Option<u64>,
+        selected: bool,
+        select_modes: Vec<u8>,
+        clear_count: usize,
+    }
+
+    impl SelectionObject {
+        const fn new(identity: Option<u64>, selected: bool) -> Self {
+            Self {
+                identity,
+                selected,
+                select_modes: Vec::new(),
+                clear_count: 0,
+            }
+        }
+    }
+
+    impl SchematicSelectionObject for SelectionObject {
+        type Identity = u64;
+
+        fn selection_identity(&self) -> Option<Self::Identity> {
+            self.identity
+        }
+
+        fn is_selected(&self) -> bool {
+            self.selected
+        }
+
+        fn select(&mut self, selection_mode: u8) {
+            self.selected = true;
+            self.select_modes.push(selection_mode);
+        }
+
+        fn clear_selection(&mut self) {
+            self.selected = false;
+            self.clear_count += 1;
+        }
+    }
+
+    #[test]
+    fn circuit_object_returns_its_owning_schematic_page() {
+        let object = target(Rectangle::default());
+
+        assert_eq!(object.owning_page(), PageId(3));
+    }
+
+    #[test]
+    fn selection_state_applies_to_target_and_every_identity_match() {
+        let mut target = SelectionObject::new(Some(23), false);
+        let mut collection = [
+            SelectionObject::new(Some(23), false),
+            SelectionObject::new(Some(99), false),
+            SelectionObject::new(Some(23), false),
+        ];
+
+        apply_selection_state(&mut collection, &mut target, true, 7);
+
+        assert_eq!(target.select_modes, [7]);
+        assert_eq!(collection[0].select_modes, [7]);
+        assert!(collection[1].select_modes.is_empty());
+        assert_eq!(collection[2].select_modes, [7]);
+
+        apply_selection_state(&mut collection, &mut target, false, 99);
+
+        assert_eq!(target.clear_count, 1);
+        assert_eq!(collection[0].clear_count, 1);
+        assert_eq!(collection[1].clear_count, 0);
+        assert_eq!(collection[2].clear_count, 1);
+    }
+
+    #[test]
+    fn missing_target_identity_does_not_propagate_selection() {
+        let mut target = SelectionObject::new(None, false);
+        let mut collection = [SelectionObject::new(None, false)];
+
+        apply_selection_state(&mut collection, &mut target, true, 3);
+
+        assert_eq!(target.select_modes, [3]);
+        assert!(collection[0].select_modes.is_empty());
+    }
+
+    #[test]
+    fn clear_selection_updates_only_objects_that_are_selected() {
+        let mut collection = [
+            SelectionObject::new(Some(1), true),
+            SelectionObject::new(Some(2), false),
+        ];
+
+        clear_schematic_selection(&mut collection);
+
+        assert_eq!(collection[0].clear_count, 1);
+        assert_eq!(collection[1].clear_count, 0);
+    }
+
+    struct SelectionProvider {
+        collection: Vec<SelectionObject>,
+        available: bool,
+    }
+
+    impl ActiveSelectionProvider for SelectionProvider {
+        type Collection = Vec<SelectionObject>;
+
+        fn active_selection_collection(&mut self) -> Option<&mut Self::Collection> {
+            self.available.then_some(&mut self.collection)
+        }
+    }
+
+    #[test]
+    fn active_selection_requires_an_editor_and_an_available_callback_result() {
+        assert!(active_schematic_selection::<SelectionProvider>(None).is_none());
+
+        let mut provider = SelectionProvider {
+            collection: vec![SelectionObject::new(Some(1), false)],
+            available: false,
+        };
+        assert!(active_schematic_selection(Some(&mut provider)).is_none());
+
+        provider.available = true;
+        assert_eq!(
+            active_schematic_selection(Some(&mut provider)).map(|values| values.len()),
+            Some(1)
+        );
+    }
+
+    #[test]
+    fn open_page_lookup_uses_a_context_wildcard_and_returns_the_last_match() {
+        let context = SecondaryContextId(4);
+        let records = [
+            OpenPageRecord {
+                owning_page: PageId(3),
+                secondary_context: Some(context),
+                tab_index: 2,
+            },
+            OpenPageRecord {
+                owning_page: PageId(8),
+                secondary_context: None,
+                tab_index: 3,
+            },
+            OpenPageRecord {
+                owning_page: PageId(3),
+                secondary_context: Some(SecondaryContextId(9)),
+                tab_index: 4,
+            },
+            OpenPageRecord {
+                owning_page: PageId(3),
+                secondary_context: Some(context),
+                tab_index: 5,
+            },
+        ];
+
+        assert_eq!(find_open_page_index(&records, PageId(3), None), Some(3));
+        assert_eq!(
+            find_open_page_index(&records, PageId(3), Some(context)),
+            Some(3)
+        );
+        assert_eq!(
+            find_open_page_index(&records, PageId(8), Some(context)),
+            None
+        );
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum ActivationCall {
+        Create(PageId, Option<SecondaryContextId>),
+        StoreCurrent,
+        SetActive(OpenPageRecord),
+        SelectTab(usize),
+        Refresh(OpenPageRecord),
+    }
+
+    struct ActivationRecorder {
+        current_context: Option<SecondaryContextId>,
+        create_result: Result<Option<OpenPageRecord>, &'static str>,
+        calls: Vec<ActivationCall>,
+    }
+
+    impl SchematicPageActivation for ActivationRecorder {
+        type Error = &'static str;
+
+        fn current_secondary_context(&self) -> Option<SecondaryContextId> {
+            self.current_context
+        }
+
+        fn create_page_record(
+            &mut self,
+            owning_page: PageId,
+            secondary_context: Option<SecondaryContextId>,
+        ) -> Result<Option<OpenPageRecord>, Self::Error> {
+            self.calls
+                .push(ActivationCall::Create(owning_page, secondary_context));
+            self.create_result
+        }
+
+        fn store_current_context(&mut self) {
+            self.calls.push(ActivationCall::StoreCurrent);
+        }
+
+        fn set_active_record(&mut self, record: OpenPageRecord) {
+            self.calls.push(ActivationCall::SetActive(record));
+        }
+
+        fn select_schematic_tab(&mut self, tab_index: usize) {
+            self.calls.push(ActivationCall::SelectTab(tab_index));
+        }
+
+        fn refresh_dependent_editors(&mut self, record: OpenPageRecord) {
+            self.calls.push(ActivationCall::Refresh(record));
+        }
+    }
+
+    const fn activation_recorder(
+        current_context: Option<SecondaryContextId>,
+        create_result: Result<Option<OpenPageRecord>, &'static str>,
+    ) -> ActivationRecorder {
+        ActivationRecorder {
+            current_context,
+            create_result,
+            calls: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn page_activation_reuses_last_record_and_runs_the_switch_sequence() {
+        let context = SecondaryContextId(5);
+        let first = OpenPageRecord {
+            owning_page: PageId(3),
+            secondary_context: Some(context),
+            tab_index: 1,
+        };
+        let last = OpenPageRecord {
+            tab_index: 4,
+            ..first
+        };
+        let mut state = PageActivationState::new(vec![first, last]);
+        let mut adapter = activation_recorder(Some(context), Ok(None));
+
+        let outcome = state.activate_page(&mut adapter, PageId(3), None);
+
+        assert_eq!(
+            outcome,
+            Ok(ActivationOutcome::Activated {
+                record_index: 1,
+                source: ActivationSource::Existing,
+            })
+        );
+        assert_eq!(
+            adapter.calls,
+            [
+                ActivationCall::StoreCurrent,
+                ActivationCall::SetActive(last),
+                ActivationCall::SelectTab(4),
+                ActivationCall::Refresh(last),
+            ]
+        );
+        assert_eq!(state.active_record_index(), Some(1));
+        assert!(!state.activation_in_progress());
+    }
+
+    #[test]
+    fn page_activation_creates_a_missing_record_and_selects_its_tab() {
+        let context = SecondaryContextId(7);
+        let created = OpenPageRecord {
+            owning_page: PageId(8),
+            secondary_context: Some(context),
+            tab_index: 6,
+        };
+        let mut state = PageActivationState::default();
+        let mut adapter = activation_recorder(None, Ok(Some(created)));
+
+        let outcome = state.activate_page(&mut adapter, PageId(8), Some(context));
+
+        assert_eq!(
+            outcome,
+            Ok(ActivationOutcome::Activated {
+                record_index: 0,
+                source: ActivationSource::Created,
+            })
+        );
+        assert_eq!(state.open_pages(), [created]);
+        assert_eq!(
+            adapter.calls[0],
+            ActivationCall::Create(PageId(8), Some(context))
+        );
+        assert_eq!(
+            adapter.calls.last(),
+            Some(&ActivationCall::Refresh(created))
+        );
+    }
+
+    #[test]
+    fn unavailable_error_and_reentrant_activation_do_not_leave_the_guard_set() {
+        let mut state = PageActivationState::default();
+        let mut unavailable = activation_recorder(None, Ok(None));
+        assert_eq!(
+            state.activate_page(&mut unavailable, PageId(2), None),
+            Ok(ActivationOutcome::Unavailable)
+        );
+        assert!(!state.activation_in_progress());
+
+        let mut failing = activation_recorder(None, Err("creation failed"));
+        assert_eq!(
+            state.activate_page(&mut failing, PageId(2), None),
+            Err("creation failed")
+        );
+        assert!(!state.activation_in_progress());
+
+        state.activation_in_progress = true;
+        let call_count = failing.calls.len();
+        assert_eq!(
+            state.activate_page(&mut failing, PageId(2), None),
+            Ok(ActivationOutcome::ReentrantNoOp)
+        );
+        assert_eq!(failing.calls.len(), call_count);
     }
 }

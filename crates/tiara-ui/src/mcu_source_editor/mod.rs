@@ -3,8 +3,12 @@ use std::path::{Path, PathBuf};
 use iced::Task;
 
 pub const TITLE: &str = "MCU Source Code Editor";
+pub const FORM_RESOURCE: &str = "EditMCUInput";
+pub const LIBRARY_EVALUATION: &str = "iced 0.13 supplies typed editor messages and tasks; std Vec and PathBuf supply source and diagnostic state; editor initialization, native message-hook installation, activation, and localized cursor formatting remain a typed host adapter because they are application RichEdit services";
 const COMPILE_SUCCESS: &str = "Successfully compiled";
 const TEMPORARY_ASSEMBLY_FILE: &str = "flash_rom.asm";
+const LINE_LABEL_RESOURCE: u16 = 0x03e5;
+const COLUMN_LABEL_RESOURCE: u16 = 0x03e6;
 
 pub trait SourceTextStore {
     /// Loads source lines without selecting an encoding in the editor layer.
@@ -47,6 +51,31 @@ pub trait AssemblyCompiler {
     ) -> Result<AssemblyCompileReport, String>;
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CursorStatus {
+    pub line: i32,
+    pub column: i32,
+    pub display_text: String,
+}
+
+pub trait EditorLifecycleHost {
+    fn initialize_editor_services(&mut self);
+    fn install_editor_message_hook(&mut self);
+    fn activate_editor(&mut self);
+    fn cursor_status(
+        &mut self,
+        line_label_resource: u16,
+        column_label_resource: u16,
+    ) -> CursorStatus;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LifecycleState {
+    Constructed,
+    Created,
+    Visible,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RequestedAction {
     Compile,
@@ -75,6 +104,8 @@ pub struct Window {
     centered_error_line: Option<i32>,
     editor_focused: bool,
     requested_action: Option<RequestedAction>,
+    lifecycle: LifecycleState,
+    cursor_status: Option<CursorStatus>,
 }
 
 impl Window {
@@ -97,6 +128,8 @@ impl Window {
             centered_error_line: None,
             editor_focused: false,
             requested_action: None,
+            lifecycle: LifecycleState::Constructed,
+            cursor_status: None,
         }
     }
 
@@ -110,6 +143,45 @@ impl Window {
         }
 
         Task::none()
+    }
+
+    /// Initializes the MCU source editor and its native editor hook.
+    ///
+    /// Reimplements Ghidra function `FUN_01413100` at `0x01413100`. The host
+    /// owns `RichEdit` syntax services and native message-hook installation. The
+    /// Rust window resets its compile-error line and records created state.
+    pub fn create(&mut self, host: &mut impl EditorLifecycleHost) {
+        host.initialize_editor_services();
+        self.error_line = None;
+        host.install_editor_message_hook();
+        self.lifecycle = LifecycleState::Created;
+    }
+
+    /// Activates the editor and refreshes its localized line/column status.
+    ///
+    /// Reimplements Ghidra function `FUN_014131a0` at `0x014131A0`.
+    pub fn show(&mut self, host: &mut impl EditorLifecycleHost) {
+        host.activate_editor();
+        self.refresh_cursor_status(host);
+        self.lifecycle = LifecycleState::Visible;
+    }
+
+    /// Refreshes cursor status after an editor mouse-down event.
+    ///
+    /// Reimplements Ghidra function `FUN_014131c0` at `0x014131C0`.
+    pub fn editor_mouse_down(&mut self, host: &mut impl EditorLifecycleHost) {
+        self.refresh_cursor_status(host);
+    }
+
+    /// Refreshes cursor status after an editor key-up event.
+    ///
+    /// Reimplements Ghidra function `FUN_01413880` at `0x01413880`.
+    pub fn editor_key_up(&mut self, host: &mut impl EditorLifecycleHost) {
+        self.refresh_cursor_status(host);
+    }
+
+    fn refresh_cursor_status(&mut self, host: &mut impl EditorLifecycleHost) {
+        self.cursor_status = Some(host.cursor_status(LINE_LABEL_RESOURCE, COLUMN_LABEL_RESOURCE));
     }
 
     /// Ports Ghidra function `FUN_014131e0` at `0x014131E0`.
@@ -237,6 +309,16 @@ impl Window {
     pub const fn requested_action(&self) -> Option<RequestedAction> {
         self.requested_action
     }
+
+    #[must_use]
+    pub const fn lifecycle(&self) -> LifecycleState {
+        self.lifecycle
+    }
+
+    #[must_use]
+    pub const fn cursor_status(&self) -> Option<&CursorStatus> {
+        self.cursor_status.as_ref()
+    }
 }
 
 #[cfg(test)]
@@ -267,6 +349,68 @@ mod tests {
     struct TestCompiler {
         report: Result<AssemblyCompileReport, String>,
         requests: Vec<AssemblyCompileRequest>,
+    }
+
+    #[derive(Debug, Default)]
+    struct TestLifecycleHost {
+        calls: Vec<&'static str>,
+        cursor_reads: usize,
+    }
+
+    impl EditorLifecycleHost for TestLifecycleHost {
+        fn initialize_editor_services(&mut self) {
+            self.calls.push("initialize");
+        }
+
+        fn install_editor_message_hook(&mut self) {
+            self.calls.push("install-hook");
+        }
+
+        fn activate_editor(&mut self) {
+            self.calls.push("activate");
+        }
+
+        fn cursor_status(
+            &mut self,
+            line_label_resource: u16,
+            column_label_resource: u16,
+        ) -> CursorStatus {
+            assert_eq!(line_label_resource, LINE_LABEL_RESOURCE);
+            assert_eq!(column_label_resource, COLUMN_LABEL_RESOURCE);
+            self.cursor_reads += 1;
+            CursorStatus {
+                line: 4,
+                column: 9,
+                display_text: "Line: 4 Column: 9".to_owned(),
+            }
+        }
+    }
+
+    #[test]
+    fn lifecycle_initializes_activates_and_refreshes_cursor_status() {
+        let mut window = test_window();
+        window.error_line = Some(12);
+        let mut host = TestLifecycleHost::default();
+
+        window.create(&mut host);
+        assert_eq!(window.lifecycle(), LifecycleState::Created);
+        assert_eq!(window.error_line(), None);
+        assert_eq!(host.calls, ["initialize", "install-hook"]);
+
+        window.show(&mut host);
+        window.editor_mouse_down(&mut host);
+        window.editor_key_up(&mut host);
+
+        assert_eq!(window.lifecycle(), LifecycleState::Visible);
+        assert_eq!(host.calls, ["initialize", "install-hook", "activate"]);
+        assert_eq!(host.cursor_reads, 3);
+        assert_eq!(window.cursor_status().map(|status| status.line), Some(4));
+        assert_eq!(
+            window
+                .cursor_status()
+                .map(|status| status.display_text.as_str()),
+            Some("Line: 4 Column: 9")
+        );
     }
 
     impl AssemblyCompiler for TestCompiler {

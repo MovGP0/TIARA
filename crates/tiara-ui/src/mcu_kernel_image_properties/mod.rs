@@ -17,6 +17,22 @@ use rfd::AsyncFileDialog;
 pub const TITLE: &str = "MCU Kernel Image Properties";
 pub const FORM_RESOURCE: &str = "MCUKernelImageProperties";
 pub const FIXED_IMAGE_DIRECTORY: &str = r"d:\Attila\Devel Files\Other\Store\images-chess";
+pub const LIBRARY_EVALUATION: &str = "iced 0.13 and rfd supply typed window state and native file selection; BTreeMap, PathBuf, and std::fs supply deterministic input ownership and discovery; the recovered application address formatter remains a typed host adapter";
+
+const PRIMARY_INPUTS_ASSIGNED: u8 = 1;
+const SECONDARY_INPUTS_ASSIGNED: u8 = 2;
+const ASSIGNED_MARKER: &str = "<assigned>";
+
+pub trait AddressFormatter {
+    fn format_address(&self, value: Option<u32>) -> String;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LifecycleState {
+    Constructed,
+    Created,
+    Visible,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum InputKind {
@@ -190,6 +206,9 @@ pub struct Window {
     frame_buffer: FrameBufferState,
     validation: ValidationState,
     generation_request: Option<ConfigGenerationRequest>,
+    assigned_input_flags: u8,
+    linux_configuration_selector_enabled: bool,
+    lifecycle: LifecycleState,
 }
 
 impl Default for Window {
@@ -211,6 +230,9 @@ impl Window {
             frame_buffer: FrameBufferState::default(),
             validation: ValidationState::default(),
             generation_request: None,
+            assigned_input_flags: 0,
+            linux_configuration_selector_enabled: true,
+            lifecycle: LifecycleState::Constructed,
         }
     }
 
@@ -265,6 +287,71 @@ impl Window {
         if let Some(selection) = self.inputs.get_mut(&kind) {
             selection.path = path;
             selection.selected = true;
+        }
+    }
+
+    /// Resets the two recovered assigned-input capability groups.
+    ///
+    /// Reimplements Ghidra function `FUN_01414fb0` at `0x01414FB0`.
+    pub const fn create(&mut self) {
+        self.assigned_input_flags = 0;
+        self.lifecycle = LifecycleState::Created;
+    }
+
+    pub const fn configure_assigned_inputs(&mut self, primary: bool, secondary: bool) {
+        self.assigned_input_flags = 0;
+        if primary {
+            self.assigned_input_flags |= PRIMARY_INPUTS_ASSIGNED;
+        }
+        if secondary {
+            self.assigned_input_flags |= SECONDARY_INPUTS_ASSIGNED;
+        }
+    }
+
+    /// Initializes visible fields from the assigned-input capability groups.
+    ///
+    /// Reimplements Ghidra function `FUN_01414fc0` at `0x01414FC0`. The Linux
+    /// configuration selector is disabled, the close guard is cleared, assigned
+    /// groups receive the recovered marker, frame-buffer use is enabled, and
+    /// the two address texts come from the application formatter.
+    pub fn show(&mut self, formatter: &impl AddressFormatter) {
+        self.linux_configuration_selector_enabled = false;
+        self.validation.error = None;
+        self.validation.close_blocked = false;
+        self.validation.cancelled = false;
+        let primary_assigned = self.assigned_input_flags & PRIMARY_INPUTS_ASSIGNED != 0;
+        let secondary_assigned = self.assigned_input_flags & SECONDARY_INPUTS_ASSIGNED != 0;
+        self.set_assigned_group(
+            &[
+                InputKind::TextSegment,
+                InputKind::DataSegment,
+                InputKind::RomFileSystem,
+                InputKind::ReadelfReport,
+            ],
+            primary_assigned,
+        );
+        self.set_assigned_group(
+            &[
+                InputKind::UserFileSystemExecutable,
+                InputKind::UserFileSystemConfiguration,
+            ],
+            secondary_assigned,
+        );
+        self.set_use_frame_buffer(true);
+        self.frame_buffer.start = formatter.format_address(Some(0x0130_0000));
+        self.frame_buffer.end = formatter.format_address(None);
+        self.lifecycle = LifecycleState::Visible;
+    }
+
+    fn set_assigned_group(&mut self, kinds: &[InputKind], assigned: bool) {
+        for kind in kinds {
+            let selection = self.selection_mut(*kind);
+            selection.path = if assigned {
+                PathBuf::from(ASSIGNED_MARKER)
+            } else {
+                PathBuf::new()
+            };
+            selection.selected = assigned;
         }
     }
 
@@ -407,6 +494,9 @@ impl Window {
         }
     }
 
+    /// Allows close only while no accepted processing path blocks the modal.
+    ///
+    /// Reimplements Ghidra function `FUN_014155a0` at `0x014155A0`.
     #[must_use]
     pub const fn close_query(&self) -> bool {
         !self.validation.close_blocked
@@ -476,6 +566,16 @@ impl Window {
     #[must_use]
     pub const fn generation_request(&self) -> Option<&ConfigGenerationRequest> {
         self.generation_request.as_ref()
+    }
+
+    #[must_use]
+    pub const fn linux_configuration_selector_enabled(&self) -> bool {
+        self.linux_configuration_selector_enabled
+    }
+
+    #[must_use]
+    pub const fn lifecycle(&self) -> LifecycleState {
+        self.lifecycle
     }
 
     #[must_use]
@@ -552,6 +652,45 @@ mod tests {
         fn is_accessible(&self, path: &Path) -> bool {
             self.accessible.contains(path)
         }
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    struct TestAddressFormatter;
+
+    impl AddressFormatter for TestAddressFormatter {
+        fn format_address(&self, value: Option<u32>) -> String {
+            value.map_or_else(|| "0x".to_owned(), |value| format!("0x{value:X}"))
+        }
+    }
+
+    #[test]
+    fn lifecycle_resets_capabilities_and_shows_assigned_groups() {
+        let mut window = Window::default();
+        window.configure_assigned_inputs(true, true);
+        window.create();
+        assert_eq!(window.lifecycle(), LifecycleState::Created);
+
+        window.configure_assigned_inputs(true, false);
+        window.show(&TestAddressFormatter);
+
+        assert_eq!(window.lifecycle(), LifecycleState::Visible);
+        assert!(!window.linux_configuration_selector_enabled());
+        assert_eq!(
+            window.selected_path(InputKind::TextSegment),
+            Some(Path::new(ASSIGNED_MARKER))
+        );
+        assert_eq!(
+            window.selected_path(InputKind::ReadelfReport),
+            Some(Path::new(ASSIGNED_MARKER))
+        );
+        assert_eq!(
+            window.selected_path(InputKind::UserFileSystemExecutable),
+            None
+        );
+        assert_eq!(window.frame_buffer.start, "0x1300000");
+        assert_eq!(window.frame_buffer.end, "0x");
+        assert_eq!(window.frame_buffer_editors_enabled(), (true, true));
+        assert!(window.close_query());
     }
 
     fn select_required(window: &mut Window) {

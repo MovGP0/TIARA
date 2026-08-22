@@ -6,6 +6,46 @@ use std::path::{Path, PathBuf};
 use iced::Task;
 use tiara_core::hexadecimal_text_file::{HexadecimalTextFileError, load_hexadecimal_u16_file};
 
+pub const TEXT_FILE_FILTER: &str = "Text file (*.txt)|*.txt";
+pub const TEXT_FILE_DEFAULT_EXTENSION: &str = "txt";
+
+pub trait MemoryEditorHost {
+    /// Returns the running application's executable path.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the host cannot resolve the executable path.
+    fn executable_path(&self) -> io::Result<PathBuf>;
+}
+
+#[derive(Debug, Default)]
+pub struct StandardMemoryEditorHost;
+
+impl MemoryEditorHost for StandardMemoryEditorHost {
+    fn executable_path(&self) -> io::Result<PathBuf> {
+        std::env::current_exe()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GridCell {
+    pub column: usize,
+    pub row: usize,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+struct FileControlsState {
+    enabled: bool,
+    visible: bool,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+enum LifecyclePhase {
+    #[default]
+    New,
+    Created,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NumericMode {
     Binary,
@@ -24,6 +64,7 @@ pub enum Message {
     LoadDialogClosed(Option<PathBuf>),
     SavePressed,
     SaveDialogClosed(Option<PathBuf>),
+    Shown,
     CloseRequested,
 }
 
@@ -59,6 +100,12 @@ pub struct MemoryEditor {
     close_error_pending: bool,
     last_close_allowed: Option<bool>,
     last_error: Option<String>,
+    file_controls: FileControlsState,
+    file_dialog_filter: String,
+    file_dialog_default_extension: String,
+    active_cell: Option<GridCell>,
+    help_context: u32,
+    lifecycle_phase: LifecyclePhase,
 }
 
 impl MemoryEditor {
@@ -77,6 +124,12 @@ impl MemoryEditor {
             close_error_pending: false,
             last_close_allowed: None,
             last_error: None,
+            file_controls: FileControlsState::default(),
+            file_dialog_filter: String::new(),
+            file_dialog_default_extension: String::new(),
+            active_cell: None,
+            help_context: 0,
+            lifecycle_phase: LifecyclePhase::New,
         }
     }
 
@@ -125,6 +178,41 @@ impl MemoryEditor {
         self.last_error.as_deref()
     }
 
+    #[must_use]
+    pub const fn file_controls_enabled(&self) -> bool {
+        self.file_controls.enabled
+    }
+
+    #[must_use]
+    pub const fn file_controls_visible(&self) -> bool {
+        self.file_controls.visible
+    }
+
+    #[must_use]
+    pub fn file_dialog_filter(&self) -> &str {
+        &self.file_dialog_filter
+    }
+
+    #[must_use]
+    pub fn file_dialog_default_extension(&self) -> &str {
+        &self.file_dialog_default_extension
+    }
+
+    #[must_use]
+    pub const fn active_cell(&self) -> Option<GridCell> {
+        self.active_cell
+    }
+
+    #[must_use]
+    pub const fn help_context(&self) -> u32 {
+        self.help_context
+    }
+
+    #[must_use]
+    pub const fn is_created(&self) -> bool {
+        matches!(self.lifecycle_phase, LifecyclePhase::Created)
+    }
+
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::GridValueChanged { index, value } => {
@@ -157,18 +245,54 @@ impl MemoryEditor {
                 return save_dialog(self.remembered_directory.clone());
             }
             Message::SaveDialogClosed(path) => {
-                if let Some(path) = path {
-                    if let Err(error) = self.save_selected_file(&path) {
-                        self.last_error = Some(error.to_string());
-                    }
+                if let Some(path) = path
+                    && let Err(error) = self.save_selected_file(&path)
+                {
+                    self.last_error = Some(error.to_string());
                 }
             }
+            Message::Shown => self.on_show(),
             Message::CloseRequested => {
                 self.last_close_allowed = Some(self.query_close());
             }
         }
 
         Task::none()
+    }
+
+    /// Initializes the memory editor and its owned working snapshot.
+    ///
+    /// This is the original Rust implementation of Ghidra function
+    /// `0x01409A10`, symbol `FUN_01409a10` (`TMemoryEditor.FormCreate`). Rust
+    /// `Vec<u16>` replaces the recovered raw allocation and complete buffer
+    /// copy. The host boundary supplies only the executable path used as the
+    /// initial Load and Save directory.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the host cannot resolve the executable path.
+    pub fn on_create(&mut self, host: &impl MemoryEditorHost) -> io::Result<()> {
+        self.remembered_directory = executable_directory(&host.executable_path()?);
+        self.file_controls = FileControlsState {
+            enabled: true,
+            visible: true,
+        };
+        TEXT_FILE_FILTER.clone_into(&mut self.file_dialog_filter);
+        TEXT_FILE_DEFAULT_EXTENSION.clone_into(&mut self.file_dialog_default_extension);
+        self.working_words.clone_from(&self.backing_words);
+        self.grid_values = format_words(&self.working_words, self.numeric_mode);
+        self.active_cell = None;
+        self.help_context = 0x4a6;
+        self.lifecycle_phase = LifecyclePhase::Created;
+        Ok(())
+    }
+
+    /// Selects the first memory-value cell when the form becomes visible.
+    ///
+    /// This is the original Rust implementation of Ghidra function
+    /// `0x0140A140`, symbol `FUN_0140a140` (`TMemoryEditor.FormShow`).
+    pub const fn on_show(&mut self) {
+        self.active_cell = Some(GridCell { column: 1, row: 1 });
     }
 
     /// Implements Ghidra function `FUN_0140a000` at `0x0140A000`.
@@ -235,8 +359,11 @@ impl MemoryEditor {
 
     /// Applies the recovered one-attempt close veto.
     ///
-    /// A validation failure rejects one close request. The pending error is
-    /// then cleared so a corrected retry can close.
+    /// This is the original Rust implementation of Ghidra function
+    /// `0x01409FE0`, symbol `FUN_01409fe0`
+    /// (`TMemoryEditor.FormCloseQuery`). A validation failure rejects one
+    /// close request. The pending error is then cleared so a later request can
+    /// close.
     #[must_use]
     pub const fn query_close(&mut self) -> bool {
         let can_close = !self.close_error_pending;
@@ -316,6 +443,12 @@ fn parent_directory(path: &Path) -> Option<PathBuf> {
         .map(Path::to_owned)
 }
 
+fn executable_directory(path: &Path) -> Option<PathBuf> {
+    path.parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .map(Path::to_owned)
+}
+
 fn open_dialog(directory: Option<PathBuf>) -> Task<Message> {
     let mut dialog = rfd::AsyncFileDialog::new().add_filter("Text file", &["txt"]);
     if let Some(directory) = directory {
@@ -347,6 +480,52 @@ mod tests {
     use super::*;
 
     static NEXT_FILE_ID: AtomicU64 = AtomicU64::new(0);
+
+    #[derive(Debug)]
+    struct FakeHost {
+        executable_path: PathBuf,
+    }
+
+    impl MemoryEditorHost for FakeHost {
+        fn executable_path(&self) -> io::Result<PathBuf> {
+            Ok(self.executable_path.clone())
+        }
+    }
+
+    #[test]
+    fn form_create_configures_files_snapshots_memory_and_builds_the_grid() -> io::Result<()> {
+        let executable_path = PathBuf::from("installation").join("tina.exe");
+        let host = FakeHost {
+            executable_path: executable_path.clone(),
+        };
+        let mut editor = MemoryEditor::new(vec![0x12, 0x34], NumericMode::Hexadecimal);
+
+        editor.on_create(&host)?;
+
+        assert!(editor.is_created());
+        assert!(editor.file_controls_enabled());
+        assert!(editor.file_controls_visible());
+        assert_eq!(editor.file_dialog_filter(), TEXT_FILE_FILTER);
+        assert_eq!(
+            editor.file_dialog_default_extension(),
+            TEXT_FILE_DEFAULT_EXTENSION
+        );
+        assert_eq!(editor.remembered_directory(), executable_path.parent());
+        assert_eq!(editor.working_words(), &[0x12, 0x34]);
+        assert_eq!(editor.grid_values(), &["12", "34"]);
+        assert_eq!(editor.active_cell(), None);
+        assert_eq!(editor.help_context(), 0x4a6);
+        Ok(())
+    }
+
+    #[test]
+    fn form_show_selects_the_first_value_cell() {
+        let mut editor = MemoryEditor::new(vec![1], NumericMode::Decimal);
+
+        drop(editor.update(Message::Shown));
+
+        assert_eq!(editor.active_cell(), Some(GridCell { column: 1, row: 1 }));
+    }
 
     #[test]
     fn valid_ok_commits_the_complete_fixed_width_grid() {

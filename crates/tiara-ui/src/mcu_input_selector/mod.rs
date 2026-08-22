@@ -7,6 +7,8 @@ use crate::mcu_source_editor::{
 };
 
 pub const TITLE: &str = "Select MCU Input";
+pub const FORM_RESOURCE: &str = "MCUAsmSelector";
+pub const LIBRARY_EVALUATION: &str = "iced 0.13 supplies typed selector messages and child-window requests; Vec, enums, PathBuf, and Rust ownership replace the recovered Delphi string-list allocations; compiler, source-store, and child-window operations remain typed host adapters";
 const NEW_ASSEMBLY_NAME: &str = "noname.asm";
 const NEW_FLOWCHART_NAME: &str = "noname.tfc";
 
@@ -38,6 +40,30 @@ impl InputMode {
             _ => None,
         }
     }
+
+    const fn radio_index(self) -> usize {
+        match self {
+            Self::Assembly => 0,
+            Self::HexAndList => 1,
+            Self::Flowchart => 2,
+            Self::CProject => 3,
+            Self::KernelImage => 4,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SelectorCapabilities {
+    pub flowchart: bool,
+    pub kernel_image: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LifecycleState {
+    Constructed,
+    Created,
+    Visible,
+    Destroyed,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -191,6 +217,9 @@ pub struct Window {
     close_permission: ClosePermission,
     child_request: Option<ChildRequest>,
     last_error: Option<String>,
+    enabled_actions: Vec<InputMode>,
+    displayed_radio_index: usize,
+    lifecycle: LifecycleState,
 }
 
 impl Window {
@@ -222,6 +251,9 @@ impl Window {
             close_permission: ClosePermission::Blocked,
             child_request: None,
             last_error: None,
+            enabled_actions: Vec::new(),
+            displayed_radio_index: mode.radio_index(),
+            lifecycle: LifecycleState::Constructed,
         }
     }
 
@@ -239,6 +271,70 @@ impl Window {
             Message::Cancel => self.cancel(),
         }
         Task::none()
+    }
+
+    /// Initializes selector actions and owned staging collections.
+    ///
+    /// Reimplements Ghidra function `FUN_01419180` at `0x01419180`. Assembly,
+    /// HEX/LST, and C-project actions are always enabled. Flowchart and kernel
+    /// image actions follow capabilities established by the MCU host. Rust
+    /// ownership replaces the four recovered Delphi allocation fields.
+    pub fn create(&mut self, capabilities: SelectorCapabilities) {
+        self.enabled_actions = vec![
+            InputMode::Assembly,
+            InputMode::HexAndList,
+            InputMode::CProject,
+        ];
+        if capabilities.flowchart {
+            self.enabled_actions.push(InputMode::Flowchart);
+        }
+        if capabilities.kernel_image {
+            self.enabled_actions.push(InputMode::KernelImage);
+        }
+        self.close_permission = ClosePermission::Permitted;
+        self.lifecycle = LifecycleState::Created;
+    }
+
+    /// Synchronizes the visible radio index with the selected input mode.
+    ///
+    /// Reimplements Ghidra function `FUN_01419490` at `0x01419490`. Compact
+    /// PIC10/PIC12/PIC14 devices display C-project mode at radio index 2; all
+    /// other cases use the mode's normal index. The current mode is saved as
+    /// the staging snapshot.
+    pub fn show(&mut self) {
+        self.displayed_radio_index = if self.mode == InputMode::CProject
+            && matches!(
+                self.context.family,
+                McuFamily::Pic10 | McuFamily::Pic12 | McuFamily::Pic14
+            ) {
+            2
+        } else {
+            self.mode.radio_index()
+        };
+        self.mode_snapshot = self.mode;
+        self.lifecycle = LifecycleState::Visible;
+    }
+
+    /// Returns the current modal close permission.
+    ///
+    /// Reimplements Ghidra function `FUN_014194f0` at `0x014194F0`.
+    #[must_use]
+    pub const fn close_query(&self) -> bool {
+        matches!(self.close_permission, ClosePermission::Permitted)
+    }
+
+    /// Releases the selector-owned staging collections.
+    ///
+    /// Reimplements Ghidra function `FUN_01419920` at `0x01419920`. Rust drops
+    /// these collections automatically; the explicit lifecycle method clears
+    /// them at the same form boundary and makes the behavior testable.
+    pub fn destroy(&mut self) {
+        self.assembly_sources.clear();
+        self.listing_files.clear();
+        self.hex_files.clear();
+        self.flowchart_session.clear();
+        self.child_request = None;
+        self.lifecycle = LifecycleState::Destroyed;
     }
 
     /// Ports Ghidra function `FUN_01418290` at `0x01418290`.
@@ -636,6 +732,21 @@ impl Window {
     pub const fn c_project_status(&self) -> [u8; 2] {
         self.c_project_status
     }
+
+    #[must_use]
+    pub fn enabled_actions(&self) -> &[InputMode] {
+        &self.enabled_actions
+    }
+
+    #[must_use]
+    pub const fn displayed_radio_index(&self) -> usize {
+        self.displayed_radio_index
+    }
+
+    #[must_use]
+    pub const fn lifecycle(&self) -> LifecycleState {
+        self.lifecycle
+    }
 }
 
 #[cfg(test)]
@@ -669,6 +780,39 @@ mod tests {
         ) -> Result<AssemblyCompileReport, String> {
             Ok(self.0.clone())
         }
+    }
+
+    #[test]
+    fn lifecycle_applies_capabilities_show_mapping_and_owned_cleanup() {
+        let mut window = window(McuFamily::Pic12);
+        window.mode = InputMode::CProject;
+
+        window.create(SelectorCapabilities {
+            flowchart: false,
+            kernel_image: true,
+        });
+
+        assert_eq!(window.lifecycle(), LifecycleState::Created);
+        assert!(window.close_query());
+        assert_eq!(
+            window.enabled_actions(),
+            [
+                InputMode::Assembly,
+                InputMode::HexAndList,
+                InputMode::CProject,
+                InputMode::KernelImage,
+            ]
+        );
+
+        window.show();
+        assert_eq!(window.lifecycle(), LifecycleState::Visible);
+        assert_eq!(window.displayed_radio_index(), 2);
+
+        window.destroy();
+        assert_eq!(window.lifecycle(), LifecycleState::Destroyed);
+        assert!(window.assembly_sources().is_empty());
+        assert!(window.hex_files().is_empty());
+        assert!(window.listing_files().is_empty());
     }
 
     #[test]

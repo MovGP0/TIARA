@@ -8,6 +8,12 @@ use tiara_core::parameter_stepping::{ParameterStepRecord, SweepMode};
 
 use crate::{ac_goal_functions, dc_goal_functions, target_setting_editor};
 
+pub const TITLE: &str = "Control object selection";
+pub const FORM_RESOURCE: &str = "AnalModeRangeDlg";
+pub const HELP_CONTEXT: u32 = 0x440;
+pub const NOTEBOOK_PAGE_HELP_CONTEXT: u32 = 0x96;
+pub const TARGET_MODE_CAPTION_RESOURCE: u32 = 0x1a2;
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum Page {
     #[default]
@@ -92,6 +98,45 @@ pub struct PreparedTargetState {
     pub measurement_unit: target_setting_editor::MeasurementUnit,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ControlVisibility {
+    pub target_editors: bool,
+    pub object_range: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PageChangeState {
+    Allowed,
+    Blocked,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RemoveState {
+    Visible,
+    Hidden,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RemovePolicy {
+    Standard,
+    Restricted,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ShowConfiguration {
+    pub active_page: Page,
+    pub optimization_mode: OptimizationMode,
+    pub selected_target: OptimizationTarget,
+    pub stepping: Option<ParameterStepRecord>,
+    pub optimization_start: f64,
+    pub optimization_end: f64,
+    pub restricted_remove_mode: bool,
+}
+
+pub trait DialogText {
+    fn localized_text(&self, resource_id: u32) -> String;
+}
+
 impl PreparedTargetState {
     #[must_use]
     pub const fn with_dc_goals(dc_goals: Vec<DcGoalRecord>) -> Self {
@@ -153,8 +198,15 @@ pub enum Message {
 pub struct State {
     model: Rc<RefCell<AnalysisModel>>,
     shared: SharedConfiguration,
+    title: String,
+    help_context: u32,
+    notebook_page_help_context: u32,
     active_page: Page,
     optimization_mode: OptimizationMode,
+    control_visibility: ControlVisibility,
+    page_change: PageChangeState,
+    remove: RemoveState,
+    remove_policy: RemovePolicy,
     stepping_edits: SteppingEdits,
     optimization_start: String,
     optimization_end: String,
@@ -202,8 +254,18 @@ impl State {
                 stepping_aggregate: 1.0,
                 ..SharedConfiguration::default()
             },
+            title: TITLE.to_owned(),
+            help_context: 0,
+            notebook_page_help_context: 0,
             active_page: Page::ParameterStepping,
             optimization_mode: OptimizationMode::ObjectRange,
+            control_visibility: ControlVisibility {
+                target_editors: false,
+                object_range: false,
+            },
+            page_change: PageChangeState::Allowed,
+            remove: RemoveState::Visible,
+            remove_policy: RemovePolicy::Standard,
             stepping_edits: SteppingEdits::default(),
             optimization_start: "0".to_owned(),
             optimization_end: "1".to_owned(),
@@ -233,10 +295,93 @@ impl State {
         }
     }
 
+    /// Initializes the dialog help context and the default DC Goal Functions
+    /// target. This ports Ghidra function `FUN_013ecb80` at `0x013ECB80`.
+    pub const fn form_create(&mut self) {
+        self.help_context = HELP_CONTEXT;
+        self.working_target = OptimizationTarget::DcGoalFunctions;
+        self.selected_target = Some(OptimizationTarget::DcGoalFunctions);
+    }
+
+    /// Restores the caller-owned page, edits, and target selection and updates
+    /// control visibility. This ports Ghidra function `FUN_013ecbb0` at
+    /// `0x013ECBB0`.
+    pub fn form_show(&mut self, configuration: ShowConfiguration) {
+        self.active_page = configuration.active_page;
+        self.optimization_mode = configuration.optimization_mode;
+        self.working_target = configuration.selected_target;
+        self.selected_target = Some(configuration.selected_target);
+        self.remove_policy = if configuration.restricted_remove_mode {
+            RemovePolicy::Restricted
+        } else {
+            RemovePolicy::Standard
+        };
+        self.optimization_start = configuration.optimization_start.to_string();
+        self.optimization_end = configuration.optimization_end.to_string();
+        if let Some(stepping) = configuration.stepping {
+            self.stepping_edits.start = stepping.start.to_string();
+            self.stepping_edits.end = stepping.end.to_string();
+            self.stepping_edits.cases = stepping.cases.to_string();
+            self.stepping_edits.sweep_mode = stepping.sweep_mode;
+            self.stepping_edits.list_values = stepping
+                .list_values
+                .iter()
+                .map(ToString::to_string)
+                .collect();
+            self.parsed_stepping = Some(stepping);
+        }
+        self.refresh_mode_visibility();
+        self.refresh_remove_visibility();
+    }
+
+    /// Applies the localized target-mode caption on activation. This ports
+    /// Ghidra function `FUN_013ee0d0` at `0x013EE0D0`.
+    pub fn form_activate(&mut self, text: &impl DialogText) {
+        if self.active_page == Page::Optimization
+            && self.optimization_mode == OptimizationMode::Target
+        {
+            self.title = text.localized_text(TARGET_MODE_CAPTION_RESOURCE);
+        }
+    }
+
+    /// Forwards a float editor's supplied error text to the dialog validation
+    /// state. This ports Ghidra function `FUN_013ee1e0` at `0x013EE1E0`.
+    pub fn edit_float_error(&mut self, message: &str) {
+        self.report_error(message.to_owned(), false);
+    }
+
+    /// Assigns the recovered page help context and refreshes Remove state.
+    /// This ports Ghidra function `FUN_013ee200` at `0x013EE200`.
+    pub fn notebook_changed(&mut self) {
+        self.notebook_page_help_context = NOTEBOOK_PAGE_HELP_CONTEXT;
+        self.refresh_remove_visibility();
+    }
+
+    /// Validates the current page and decides whether a tab switch can
+    /// continue. This ports Ghidra function `FUN_013ee230` at `0x013EE230`.
+    #[must_use]
+    pub fn notebook_changing(&mut self) -> bool {
+        let valid = self.validate_active_page();
+        let can_change = valid && self.page_change == PageChangeState::Allowed;
+        self.validation_failed = false;
+        self.stepping_validation_failed = false;
+        can_change
+    }
+
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::PageSelected(page) => self.active_page = page,
-            Message::OptimizationModeSelected(mode) => self.optimization_mode = mode,
+            Message::PageSelected(page) => {
+                if page != self.active_page && self.notebook_changing() {
+                    self.active_page = page;
+                    self.refresh_mode_visibility();
+                    self.notebook_changed();
+                }
+            }
+            Message::OptimizationModeSelected(mode) => {
+                self.optimization_mode = mode;
+                self.refresh_mode_visibility();
+                self.refresh_remove_visibility();
+            }
             Message::SteppingStartChanged(value) => self.stepping_edits.start = value,
             Message::SteppingEndChanged(value) => self.stepping_edits.end = value,
             Message::SteppingCasesChanged(value) => self.stepping_edits.cases = value,
@@ -418,28 +563,26 @@ impl State {
             ]
             .spacing(8)
             .into(),
-            Page::Optimization => column![
-                row![
-                    text_input("Start value", &self.optimization_start)
-                        .on_input(Message::OptimizationStartChanged),
-                    text_input("End value", &self.optimization_end)
-                        .on_input(Message::OptimizationEndChanged),
-                ]
-                .spacing(8),
-                row![
-                    button("DC Goal Functions").on_press(Message::OpenDcGoalFunctions),
-                    button("DC Table").on_press(Message::OpenDcTable),
-                    button("AC Goal Functions").on_press(Message::OpenAcGoalFunctions),
-                    button("AC Table").on_press(Message::OpenAcTable),
-                ]
-                .spacing(6),
+            Page::Optimization if self.control_visibility.object_range => row![
+                text_input("Start value", &self.optimization_start)
+                    .on_input(Message::OptimizationStartChanged),
+                text_input("End value", &self.optimization_end)
+                    .on_input(Message::OptimizationEndChanged),
             ]
             .spacing(8)
+            .into(),
+            Page::Optimization => row![
+                button("DC Goal Functions").on_press(Message::OpenDcGoalFunctions),
+                button("DC Table").on_press(Message::OpenDcTable),
+                button("AC Goal Functions").on_press(Message::OpenAcGoalFunctions),
+                button("AC Table").on_press(Message::OpenAcTable),
+            ]
+            .spacing(6)
             .into(),
         };
         container(
             column![
-                text("Control object selection").size(24),
+                text(&self.title).size(24),
                 row![
                     button("Parameter Stepping")
                         .on_press(Message::PageSelected(Page::ParameterStepping)),
@@ -453,7 +596,11 @@ impl State {
                 ),
                 row![
                     button("OK").on_press(Message::Accept),
-                    button("Remove").on_press(Message::Remove),
+                    if self.remove == RemoveState::Visible {
+                        button("Remove").on_press(Message::Remove)
+                    } else {
+                        button("Remove")
+                    },
                 ]
                 .spacing(6),
             ]
@@ -638,6 +785,48 @@ impl State {
         }
     }
 
+    fn refresh_mode_visibility(&mut self) {
+        let optimization_page = self.active_page == Page::Optimization;
+        self.control_visibility = ControlVisibility {
+            target_editors: optimization_page && self.optimization_mode == OptimizationMode::Target,
+            object_range: optimization_page
+                && self.optimization_mode == OptimizationMode::ObjectRange,
+        };
+        self.page_change = if self.control_visibility.target_editors {
+            PageChangeState::Blocked
+        } else {
+            PageChangeState::Allowed
+        };
+    }
+
+    fn refresh_remove_visibility(&mut self) {
+        let model = self.model.borrow();
+        let unavailable_for_current_record = if self.remove_policy == RemovePolicy::Restricted {
+            match (self.active_page, self.optimization_mode) {
+                (Page::ParameterStepping, _) => {
+                    !model.stepping.is_empty() && self.stepping_disposition != RecordState::Existing
+                }
+                (Page::Optimization, OptimizationMode::ObjectRange) => {
+                    !model.object_ranges.is_empty()
+                        && self.object_disposition != RecordState::Existing
+                }
+                (Page::Optimization, OptimizationMode::Target) => {
+                    !model.targets.is_empty() && self.target_disposition != RecordState::Existing
+                }
+            }
+        } else {
+            false
+        };
+        let object_limit_exceeded = self.active_page == Page::Optimization
+            && self.optimization_mode == OptimizationMode::ObjectRange
+            && model.object_ranges.len() > 10;
+        self.remove = if unavailable_for_current_record || object_limit_exceeded {
+            RemoveState::Hidden
+        } else {
+            RemoveState::Visible
+        };
+    }
+
     const fn active_record_state(&self) -> RecordState {
         match (self.active_page, self.optimization_mode) {
             (Page::ParameterStepping, _) => self.stepping_disposition,
@@ -654,6 +843,36 @@ impl State {
     #[must_use]
     pub const fn working_target(&self) -> OptimizationTarget {
         self.working_target
+    }
+
+    #[must_use]
+    pub fn title(&self) -> &str {
+        &self.title
+    }
+
+    #[must_use]
+    pub const fn help_context(&self) -> u32 {
+        self.help_context
+    }
+
+    #[must_use]
+    pub const fn notebook_page_help_context(&self) -> u32 {
+        self.notebook_page_help_context
+    }
+
+    #[must_use]
+    pub const fn control_visibility(&self) -> ControlVisibility {
+        self.control_visibility
+    }
+
+    #[must_use]
+    pub const fn page_change_allowed(&self) -> bool {
+        matches!(self.page_change, PageChangeState::Allowed)
+    }
+
+    #[must_use]
+    pub const fn remove_visible(&self) -> bool {
+        matches!(self.remove, RemoveState::Visible)
     }
 
     #[must_use]
@@ -721,11 +940,18 @@ fn stepping_aggregate(records: &[ParameterStepRecord], mode: AggregateMode) -> f
 
 #[cfg(test)]
 mod tests {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
     use tiara_core::goal_functions::{
         AcGoalKind, AcGoalRecord, AcGoalUnit, DcGoalKind, DcGoalRecord,
     };
 
-    use super::{DialogResult, Message, OptimizationMode, OptimizationTarget, Page, State};
+    use super::{
+        ControlVisibility, DialogResult, DialogText, HELP_CONTEXT, Message,
+        NOTEBOOK_PAGE_HELP_CONTEXT, ObjectRangeRecord, OptimizationMode, OptimizationTarget, Page,
+        ShowConfiguration, State, TARGET_MODE_CAPTION_RESOURCE,
+    };
     use crate::{ac_goal_functions, dc_goal_functions, target_setting_editor};
 
     #[test]
@@ -859,5 +1085,139 @@ mod tests {
         )));
         drop(state.update(Message::DcGoalFunctions(dc_goal_functions::Message::Ok)));
         assert_eq!(state.dc_records()[0].kind, DcGoalKind::Minimum);
+    }
+
+    #[test]
+    fn create_sets_help_context_and_default_target_selection() {
+        let mut state = State::new(Vec::new());
+
+        state.form_create();
+
+        assert_eq!(state.help_context(), HELP_CONTEXT);
+        assert_eq!(
+            state.selected_target(),
+            Some(OptimizationTarget::DcGoalFunctions)
+        );
+        assert_eq!(state.working_target(), OptimizationTarget::DcGoalFunctions);
+    }
+
+    #[test]
+    fn show_restores_object_range_and_hides_target_controls() {
+        let mut state = State::new(Vec::new());
+
+        state.form_show(ShowConfiguration {
+            active_page: Page::Optimization,
+            optimization_mode: OptimizationMode::ObjectRange,
+            selected_target: OptimizationTarget::AcTable,
+            stepping: None,
+            optimization_start: 2.5,
+            optimization_end: 8.5,
+            restricted_remove_mode: false,
+        });
+
+        assert_eq!(state.optimization_start, "2.5");
+        assert_eq!(state.optimization_end, "8.5");
+        assert_eq!(
+            state.control_visibility(),
+            ControlVisibility {
+                target_editors: false,
+                object_range: true
+            }
+        );
+        assert!(state.page_change_allowed());
+        assert_eq!(state.selected_target(), Some(OptimizationTarget::AcTable));
+    }
+
+    #[test]
+    fn target_mode_blocks_page_changes_and_localizes_caption_on_activation() {
+        struct Text;
+
+        impl DialogText for Text {
+            fn localized_text(&self, resource_id: u32) -> String {
+                assert_eq!(resource_id, TARGET_MODE_CAPTION_RESOURCE);
+                "Localized optimization target".to_owned()
+            }
+        }
+
+        let mut state = State::new(Vec::new());
+        state.form_show(ShowConfiguration {
+            active_page: Page::Optimization,
+            optimization_mode: OptimizationMode::Target,
+            selected_target: OptimizationTarget::DcTable,
+            stepping: None,
+            optimization_start: 0.0,
+            optimization_end: 1.0,
+            restricted_remove_mode: false,
+        });
+
+        state.form_activate(&Text);
+
+        assert_eq!(state.title(), "Localized optimization target");
+        assert_eq!(
+            state.control_visibility(),
+            ControlVisibility {
+                target_editors: true,
+                object_range: false
+            }
+        );
+        assert!(!state.page_change_allowed());
+        assert!(!state.notebook_changing());
+    }
+
+    #[test]
+    fn notebook_changing_validates_range_and_change_sets_page_help_context() {
+        let mut state = State::new(Vec::new());
+        state.form_show(ShowConfiguration {
+            active_page: Page::Optimization,
+            optimization_mode: OptimizationMode::ObjectRange,
+            selected_target: OptimizationTarget::DcGoalFunctions,
+            stepping: None,
+            optimization_start: 3.0,
+            optimization_end: 2.0,
+            restricted_remove_mode: false,
+        });
+
+        assert!(!state.notebook_changing());
+        assert!(state.last_error.is_some());
+        drop(state.update(Message::OptimizationEndChanged("4".to_owned())));
+        assert!(state.notebook_changing());
+        state.notebook_changed();
+        assert_eq!(
+            state.notebook_page_help_context(),
+            NOTEBOOK_PAGE_HELP_CONTEXT
+        );
+    }
+
+    #[test]
+    fn float_edit_error_uses_supplied_text_and_large_object_list_hides_remove() {
+        let model = Rc::new(RefCell::new(super::AnalysisModel {
+            object_ranges: vec![
+                ObjectRangeRecord {
+                    start: 0.0,
+                    end: 1.0,
+                    midpoint: 0.5,
+                };
+                11
+            ],
+            ..super::AnalysisModel::default()
+        }));
+        let mut state = State::with_model(model, Vec::new());
+        state.form_show(ShowConfiguration {
+            active_page: Page::Optimization,
+            optimization_mode: OptimizationMode::ObjectRange,
+            selected_target: OptimizationTarget::DcGoalFunctions,
+            stepping: None,
+            optimization_start: 0.0,
+            optimization_end: 1.0,
+            restricted_remove_mode: false,
+        });
+
+        state.edit_float_error("Recovered float edit error");
+
+        assert_eq!(
+            state.last_error.as_deref(),
+            Some("Recovered float edit error")
+        );
+        assert!(!state.remove_visible());
     }
 }

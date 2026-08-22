@@ -8,6 +8,8 @@ use tiara_core::goal_functions::{AcGoalKind, AcGoalRecord, AcGoalUnit};
 
 pub const TITLE: &str = "AC Goal Functions";
 const UNITS: [AcGoalUnit; 2] = [AcGoalUnit::Decibels, AcGoalUnit::Volts];
+const HELP_CONTEXT: u32 = 0x47f;
+const ACTIVE_PAGE_CONTENT_WIDTH: f32 = 150.0;
 
 pub type SharedRecords = Rc<RefCell<Vec<AcGoalRecord>>>;
 
@@ -44,8 +46,10 @@ impl Default for GoalEdits {
 #[derive(Debug, Clone)]
 pub enum Message {
     Checked(AcGoalKind, bool),
+    PageChanged(Option<AcGoalKind>),
     ValueChanged(AcGoalKind, usize, String),
     UnitSelected(AcGoalKind, AcGoalUnit),
+    NumericError(String),
     Ok,
 }
 
@@ -54,7 +58,9 @@ pub struct Window {
     records: SharedRecords,
     edits: [GoalEdits; 6],
     active_page: Option<AcGoalKind>,
+    active_page_content_width: f32,
     ok_enabled: bool,
+    help_context: u32,
     close_blocked: bool,
     last_error: Option<String>,
 }
@@ -67,31 +73,17 @@ impl Window {
     /// recovered modal form constructor.
     #[must_use]
     pub fn new(records: SharedRecords) -> Self {
-        let mut edits: [GoalEdits; 6] = std::array::from_fn(|_| GoalEdits::default());
-        let existing_records = records.borrow().clone();
-        let selected_index = existing_records
-            .first()
-            .map_or(AcGoalKind::CenterFrequency.index(), |record| {
-                record.kind.index()
-            });
-        for record in existing_records {
-            let edit = &mut edits[record.kind.index()];
-            edit.checked = true;
-            edit.unit = record.unit;
-            for (target, value) in edit.values.iter_mut().zip(record.values) {
-                *target = value.to_string();
-            }
-        }
-
         let mut window = Self {
             records,
-            edits,
+            edits: std::array::from_fn(|_| GoalEdits::default()),
             active_page: None,
+            active_page_content_width: ACTIVE_PAGE_CONTENT_WIDTH,
             ok_enabled: false,
+            help_context: HELP_CONTEXT,
             close_blocked: false,
             last_error: None,
         };
-        window.synchronize_checklist_click(Some(selected_index));
+        window.initialize_from_records();
         window
     }
 
@@ -101,6 +93,9 @@ impl Window {
                 self.edits[kind.index()].checked = checked;
                 self.synchronize_checklist_click(Some(kind.index()));
             }
+            Message::PageChanged(active_page) => {
+                self.apply_active_page_change(active_page);
+            }
             Message::ValueChanged(kind, index, value) => {
                 if let Some(target) = self.edits[kind.index()].values.get_mut(index) {
                     *target = value;
@@ -108,13 +103,41 @@ impl Window {
             }
             Message::UnitSelected(kind, unit) => {
                 if let Err(error) = self.convert_target_unit(kind, unit) {
-                    self.report_error(error.to_string());
+                    self.report_numeric_error(error.to_string());
                 }
             }
+            Message::NumericError(message) => self.report_numeric_error(message),
             Message::Ok => {
                 self.rebuild_records();
             }
         }
+    }
+
+    /// Reimplements Ghidra function `FUN_013ea400` at `0x013EA400`.
+    ///
+    /// Resets the six page editors, restores every caller-owned record, checks
+    /// its corresponding goal, selects the first record's page or Center
+    /// Frequency for an empty list, synchronizes OK enablement, and selects
+    /// context Help ID 1151. Repeated records for one kind are applied in list
+    /// order, so the last record supplies that page's displayed values.
+    pub fn initialize_from_records(&mut self) {
+        self.edits = std::array::from_fn(|_| GoalEdits::default());
+        let existing_records = self.records.borrow().clone();
+        let selected_index = existing_records
+            .first()
+            .map_or(AcGoalKind::CenterFrequency.index(), |record| {
+                record.kind.index()
+            });
+        for record in existing_records {
+            let edit = &mut self.edits[record.kind.index()];
+            edit.checked = true;
+            edit.unit = record.unit;
+            for (target, value) in edit.values.iter_mut().zip(record.values) {
+                *target = value.to_string();
+            }
+        }
+        self.synchronize_checklist_click(Some(selected_index));
+        self.help_context = HELP_CONTEXT;
     }
 
     /// Reimplements Ghidra function `FUN_013ea360` at `0x013EA360`.
@@ -181,11 +204,11 @@ impl Window {
             for (index, value) in edit.values.iter().take(kind.parameter_count()).enumerate() {
                 match parse_number(value) {
                     Some(parsed) => values[index] = parsed,
-                    None => self.report_error(format!("Invalid {kind} value")),
+                    None => self.report_numeric_error(format!("Invalid {kind} value")),
                 }
             }
             if kind.requires_positive_primary() && values[0] <= 0.0 {
-                self.report_error(format!("{kind} must be greater than zero"));
+                self.report_numeric_error(format!("{kind} must be greater than zero"));
             }
 
             self.records
@@ -204,11 +227,30 @@ impl Window {
         can_close
     }
 
-    fn report_error(&mut self, message: String) {
+    /// Reimplements Ghidra function `FUN_013eaa90` at `0x013EAA90`.
+    ///
+    /// Routes a numeric edit's recovered error text through the dialog's
+    /// first-error latch. Later errors remain blocked until the close query
+    /// clears the latch.
+    pub fn report_numeric_error(&mut self, message: String) {
         if !self.close_blocked {
             self.last_error = Some(message);
         }
         self.close_blocked = true;
+    }
+
+    /// Reimplements Ghidra function `FUN_013eaad0` at `0x013EAAD0`.
+    ///
+    /// Applies the recovered width of 150 to the active page content. The C
+    /// handler assumes an active page. Rust returns `false` for a missing page
+    /// and leaves the current state unchanged.
+    pub const fn apply_active_page_change(&mut self, active_page: Option<AcGoalKind>) -> bool {
+        let Some(active_page) = active_page else {
+            return false;
+        };
+        self.active_page = Some(active_page);
+        self.active_page_content_width = ACTIVE_PAGE_CONTENT_WIDTH;
+        true
     }
 
     #[must_use]
@@ -243,6 +285,7 @@ impl Window {
                 fields.into()
             },
         );
+        let parameters = container(parameters).width(Length::Fixed(self.active_page_content_width));
 
         let mut ok_button = button("OK");
         if self.ok_enabled {
@@ -286,7 +329,7 @@ mod tests {
 
     use tiara_core::goal_functions::{AcGoalKind, AcGoalRecord, AcGoalUnit};
 
-    use super::{Message, UnitConversionError, Window};
+    use super::{HELP_CONTEXT, Message, UnitConversionError, Window};
 
     #[test]
     fn update_rebuilds_the_caller_shared_record_list() {
@@ -411,5 +454,69 @@ mod tests {
             window.edits[AcGoalKind::Minimum.index()].unit,
             AcGoalUnit::Volts
         );
+    }
+
+    #[test]
+    fn form_create_restores_records_first_selection_and_help_context() {
+        let records = Rc::new(RefCell::new(vec![
+            AcGoalRecord::new(
+                AcGoalKind::HighPass,
+                [2.0, 3.0, 4.0, 0.0, 0.0],
+                AcGoalUnit::Volts,
+            ),
+            AcGoalRecord::new(
+                AcGoalKind::Minimum,
+                [5.0, 6.0, 0.0, 0.0, 0.0],
+                AcGoalUnit::Decibels,
+            ),
+        ]));
+
+        let window = Window::new(records);
+
+        assert_eq!(window.active_page, Some(AcGoalKind::HighPass));
+        assert!(window.ok_enabled);
+        assert_eq!(window.help_context, HELP_CONTEXT);
+        assert_eq!(
+            window.edits[AcGoalKind::HighPass.index()].values,
+            ["2", "3", "4"]
+        );
+        assert_eq!(
+            window.edits[AcGoalKind::HighPass.index()].unit,
+            AcGoalUnit::Volts
+        );
+        assert!(window.edits[AcGoalKind::Minimum.index()].checked);
+    }
+
+    #[test]
+    fn form_create_with_empty_records_selects_center_and_disables_ok() {
+        let window = Window::new(Rc::new(RefCell::new(Vec::new())));
+
+        assert_eq!(window.active_page, Some(AcGoalKind::CenterFrequency));
+        assert!(!window.ok_enabled);
+    }
+
+    #[test]
+    fn numeric_error_handler_keeps_only_first_error_until_close_query() {
+        let mut window = Window::new(Rc::new(RefCell::new(Vec::new())));
+
+        window.update(Message::NumericError("first".to_owned()));
+        window.update(Message::NumericError("second".to_owned()));
+
+        assert_eq!(window.last_error.as_deref(), Some("first"));
+        assert!(!window.query_close());
+        window.update(Message::NumericError("third".to_owned()));
+        assert_eq!(window.last_error.as_deref(), Some("third"));
+    }
+
+    #[test]
+    fn page_change_applies_width_and_safely_ignores_missing_page() {
+        let mut window = Window::new(Rc::new(RefCell::new(Vec::new())));
+        window.active_page_content_width = 42.0;
+
+        assert!(!window.apply_active_page_change(None));
+        assert!((window.active_page_content_width - 42.0).abs() <= f32::EPSILON);
+        assert!(window.apply_active_page_change(Some(AcGoalKind::Maximum)));
+        assert_eq!(window.active_page, Some(AcGoalKind::Maximum));
+        assert!((window.active_page_content_width - 150.0).abs() <= f32::EPSILON);
     }
 }

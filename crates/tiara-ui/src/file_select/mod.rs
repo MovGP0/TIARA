@@ -51,6 +51,7 @@ pub struct DeviceReference {
 pub struct PmBusDataRecord {
     pub name: String,
     pub selected_path: String,
+    pub source_available: bool,
     pub flags: PmBusParseFlags,
     pub payload: Vec<u8>,
 }
@@ -60,6 +61,7 @@ impl Default for PmBusDataRecord {
         Self {
             name: String::from("noname"),
             selected_path: String::new(),
+            source_available: false,
             flags: PmBusParseFlags::default(),
             payload: Vec::new(),
         }
@@ -248,6 +250,35 @@ impl Window {
         FILE_FILTER.clone_into(&mut self.open_filter);
         FILE_FILTER.clone_into(&mut self.save_filter);
         DEFAULT_EXTENSION.clone_into(&mut self.default_extension);
+    }
+
+    /// Loads the current referenced source into the read-only preview.
+    ///
+    /// Ports Ghidra function `FUN_0142a2f0` at `0x0142A2F0`, recovered as
+    /// `TFileSelect.FormShow`. It always clears the memo first. When the host
+    /// resolved a source record and its availability flag is set, it copies
+    /// source zero into the memo and copies that source's path into the edit.
+    /// Missing or unavailable records leave the existing path unchanged.
+    ///
+    /// # Errors
+    ///
+    /// Returns a parser error if an adapter supplies payload bytes that are
+    /// not valid UTF-8. The preview remains cleared and the path is unchanged.
+    pub fn form_show(&mut self) -> Result<bool, FileSelectError> {
+        self.memo_text.clear();
+        let Some(record) = self
+            .pmbus_record
+            .as_ref()
+            .filter(|record| record.source_available)
+        else {
+            return Ok(false);
+        };
+        let preview = String::from_utf8(record.payload.clone()).map_err(|error| {
+            FileSelectError::Parser(format!("PMBus preview is not valid UTF-8: {error}"))
+        })?;
+        self.memo_text = preview;
+        record.selected_path.clone_into(&mut self.file_text);
+        Ok(true)
     }
 
     /// Ports Ghidra function `FUN_0142a3e0` at `0x0142A3E0`.
@@ -703,6 +734,7 @@ mod tests {
         window.set_pmbus_record(Some(PmBusDataRecord {
             name: String::from("configured"),
             selected_path: String::from("missing.txt"),
+            source_available: true,
             flags: PmBusParseFlags {
                 first: 3,
                 second: 7,
@@ -753,5 +785,36 @@ mod tests {
         let _ = window.update(Message::Accept);
         assert_eq!(window.modal_result(), ModalResult::Ok);
         assert_eq!(window.take_pending_action(), Some(PendingAction::Validate));
+    }
+
+    #[test]
+    fn show_clears_preview_and_leaves_path_when_no_source_is_available() {
+        let mut window = window();
+        window.file_text = "existing.dat".to_owned();
+        window.memo_text = "stale preview".to_owned();
+        window.set_pmbus_record(Some(PmBusDataRecord {
+            selected_path: "ignored.dat".to_owned(),
+            payload: b"ignored".to_vec(),
+            ..PmBusDataRecord::default()
+        }));
+
+        assert_eq!(window.form_show(), Ok(false));
+        assert_eq!(window.file_text(), "existing.dat");
+        assert!(window.memo_text().is_empty());
+    }
+
+    #[test]
+    fn show_loads_source_zero_preview_and_path_when_available() {
+        let mut window = window();
+        window.set_pmbus_record(Some(PmBusDataRecord {
+            selected_path: "device/source.txt".to_owned(),
+            source_available: true,
+            payload: b"line one\nline two".to_vec(),
+            ..PmBusDataRecord::default()
+        }));
+
+        assert_eq!(window.form_show(), Ok(true));
+        assert_eq!(window.file_text(), "device/source.txt");
+        assert_eq!(window.memo_text(), "line one\nline two");
     }
 }

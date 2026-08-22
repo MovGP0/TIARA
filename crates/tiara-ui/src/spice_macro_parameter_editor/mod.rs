@@ -13,8 +13,11 @@ use tiara_core::parameter_editor::{
     serialize_spice_rows,
 };
 
+use crate::macro_parameter_editor_lifecycle::{LifecycleAdapter, initialize_vertical_resize};
+
 pub const TITLE: &str = "SPICE macro parameters";
 pub const FORM_RESOURCE: &str = "frmSpiceMacroParamEditor";
+pub const HELP_CONTEXT: u32 = 0x4a8;
 
 pub trait Host {
     fn serialization_config(&self) -> SpiceSerializationConfig;
@@ -67,6 +70,8 @@ pub struct Window {
     staged_result: String,
     modal_result: Option<u8>,
     last_error: Option<ParameterEditorError>,
+    editor_mode_flags: [bool; 2],
+    close_veto: bool,
 }
 
 impl Window {
@@ -84,6 +89,8 @@ impl Window {
             staged_result,
             modal_result: None,
             last_error: None,
+            editor_mode_flags: [false; 2],
+            close_veto: false,
         }
     }
 
@@ -100,7 +107,30 @@ impl Window {
             staged_result,
             modal_result: None,
             last_error: None,
+            editor_mode_flags: [false; 2],
+            close_veto: false,
         }
+    }
+
+    /// Ports Ghidra function `FUN_0141b560` at `0x0141B560`.
+    ///
+    /// The form fixes its current width, sets its current height as the minimum,
+    /// clears both recovered editor-mode flags, and assigns help context `0x4A8`.
+    pub fn initialize_lifecycle(&mut self, adapter: &mut impl LifecycleAdapter) {
+        initialize_vertical_resize(adapter);
+        self.editor_mode_flags = [false; 2];
+        adapter.set_help_context(HELP_CONTEXT);
+    }
+
+    /// Ports Ghidra function `FUN_0141b540` at `0x0141B540`.
+    ///
+    /// A pending validation error vetoes one close request. The query always
+    /// clears the veto, so a later Cancel or close request can proceed.
+    #[must_use]
+    pub const fn query_close(&mut self) -> bool {
+        let can_close = !self.close_veto;
+        self.close_veto = false;
+        can_close
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
@@ -135,7 +165,10 @@ impl Window {
     pub fn accept(&mut self) {
         self.staged_result.clear();
         let result = match self.mode {
-            InputMode::Grid => serialize_spice_rows(&self.rows, &self.config),
+            InputMode::Grid => {
+                self.close_veto = false;
+                serialize_spice_rows(&self.rows, &self.config)
+            }
             InputMode::Memo => {
                 let lines = self
                     .memo_text
@@ -155,8 +188,14 @@ impl Window {
             Err(error) => {
                 self.modal_result = None;
                 self.last_error = Some(error);
+                self.close_veto = true;
             }
         }
+    }
+
+    #[must_use]
+    pub const fn editor_mode_flags(&self) -> [bool; 2] {
+        self.editor_mode_flags
     }
 
     #[must_use]
@@ -233,9 +272,31 @@ impl Window {
 
 #[cfg(test)]
 mod tests {
+    use iced::Size;
     use tiara_core::parameter_editor::{MacroValueRule, SpiceValueValidation};
 
     use super::*;
+    use crate::macro_parameter_editor_lifecycle::ResizeConstraints;
+
+    struct RecordingLifecycle {
+        size: Size,
+        constraints: Vec<ResizeConstraints>,
+        help_contexts: Vec<u32>,
+    }
+
+    impl LifecycleAdapter for RecordingLifecycle {
+        fn current_size(&self) -> Size {
+            self.size
+        }
+
+        fn apply_resize_constraints(&mut self, constraints: ResizeConstraints) {
+            self.constraints.push(constraints);
+        }
+
+        fn set_help_context(&mut self, help_context: u32) {
+            self.help_contexts.push(help_context);
+        }
+    }
 
     #[derive(Debug)]
     struct TestHost {
@@ -279,6 +340,52 @@ mod tests {
             }],
             applied: Vec::new(),
         }
+    }
+
+    #[test]
+    fn form_create_applies_vertical_resize_constraints_clears_modes_and_sets_help() {
+        let mut window = Window::new_grid(
+            Vec::new(),
+            SpiceSerializationConfig::default(),
+            String::new(),
+        );
+        window.editor_mode_flags = [true, true];
+        let mut lifecycle = RecordingLifecycle {
+            size: Size::new(480.0, 120.0),
+            constraints: Vec::new(),
+            help_contexts: Vec::new(),
+        };
+
+        window.initialize_lifecycle(&mut lifecycle);
+
+        assert_eq!(window.editor_mode_flags(), [false, false]);
+        assert_eq!(lifecycle.constraints.len(), 1);
+        let constraints = lifecycle.constraints[0];
+        assert!((constraints.minimum_size.width - 480.0).abs() <= f32::EPSILON);
+        assert!((constraints.minimum_size.height - 120.0).abs() <= f32::EPSILON);
+        assert!((constraints.maximum_width - 480.0).abs() <= f32::EPSILON);
+        assert_eq!(lifecycle.help_contexts, [HELP_CONTEXT]);
+    }
+
+    #[test]
+    fn validation_failure_vetoes_exactly_one_close_request() {
+        let mut window = Window::new_grid(
+            vec![ParameterRow {
+                name: "count".to_owned(),
+                value: "-1".to_owned(),
+            }],
+            SpiceSerializationConfig {
+                pair_separator: ',',
+                validation: SpiceValueValidation::Typed(vec![MacroValueRule::NonNegativeInteger]),
+                quoted_value_prefixes: Vec::new(),
+            },
+            String::new(),
+        );
+
+        window.accept();
+
+        assert!(!window.query_close());
+        assert!(window.query_close());
     }
 
     #[test]

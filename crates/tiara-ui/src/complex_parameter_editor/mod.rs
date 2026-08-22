@@ -1,3 +1,9 @@
+//! Complex parameter editor window.
+//!
+//! The application shell must supply the selected complex parameter entry and
+//! connect the recovered help context (`0x40B`). This module replaces the
+//! recovered process-global mode flags with window-owned Rust state.
+
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -91,6 +97,12 @@ pub struct Window {
 }
 
 impl Window {
+    /// Ports Ghidra function `FUN_01405e00` at `0x01405E00`.
+    ///
+    /// The constructor clones caller data into an owned model, selects
+    /// rectangular degree mode, remembers `noname.cpl`, exposes only the
+    /// active parameter controls through iced, and rebuilds the label and value
+    /// grids. `Vec` replaces the recovered fixed-allocation working table.
     #[must_use]
     pub fn new(caller_entry: ComplexParameterEntry) -> Self {
         let caller_entry = if caller_entry.points.is_empty() {
@@ -700,6 +712,8 @@ fn load_catalog_file(path: PathBuf) -> CatalogLoadResult {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use super::{Message, PointField, Window};
     use tiara_core::complex_parameter::{
         ComplexParameterEntry, ComplexPoint, ComplexRepresentation, PhaseUnit,
@@ -712,6 +726,27 @@ mod tests {
             ComplexPoint::new(1.0, 1.0, 10.0),
             ComplexPoint::new(3.0, 4.0, 40.0),
         ])
+    }
+
+    #[test]
+    fn form_create_initializes_owned_mode_file_and_grid_state() {
+        let source = entry();
+
+        let window = Window::new(source.clone());
+
+        assert_eq!(window.caller_entry(), &source);
+        assert_eq!(window.representation, ComplexRepresentation::Rectangular);
+        assert_eq!(window.phase_unit, PhaseUnit::Degrees);
+        assert_eq!(window.remembered_path, PathBuf::from("noname.cpl"));
+        assert_eq!(window.row_labels.len(), source.points.len() * 3);
+        assert_eq!(window.grid_edits.len(), source.points.len());
+        assert_eq!(
+            window.grid_row_capacity,
+            window.saved_row_capacity.max(source.points.len() * 3)
+        );
+        assert!(window.visible);
+        assert!(!window.accepted);
+        assert!(!window.validation_failed);
     }
 
     #[test]

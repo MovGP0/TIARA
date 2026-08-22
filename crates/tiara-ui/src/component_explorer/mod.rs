@@ -6,6 +6,9 @@ const VIEWPORT_MARGIN: f32 = 50.0;
 const TREE_HIT_ON_BUTTON: u16 = 0x10;
 const TREE_COLOR_NORMAL: u32 = 0xff00_0005;
 const TREE_COLOR_SEARCH_SELECTION: u32 = 0x0000_8000;
+const SEARCH_COLOR_ACTIVE: u32 = 0xff00_0008;
+const SEARCH_COLOR_INACTIVE: u32 = 0xff00_0010;
+const SEARCH_PLACEHOLDER: &str = "<Search>";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TreeNodeId(pub u64);
@@ -322,10 +325,45 @@ impl TreeNode {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SearchKey {
+    F3,
+    Other,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum SearchTextTone {
+    #[default]
+    Inherited,
+    Active,
+    Inactive,
+}
+
+impl SearchTextTone {
+    #[must_use]
+    pub const fn recovered_color(self) -> Option<u32> {
+        match self {
+            Self::Inherited => None,
+            Self::Active => Some(SEARCH_COLOR_ACTIVE),
+            Self::Inactive => Some(SEARCH_COLOR_INACTIVE),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SearchRequest {
+    pub query: String,
+    pub start_index: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum Message {
     TreeSelectionChanged(Option<TreeNode>),
     CircuitTreeClicked,
+    SearchChanged(String),
+    SearchEntered,
+    SearchExited,
+    SearchKeyDown(SearchKey),
 }
 
 /// Narrow integration boundary from the Component Explorer to the active
@@ -379,11 +417,29 @@ impl CloseDisposition {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Window {
     selected_node: Option<TreeNode>,
     docking_active: bool,
     search_focus_active: bool,
+    search_text: String,
+    search_text_tone: SearchTextTone,
+    next_search_index: usize,
+    pending_search: Option<SearchRequest>,
+}
+
+impl Default for Window {
+    fn default() -> Self {
+        Self {
+            selected_node: None,
+            docking_active: false,
+            search_focus_active: false,
+            search_text: SEARCH_PLACEHOLDER.to_owned(),
+            search_text_tone: SearchTextTone::Inherited,
+            next_search_index: 0,
+            pending_search: None,
+        }
+    }
 }
 
 impl Window {
@@ -395,6 +451,10 @@ impl Window {
         match message {
             Message::TreeSelectionChanged(node) => self.selected_node = node,
             Message::CircuitTreeClicked => self.synchronize_tree_selection(schematic),
+            Message::SearchChanged(value) => self.on_search_changed(value),
+            Message::SearchEntered => self.on_search_enter(),
+            Message::SearchExited => self.on_search_exit(),
+            Message::SearchKeyDown(key) => self.on_search_key_down(key),
         }
 
         Task::none()
@@ -468,6 +528,83 @@ impl Window {
     /// handlers. The corresponding focus callbacks are separate porting tasks.
     pub const fn set_search_focus_active(&mut self, active: bool) {
         self.search_focus_active = active;
+    }
+
+    /// Queues a circuit-tree search after an iced text-input edit.
+    ///
+    /// This ports `edSearch.OnChange`, Ghidra function `0x013AB7C0`, symbol
+    /// `FUN_013ab7c0`. The recovered handler calls `FUN_013ac520` only when the
+    /// edit reports user modification. Iced emits [`Message::SearchChanged`]
+    /// for user input, while [`Self::set_search_text_programmatically`] changes
+    /// display state without queuing a request. A changed query always starts
+    /// the shared search helper at index zero.
+    pub fn on_search_changed(&mut self, value: String) {
+        self.search_text = value;
+        self.pending_search = Some(SearchRequest {
+            query: self.search_text.clone(),
+            start_index: 0,
+        });
+    }
+
+    /// Applies the search edit's focused state and active text color.
+    ///
+    /// This ports `edSearch.OnEnter`, Ghidra function `0x013AB840`, symbol
+    /// `FUN_013ab840`.
+    pub const fn on_search_enter(&mut self) {
+        self.search_focus_active = true;
+        self.search_text_tone = SearchTextTone::Active;
+    }
+
+    /// Applies the search edit's unfocused state and inactive text color.
+    ///
+    /// This ports `edSearch.OnExit`, Ghidra function `0x013AB870`, symbol
+    /// `FUN_013ab870`.
+    pub const fn on_search_exit(&mut self) {
+        self.search_text_tone = SearchTextTone::Inactive;
+        self.search_focus_active = false;
+    }
+
+    /// Queues the next circuit-tree search only for F3.
+    ///
+    /// This ports `edSearch.OnKeyDown`, Ghidra function `0x013AB8A0`, symbol
+    /// `FUN_013ab8a0`. Other keys are no-ops. F3 passes the next index stored
+    /// after the prior shared-search result.
+    pub fn on_search_key_down(&mut self, key: SearchKey) {
+        if key == SearchKey::F3 {
+            self.pending_search = Some(SearchRequest {
+                query: self.search_text.clone(),
+                start_index: self.next_search_index,
+            });
+        }
+    }
+
+    /// Changes the edit text without representing a user modification.
+    pub fn set_search_text_programmatically(&mut self, value: String) {
+        self.search_text = value;
+    }
+
+    /// Stores the next index produced by the separate shared-search helper.
+    pub const fn record_search_match(&mut self, selected_index: usize) {
+        self.next_search_index = selected_index + 1;
+    }
+
+    #[must_use]
+    pub fn search_text(&self) -> &str {
+        &self.search_text
+    }
+
+    #[must_use]
+    pub const fn search_text_tone(&self) -> SearchTextTone {
+        self.search_text_tone
+    }
+
+    #[must_use]
+    pub const fn next_search_index(&self) -> usize {
+        self.next_search_index
+    }
+
+    pub const fn take_search_request(&mut self) -> Option<SearchRequest> {
+        self.pending_search.take()
     }
 
     /// Translates `frmComponentExplorer.OnEndDock` (Ghidra `0x013AB340`,
@@ -865,6 +1002,90 @@ mod tests {
         let mut window = Window::default();
         window.set_search_focus_active(true);
         assert!(window.can_expand(0x20));
+    }
+
+    #[test]
+    fn user_search_change_queues_a_search_from_the_first_tree_row() {
+        let mut window = Window::default();
+        let mut schematic = NavigationRecorder::default();
+        assert_eq!(window.search_text(), SEARCH_PLACEHOLDER);
+
+        let _task = window.update(
+            Message::SearchChanged("resistor".to_owned()),
+            &mut schematic,
+        );
+
+        assert_eq!(window.search_text(), "resistor");
+        assert_eq!(
+            window.take_search_request(),
+            Some(SearchRequest {
+                query: "resistor".to_owned(),
+                start_index: 0,
+            })
+        );
+    }
+
+    #[test]
+    fn programmatic_search_text_change_does_not_queue_user_search() {
+        let mut window = Window::default();
+
+        window.set_search_text_programmatically("restored".to_owned());
+
+        assert_eq!(window.search_text(), "restored");
+        assert_eq!(window.take_search_request(), None);
+    }
+
+    #[test]
+    fn search_enter_and_exit_update_focus_and_recovered_text_color() {
+        let mut window = Window::default();
+        let mut schematic = NavigationRecorder::default();
+        assert_eq!(window.search_text_tone().recovered_color(), None);
+
+        let _task = window.update(Message::SearchEntered, &mut schematic);
+
+        assert!(window.can_expand(0x20));
+        assert_eq!(
+            window.search_text_tone().recovered_color(),
+            Some(SEARCH_COLOR_ACTIVE)
+        );
+
+        let _task = window.update(Message::SearchExited, &mut schematic);
+
+        assert!(!window.can_expand(0x20));
+        assert_eq!(
+            window.search_text_tone().recovered_color(),
+            Some(SEARCH_COLOR_INACTIVE)
+        );
+    }
+
+    #[test]
+    fn only_f3_repeats_search_from_the_stored_next_index() {
+        let mut window = Window::default();
+        let mut schematic = NavigationRecorder::default();
+        window.set_search_text_programmatically("capacitor".to_owned());
+        window.record_search_match(4);
+        assert_eq!(window.next_search_index(), 5);
+
+        let _task = window.update(Message::SearchKeyDown(SearchKey::Other), &mut schematic);
+        assert_eq!(window.take_search_request(), None);
+
+        let _task = window.update(Message::SearchKeyDown(SearchKey::F3), &mut schematic);
+        assert_eq!(
+            window.take_search_request(),
+            Some(SearchRequest {
+                query: "capacitor".to_owned(),
+                start_index: 5,
+            })
+        );
+
+        let _task = window.update(Message::SearchChanged("diode".to_owned()), &mut schematic);
+        assert_eq!(
+            window.take_search_request(),
+            Some(SearchRequest {
+                query: "diode".to_owned(),
+                start_index: 0,
+            })
+        );
     }
 
     #[derive(Debug, Clone, Copy)]

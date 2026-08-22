@@ -5,8 +5,16 @@ use iced::widget::{button, column, container, row, scrollable, text, text_input}
 use iced::{Element, Length};
 
 pub const TITLE: &str = "Parameter step list";
+pub const TEMPERATURE_TITLE: &str = "Temperature step list";
 pub const MAXIMUM_VALUES: usize = 1_000;
 pub type SharedValues = Rc<RefCell<Vec<f64>>>;
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum EditorMode {
+    #[default]
+    Parameter,
+    Temperature,
+}
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -23,6 +31,8 @@ pub struct Window {
     working_values: Vec<f64>,
     edits: Vec<String>,
     output_count: usize,
+    mode: EditorMode,
+    title: &'static str,
 }
 
 impl Window {
@@ -44,7 +54,26 @@ impl Window {
             output_count: working_values.len(),
             working_values,
             edits,
+            mode: EditorMode::Parameter,
+            title: TITLE,
         }
+    }
+
+    pub const fn set_mode(&mut self, mode: EditorMode) {
+        self.mode = mode;
+    }
+
+    /// Selects the form caption for parameter or temperature list mode.
+    ///
+    /// Ports Ghidra function `FUN_01437b50` at `0x01437B50`, recovered as
+    /// `TParStepListEditor.FormActivate`. The temperature owner sets the mode
+    /// byte before showing the shared editor; the parameter owner leaves it
+    /// clear. Activation changes only the caption.
+    pub const fn activate(&mut self) {
+        self.title = match self.mode {
+            EditorMode::Parameter => TITLE,
+            EditorMode::Temperature => TEMPERATURE_TITLE,
+        };
     }
 
     pub fn update(&mut self, message: Message) {
@@ -122,7 +151,7 @@ impl Window {
 
     #[must_use]
     pub fn view(&self) -> Element<'_, Message> {
-        let mut values = column![text(TITLE).size(24)].spacing(6);
+        let mut values = column![text(self.title).size(24)].spacing(6);
         for (index, value) in self.edits.iter().enumerate() {
             values = values.push(
                 row![
@@ -159,6 +188,11 @@ impl Window {
     pub const fn output_count(&self) -> usize {
         self.output_count
     }
+
+    #[must_use]
+    pub const fn title(&self) -> &str {
+        self.title
+    }
 }
 
 fn parse_number(value: &str) -> Option<f64> {
@@ -174,7 +208,7 @@ mod tests {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    use super::{MAXIMUM_VALUES, Message, Window};
+    use super::{EditorMode, MAXIMUM_VALUES, Message, TEMPERATURE_TITLE, TITLE, Window};
 
     #[test]
     fn empty_input_builds_start_midpoint_and_end() {
@@ -221,5 +255,18 @@ mod tests {
         assert_eq!(values.borrow().as_slice(), &[5.0]);
         assert_eq!(window.output_count(), 1);
         assert!(!window.query_close());
+    }
+
+    #[test]
+    fn activation_selects_the_caption_for_the_owner_mode_only() {
+        let mut window = Window::new(Rc::new(RefCell::new(Vec::new())), 2.0, 6.0);
+        window.activate();
+        assert_eq!(window.title(), TITLE);
+        assert_eq!(window.working_values(), &[2.0, 4.0, 6.0]);
+
+        window.set_mode(EditorMode::Temperature);
+        window.activate();
+        assert_eq!(window.title(), TEMPERATURE_TITLE);
+        assert_eq!(window.working_values(), &[2.0, 4.0, 6.0]);
     }
 }

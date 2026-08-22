@@ -1,4 +1,11 @@
+//! Define Faults parameter window.
+//!
+//! The application shell must supply the selected fault metadata, caller-owned
+//! choices, localized selector labels, and the recovered help context
+//! (`0x4A7`). This module does not own catalog selection or navigation.
+
 use std::fmt;
+use std::path::{Path, PathBuf};
 
 use iced::widget::{button, column, container, pick_list, row, scrollable, text};
 use iced::{Alignment, Element, Length, Task};
@@ -40,6 +47,7 @@ pub enum AlternateOperationResult {
 
 #[derive(Debug, Clone, Copy)]
 pub enum Message {
+    Shown,
     ChoiceSelected { row: usize, selector_code: i32 },
     Reset,
     Accept(EditorCommitResult),
@@ -61,6 +69,7 @@ pub struct Window {
     selector_options: Vec<SelectorOption>,
     headers: [String; 2],
     placeholder: String,
+    remembered_path: PathBuf,
     configured_row_count: usize,
     grid_rows: Vec<GridRow>,
     selected_cell: (usize, usize),
@@ -72,8 +81,12 @@ pub struct Window {
 }
 
 impl Window {
-    /// Creates a separate Define Faults window and clones caller values into
-    /// dialog-local staging state.
+    /// Ports Ghidra function `FUN_013f9ba0` at `0x013F9BA0`.
+    ///
+    /// Creates a separate Define Faults window, clones both caller value
+    /// groups into dialog-local staging state, combines the two metadata-name
+    /// groups, builds the iced grid, and remembers `noname.flt`. `Vec` and
+    /// [`FaultEditorState`] replace the recovered Delphi list copies.
     ///
     /// # Errors
     ///
@@ -103,6 +116,7 @@ impl Window {
             selector_options,
             headers,
             placeholder,
+            remembered_path: PathBuf::from("noname.flt"),
             configured_row_count,
             grid_rows: Vec::new(),
             selected_cell: (0, 1),
@@ -118,6 +132,7 @@ impl Window {
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::Shown => self.on_show(),
             Message::ChoiceSelected { row, selector_code } => {
                 match self.state.set_staged_choice(row, selector_code) {
                     Ok(()) => {
@@ -160,6 +175,17 @@ impl Window {
     pub const fn modal_result(&self) -> Option<u8> {
         self.modal_result
     }
+
+    #[must_use]
+    pub fn remembered_path(&self) -> &Path {
+        &self.remembered_path
+    }
+
+    /// Ports Ghidra function `FUN_013fa220` at `0x013FA220`.
+    ///
+    /// The recovered `FltForm.OnShow` handler returns without reading or
+    /// changing state. The iced lifecycle adapter therefore has no effect.
+    pub const fn on_show(&mut self) {}
 
     /// Reimplements Ghidra function `FUN_013f9d40` at `0x013F9D40`.
     ///
@@ -324,6 +350,35 @@ mod tests {
             6,
             mode,
         )
+    }
+
+    #[test]
+    fn form_create_clones_both_groups_and_builds_the_initial_grid() -> Result<(), FaultEditorError>
+    {
+        let window = window(ApplicationMode::Normal)?;
+
+        assert_eq!(window.caller_choices().group_one, [0, 1]);
+        assert_eq!(window.caller_choices().group_two, [2]);
+        assert_eq!(window.staged_choices(), window.caller_choices());
+        assert_eq!(window.grid_rows.len(), 5);
+        assert_eq!(window.remembered_path(), Path::new("noname.flt"));
+        assert_eq!(window.selected_cell, (0, 1));
+        Ok(())
+    }
+
+    #[test]
+    fn form_show_is_a_no_op() -> Result<(), FaultEditorError> {
+        let mut window = window(ApplicationMode::Normal)?;
+        let staged_choices = window.staged_choices().clone();
+        let grid_rows = window.grid_rows.clone();
+
+        drop(window.update(Message::Shown));
+
+        assert_eq!(window.staged_choices(), &staged_choices);
+        assert_eq!(window.grid_rows, grid_rows);
+        assert_eq!(window.remembered_path(), Path::new("noname.flt"));
+        assert!(window.last_error.is_none());
+        Ok(())
     }
 
     #[test]

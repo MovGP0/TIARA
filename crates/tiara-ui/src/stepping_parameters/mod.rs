@@ -85,6 +85,23 @@ impl Frame {
         self.error_latched = true;
     }
 
+    /// Routes a start or end float-edit error through the first-error latch.
+    ///
+    /// Ports Ghidra function `FUN_01438970` at `0x01438970`, recovered as the
+    /// shared `ParamStartVal.OnError` and `ParamEndVal.OnError` handler. The
+    /// sender supplies the error text stored at its float-edit message field.
+    pub fn report_float_edit_error(&mut self, message: impl Into<String>) {
+        self.report_first_error(message.into());
+    }
+
+    /// Routes a case-count integer-edit error through the first-error latch.
+    ///
+    /// Ports Ghidra function `FUN_01438990` at `0x01438990`, recovered as
+    /// `ParamPoints.OnError`. The sender supplies its integer-edit error text.
+    pub fn report_integer_edit_error(&mut self, message: impl Into<String>) {
+        self.report_first_error(message.into());
+    }
+
     /// Reimplements Ghidra function `FUN_014386d0` at `0x014386D0`.
     ///
     /// The current edits are read into a result record on every call. Linear
@@ -98,17 +115,17 @@ impl Frame {
         if let Some(value) = parse_number(&self.start) {
             self.working_record.start = value;
         } else {
-            self.report_first_error("Invalid start value".to_owned());
+            self.report_float_edit_error("Invalid start value");
         }
         if let Some(value) = parse_number(&self.end) {
             self.working_record.end = value;
         } else {
-            self.report_first_error("Invalid end value".to_owned());
+            self.report_float_edit_error("Invalid end value");
         }
         if let Ok(value) = self.cases.trim().parse::<u32>() {
             self.working_record.cases = value;
         } else {
-            self.report_first_error("Invalid number of cases".to_owned());
+            self.report_integer_edit_error("Invalid number of cases");
         }
 
         if let Err(error) = self.working_record.validate() {
@@ -357,6 +374,17 @@ mod tests {
         let _ = frame.read_and_validate();
         assert!(frame.has_error());
         assert_eq!(frame.last_error.as_deref(), Some("Invalid start value"));
+    }
+
+    #[test]
+    fn typed_edit_error_routes_share_the_same_first_error_latch() {
+        let mut frame = Frame::new(ParameterStepRecord::defaults("R".to_owned(), 10.0));
+
+        frame.report_float_edit_error("invalid start");
+        frame.report_integer_edit_error("invalid cases");
+
+        assert!(frame.has_error());
+        assert_eq!(frame.last_error.as_deref(), Some("invalid start"));
     }
 
     #[test]

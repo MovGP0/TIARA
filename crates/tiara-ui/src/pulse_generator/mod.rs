@@ -3,6 +3,10 @@
 //! `iced` supplies state, messages, widgets, and tasks. The maintained `rfd`
 //! crate supplies native file dialogs. PSG parsing and writing remain in
 //! `tiara-core` so they can be tested without a window.
+//!
+//! The application shell must still supply the selected pulse sequence and
+//! connect the recovered help context (`0x40A`). This module owns the dialog
+//! state, but it does not own catalog selection or application navigation.
 
 use std::path::{Path, PathBuf};
 
@@ -40,9 +44,11 @@ pub struct LoadOutcome {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    Shown,
     MomentChanged(usize, String),
     LevelChanged(usize, PulseLevel),
     RepeatFromChanged(String),
+    RepeatFromInvalid(String),
     RepeatToggled(bool),
     AddNew,
     RemoveLast,
@@ -94,23 +100,38 @@ struct DialogState {
 
 impl Default for Window {
     fn default() -> Self {
-        let working = PulseSequence::default();
-        Self {
-            original: working.clone(),
-            moment_inputs: moment_inputs(&working),
-            working,
-            repeat: RepeatState::default(),
-            repeat_from_input: "0".to_owned(),
-            file_path: None,
-            dialog: DialogState::default(),
-            status: None,
-        }
+        Self::new(PulseSequence::default())
     }
 }
 
 impl Window {
+    /// Ports Ghidra function `FUN_013f78b0` at `0x013F78B0`.
+    ///
+    /// The constructor clones caller-owned pulse data into dialog-local state,
+    /// derives the repeat controls, initializes the iced grid buffers, and
+    /// remembers the recovered `noname.psg` file name. `Vec`, `String`, and
+    /// [`PulseSequence`] replace the Delphi-owned list and record copies.
+    #[must_use]
+    pub fn new(working: PulseSequence) -> Self {
+        let repeat_from = working.repeat_from();
+        Self {
+            original: working.clone(),
+            moment_inputs: moment_inputs(&working),
+            working,
+            repeat: RepeatState {
+                enabled: repeat_from != 0,
+                initialized: true,
+            },
+            repeat_from_input: repeat_from.to_string(),
+            file_path: Some(PathBuf::from("noname.psg")),
+            dialog: DialogState::default(),
+            status: None,
+        }
+    }
+
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::Shown => self.on_show(),
             Message::MomentChanged(index, value) => {
                 if index > 0
                     && let Some(input) = self.moment_inputs.get_mut(index)
@@ -124,6 +145,7 @@ impl Window {
                 }
             }
             Message::RepeatFromChanged(value) => self.repeat_from_input = value,
+            Message::RepeatFromInvalid(message) => self.repeat_from_error(&message),
             Message::RepeatToggled(checked) => self.toggle_repeat(checked),
             Message::AddNew => self.add_new(),
             Message::RemoveLast => {
@@ -260,6 +282,22 @@ impl Window {
     pub fn show_settings_error(&mut self, message: &str) {
         self.dialog.error_flag = true;
         self.status = Some(message.to_owned());
+    }
+
+    /// Ports Ghidra function `FUN_013f8f10` at `0x013F8F10`.
+    ///
+    /// The recovered `PsgForm.OnShow` handler returns without reading or
+    /// changing state. The iced lifecycle adapter therefore has no effect.
+    pub const fn on_show(&mut self) {}
+
+    /// Ports Ghidra function `FUN_013f8f80` at `0x013F8F80`.
+    ///
+    /// The recovered `eRepeatFrom.OnError` handler forwards the numeric
+    /// editor's validation text to the shared settings-error presenter. Iced
+    /// stores the text and close veto in window state instead of opening a
+    /// process-global message box.
+    pub fn repeat_from_error(&mut self, message: &str) {
+        self.show_settings_error(message);
     }
 
     /// Ports Ghidra function `FUN_013f8870` at `0x013F8870`.
@@ -504,6 +542,50 @@ mod tests {
     use super::*;
 
     #[test]
+    fn form_create_clones_the_sequence_and_initializes_repeat_and_file_state() {
+        let mut sequence = PulseSequence::default();
+        sequence.append_default();
+        sequence.set_repeat_from(1);
+
+        let window = Window::new(sequence.clone());
+
+        assert_eq!(window.original, sequence);
+        assert_eq!(window.working, sequence);
+        assert_eq!(window.moment_inputs.len(), 2);
+        assert!(window.repeat.enabled);
+        assert!(window.repeat.initialized);
+        assert_eq!(window.repeat_from_input, "1");
+        assert_eq!(window.file_path, Some(PathBuf::from("noname.psg")));
+        assert_eq!(window.editor_rows().len(), BASELINE_ROW_COUNT);
+    }
+
+    #[test]
+    fn form_show_is_a_no_op() {
+        let mut window = Window::default();
+        let working = window.working.clone();
+        let file_path = window.file_path.clone();
+
+        drop(window.update(Message::Shown));
+
+        assert_eq!(window.working, working);
+        assert_eq!(window.file_path, file_path);
+        assert!(window.status.is_none());
+    }
+
+    #[test]
+    fn repeat_error_forwards_editor_text_and_vetoes_one_close() {
+        let mut window = Window::default();
+
+        drop(window.update(Message::RepeatFromInvalid(
+            "Repeat index is invalid".to_owned(),
+        )));
+
+        assert_eq!(window.status.as_deref(), Some("Repeat index is invalid"));
+        assert!(!window.close_query());
+        assert!(window.close_query());
+    }
+
+    #[test]
     fn add_and_remove_rebuild_rows_and_preserve_the_first_point() {
         let mut window = Window::default();
 
@@ -623,6 +705,6 @@ mod tests {
         drop(window.load_selected(None));
 
         assert_eq!(window.working, before);
-        assert!(window.file_path.is_none());
+        assert_eq!(window.file_path, Some(PathBuf::from("noname.psg")));
     }
 }

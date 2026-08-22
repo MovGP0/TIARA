@@ -33,6 +33,12 @@ pub enum AcceptOutcome {
     Saved,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ToleranceErrorOutcome {
+    Displayed,
+    Suppressed,
+}
+
 #[derive(Debug, Clone)]
 pub enum Message {
     DistributionSelected(Distribution),
@@ -74,6 +80,7 @@ pub struct Window {
     recenter_generation: u64,
     validation: ValidationState,
     last_error: Option<AcceptError>,
+    tolerance_control_error: Option<String>,
     record: ToleranceRecord,
 }
 
@@ -84,13 +91,27 @@ impl Default for Window {
 }
 
 impl Window {
+    /// Ports Ghidra function `FUN_013f6290` at `0x013F6290`.
+    ///
+    /// The target distribution and tolerance initialize the controls. An
+    /// existing seven-field General parameter block is copied; otherwise the
+    /// supplied application defaults initialize the staged fields. Iced owns
+    /// the radio group, numeric text, and parameter-grid presentation.
     #[must_use]
     pub fn new(record: ToleranceRecord) -> Self {
+        Self::new_with_defaults(record, GeneralDistributionParameters::default())
+    }
+
+    #[must_use]
+    pub fn new_with_defaults(
+        record: ToleranceRecord,
+        defaults: GeneralDistributionParameters,
+    ) -> Self {
         let general_panel_enabled = record.distribution == Distribution::General;
-        let general_fields = record.general_parameters.as_ref().map_or_else(
-            || std::array::from_fn(|_| String::new()),
-            |parameters| parameters.fields.clone(),
-        );
+        let general_fields = record
+            .general_parameters
+            .as_ref()
+            .map_or_else(|| defaults.fields, |parameters| parameters.fields.clone());
         Self {
             distribution: record.distribution,
             tolerance_input: record.tolerance_percent.to_string(),
@@ -103,6 +124,7 @@ impl Window {
             recenter_generation: 0,
             validation: ValidationState::default(),
             last_error: None,
+            tolerance_control_error: None,
             record,
         }
     }
@@ -197,6 +219,19 @@ impl Window {
         self.validation.grid_commit_valid = valid;
     }
 
+    /// Ports Ghidra function `FUN_013f67c0` at `0x013F67C0`.
+    ///
+    /// The numeric control's supplied validation text is exposed once. Later
+    /// control errors are suppressed for the lifetime of this dialog, matching
+    /// the recovered one-shot error guard.
+    pub fn tolerance_error(&mut self, message: impl Into<String>) -> ToleranceErrorOutcome {
+        if self.tolerance_control_error.is_some() {
+            return ToleranceErrorOutcome::Suppressed;
+        }
+        self.tolerance_control_error = Some(message.into());
+        ToleranceErrorOutcome::Displayed
+    }
+
     #[must_use]
     pub const fn record(&self) -> &ToleranceRecord {
         &self.record
@@ -225,6 +260,11 @@ impl Window {
     #[must_use]
     pub const fn modal_accepted(&self) -> bool {
         self.validation.modal_accepted
+    }
+
+    #[must_use]
+    pub fn tolerance_control_error(&self) -> Option<&str> {
+        self.tolerance_control_error.as_deref()
     }
 
     #[must_use]
@@ -275,6 +315,9 @@ impl Window {
                 AcceptError::GridCommitFailed => "Correct the active parameter value.",
                 AcceptError::InvalidTolerance => "Enter a finite tolerance value.",
             }));
+        }
+        if let Some(error) = &self.tolerance_control_error {
+            controls = controls.push(text(error));
         }
         controls = controls.push(button("OK").on_press(Message::Accept));
 
@@ -391,5 +434,44 @@ mod tests {
             assert_eq!(window.record, original);
             assert!(!window.close_query());
         }
+    }
+
+    #[test]
+    fn create_uses_supplied_general_defaults_when_record_has_no_parameter_block() {
+        let defaults = GeneralDistributionParameters {
+            fields: std::array::from_fn(|index| format!("default-{index}")),
+        };
+        let window = Window::new_with_defaults(
+            ToleranceRecord {
+                distribution: Distribution::Gaussian,
+                tolerance_percent: 5.5,
+                general_parameters: None,
+            },
+            defaults,
+        );
+
+        assert_eq!(window.distribution, Distribution::Gaussian);
+        assert_eq!(window.tolerance_input, "5.5");
+        assert_eq!(window.general_fields[0], "default-0");
+        assert_eq!(window.general_fields[6], "default-6");
+        assert!(!window.general_panel_enabled());
+    }
+
+    #[test]
+    fn tolerance_control_error_is_exposed_only_once() {
+        let mut window = Window::default();
+
+        assert_eq!(
+            window.tolerance_error("First numeric error"),
+            ToleranceErrorOutcome::Displayed
+        );
+        assert_eq!(
+            window.tolerance_error("Later numeric error"),
+            ToleranceErrorOutcome::Suppressed
+        );
+        assert_eq!(
+            window.tolerance_control_error(),
+            Some("First numeric error")
+        );
     }
 }

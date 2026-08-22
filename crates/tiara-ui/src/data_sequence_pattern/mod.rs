@@ -2,7 +2,11 @@ use iced::widget::{button, column, container, radio, row, text, text_input};
 use iced::{Alignment, Element, Length, Task};
 use tiara_core::data_pattern::{PatternDescriptor, PatternMethod, PatternWidth};
 
+use crate::data_sequence_help::{HelpAdapter, HelpDispatch, dispatch_help};
+
 pub const TITLE: &str = "Fill";
+pub const ENTER_HEX_VALUE_PROMPT: &str = "Enter hex value";
+pub const ENTER_HEX_VALUE_RESOURCE_KEY: &str = "HDLStrings.Msg_EnterHexValue";
 const NOT_ASSIGNED: &str = "Not Assigned";
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -22,6 +26,7 @@ pub struct DialogFormats {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EditorState {
     text: String,
+    placeholder: String,
     enabled: bool,
     tab_stop: bool,
 }
@@ -30,6 +35,11 @@ impl EditorState {
     #[must_use]
     pub fn text(&self) -> &str {
         &self.text
+    }
+
+    #[must_use]
+    pub fn placeholder(&self) -> &str {
+        &self.placeholder
     }
 
     #[must_use]
@@ -50,11 +60,13 @@ impl EditorState {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    Shown,
     MethodSelected(PatternMethod),
     InitialChanged(String),
     StepChanged(String),
     LimitChanged(String),
     Ok,
+    Help,
     CloseRequested,
 }
 
@@ -71,6 +83,8 @@ pub struct Window {
     accepted: bool,
     last_error: Option<String>,
     last_close_allowed: Option<bool>,
+    help_context: u16,
+    help_requested: bool,
 }
 
 impl Window {
@@ -84,16 +98,19 @@ impl Window {
             formats,
             initial: EditorState {
                 text: String::new(),
+                placeholder: String::new(),
                 enabled: false,
                 tab_stop: false,
             },
             step: EditorState {
                 text: String::new(),
+                placeholder: String::new(),
                 enabled: false,
                 tab_stop: false,
             },
             limit: EditorState {
                 text: String::new(),
+                placeholder: String::new(),
                 enabled: false,
                 tab_stop: false,
             },
@@ -101,13 +118,16 @@ impl Window {
             accepted: false,
             last_error: None,
             last_close_allowed: None,
+            help_context: 0,
+            help_requested: false,
         };
-        window.refresh_method_controls();
+        window.show();
         window
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::Shown => self.show(),
             Message::MethodSelected(method) => self.method_clicked(method),
             Message::InitialChanged(value) => self.initial.text = value,
             Message::StepChanged(value) => self.step.text = value,
@@ -115,12 +135,54 @@ impl Window {
             Message::Ok => {
                 self.try_accept();
             }
+            Message::Help => self.help_requested = true,
             Message::CloseRequested => {
                 self.last_close_allowed = Some(self.query_close());
             }
         }
 
         Task::none()
+    }
+
+    /// Shows the window with the English fallback for the recovered prompt.
+    pub fn show(&mut self) {
+        self.show_with_prompt(ENTER_HEX_VALUE_PROMPT);
+    }
+
+    /// Ports Ghidra function `FUN_0140c7c0` at `0x0140C7C0`.
+    ///
+    /// Applies the host-localized `HDLStrings.Msg_EnterHexValue` prompt to all
+    /// three editors, restores the staged method selection, and refreshes
+    /// method-dependent text, enabled state, and tab order on every show.
+    pub fn show_with_prompt(&mut self, prompt: &str) {
+        for editor in [&mut self.initial, &mut self.step, &mut self.limit] {
+            prompt.clone_into(&mut editor.placeholder);
+            editor.set_available(true);
+        }
+        self.selected_method = self.descriptor.method;
+        self.accepted = false;
+        self.refresh_method_controls();
+    }
+
+    pub const fn set_help_context(&mut self, context: u16) {
+        self.help_context = context;
+    }
+
+    pub const fn take_help_request(&mut self) -> Option<u16> {
+        if self.help_requested {
+            self.help_requested = false;
+            Some(self.help_context)
+        } else {
+            None
+        }
+    }
+
+    /// Ports Ghidra function `FUN_0140c9d0` at `0x0140C9D0`.
+    ///
+    /// Suppresses default VCL help and delegates the Help button context to the
+    /// application help adapter. The recovered handler always reports handled.
+    pub fn show_help(&self, adapter: &mut impl HelpAdapter) -> HelpDispatch {
+        dispatch_help(self.help_context, adapter)
     }
 
     /// Implements the numeric-edit responsibility recovered from Ghidra
@@ -292,19 +354,9 @@ impl Window {
         );
 
         let editors = column![
-            editor_row(
-                "Initial",
-                &self.initial,
-                "Enter value",
-                Message::InitialChanged,
-            ),
-            editor_row(
-                "Increment/decrement",
-                &self.step,
-                "Enter value",
-                Message::StepChanged,
-            ),
-            editor_row("Limit", &self.limit, "Enter value", Message::LimitChanged,),
+            editor_row("Initial", &self.initial, Message::InitialChanged,),
+            editor_row("Increment/decrement", &self.step, Message::StepChanged,),
+            editor_row("Limit", &self.limit, Message::LimitChanged),
         ]
         .spacing(8);
 
@@ -313,6 +365,7 @@ impl Window {
             row![methods, editors].spacing(20).align_y(Alignment::Start),
             row![
                 button("OK").on_press(Message::Ok),
+                button("Help").on_press(Message::Help),
                 button("Close").on_press(Message::CloseRequested),
             ]
             .spacing(8),
@@ -340,10 +393,9 @@ impl Window {
 fn editor_row<'a>(
     label: &'a str,
     editor: &'a EditorState,
-    placeholder: &'a str,
     on_input: fn(String) -> Message,
 ) -> Element<'a, Message> {
-    let input = text_input(placeholder, &editor.text).width(Length::Fixed(180.0));
+    let input = text_input(&editor.placeholder, &editor.text).width(Length::Fixed(180.0));
     let input = if editor.enabled {
         input.on_input(on_input)
     } else {
@@ -390,8 +442,71 @@ fn format_number(value: u32, format: NumberFormat, width: PatternWidth) -> Strin
 mod tests {
     use super::*;
 
+    #[derive(Default)]
+    struct Help {
+        contexts: Vec<u16>,
+    }
+
+    impl HelpAdapter for Help {
+        fn open_context(&mut self, context: u16) {
+            self.contexts.push(context);
+        }
+    }
+
     fn width(bits: u32) -> PatternWidth {
         PatternWidth::new(bits).unwrap()
+    }
+
+    #[test]
+    fn fun_0140c7c0_show_restores_method_prompt_and_count_editors() {
+        let descriptor = PatternDescriptor {
+            method: PatternMethod::CountUp,
+            step: 3,
+            limit: 9,
+            ..PatternDescriptor::default()
+        };
+        let mut window = Window::new(descriptor, width(8), DialogFormats::default());
+        window.selected_method = PatternMethod::FillOne;
+        window.step.text = "changed".to_owned();
+
+        window.show_with_prompt("Localized hex prompt");
+
+        assert_eq!(window.selected_method(), PatternMethod::CountUp);
+        assert_eq!(
+            window.initial_editor().placeholder(),
+            "Localized hex prompt"
+        );
+        assert_eq!(window.step_editor().placeholder(), "Localized hex prompt");
+        assert_eq!(window.limit_editor().placeholder(), "Localized hex prompt");
+        assert_eq!(window.step_editor().text(), "03");
+        assert!(window.initial_editor().is_enabled());
+        assert!(window.step_editor().is_in_tab_order());
+        assert!(window.limit_editor().is_enabled());
+    }
+
+    #[test]
+    fn fun_0140c9d0_help_uses_context_and_suppresses_default_handling() {
+        let mut window = Window::new(
+            PatternDescriptor::default(),
+            width(8),
+            DialogFormats::default(),
+        );
+        window.set_help_context(27);
+        let mut help = Help::default();
+
+        let dispatch = window.show_help(&mut help);
+        drop(window.update(Message::Help));
+
+        assert_eq!(help.contexts, [27]);
+        assert_eq!(
+            dispatch,
+            HelpDispatch {
+                handled: true,
+                call_default_handler: false,
+            }
+        );
+        assert_eq!(window.take_help_request(), Some(27));
+        assert_eq!(window.take_help_request(), None);
     }
 
     #[test]

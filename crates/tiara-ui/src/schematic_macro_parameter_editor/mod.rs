@@ -2,6 +2,8 @@ use iced::widget::{button, column, container, row, scrollable, text, text_input}
 use iced::{Element, Length, Task};
 use tiara_core::parameter_editor::{ParameterEditorError, ParameterRow, serialize_schematic_rows};
 
+use crate::macro_parameter_editor_lifecycle::{LifecycleAdapter, initialize_vertical_resize};
+
 pub const TITLE: &str = "Schematic macro parameters";
 pub const FORM_RESOURCE: &str = "frmSchMacroParamEditor";
 
@@ -35,6 +37,14 @@ impl Window {
             modal_result: None,
             last_error: None,
         }
+    }
+
+    /// Ports Ghidra function `FUN_0141be20` at `0x0141BE20`.
+    ///
+    /// The form fixes its current width and uses its current height as the
+    /// minimum. It therefore remains vertically resizable but cannot shrink.
+    pub fn initialize_lifecycle(&self, adapter: &mut impl LifecycleAdapter) {
+        initialize_vertical_resize(adapter);
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
@@ -169,7 +179,49 @@ impl Window {
 
 #[cfg(test)]
 mod tests {
+    use iced::Size;
+
     use super::*;
+    use crate::macro_parameter_editor_lifecycle::ResizeConstraints;
+
+    struct RecordingLifecycle {
+        size: Size,
+        constraints: Vec<ResizeConstraints>,
+        help_context_calls: usize,
+    }
+
+    impl LifecycleAdapter for RecordingLifecycle {
+        fn current_size(&self) -> Size {
+            self.size
+        }
+
+        fn apply_resize_constraints(&mut self, constraints: ResizeConstraints) {
+            self.constraints.push(constraints);
+        }
+
+        fn set_help_context(&mut self, _help_context: u32) {
+            self.help_context_calls += 1;
+        }
+    }
+
+    #[test]
+    fn form_create_applies_only_the_recovered_vertical_resize_constraints() {
+        let window = Window::new(Vec::new(), String::new());
+        let mut lifecycle = RecordingLifecycle {
+            size: Size::new(519.0, 282.0),
+            constraints: Vec::new(),
+            help_context_calls: 0,
+        };
+
+        window.initialize_lifecycle(&mut lifecycle);
+
+        assert_eq!(lifecycle.constraints.len(), 1);
+        let constraints = lifecycle.constraints[0];
+        assert!((constraints.minimum_size.width - 519.0).abs() <= f32::EPSILON);
+        assert!((constraints.minimum_size.height - 282.0).abs() <= f32::EPSILON);
+        assert!((constraints.maximum_width - 519.0).abs() <= f32::EPSILON);
+        assert_eq!(lifecycle.help_context_calls, 0);
+    }
 
     #[test]
     fn add_appends_a_cleared_row_without_selecting_or_accepting() {

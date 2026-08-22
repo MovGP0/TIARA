@@ -17,8 +17,12 @@ use tiara_core::data_sequence_generator::{
 };
 use tiara_core::hexadecimal_text_file::load_hexadecimal_u16_file;
 
+use crate::data_sequence_help::{HelpAdapter, HelpDispatch, dispatch_help};
+
 pub const TITLE: &str = "Data Generator";
 pub const FORM_RESOURCE: &str = "DataSeq";
+pub const TEXT_FILE_FILTER_NAME: &str = "Text file";
+pub const TEXT_FILE_EXTENSION: &str = "txt";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EditorCommitResult {
@@ -47,6 +51,7 @@ pub struct LoadOutcome {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    Shown,
     GridValueChanged(usize, String),
     ModeSelected(DataRepresentation),
     PatternLowChanged(String),
@@ -62,6 +67,8 @@ pub enum Message {
     LoadCompleted(LoadOutcome),
     Accept(EditorCommitResult),
     AlternateOperationFinished(AlternateOperationResult),
+    StepTimeError(String),
+    Help,
     CloseQuery,
     Cancel,
 }
@@ -85,10 +92,16 @@ pub struct Window {
     last_close_allowed: Option<bool>,
     modal_result: Option<u8>,
     schedule_refresh_count: usize,
+    help_context: u16,
+    pending_help_context: Option<u16>,
 }
 
 impl Window {
+    /// Ports Ghidra function `FUN_0140dfd0` at `0x0140DFD0`.
+    ///
     /// Creates form-local staging state from a caller-owned `DataSeq` record.
+    /// Rust `Clone` and `Vec` provide the recovered fixed-record and word-buffer
+    /// copies. The maintained `rfd` picker supplies the text-file filter.
     ///
     /// # Errors
     ///
@@ -113,6 +126,8 @@ impl Window {
             last_close_allowed: None,
             modal_result: None,
             schedule_refresh_count: 0,
+            help_context: 0,
+            pending_help_context: None,
         };
         window.rebuild_grid()?;
         window.initialization_complete = true;
@@ -121,6 +136,7 @@ impl Window {
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::Shown => self.show(),
             Message::GridValueChanged(index, value) => {
                 if let Some(input) = self.grid_values.get_mut(index) {
                     *input = value;
@@ -146,6 +162,8 @@ impl Window {
                     self.modal_result = Some(1);
                 }
             }
+            Message::StepTimeError(error) => self.report_step_time_error(error),
+            Message::Help => self.pending_help_context = Some(self.help_context),
             Message::CloseQuery => {
                 self.last_close_allowed = Some(self.query_close());
             }
@@ -153,6 +171,37 @@ impl Window {
         }
 
         Task::none()
+    }
+
+    /// Ports Ghidra function `FUN_0140e8a0` at `0x0140E8A0`.
+    ///
+    /// Selects grid cell `(1,1)` whenever the Data Generator window is shown.
+    pub const fn show(&mut self) {
+        self.selected_cell = (1, 1);
+    }
+
+    /// Ports Ghidra function `FUN_0140e930` at `0x0140E930`.
+    ///
+    /// Reports the float editor's supplied error text through the shared
+    /// one-error guard. Later errors in the same attempt remain suppressed.
+    pub fn report_step_time_error(&mut self, error: String) {
+        self.record_error_text(error);
+    }
+
+    pub const fn set_help_context(&mut self, context: u16) {
+        self.help_context = context;
+    }
+
+    pub const fn take_help_request(&mut self) -> Option<u16> {
+        self.pending_help_context.take()
+    }
+
+    /// Ports Ghidra function `FUN_0140f470` at `0x0140F470`.
+    ///
+    /// Suppresses default VCL help and delegates the Help button context to the
+    /// application help adapter. The recovered handler always reports handled.
+    pub fn show_help(&self, adapter: &mut impl HelpAdapter) -> HelpDispatch {
+        dispatch_help(self.help_context, adapter)
     }
 
     #[must_use]
@@ -423,10 +472,10 @@ impl Window {
     }
 
     fn record_error_text(&mut self, error: String) {
-        self.error_flag = true;
-        if self.status.is_none() {
+        if !self.error_flag {
             self.status = Some(error);
         }
+        self.error_flag = true;
     }
 
     #[must_use]
@@ -456,6 +505,7 @@ impl Window {
             button("Fill...").on_press(Message::BeginFill),
             button("Load").on_press(Message::Load),
             button("OK").on_press(Message::Accept(EditorCommitResult::Accepted)),
+            button("Help").on_press(Message::Help),
             button("Cancel").on_press(Message::Cancel),
         ]
         .spacing(8);
@@ -537,7 +587,7 @@ fn input_row<'a>(
 
 async fn select_text_file() -> Option<PathBuf> {
     AsyncFileDialog::new()
-        .add_filter("Text file", &["txt"])
+        .add_filter(TEXT_FILE_FILTER_NAME, &[TEXT_FILE_EXTENSION])
         .pick_file()
         .await
         .map(|handle| handle.path().to_path_buf())
@@ -558,6 +608,17 @@ mod tests {
     use tiara_core::data_pattern::{PatternDescriptor, PatternMethod};
 
     use super::*;
+
+    #[derive(Default)]
+    struct Help {
+        contexts: Vec<u16>,
+    }
+
+    impl HelpAdapter for Help {
+        fn open_context(&mut self, context: u16) {
+            self.contexts.push(context);
+        }
+    }
 
     fn record() -> DataSequenceRecord {
         DataSequenceRecord {
@@ -583,6 +644,82 @@ mod tests {
 
     fn window() -> Result<Window, DataSequenceError> {
         Window::new(record())
+    }
+
+    #[test]
+    fn fun_0140dfd0_create_clones_record_and_builds_the_initial_grid()
+    -> Result<(), DataSequenceError> {
+        let window = window()?;
+
+        assert_eq!(window.working_record(), &record());
+        assert_eq!(window.caller_record(), &record());
+        assert_eq!(window.grid_values, ["01", "02", "03", "04"]);
+        assert_eq!(window.pattern_low, "1");
+        assert_eq!(window.pattern_high, "2");
+        assert_eq!(window.simulation_start, "0");
+        assert_eq!(window.simulation_stop, "3");
+        assert_eq!(window.step_time, "0.5");
+        assert!(window.initialization_complete);
+        assert!(!window.error_flag);
+        Ok(())
+    }
+
+    #[test]
+    fn fun_0140e8a0_show_selects_cell_one_one() -> Result<(), DataSequenceError> {
+        let mut window = window()?;
+        window.selected_cell = (3, 0);
+
+        window.show();
+
+        assert_eq!(window.selected_cell, (1, 1));
+        Ok(())
+    }
+
+    #[test]
+    fn fun_0140e930_reports_only_the_first_error_in_one_attempt() -> Result<(), DataSequenceError> {
+        let mut window = window()?;
+
+        window.report_step_time_error("first".to_owned());
+        window.report_step_time_error("second".to_owned());
+
+        assert_eq!(window.status.as_deref(), Some("first"));
+        assert!(!window.query_close());
+        window.report_step_time_error("third".to_owned());
+        assert_eq!(window.status.as_deref(), Some("third"));
+        Ok(())
+    }
+
+    #[test]
+    fn fun_0140e650_close_query_consumes_one_error_veto() -> Result<(), DataSequenceError> {
+        let mut window = window()?;
+        window.report_step_time_error("invalid step".to_owned());
+
+        assert!(!window.query_close());
+        assert!(window.query_close());
+        Ok(())
+    }
+
+    #[test]
+    fn fun_0140f470_help_uses_context_and_suppresses_default_handling()
+    -> Result<(), DataSequenceError> {
+        let mut window = window()?;
+        window.set_help_context(41);
+        let mut help = Help::default();
+
+        let dispatch = window.show_help(&mut help);
+        drop(window.update(Message::Help));
+
+        assert_eq!(help.contexts, [41]);
+        assert_eq!(
+            dispatch,
+            HelpDispatch {
+                handled: true,
+                call_default_handler: false,
+            }
+        );
+        assert_eq!(window.take_help_request(), Some(41));
+        assert_eq!(window.take_help_request(), None);
+        Ok(())
     }
 
     #[test]

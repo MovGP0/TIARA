@@ -224,6 +224,12 @@ impl Default for Window {
 }
 
 impl Window {
+    /// Ports Ghidra function `FUN_01476760` at `0x01476760`.
+    ///
+    /// The recovered form-create event returns without reading or writing any
+    /// dialog, interpreter, or application state.
+    pub const fn form_create() {}
+
     pub fn update(&mut self, message: Message) {
         match message {
             Message::NumericalNotationSelected(value) => {
@@ -324,6 +330,22 @@ impl Window {
             self.first_error = Some(message.into());
         }
         self.validation_error = true;
+    }
+
+    /// Ports Ghidra function `FUN_014769c0` at `0x014769C0`.
+    ///
+    /// The float editor supplies its own formatted error text. The dialog
+    /// forwards that text to the shared first-error guard.
+    pub fn float_edit_error(&mut self, editor_error: impl Into<String>) {
+        self.report_first_error(editor_error);
+    }
+
+    /// Ports Ghidra function `FUN_014769e0` at `0x014769E0`.
+    ///
+    /// Both integer editors supply their formatted error text to the same
+    /// first-error guard used by the float editor.
+    pub fn integer_edit_error(&mut self, editor_error: impl Into<String>) {
+        self.report_first_error(editor_error);
     }
 
     /// Ports Ghidra function `FUN_01476a00` at `0x01476A00`.
@@ -626,5 +648,17 @@ mod tests {
         window.report_first_error("third");
 
         assert_eq!(window.first_error(), Some("third"));
+    }
+
+    #[test]
+    fn recovered_create_and_editor_error_events_share_the_first_error_guard() {
+        Window::form_create();
+        let mut window = Window::default();
+        window.float_edit_error("float editor message");
+        window.integer_edit_error("integer editor message");
+        assert_eq!(window.first_error(), Some("float editor message"));
+        assert!(!window.form_close_query());
+        window.integer_edit_error("integer editor message");
+        assert_eq!(window.first_error(), Some("integer editor message"));
     }
 }

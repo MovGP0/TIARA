@@ -1,4 +1,5 @@
 pub mod ac_goal_functions;
+pub mod ac_time_function_dialog;
 pub mod add_curve;
 pub mod advanced_analysis_options;
 pub mod analysis_mode_range;

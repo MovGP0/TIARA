@@ -18,6 +18,7 @@ use tiara_core::numeric_format::{format_display_value, parse_engineering_number}
 
 pub const TITLE: &str = "Noise Analysis";
 pub const FORM_RESOURCE: &str = "NoiseAnalDlg";
+pub const HELP_CONTEXT: u32 = 0x45F;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NoiseDiagram {
@@ -237,9 +238,16 @@ pub struct Window {
     close_guard: CloseGuard,
     first_error: Option<ValidationError>,
     modal_result: Option<ModalResult>,
+    help_context: u32,
 }
 
 impl Window {
+    /// Ports Ghidra function `FUN_014f4e50` at `0x014F4E50`.
+    ///
+    /// The constructor copies the selected Noise Analysis record into the
+    /// embedded frame's iced state and assigns help context `0x45F`. The
+    /// application shell supplies the selected record and the integer editor's
+    /// recovered-but-unnamed bounds.
     #[must_use]
     pub fn new(settings: NoiseSettings, point_bounds: PointBounds) -> Self {
         Self {
@@ -255,6 +263,7 @@ impl Window {
             close_guard: CloseGuard::default(),
             first_error: None,
             modal_result: None,
+            help_context: HELP_CONTEXT,
         }
     }
 
@@ -411,6 +420,11 @@ impl Window {
     }
 
     #[must_use]
+    pub const fn help_context(&self) -> u32 {
+        self.help_context
+    }
+
+    #[must_use]
     pub fn view(&self) -> Element<'_, Message> {
         let mut diagram_controls = column![text("Diagrams")].spacing(4);
         for diagram in NoiseDiagram::ALL {
@@ -491,6 +505,21 @@ mod tests {
             panic!("test bounds must be ordered");
         };
         Window::new(settings(), bounds)
+    }
+
+    #[test]
+    fn form_create_loads_the_selected_record_and_help_context() {
+        let selected = settings();
+
+        let window = window();
+
+        assert_eq!(window.committed(), &selected);
+        assert_eq!(window.help_context(), HELP_CONTEXT);
+        assert_eq!(window.edits.start_frequency, "10");
+        assert_eq!(window.edits.end_frequency, "1k");
+        assert_eq!(window.edits.point_count, "100");
+        assert_eq!(window.edits.signal_amplitude, "1");
+        assert_eq!(window.diagrams, selected.diagrams);
     }
 
     #[test]

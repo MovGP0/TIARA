@@ -8,18 +8,25 @@
 //! state-management, parser, or platform crate is needed at this boundary.
 
 mod adapters;
+pub mod confirmation_dialog;
 mod editor;
+pub mod options_dialog;
+
+pub use confirmation_dialog::{
+    CloseConfirmationDialog, CloseConfirmationMessage, CloseConfirmationResult,
+};
+pub use options_dialog::{DesignToolOptionValues, OptionsDialog, OptionsMessage};
 
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 
 use adapters::{
-    DesignToolClipboard, DesignToolDocument, DesignToolHost, DesignToolParser, DesignToolStorage,
-    ExecutionMode, ExecutionRequest, Interface, Notice, ParameterRecord, PopupAnchor,
-    SessionSnapshot, SymbolTableRequest,
+    DesignToolClipboard, DesignToolDocument, DesignToolGeometry, DesignToolHost,
+    DesignToolLifecycleHost, DesignToolParser, DesignToolStorage, ExecutionMode, ExecutionRequest,
+    Interface, Notice, ParameterRecord, PopupAnchor, SessionSnapshot, SymbolTableRequest,
 };
 use editor::{ProgramEditor, TerminalState};
-use iced::widget::{button, checkbox, column, radio, row, text, text_editor, text_input};
+use iced::widget::{button, column, row, text, text_editor, text_input};
 use iced::{Element, Length};
 use tiara_core::global_parameters::{GlobalParameterRow, validate_global_parameter_rows};
 
@@ -31,7 +38,18 @@ pub const SCREENSHOT: &str = "screenshots/Design_Tool_Window.png";
 pub const FORM_RESOURCE: &str = "frmDesignTool";
 pub const ORIGINAL_FUNCTION: Option<&str> = Some("01493a30");
 pub const LIBRARY_EVALUATION: &str = "iced supplies the text editor and message-driven UI; std supplies paths and text containers; tiara-core global-parameter validation and the existing numerical-format editor are composed; application parsing, encoding-aware storage, mode-aware clipboard, execution, popup, schematic formatting, and symbol-table behavior use typed adapters.";
+pub const HELP_CONTEXT: u32 = 0x4a9;
+pub const PARAMETER_HEADERS: [&str; 5] = ["Parameter", "Value", "Min", "Max", "Comment"];
 const STATUS: &str = "Successfully compiled";
+const LIFECYCLE_ACTIVE: u8 = 1;
+const LIFECYCLE_RESOURCES: u8 = 1 << 1;
+const LIFECYCLE_TIMER: u8 = 1 << 2;
+const LIFECYCLE_INTERPRETER: u8 = 1 << 3;
+const LIFECYCLE_SHOWN: u8 = 1 << 4;
+const IDLE_UNDO: u8 = 1;
+const IDLE_CUT: u8 = 1 << 1;
+const IDLE_COPY: u8 = 1 << 2;
+const IDLE_PASTE: u8 = 1 << 3;
 const MENUS: &[(&str, &[&str])] = &[
     ("File", &["New", "Open...", "Save", "Save As...", "Close"]),
     ("Edit", &["Undo", "Cut", "Copy", "Paste", "Select All"]),
@@ -187,6 +205,100 @@ pub enum DeleteRowOutcome {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CloseAction {
+    Free,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MouseButton {
+    Left,
+    Right,
+    Middle,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CellAlignment {
+    Left,
+    Center,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CellTone {
+    Header,
+    Data,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SortDirection {
+    None,
+    Ascending,
+    Descending,
+}
+
+impl SortDirection {
+    const fn next(self) -> Self {
+        match self {
+            Self::None => Self::Ascending,
+            Self::Ascending => Self::Descending,
+            Self::Descending => Self::None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ParameterCellPresentation {
+    pub alignment: CellAlignment,
+    pub tone: CellTone,
+    pub sort_direction: SortDirection,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct CaretStatus {
+    pub line: usize,
+    pub column: usize,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct IdleActionState(u8);
+
+impl IdleActionState {
+    #[must_use]
+    pub const fn undo(self) -> bool {
+        self.0 & IDLE_UNDO != 0
+    }
+
+    #[must_use]
+    pub const fn cut(self) -> bool {
+        self.0 & IDLE_CUT != 0
+    }
+
+    #[must_use]
+    pub const fn copy(self) -> bool {
+        self.0 & IDLE_COPY != 0
+    }
+
+    #[must_use]
+    pub const fn paste(self) -> bool {
+        self.0 & IDLE_PASTE != 0
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ParameterSortState {
+    column: usize,
+    direction: SortDirection,
+}
+
+impl Default for ParameterSortState {
+    fn default() -> Self {
+        Self {
+            column: 0,
+            direction: SortDirection::None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PendingAction {
     OpenBackground,
     DeleteRow,
@@ -279,6 +391,7 @@ impl Default for LicenseState {
 
 #[derive(Debug)]
 pub struct Window {
+    caption: String,
     title: String,
     parameters: ParameterTable,
     program: ProgramEditor,
@@ -293,12 +406,22 @@ pub struct Window {
     session: SessionState,
     options: ToolOptionState,
     license: LicenseState,
+    geometry: DesignToolGeometry,
+    parameter_column_widths: [i32; 5],
+    parameter_sort: ParameterSortState,
+    caret_status: CaretStatus,
+    idle_actions: IdleActionState,
+    lifecycle_flags: u8,
+    more_caption: String,
+    python_available: bool,
+    close_action: Option<CloseAction>,
     pending_action: Option<PendingAction>,
 }
 
 impl Default for Window {
     fn default() -> Self {
         Self {
+            caption: TITLE.to_owned(),
             title: "Noname".to_owned(),
             parameters: ParameterTable::default(),
             program: ProgramEditor::default(),
@@ -313,6 +436,21 @@ impl Default for Window {
             session: SessionState::default(),
             options: ToolOptionState::default(),
             license: LicenseState::default(),
+            geometry: DesignToolGeometry {
+                client_width: 800,
+                client_height: 600,
+                parameter_grid_height: 220,
+                simple_panel_height: 220,
+                advanced_panel_height: 380,
+            },
+            parameter_column_widths: [0; 5],
+            parameter_sort: ParameterSortState::default(),
+            caret_status: CaretStatus::default(),
+            idle_actions: IdleActionState::default(),
+            lifecycle_flags: 0,
+            more_caption: "More".to_owned(),
+            python_available: false,
+            close_action: None,
             pending_action: None,
         }
     }
@@ -339,6 +477,265 @@ impl Window {
             }
             Message::CommandSelected => {}
         }
+    }
+
+    /// Ports Ghidra function `FUN_01494080` at `0x01494080`.
+    ///
+    /// The host acquires runtime, dialog, parser, and interpreter resources and
+    /// returns one typed snapshot. The UI retains owned values, assigns help
+    /// context `0x4A9`, initializes localized column identities, marks the
+    /// application session active, and calculates the initial grid layout.
+    ///
+    /// # Errors
+    ///
+    /// Returns the startup or active-state publication error. A failed active
+    /// publication releases resources acquired by the startup call.
+    pub fn form_create(&mut self, host: &mut impl DesignToolLifecycleHost) -> Result<(), String> {
+        let startup = host.load_startup()?;
+        if let Err(error) = host.set_active(true) {
+            host.release_resources();
+            return Err(error);
+        }
+        self.title = startup.title;
+        self.program.replace_text(startup.source, false);
+        self.parameters.replace_records(startup.parameters);
+        self.interface = startup.interface;
+        self.numerical = startup.numerical;
+        self.terminal.replace_text(startup.terminal_text);
+        self.geometry = startup.geometry;
+        self.lifecycle_flags = LIFECYCLE_ACTIVE | LIFECYCLE_RESOURCES | LIFECYCLE_TIMER;
+        if startup.interpreter_active {
+            self.lifecycle_flags |= LIFECYCLE_INTERPRETER;
+        }
+        self.parameter_sort = ParameterSortState::default();
+        self.form_resize(self.geometry.client_width);
+        Ok(())
+    }
+
+    /// Ports Ghidra function `FUN_014939f0` at `0x014939F0`.
+    ///
+    /// The timer is one-shot. It disables itself and requests an interpreter
+    /// stop only when creation supplied an active interpreter.
+    pub fn timer_elapsed(&mut self, host: &mut impl DesignToolLifecycleHost) {
+        self.set_lifecycle_flag(LIFECYCLE_TIMER, false);
+        if self.lifecycle_flag(LIFECYCLE_INTERPRETER) {
+            host.stop_interpreter();
+        }
+    }
+
+    /// Ports Ghidra function `FUN_01494ee0` at `0x01494EE0`.
+    ///
+    /// Show-time localization and Python availability remain host concerns.
+    /// The returned values are retained as ordinary iced view state.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when localization or selected-interface preparation fails.
+    pub fn form_show(&mut self, host: &mut impl DesignToolLifecycleHost) -> Result<(), String> {
+        let show = host.prepare_show(self.interface)?;
+        self.caption = show.title;
+        self.more_caption = show.more_caption;
+        self.python_available = show.python_available;
+        self.set_lifecycle_flag(LIFECYCLE_SHOWN, true);
+        Ok(())
+    }
+
+    /// Ports Ghidra function `FUN_01495040` at `0x01495040`.
+    ///
+    /// All application-owned resources acquired during creation are released
+    /// once. The active-session flag is cleared even when its host publication
+    /// fails.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the host cannot publish the inactive state.
+    pub fn form_destroy(&mut self, host: &mut impl DesignToolLifecycleHost) -> Result<(), String> {
+        let was_active = self.lifecycle_flag(LIFECYCLE_ACTIVE);
+        if self.lifecycle_flag(LIFECYCLE_RESOURCES) {
+            host.release_resources();
+        }
+        self.set_lifecycle_flag(LIFECYCLE_RESOURCES, false);
+        self.set_lifecycle_flag(LIFECYCLE_INTERPRETER, false);
+        self.set_lifecycle_flag(LIFECYCLE_TIMER, false);
+        self.set_lifecycle_flag(LIFECYCLE_SHOWN, false);
+        self.set_lifecycle_flag(LIFECYCLE_ACTIVE, false);
+        if was_active {
+            host.set_active(false)
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Ports Ghidra function `FUN_014950f0` at `0x014950F0`.
+    ///
+    /// The five parameter columns share the available width after the
+    /// recovered 30-pixel allowance. An empty column set is not representable
+    /// in the typed Design Tool grid.
+    pub const fn form_resize(&mut self, parameter_grid_width: i32) {
+        let width = parameter_grid_width.saturating_sub(30) / 5;
+        self.parameter_column_widths = [width; 5];
+    }
+
+    /// Ports Ghidra function `FUN_014970f0` at `0x014970F0`.
+    ///
+    /// An active Design Tool deactivates its linked objects and refreshes the
+    /// schematic. The VCL close action is always `caFree`.
+    pub fn form_close(&mut self, host: &mut impl DesignToolLifecycleHost) -> CloseAction {
+        if self.lifecycle_flag(LIFECYCLE_ACTIVE) {
+            host.deactivate_design_objects();
+            host.refresh_schematic();
+        }
+        self.close_action = Some(CloseAction::Free);
+        CloseAction::Free
+    }
+
+    /// Ports Ghidra function `FUN_01498010` at `0x01498010`.
+    ///
+    /// A plain Enter can submit the editor through the recovered run path. In
+    /// all cases the caret line and column status is refreshed afterwards.
+    ///
+    /// # Errors
+    ///
+    /// Returns the host execution error for an accepted Enter submission.
+    pub fn program_key_up(
+        &mut self,
+        key: u16,
+        shift: bool,
+        host: &mut impl DesignToolHost,
+    ) -> Result<(), String> {
+        if key == 13 && !shift && self.interface != Interface::Python {
+            host.execute(self.execution_request(ExecutionMode::Run))?;
+        }
+        self.refresh_caret_status();
+        Ok(())
+    }
+
+    /// Ports Ghidra function `FUN_01498150` at `0x01498150`.
+    pub fn program_mouse_down(&mut self) {
+        self.refresh_caret_status();
+    }
+
+    /// Ports Ghidra function `FUN_01498ce0` at `0x01498CE0`.
+    ///
+    /// Idle updates are active after creation. Three editor commands share the
+    /// recovered editor availability query; Paste uses host clipboard state.
+    pub fn application_idle(&mut self, host: &mut impl DesignToolLifecycleHost) {
+        if !self.lifecycle_flag(LIFECYCLE_ACTIVE) {
+            return;
+        }
+        let editor_available = !self.program.text().is_empty();
+        let mut flags = 0;
+        if editor_available {
+            flags |= IDLE_UNDO | IDLE_CUT | IDLE_COPY;
+        }
+        if host.clipboard_text_available() {
+            flags |= IDLE_PASTE;
+        }
+        self.idle_actions = IdleActionState(flags);
+    }
+
+    /// Ports Ghidra function `FUN_0149ac90` at `0x0149AC90`.
+    ///
+    /// Fixed cells use bold centered header styling. Data cells use normal
+    /// left-aligned styling. Only the active fixed header exposes its current
+    /// sort direction.
+    #[must_use]
+    pub const fn parameter_cell_presentation(
+        &self,
+        column: usize,
+        row: usize,
+    ) -> ParameterCellPresentation {
+        if row == 0 {
+            ParameterCellPresentation {
+                alignment: CellAlignment::Center,
+                tone: CellTone::Header,
+                sort_direction: if column == self.parameter_sort.column {
+                    self.parameter_sort.direction
+                } else {
+                    SortDirection::None
+                },
+            }
+        } else {
+            ParameterCellPresentation {
+                alignment: CellAlignment::Left,
+                tone: CellTone::Data,
+                sort_direction: SortDirection::None,
+            }
+        }
+    }
+
+    /// Ports Ghidra function `FUN_0149af30` at `0x0149AF30`.
+    ///
+    /// Only the active fixed header cycles None, Ascending, and Descending.
+    /// The two active directions immediately reorder parameter records.
+    pub fn fixed_parameter_cell_clicked(&mut self, column: usize, row: usize) -> SortDirection {
+        if row != 0 || column != self.parameter_sort.column {
+            return self.parameter_sort.direction;
+        }
+        self.parameter_sort.direction = self.parameter_sort.direction.next();
+        if self.parameter_sort.direction != SortDirection::None {
+            self.sort_parameters();
+        }
+        self.parameter_sort.direction
+    }
+
+    /// Ports Ghidra function `FUN_0149ba10` at `0x0149BA10`.
+    ///
+    /// Left and Backspace are consumed inside the protected five-character
+    /// terminal prompt. Other keys and later caret columns continue normally.
+    #[must_use]
+    pub const fn terminal_key_down(caret_column: usize, key: u16) -> bool {
+        caret_column < 6 && matches!(key, 0x25 | 8)
+    }
+
+    /// Ports Ghidra function `FUN_0149ba90` at `0x0149BA90`.
+    ///
+    /// A plain Enter finds the latest prompt, evaluates its command through the
+    /// typed host, appends any result, and creates the next prompt.
+    ///
+    /// # Errors
+    ///
+    /// Returns the host evaluator error. Terminal text is unchanged on error.
+    pub fn terminal_key_up(
+        &mut self,
+        key: u16,
+        shift: bool,
+        host: &mut impl DesignToolLifecycleHost,
+    ) -> Result<bool, String> {
+        if key != 13 || shift {
+            return Ok(false);
+        }
+        let Some(command) = self.terminal.last_prompt_command() else {
+            return Ok(false);
+        };
+        let response = host.evaluate_terminal(&command)?;
+        self.terminal.append_evaluation(&response);
+        Ok(true)
+    }
+
+    /// Ports Ghidra function `FUN_0149bbd0` at `0x0149BBD0`.
+    ///
+    /// A right click translates the terminal-local point to screen space and
+    /// opens the terminal popup. Other buttons are no-ops.
+    ///
+    /// # Errors
+    ///
+    /// Returns the popup host error for a right click.
+    pub fn terminal_mouse_down(
+        &self,
+        button: MouseButton,
+        terminal_origin: PopupAnchor,
+        local_point: PopupAnchor,
+        host: &mut impl DesignToolLifecycleHost,
+    ) -> Result<bool, String> {
+        if button != MouseButton::Right {
+            return Ok(false);
+        }
+        host.open_terminal_popup(PopupAnchor {
+            x: terminal_origin.x + local_point.x,
+            y: terminal_origin.y + local_point.y,
+        })?;
+        Ok(true)
     }
 
     /// Ports Ghidra function `FUN_01493a30` at `0x01493A30`.
@@ -895,6 +1292,51 @@ impl Window {
     }
 
     #[must_use]
+    pub const fn parameter_column_widths(&self) -> &[i32; 5] {
+        &self.parameter_column_widths
+    }
+
+    #[must_use]
+    pub const fn caret_status(&self) -> CaretStatus {
+        self.caret_status
+    }
+
+    #[must_use]
+    pub const fn idle_actions(&self) -> IdleActionState {
+        self.idle_actions
+    }
+
+    #[must_use]
+    pub const fn timer_enabled(&self) -> bool {
+        self.lifecycle_flag(LIFECYCLE_TIMER)
+    }
+
+    #[must_use]
+    pub const fn is_shown(&self) -> bool {
+        self.lifecycle_flag(LIFECYCLE_SHOWN)
+    }
+
+    #[must_use]
+    pub const fn python_available(&self) -> bool {
+        self.python_available
+    }
+
+    #[must_use]
+    pub fn window_caption(&self) -> &str {
+        &self.caption
+    }
+
+    #[must_use]
+    pub fn more_caption(&self) -> &str {
+        &self.more_caption
+    }
+
+    #[must_use]
+    pub const fn close_action(&self) -> Option<CloseAction> {
+        self.close_action
+    }
+
+    #[must_use]
     pub fn view(&self) -> Element<'_, Message> {
         let parameter_table = if self.layout.parameters_hidden {
             window_shell::surface("Parameters collapsed")
@@ -961,6 +1403,41 @@ impl Window {
         }
     }
 
+    fn refresh_caret_status(&mut self) {
+        let (line, column) = self.program.caret_line_column();
+        self.caret_status = CaretStatus { line, column };
+    }
+
+    fn sort_parameters(&mut self) {
+        let column = self.parameter_sort.column;
+        self.parameters.rows.sort_by(|left, right| {
+            let ordering = match column {
+                0 => left.parameter.name.cmp(&right.parameter.name),
+                1 => left.parameter.value.cmp(&right.parameter.value),
+                2 => left.minimum.cmp(&right.minimum),
+                3 => left.maximum.cmp(&right.maximum),
+                _ => left.comment.cmp(&right.comment),
+            };
+            if self.parameter_sort.direction == SortDirection::Descending {
+                ordering.reverse()
+            } else {
+                ordering
+            }
+        });
+    }
+
+    const fn lifecycle_flag(&self, flag: u8) -> bool {
+        self.lifecycle_flags & flag != 0
+    }
+
+    const fn set_lifecycle_flag(&mut self, flag: u8, enabled: bool) {
+        if enabled {
+            self.lifecycle_flags |= flag;
+        } else {
+            self.lifecycle_flags &= !flag;
+        }
+    }
+
     fn report_license_warning(&self, host: &mut impl DesignToolHost) -> Result<(), String> {
         if !self.license.licensed
             && self.license.warning_applicable
@@ -1000,247 +1477,21 @@ impl Window {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-#[repr(i32)]
-pub enum CloseConfirmationResult {
-    Yes = 6,
-    No = 7,
-    #[default]
-    Cancel = 2,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CloseConfirmationMessage {
-    RestoreColorsChanged(bool),
-    Yes,
-    No,
-    Cancel,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CloseConfirmationDialog {
-    restore_colors_checked: bool,
-    staged_restore_colors: bool,
-    result: CloseConfirmationResult,
-    close_requested: bool,
-}
-
-impl Default for CloseConfirmationDialog {
-    fn default() -> Self {
-        Self {
-            restore_colors_checked: true,
-            staged_restore_colors: true,
-            result: CloseConfirmationResult::Cancel,
-            close_requested: false,
-        }
-    }
-}
-
-impl CloseConfirmationDialog {
-    pub const fn update(&mut self, message: CloseConfirmationMessage) {
-        match message {
-            CloseConfirmationMessage::RestoreColorsChanged(checked) => {
-                self.restore_colors_checked = checked;
-            }
-            CloseConfirmationMessage::Yes => self.yes_click(),
-            CloseConfirmationMessage::No => self.no_click(),
-            CloseConfirmationMessage::Cancel => self.cancel_click(),
-        }
-    }
-
-    /// Ports Ghidra function `FUN_01475300` at `0x01475300`.
-    pub const fn yes_click(&mut self) {
-        self.stage_close(CloseConfirmationResult::Yes);
-    }
-
-    /// Ports Ghidra function `FUN_01475340` at `0x01475340`.
-    pub const fn no_click(&mut self) {
-        self.stage_close(CloseConfirmationResult::No);
-    }
-
-    /// Ports Ghidra function `FUN_01475380` at `0x01475380`.
-    pub const fn cancel_click(&mut self) {
-        self.stage_close(CloseConfirmationResult::Cancel);
-    }
-
-    #[must_use]
-    pub const fn result(self) -> CloseConfirmationResult {
-        self.result
-    }
-
-    #[must_use]
-    pub const fn staged_restore_colors(self) -> bool {
-        self.staged_restore_colors
-    }
-
-    #[must_use]
-    pub const fn close_requested(self) -> bool {
-        self.close_requested
-    }
-
-    #[must_use]
-    pub fn view(&self) -> Element<'_, CloseConfirmationMessage> {
-        column![
-            text("Save changes?"),
-            checkbox("Restore component colors", self.restore_colors_checked)
-                .on_toggle(CloseConfirmationMessage::RestoreColorsChanged),
-            row![
-                button("Yes").on_press(CloseConfirmationMessage::Yes),
-                button("No").on_press(CloseConfirmationMessage::No),
-                button("Cancel").on_press(CloseConfirmationMessage::Cancel),
-            ]
-            .spacing(8),
-        ]
-        .padding(12)
-        .spacing(8)
-        .into()
-    }
-
-    const fn stage_close(&mut self, result: CloseConfirmationResult) {
-        self.result = result;
-        self.staged_restore_colors = self.restore_colors_checked;
-        self.close_requested = true;
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct DesignToolOptionValues {
-    pub ignore_min_max: bool,
-    pub keep_cursor_position: bool,
-    pub interface_index: i32,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum OptionsMessage {
-    IgnoreMinMaxChanged(bool),
-    KeepCursorChanged(bool),
-    InterfaceChanged(i32),
-    Accept,
-    Cancel,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct OptionsDialog {
-    staged: DesignToolOptionValues,
-    controls: DesignToolOptionValues,
-    close_requested: bool,
-}
-
-impl Default for OptionsDialog {
-    fn default() -> Self {
-        Self {
-            staged: DesignToolOptionValues {
-                ignore_min_max: false,
-                keep_cursor_position: false,
-                interface_index: 0,
-            },
-            controls: DesignToolOptionValues {
-                ignore_min_max: false,
-                keep_cursor_position: false,
-                interface_index: 0,
-            },
-            close_requested: false,
-        }
-    }
-}
-
-impl OptionsDialog {
-    pub const fn update(&mut self, message: OptionsMessage) {
-        match message {
-            OptionsMessage::IgnoreMinMaxChanged(value) => {
-                self.controls.ignore_min_max = value;
-            }
-            OptionsMessage::KeepCursorChanged(value) => {
-                self.controls.keep_cursor_position = value;
-            }
-            OptionsMessage::InterfaceChanged(value) => self.controls.interface_index = value,
-            OptionsMessage::Accept => {
-                self.accept_controls();
-                self.close_requested = true;
-            }
-            OptionsMessage::Cancel => self.close_requested = true,
-        }
-    }
-
-    /// Ports Ghidra function `FUN_01475b20` at `0x01475B20`.
-    pub const fn initialize_staging(&mut self, values: DesignToolOptionValues) {
-        self.staged = values;
-        self.controls = values;
-        self.close_requested = false;
-    }
-
-    /// Ports Ghidra function `FUN_01475ba0` at `0x01475BA0`.
-    #[must_use]
-    pub const fn extract_staged(&self) -> DesignToolOptionValues {
-        self.staged
-    }
-
-    /// Ports Ghidra function `FUN_01475bf0` at `0x01475BF0`.
-    pub const fn accept_controls(&mut self) {
-        self.staged = self.controls;
-    }
-
-    #[must_use]
-    pub const fn controls(&self) -> DesignToolOptionValues {
-        self.controls
-    }
-
-    #[must_use]
-    pub const fn close_requested(&self) -> bool {
-        self.close_requested
-    }
-
-    #[must_use]
-    pub fn view(&self) -> Element<'_, OptionsMessage> {
-        column![
-            checkbox("Ignore min max values", self.controls.ignore_min_max)
-                .on_toggle(OptionsMessage::IgnoreMinMaxChanged),
-            checkbox(
-                "Keep cursor position after run",
-                self.controls.keep_cursor_position
-            )
-            .on_toggle(OptionsMessage::KeepCursorChanged),
-            text("Interface"),
-            row![
-                radio(
-                    "Interpreter",
-                    0,
-                    Some(self.controls.interface_index),
-                    OptionsMessage::InterfaceChanged,
-                ),
-                radio(
-                    "Python",
-                    1,
-                    Some(self.controls.interface_index),
-                    OptionsMessage::InterfaceChanged,
-                ),
-            ]
-            .spacing(8),
-            row![
-                button("OK").on_press(OptionsMessage::Accept),
-                button("Cancel").on_press(OptionsMessage::Cancel),
-            ]
-            .spacing(8),
-        ]
-        .padding(12)
-        .spacing(8)
-        .into()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::path::{Path, PathBuf};
 
     use super::adapters::{
-        ClipboardContent, DesignToolClipboard, DesignToolDocument, DesignToolHost,
-        DesignToolParser, DesignToolStorage, ExecutionRequest, Interface, Notice, ParameterRecord,
+        ClipboardContent, DesignToolClipboard, DesignToolDocument, DesignToolGeometry,
+        DesignToolHost, DesignToolLifecycleHost, DesignToolParser, DesignToolShowState,
+        DesignToolStartup, DesignToolStorage, ExecutionRequest, Interface, Notice, ParameterRecord,
         PlacementText, PopupAnchor, SelectionMode, SessionSnapshot, SymbolTableRequest,
     };
     use super::{
-        BackgroundMode, BorderMode, CloseConfirmationDialog, CloseConfirmationMessage,
-        CloseConfirmationResult, DeleteRowOutcome, DesignToolOptionValues, EditorColor,
-        FocusTarget, OptionsDialog, OptionsMessage, Window,
+        BackgroundMode, BorderMode, CellAlignment, CellTone, CloseAction, CloseConfirmationDialog,
+        CloseConfirmationMessage, CloseConfirmationResult, DeleteRowOutcome,
+        DesignToolOptionValues, EditorColor, FocusTarget, MouseButton, OptionsDialog,
+        OptionsMessage, SortDirection, Window,
     };
     use crate::numerical_format::InterpreterNumericalSettings;
 
@@ -1304,6 +1555,103 @@ mod tests {
 
         fn forward_paste(&mut self) -> Result<(), String> {
             self.forwarded_pastes = self.forwarded_pastes.saturating_add(1);
+            Ok(())
+        }
+    }
+
+    #[derive(Debug)]
+    struct LifecycleSpy {
+        startup: Option<DesignToolStartup>,
+        show: DesignToolShowState,
+        active_changes: Vec<bool>,
+        releases: usize,
+        stops: usize,
+        deactivations: usize,
+        schematic_refreshes: usize,
+        clipboard_available: bool,
+        commands: Vec<String>,
+        terminal_popup: Option<PopupAnchor>,
+    }
+
+    impl Default for LifecycleSpy {
+        fn default() -> Self {
+            Self {
+                startup: Some(DesignToolStartup {
+                    title: "Loaded design".to_owned(),
+                    source: "line one\nline two".to_owned(),
+                    parameters: vec![valid_parameter()],
+                    interface: Interface::Interpreter,
+                    numerical: InterpreterNumericalSettings::default(),
+                    terminal_text: ">>>  1 + 1".to_owned(),
+                    geometry: DesignToolGeometry {
+                        client_width: 530,
+                        client_height: 400,
+                        parameter_grid_height: 200,
+                        simple_panel_height: 180,
+                        advanced_panel_height: 300,
+                    },
+                    interpreter_active: true,
+                }),
+                show: DesignToolShowState {
+                    title: "Localized Design Tool".to_owned(),
+                    more_caption: "More...".to_owned(),
+                    python_available: true,
+                },
+                active_changes: Vec::new(),
+                releases: 0,
+                stops: 0,
+                deactivations: 0,
+                schematic_refreshes: 0,
+                clipboard_available: true,
+                commands: Vec::new(),
+                terminal_popup: None,
+            }
+        }
+    }
+
+    impl DesignToolLifecycleHost for LifecycleSpy {
+        fn load_startup(&mut self) -> Result<DesignToolStartup, String> {
+            self.startup
+                .take()
+                .ok_or_else(|| "startup reused".to_owned())
+        }
+
+        fn prepare_show(&mut self, _: Interface) -> Result<DesignToolShowState, String> {
+            Ok(self.show.clone())
+        }
+
+        fn set_active(&mut self, active: bool) -> Result<(), String> {
+            self.active_changes.push(active);
+            Ok(())
+        }
+
+        fn release_resources(&mut self) {
+            self.releases += 1;
+        }
+
+        fn stop_interpreter(&mut self) {
+            self.stops += 1;
+        }
+
+        fn deactivate_design_objects(&mut self) {
+            self.deactivations += 1;
+        }
+
+        fn refresh_schematic(&mut self) {
+            self.schematic_refreshes += 1;
+        }
+
+        fn clipboard_text_available(&mut self) -> bool {
+            self.clipboard_available
+        }
+
+        fn evaluate_terminal(&mut self, command: &str) -> Result<String, String> {
+            self.commands.push(command.to_owned());
+            Ok("2".to_owned())
+        }
+
+        fn open_terminal_popup(&mut self, anchor: PopupAnchor) -> Result<(), String> {
+            self.terminal_popup = Some(anchor);
             Ok(())
         }
     }
@@ -1659,5 +2007,152 @@ mod tests {
         window.apply_numerical_format();
         window.select_solid_border();
         assert_eq!(window.appearance().2, BorderMode::Solid);
+    }
+
+    #[test]
+    fn distinct_dialog_create_events_apply_only_recovered_defaults() {
+        let confirmation = super::confirmation_dialog::CloseConfirmationDialog::default();
+        assert_eq!(
+            confirmation.result(),
+            super::confirmation_dialog::CloseConfirmationResult::Cancel
+        );
+        assert!(!confirmation.close_requested());
+
+        let options = super::options_dialog::OptionsDialog::default();
+        assert_eq!(options.help_context(), super::options_dialog::HELP_CONTEXT);
+
+        crate::numerical_format::Window::form_create();
+        let mut numerical = crate::numerical_format::Window::default();
+        numerical.float_edit_error("float error");
+        numerical.integer_edit_error("integer error");
+        assert_eq!(numerical.first_error(), Some("float error"));
+    }
+
+    #[test]
+    fn create_show_timer_resize_close_and_destroy_use_one_lifecycle_adapter() {
+        let mut window = Window::default();
+        let mut host = LifecycleSpy::default();
+        assert!(window.form_create(&mut host).is_ok());
+        assert_eq!(host.active_changes, vec![true]);
+        assert_eq!(window.program_text(), "line one\nline two");
+        assert_eq!(window.parameter_column_widths(), &[100; 5]);
+        assert!(window.timer_enabled());
+
+        assert!(window.form_show(&mut host).is_ok());
+        assert!(window.is_shown());
+        assert_eq!(window.window_caption(), "Localized Design Tool");
+        assert_eq!(window.more_caption(), "More...");
+        assert!(window.python_available());
+
+        window.timer_elapsed(&mut host);
+        window.timer_elapsed(&mut host);
+        assert!(!window.timer_enabled());
+        assert_eq!(host.stops, 2);
+
+        assert_eq!(window.form_close(&mut host), CloseAction::Free);
+        assert_eq!(window.close_action(), Some(CloseAction::Free));
+        assert_eq!(host.deactivations, 1);
+        assert_eq!(host.schematic_refreshes, 1);
+
+        assert!(window.form_destroy(&mut host).is_ok());
+        assert!(window.form_destroy(&mut host).is_ok());
+        assert_eq!(host.releases, 1);
+        assert_eq!(host.active_changes, vec![true, false]);
+    }
+
+    #[test]
+    fn idle_grid_drawing_and_fixed_header_sort_preserve_recovered_states() {
+        let mut window = Window::default();
+        let mut host = LifecycleSpy::default();
+        assert!(window.form_create(&mut host).is_ok());
+        window.application_idle(&mut host);
+        assert!(window.idle_actions().undo());
+        assert!(window.idle_actions().cut());
+        assert!(window.idle_actions().copy());
+        assert!(window.idle_actions().paste());
+
+        let header = window.parameter_cell_presentation(0, 0);
+        assert_eq!(header.alignment, CellAlignment::Center);
+        assert_eq!(header.tone, CellTone::Header);
+        assert_eq!(header.sort_direction, SortDirection::None);
+        let data = window.parameter_cell_presentation(0, 1);
+        assert_eq!(data.alignment, CellAlignment::Left);
+        assert_eq!(data.tone, CellTone::Data);
+
+        window.set_parameter_records(vec![
+            ParameterRecord {
+                name: "Zulu".to_owned(),
+                ..valid_parameter()
+            },
+            ParameterRecord {
+                name: "Alpha".to_owned(),
+                ..valid_parameter()
+            },
+        ]);
+        assert_eq!(
+            window.fixed_parameter_cell_clicked(1, 0),
+            SortDirection::None
+        );
+        assert_eq!(
+            window.fixed_parameter_cell_clicked(0, 0),
+            SortDirection::Ascending
+        );
+        assert_eq!(window.parameter_records()[0].name, "Alpha");
+        assert_eq!(
+            window.fixed_parameter_cell_clicked(0, 0),
+            SortDirection::Descending
+        );
+        assert_eq!(window.parameter_records()[0].name, "Zulu");
+        assert_eq!(
+            window.fixed_parameter_cell_clicked(0, 0),
+            SortDirection::None
+        );
+    }
+
+    #[test]
+    fn program_and_terminal_input_events_refresh_or_route_exact_actions() {
+        let mut window = Window::default();
+        let mut lifecycle = LifecycleSpy::default();
+        assert!(window.form_create(&mut lifecycle).is_ok());
+        window.set_program_selection(9..9);
+        window.program_mouse_down();
+        assert_eq!(window.caret_status().line, 2);
+        assert_eq!(window.caret_status().column, 1);
+
+        let mut host = HostSpy::default();
+        assert!(window.program_key_up(65, false, &mut host).is_ok());
+        assert!(host.executions.is_empty());
+        assert!(Window::terminal_key_down(5, 0x25));
+        assert!(Window::terminal_key_down(1, 8));
+        assert!(!Window::terminal_key_down(6, 8));
+        assert!(!Window::terminal_key_down(1, 65));
+
+        assert_eq!(window.terminal_key_up(13, true, &mut lifecycle), Ok(false));
+        assert_eq!(window.terminal_key_up(13, false, &mut lifecycle), Ok(true));
+        assert_eq!(lifecycle.commands, vec!["1 + 1"]);
+        assert!(window.terminal().text().ends_with("2\n>>>  "));
+
+        assert_eq!(
+            window.terminal_mouse_down(
+                MouseButton::Left,
+                PopupAnchor { x: 10.0, y: 20.0 },
+                PopupAnchor { x: 3.0, y: 4.0 },
+                &mut lifecycle,
+            ),
+            Ok(false)
+        );
+        assert_eq!(
+            window.terminal_mouse_down(
+                MouseButton::Right,
+                PopupAnchor { x: 10.0, y: 20.0 },
+                PopupAnchor { x: 3.0, y: 4.0 },
+                &mut lifecycle,
+            ),
+            Ok(true)
+        );
+        assert_eq!(
+            lifecycle.terminal_popup,
+            Some(PopupAnchor { x: 13.0, y: 24.0 })
+        );
     }
 }

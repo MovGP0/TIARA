@@ -1,5 +1,6 @@
 //! Iced state adapter for the recovered Netlist Editor family.
 
+use std::collections::BTreeSet;
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 
@@ -16,9 +17,9 @@ use tiara_core::netlist_editor::{
     diagnostic_navigation, help_request, print_job,
 };
 use tiara_core::netlist_viewer::{
-    ClipboardPayload, Diagnostic, DiagnosticNavigation, GuardDecision, SavePromptChoice,
-    SearchOptions, SearchOutcome, SelectionMode, evaluate_unsaved_guard, find_next, read_netlist,
-    replace_matches, write_netlist,
+    CaretPosition, ClipboardPayload, Diagnostic, DiagnosticNavigation, GuardDecision,
+    SavePromptChoice, SearchOptions, SearchOutcome, SelectionMode, evaluate_unsaved_guard,
+    find_next, read_netlist, replace_matches, write_netlist,
 };
 
 use crate::advanced_analysis_options::AdvancedOptions;
@@ -81,6 +82,101 @@ pub struct ParameterDialogRequest {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct OptionsDialogRequest;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Lifecycle {
+    #[default]
+    Created,
+    Shown,
+    Active,
+    Inactive,
+    Closed,
+    Destroyed,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum EditorCommand {
+    Cut,
+    Copy,
+    Paste,
+    Delete,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct CommandAvailability {
+    pub enabled: BTreeSet<EditorCommand>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EditorDragSource {
+    Memo,
+    Other,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DragOverInput {
+    pub source: EditorDragSource,
+    pub current_ppi: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DragOverOutcome {
+    pub accepted: bool,
+    pub diagnostic_height: Option<u32>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LineColors {
+    pub foreground: u32,
+    pub background: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActivationRequest {
+    pub caption: String,
+    pub publish_editor_context: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DeactivationRequest;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PersistenceRequest {
+    pub recent_files: Vec<PathBuf>,
+    pub warning_visibility: WarningVisibility,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CloseDisposition {
+    Free,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+enum ContextSynchronization {
+    #[default]
+    Clean,
+    Pending,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+enum CloseApproval {
+    #[default]
+    Pending,
+    Approved,
+}
+
+pub trait DiagnosticLineResolver {
+    fn resolve_line(&mut self, source_identifier: &str) -> Option<usize>;
+}
+
+impl<F> DiagnosticLineResolver for F
+where
+    F: FnMut(&str) -> Option<usize>,
+{
+    fn resolve_line(&mut self, source_identifier: &str) -> Option<usize> {
+        self(source_identifier)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Message {
     EditorAction(text_editor::Action),
@@ -131,6 +227,24 @@ pub enum Message {
     DiagnosticSelected(Option<usize>),
     EditSelectedSource,
     ClearMessages,
+    Idle {
+        paste_available: bool,
+    },
+    Shown {
+        warning_visibility: WarningVisibility,
+        memo_height: u32,
+        diagnostic_height: u32,
+    },
+    Activated,
+    Deactivated,
+    CloseQuery(Option<SavePromptChoice>),
+    Closed,
+    Destroyed,
+    MemoKeyDown,
+    MemoKeyUp(CaretPosition),
+    MemoMouseDown,
+    DragOver(DragOverInput),
+    DiagnosticDoubleClicked(usize),
 }
 
 #[derive(Debug)]
@@ -169,6 +283,20 @@ pub struct Window {
     pending_write: Option<SaveFileRequest>,
     help_request: Option<HelpRequest>,
     error: Option<String>,
+    lifecycle: Lifecycle,
+    context_synchronization: ContextSynchronization,
+    close_approval: CloseApproval,
+    command_availability: CommandAvailability,
+    caret: CaretPosition,
+    cursor_status: String,
+    highlighted_line: Option<usize>,
+    memo_half_height: u32,
+    diagnostic_design_height: u32,
+    drag_outcome: Option<DragOverOutcome>,
+    activation_request: Option<ActivationRequest>,
+    deactivation_request: Option<DeactivationRequest>,
+    persistence_request: Option<PersistenceRequest>,
+    close_disposition: Option<CloseDisposition>,
 }
 
 impl Default for Window {
@@ -182,6 +310,11 @@ impl Default for Window {
 }
 
 impl Window {
+    /// Reimplements `FUN_01530ee0` at Ghidra address `0x01530EE0`.
+    ///
+    /// Creates the editor-owned document, search, recent-file, diagnostic,
+    /// analysis, status, and dialog state. `rfd` remains the maintained file
+    /// dialog adapter; global TINA services remain typed requests.
     #[must_use]
     pub fn new(
         help_root: PathBuf,
@@ -224,6 +357,20 @@ impl Window {
             pending_write: None,
             help_request: None,
             error: None,
+            lifecycle: Lifecycle::Created,
+            context_synchronization: ContextSynchronization::Clean,
+            close_approval: CloseApproval::Pending,
+            command_availability: CommandAvailability::default(),
+            caret: CaretPosition::default(),
+            cursor_status: CaretPosition::default().panel_text(),
+            highlighted_line: None,
+            memo_half_height: 0,
+            diagnostic_design_height: 0,
+            drag_outcome: None,
+            activation_request: None,
+            deactivation_request: None,
+            persistence_request: None,
+            close_disposition: None,
         }
     }
 
@@ -282,6 +429,29 @@ impl Window {
             Message::DiagnosticSelected(index) => self.selected_diagnostic = index,
             Message::EditSelectedSource => self.edit_selected_source(),
             Message::ClearMessages => self.clear_messages(),
+            Message::Idle { paste_available } => self.refresh_idle_commands(paste_available),
+            Message::Shown {
+                warning_visibility,
+                memo_height,
+                diagnostic_height,
+            } => self.form_shown(warning_visibility, memo_height, diagnostic_height),
+            Message::Activated => self.form_activated(),
+            Message::Deactivated => self.form_deactivated(),
+            Message::CloseQuery(choice) => {
+                let _ = self.query_close(choice);
+            }
+            Message::Closed => self.form_closed(),
+            Message::Destroyed => self.form_destroyed(),
+            Message::MemoKeyDown => self.memo_key_down(),
+            Message::MemoKeyUp(caret) => self.memo_key_up(caret),
+            Message::MemoMouseDown => self.memo_mouse_down(),
+            Message::DragOver(input) => {
+                self.memo_drag_over(input);
+            }
+            Message::DiagnosticDoubleClicked(index) => {
+                let mut unresolved = |_: &str| None;
+                self.diagnostic_double_click_with(index, &mut unresolved);
+            }
         }
         Task::none()
     }
@@ -292,6 +462,234 @@ impl Window {
         } else {
             FocusContext::OtherControl
         };
+    }
+
+    /// Reimplements `FUN_0152f950` at Ghidra address `0x0152F950`.
+    ///
+    /// Refreshes selection-dependent Cut, Copy, and Delete availability and
+    /// the clipboard-dependent Paste availability. An approved close freezes
+    /// command state while the form leaves the application.
+    pub fn refresh_idle_commands(&mut self, paste_available: bool) {
+        if self.close_approval == CloseApproval::Approved {
+            return;
+        }
+        self.command_availability.enabled.clear();
+        if !self.document.editor.selection.is_empty() {
+            self.command_availability.enabled.extend([
+                EditorCommand::Cut,
+                EditorCommand::Copy,
+                EditorCommand::Delete,
+            ]);
+        }
+        if paste_available {
+            self.command_availability
+                .enabled
+                .insert(EditorCommand::Paste);
+        }
+    }
+
+    /// Reimplements `FUN_01531a10` at Ghidra address `0x01531A10`.
+    ///
+    /// Restores warning-panel visibility, records the two recovered drag
+    /// dimensions, and marks the form as shown.
+    pub const fn form_shown(
+        &mut self,
+        warning_visibility: WarningVisibility,
+        memo_height: u32,
+        diagnostic_height: u32,
+    ) {
+        self.memo_half_height = memo_height / 2;
+        self.diagnostic_design_height = diagnostic_height;
+        self.warnings = warning_visibility;
+        self.lifecycle = Lifecycle::Shown;
+    }
+
+    /// Reimplements `FUN_01531c00` at Ghidra address `0x01531C00`.
+    ///
+    /// Publishes a pending editor context once, refreshes the recovered file
+    /// caption, and records the active lifecycle state.
+    pub fn form_activated(&mut self) {
+        let publish_editor_context =
+            self.context_synchronization == ContextSynchronization::Pending;
+        self.context_synchronization = ContextSynchronization::Clean;
+        self.activation_request = Some(ActivationRequest {
+            caption: format!(
+                "<{}> - Netlist Editor ",
+                self.document.file_name.to_string_lossy()
+            ),
+            publish_editor_context,
+        });
+        self.lifecycle = Lifecycle::Active;
+    }
+
+    pub const fn mark_editor_context_pending(&mut self) {
+        self.context_synchronization = ContextSynchronization::Pending;
+    }
+
+    /// Reimplements `FUN_01531d90` at Ghidra address `0x01531D90`.
+    ///
+    /// Records the host refresh request made when the form loses activation.
+    pub const fn form_deactivated(&mut self) {
+        self.deactivation_request = Some(DeactivationRequest);
+        self.lifecycle = Lifecycle::Inactive;
+    }
+
+    /// Reimplements `FUN_01531bd0` at Ghidra address `0x01531BD0`.
+    ///
+    /// Applies the shared unsaved-document decision and records whether close
+    /// processing may continue. A requested save remains a typed caller step.
+    #[must_use]
+    pub const fn query_close(&mut self, choice: Option<SavePromptChoice>) -> GuardDecision {
+        let decision = evaluate_unsaved_guard(self.document.editor.modified, choice);
+        self.close_approval = if matches!(decision, GuardDecision::Continue { .. }) {
+            CloseApproval::Approved
+        } else {
+            CloseApproval::Pending
+        };
+        decision
+    }
+
+    /// Reimplements `FUN_01531b90` at Ghidra address `0x01531B90`.
+    ///
+    /// Closes both search-dialog states, requests form release, and exposes the
+    /// recent-file and warning preference payload for the host to persist.
+    pub fn form_closed(&mut self) {
+        self.search_dialog = SearchDialogState::Closed;
+        self.close_disposition = Some(CloseDisposition::Free);
+        self.persistence_request = Some(self.persistence_snapshot());
+        self.lifecycle = Lifecycle::Closed;
+    }
+
+    /// Reimplements `FUN_01531880` at Ghidra address `0x01531880`.
+    ///
+    /// Releases transient dialog, job, result, and diagnostic state. Rust owns
+    /// all allocations; the persistence request replaces the recovered INI
+    /// write and repeated destruction is harmless.
+    pub fn form_destroyed(&mut self) {
+        if self.lifecycle == Lifecycle::Destroyed {
+            return;
+        }
+        self.persistence_request = Some(self.persistence_snapshot());
+        self.search_dialog = SearchDialogState::Closed;
+        self.print_dialog = None;
+        self.compile_job = None;
+        self.analysis_job = None;
+        self.mode_dialog = None;
+        self.parameter_dialog = None;
+        self.options_dialog = None;
+        self.diagnostics.clear();
+        self.selected_diagnostic = None;
+        self.highlighted_line = None;
+        self.lifecycle = Lifecycle::Destroyed;
+    }
+
+    /// Reimplements `FUN_01533d50` at Ghidra address `0x01533D50`.
+    ///
+    /// Accepts only drags sourced by the memo and returns the DPI-scaled
+    /// diagnostic-pane height. Screen coordinate conversion remains an iced
+    /// shell concern and is supplied here as the current pixels-per-inch.
+    pub fn memo_drag_over(&mut self, input: DragOverInput) -> DragOverOutcome {
+        let outcome = if matches!(input.source, EditorDragSource::Memo) {
+            DragOverOutcome {
+                accepted: true,
+                diagnostic_height: Some(scale_for_ppi(
+                    self.diagnostic_design_height,
+                    input.current_ppi,
+                )),
+            }
+        } else {
+            DragOverOutcome {
+                accepted: false,
+                diagnostic_height: None,
+            }
+        };
+        self.drag_outcome = Some(outcome);
+        outcome
+    }
+
+    /// Reimplements `FUN_01533e00` at Ghidra address `0x01533E00`.
+    pub const fn memo_key_down(&mut self) {
+        self.clear_special_line();
+    }
+
+    /// Reimplements `FUN_01533e20` at Ghidra address `0x01533E20`.
+    ///
+    /// Clears diagnostic highlighting, synchronizes editor text, and refreshes
+    /// the line-and-column status after a keyboard edit.
+    pub fn memo_key_up(&mut self, caret: CaretPosition) {
+        self.clear_special_line();
+        self.document.editor.record_editor_text(self.editor.text());
+        self.caret = caret;
+        self.cursor_status = caret.panel_text();
+    }
+
+    /// Reimplements `FUN_01533e60` at Ghidra address `0x01533E60`.
+    pub const fn memo_mouse_down(&mut self) {
+        self.clear_special_line();
+    }
+
+    /// Reimplements `FUN_01533e80` at Ghidra address `0x01533E80`.
+    ///
+    /// Returns the recovered white foreground on dark-red background only for
+    /// the active diagnostic line. Other lines keep the editor theme.
+    #[must_use]
+    pub const fn special_line_colors(&self, line: usize) -> Option<LineColors> {
+        if matches!(self.highlighted_line, Some(highlighted) if highlighted == line) {
+            Some(LineColors {
+                foreground: 0x00ff_ffff,
+                background: 0x0000_0080,
+            })
+        } else {
+            None
+        }
+    }
+
+    /// Reimplements `FUN_015341c0` at Ghidra address `0x015341C0`.
+    ///
+    /// Resolves a selected diagnostic from its direct line, external source
+    /// identifier, or textual line prefix, then requests caret navigation and
+    /// special-line highlighting.
+    pub fn diagnostic_double_click_with(
+        &mut self,
+        index: usize,
+        resolver: &mut impl DiagnosticLineResolver,
+    ) -> bool {
+        let Some(diagnostic) = self.diagnostics.get(index) else {
+            return false;
+        };
+        let line = diagnostic.source_line.map_or_else(
+            || {
+                diagnostic.source_identifier.as_deref().map_or_else(
+                    || parse_diagnostic_line(&diagnostic.message),
+                    |identifier| resolver.resolve_line(identifier),
+                )
+            },
+            Some,
+        );
+        let Some(line) = line else {
+            return false;
+        };
+        self.selected_diagnostic = Some(index);
+        self.highlighted_line = Some(line);
+        self.caret = CaretPosition { line, column: 1 };
+        self.cursor_status = self.caret.panel_text();
+        self.navigation = Some(DiagnosticNavigation {
+            line,
+            scroll_into_view: true,
+            highlight_special_line: true,
+        });
+        true
+    }
+
+    const fn clear_special_line(&mut self) {
+        self.highlighted_line = None;
+    }
+
+    fn persistence_snapshot(&self) -> PersistenceRequest {
+        PersistenceRequest {
+            recent_files: self.document.recent_files.clone(),
+            warning_visibility: self.warnings,
+        }
     }
 
     /// Reimplements `FUN_01531db0` at Ghidra address `0x01531DB0`.
@@ -399,6 +797,25 @@ impl Window {
     /// Reimplements `FUN_01532580` at Ghidra address `0x01532580`.
     pub const fn open_replace(&mut self) {
         self.search_dialog = SearchDialogState::Replace;
+    }
+
+    /// Reimplements `FUN_01533eb0` at Ghidra address `0x01533EB0`.
+    ///
+    /// Maps the dialog direction, case, and whole-word options to the shared
+    /// standard-library search adapter. A miss keeps the localized-message
+    /// boundary as an owned status string.
+    pub fn find_from_dialog(&mut self, options: &SearchOptions) -> SearchOutcome {
+        self.last_search = Some(options.clone());
+        self.apply_search(options, false)
+    }
+
+    /// Reimplements `FUN_01534030` at Ghidra address `0x01534030`.
+    ///
+    /// Maps the dialog case, whole-word, replace-one, and replace-all options
+    /// to the shared grouped-edit adapter.
+    pub fn replace_from_dialog(&mut self, options: &SearchOptions) -> SearchOutcome {
+        self.last_search = Some(options.clone());
+        self.apply_search(options, true)
     }
 
     /// Reimplements `FUN_015325a0` at Ghidra address `0x015325A0`.
@@ -648,6 +1065,41 @@ impl Window {
         self.help_request.take()
     }
 
+    #[must_use]
+    pub const fn lifecycle(&self) -> Lifecycle {
+        self.lifecycle
+    }
+
+    #[must_use]
+    pub const fn command_availability(&self) -> &CommandAvailability {
+        &self.command_availability
+    }
+
+    #[must_use]
+    pub fn cursor_status(&self) -> &str {
+        &self.cursor_status
+    }
+
+    pub const fn take_drag_outcome(&mut self) -> Option<DragOverOutcome> {
+        self.drag_outcome.take()
+    }
+
+    pub const fn take_activation_request(&mut self) -> Option<ActivationRequest> {
+        self.activation_request.take()
+    }
+
+    pub const fn take_deactivation_request(&mut self) -> Option<DeactivationRequest> {
+        self.deactivation_request.take()
+    }
+
+    pub const fn take_persistence_request(&mut self) -> Option<PersistenceRequest> {
+        self.persistence_request.take()
+    }
+
+    pub const fn take_close_disposition(&mut self) -> Option<CloseDisposition> {
+        self.close_disposition.take()
+    }
+
     fn begin_guarded(&mut self, action: GuardedAction) -> Task<Message> {
         if self.document.editor.modified {
             self.guarded_action = Some(action);
@@ -774,12 +1226,14 @@ impl Window {
     }
 
     fn run_search(&mut self, options: &SearchOptions) {
-        let replace = self.search_dialog == SearchDialogState::Replace;
-        self.last_search = Some(options.clone());
-        self.apply_search(options, replace);
+        if self.search_dialog == SearchDialogState::Replace {
+            self.replace_from_dialog(options);
+        } else {
+            self.find_from_dialog(options);
+        }
     }
 
-    fn apply_search(&mut self, options: &SearchOptions, replace: bool) {
+    fn apply_search(&mut self, options: &SearchOptions, replace: bool) -> SearchOutcome {
         let outcome = if replace {
             replace_matches(&mut self.document.editor, options)
         } else {
@@ -795,6 +1249,7 @@ impl Window {
                 self.error = Some(format!("Not found: {}", options.query));
             }
         }
+        outcome
     }
 
     fn finish_compile(&mut self, request_id: u64, diagnostics: Vec<Diagnostic>) {
@@ -976,6 +1431,23 @@ impl Window {
     }
 }
 
+fn scale_for_ppi(value: u32, current_ppi: u32) -> u32 {
+    let scaled = u64::from(value)
+        .saturating_mul(u64::from(current_ppi))
+        .saturating_add(48)
+        / 96;
+    u32::try_from(scaled).unwrap_or(u32::MAX)
+}
+
+fn parse_diagnostic_line(message: &str) -> Option<usize> {
+    let start = message.find(char::is_numeric)?;
+    let digits = message[start..]
+        .chars()
+        .take_while(char::is_ascii_digit)
+        .collect::<String>();
+    digits.parse().ok().filter(|line| *line > 0)
+}
+
 async fn select_open_path() -> Option<PathBuf> {
     AsyncFileDialog::new()
         .add_filter("Circuit netlist", &["cir", "net", "txt"])
@@ -1001,6 +1473,7 @@ async fn select_save_path(current: PathBuf) -> Option<PathBuf> {
 mod tests {
     use std::path::{Path, PathBuf};
 
+    use iced::widget::text_editor;
     use tiara_core::analysis_result_publishing::{AnalysisPoint, AnalysisSeries, AxisLabels};
     use tiara_core::netlist_editor::{
         AnalysisCommand, AnalysisCompletion, AnalysisPayload, AnalysisPublication,
@@ -1008,10 +1481,14 @@ mod tests {
         SimulationParameterSnapshot, WarningVisibility,
     };
     use tiara_core::netlist_viewer::{
-        Diagnostic, ReplaceMode, SavePromptChoice, SearchOptions, SelectionMode,
+        CaretPosition, Diagnostic, GuardDecision, ReplaceMode, SavePromptChoice, SearchOptions,
+        SearchOutcome, SelectionMode,
     };
 
-    use super::{Message, Window};
+    use super::{
+        CloseDisposition, DeactivationRequest, DragOverInput, EditorCommand, EditorDragSource,
+        Lifecycle, LineColors, Message, Window,
+    };
 
     fn window() -> Window {
         Window::new(
@@ -1299,5 +1776,211 @@ mod tests {
         assert_eq!(window.navigation.as_ref().expect("navigation").line, 14);
         update(&mut window, Message::ClearMessages);
         assert!(window.diagnostics.is_empty());
+    }
+
+    #[test]
+    fn create_show_activate_and_deactivate_keep_host_boundaries_typed() {
+        let mut window = window();
+        assert_eq!(window.lifecycle(), Lifecycle::Created);
+        window.form_shown(WarningVisibility::Hidden, 196, 56);
+        assert_eq!(window.lifecycle(), Lifecycle::Shown);
+        assert_eq!(window.memo_half_height, 98);
+        window.mark_editor_context_pending();
+        window.form_activated();
+        let activation = window.take_activation_request().expect("activation");
+        assert!(activation.publish_editor_context);
+        assert!(activation.caption.contains("noname.cir"));
+        assert_eq!(window.lifecycle(), Lifecycle::Active);
+        window.form_activated();
+        assert!(
+            !window
+                .take_activation_request()
+                .expect("second activation")
+                .publish_editor_context
+        );
+        window.form_deactivated();
+        assert_eq!(
+            window.take_deactivation_request(),
+            Some(DeactivationRequest)
+        );
+        assert_eq!(window.lifecycle(), Lifecycle::Inactive);
+    }
+
+    #[test]
+    fn idle_availability_uses_selection_and_clipboard_and_freezes_after_close() {
+        let mut window = window();
+        window.document.editor.record_editor_text("R1".to_owned());
+        window
+            .document
+            .editor
+            .set_selection(0..2, SelectionMode::Normal);
+        window.refresh_idle_commands(true);
+        assert_eq!(
+            window.command_availability().enabled,
+            [
+                EditorCommand::Cut,
+                EditorCommand::Copy,
+                EditorCommand::Paste,
+                EditorCommand::Delete,
+            ]
+            .into_iter()
+            .collect()
+        );
+        assert_eq!(
+            window.query_close(Some(SavePromptChoice::No)),
+            GuardDecision::Continue {
+                request_save: false
+            }
+        );
+        window.refresh_idle_commands(false);
+        assert!(
+            window
+                .command_availability()
+                .enabled
+                .contains(&EditorCommand::Paste)
+        );
+    }
+
+    #[test]
+    fn cancelled_close_resumes_idle_and_closed_form_persists_state() {
+        let mut window = window();
+        window.document.editor.record_editor_text("R1".to_owned());
+        assert_eq!(window.query_close(None), GuardDecision::Cancel);
+        window.refresh_idle_commands(true);
+        assert!(
+            window
+                .command_availability()
+                .enabled
+                .contains(&EditorCommand::Paste)
+        );
+        window.form_closed();
+        assert_eq!(
+            window.take_close_disposition(),
+            Some(CloseDisposition::Free)
+        );
+        assert!(window.take_persistence_request().is_some());
+        assert_eq!(window.lifecycle(), Lifecycle::Closed);
+    }
+
+    #[test]
+    fn destroy_releases_transient_state_once() {
+        let mut window = window();
+        window.diagnostics.push(Diagnostic {
+            message: "old".to_owned(),
+            source_line: None,
+            source_identifier: None,
+        });
+        window.form_destroyed();
+        window.form_destroyed();
+        assert_eq!(window.lifecycle(), Lifecycle::Destroyed);
+        assert!(window.diagnostics.is_empty());
+        assert!(window.take_persistence_request().is_some());
+    }
+
+    #[test]
+    fn drag_accepts_only_memo_source_and_scales_diagnostic_height() {
+        let mut window = window();
+        window.form_shown(WarningVisibility::Visible, 196, 56);
+        let outcome = window.memo_drag_over(DragOverInput {
+            source: EditorDragSource::Memo,
+            current_ppi: 144,
+        });
+        assert!(outcome.accepted);
+        assert_eq!(outcome.diagnostic_height, Some(84));
+        assert_eq!(window.take_drag_outcome(), Some(outcome));
+        let rejected = window.memo_drag_over(DragOverInput {
+            source: EditorDragSource::Other,
+            current_ppi: 96,
+        });
+        assert!(!rejected.accepted);
+        assert!(rejected.diagnostic_height.is_none());
+    }
+
+    #[test]
+    fn diagnostic_navigation_sets_and_editor_input_clears_special_line() {
+        let mut window = window();
+        window.diagnostics.push(Diagnostic {
+            message: "error".to_owned(),
+            source_line: Some(12),
+            source_identifier: None,
+        });
+        let mut resolver = |_: &str| None;
+        assert!(window.diagnostic_double_click_with(0, &mut resolver));
+        assert_eq!(
+            window.special_line_colors(12),
+            Some(LineColors {
+                foreground: 0x00ff_ffff,
+                background: 0x80,
+            })
+        );
+        assert_eq!(window.cursor_status(), "Line:12 Col:1");
+        window.memo_key_down();
+        assert!(window.special_line_colors(12).is_none());
+        window.highlighted_line = Some(12);
+        window.memo_mouse_down();
+        assert!(window.highlighted_line.is_none());
+    }
+
+    #[test]
+    fn diagnostic_resolver_and_text_prefix_cover_both_recovered_routes() {
+        let mut window = window();
+        window.diagnostics.extend([
+            Diagnostic {
+                message: "included source".to_owned(),
+                source_line: None,
+                source_identifier: Some("amp.lib".to_owned()),
+            },
+            Diagnostic {
+                message: "[27] malformed value".to_owned(),
+                source_line: None,
+                source_identifier: None,
+            },
+        ]);
+        let mut resolver = |source: &str| (source == "amp.lib").then_some(19);
+        assert!(window.diagnostic_double_click_with(0, &mut resolver));
+        assert_eq!(window.take_navigation().expect("source line").line, 19);
+        assert!(window.diagnostic_double_click_with(1, &mut resolver));
+        assert_eq!(window.take_navigation().expect("prefix line").line, 27);
+    }
+
+    #[test]
+    fn key_up_synchronizes_text_and_cursor_status() {
+        let mut window = window();
+        window.editor = text_editor::Content::with_text("R1 1 0 1k");
+        window.highlighted_line = Some(3);
+        window.memo_key_up(CaretPosition { line: 3, column: 5 });
+        assert_eq!(window.document.editor.text, "R1 1 0 1k\n");
+        assert_eq!(window.cursor_status(), "Line:3 Col:5");
+        assert!(window.highlighted_line.is_none());
+    }
+
+    #[test]
+    fn dialog_find_and_replace_report_outcomes_and_keep_options() {
+        let mut window = window();
+        window
+            .document
+            .editor
+            .record_editor_text("R1 r1".to_owned());
+        window
+            .document
+            .editor
+            .set_selection(0..0, SelectionMode::Normal);
+        let find = SearchOptions {
+            query: "R1".to_owned(),
+            case_sensitive: true,
+            ..SearchOptions::default()
+        };
+        assert_eq!(window.find_from_dialog(&find), SearchOutcome::Found);
+        let replace = SearchOptions {
+            query: "R1".to_owned(),
+            replacement: "X".to_owned(),
+            replace_mode: ReplaceMode::All,
+            ..SearchOptions::default()
+        };
+        assert_eq!(
+            window.replace_from_dialog(&replace),
+            SearchOutcome::Replaced(2)
+        );
+        assert_eq!(window.document.editor.text, "X X");
     }
 }

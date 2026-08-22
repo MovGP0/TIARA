@@ -1,3 +1,9 @@
+//! Modeless Digital Step Analysis control panel.
+//!
+//! Iced owns the panel state and update loop. [`PanelHostAdapter`] isolates the
+//! two opaque show-time resources and host-selected placement. Their Delphi
+//! types and the host coordinate mapping are not recovered.
+
 use std::time::{Duration, Instant};
 
 use iced::widget::{button, checkbox, column, container, row, text};
@@ -8,6 +14,8 @@ use tiara_core::step_analysis::{
 };
 
 pub const TITLE: &str = "Step Analysis";
+pub const FORM_RESOURCE: &str = "DStepAnalControlPanel";
+pub const HELP_CONTEXT: u32 = 0x453;
 const DEFAULT_DELAY_MILLISECONDS: u16 = 0x0400;
 const STOP_POLL_MILLISECONDS: u64 = 100;
 const TIME_EPSILON: f64 = 1.0e-12;
@@ -26,6 +34,60 @@ pub enum Transport {
 #[repr(u8)]
 pub enum CloseAction {
     Free = 2,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CleanupHandle(u64);
+
+impl CleanupHandle {
+    #[must_use]
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AllocationHandle(u64);
+
+impl AllocationHandle {
+    #[must_use]
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PanelPlacement {
+    pub left: i32,
+    pub top: i32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PanelHostSession {
+    cleanup: CleanupHandle,
+    allocation: Option<AllocationHandle>,
+    placement: PanelPlacement,
+}
+
+impl PanelHostSession {
+    #[must_use]
+    pub const fn new(
+        cleanup: CleanupHandle,
+        allocation: Option<AllocationHandle>,
+        placement: PanelPlacement,
+    ) -> Self {
+        Self {
+            cleanup,
+            allocation,
+            placement,
+        }
+    }
+}
+
+pub trait PanelHostAdapter {
+    fn acquire_session(&mut self) -> PanelHostSession;
+    fn release_cleanup(&mut self, handle: CleanupHandle);
+    fn release_allocation(&mut self, handle: AllocationHandle);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -158,6 +220,9 @@ pub struct State {
     alternate_no_progress_count: u8,
     force_alternate_no_progress: bool,
     analysis_error: Option<String>,
+    host_session: Option<PanelHostSession>,
+    placement: Option<PanelPlacement>,
+    help_context: u32,
     close: CloseState,
 }
 
@@ -212,6 +277,9 @@ impl State {
             alternate_no_progress_count: 0,
             force_alternate_no_progress: false,
             analysis_error: None,
+            host_session: None,
+            placement: None,
+            help_context: 0,
             close: CloseState {
                 requested: false,
                 deferred: false,
@@ -268,6 +336,37 @@ impl State {
         } else {
             Subscription::none()
         }
+    }
+
+    /// Ports Ghidra function `FUN_014fdf50` at `0x014FDF50`.
+    ///
+    /// The host adapter acquires the two opaque show-time resources and maps
+    /// the recovered lower-right placement into host coordinates. The panel
+    /// stores those resources for `OnHide`, restores the stopped transport
+    /// presentation, becomes visible, and assigns help context `0x453`.
+    pub fn form_show(&mut self, host: &mut impl PanelHostAdapter) {
+        let session = host.acquire_session();
+        self.placement = Some(session.placement);
+        self.host_session = Some(session);
+        self.apply_transport_state(Transport::Stop);
+        self.close.visible = true;
+        self.help_context = HELP_CONTEXT;
+    }
+
+    /// Ports Ghidra function `FUN_014fe030` at `0x014FE030`.
+    ///
+    /// Releases the cleanup chain first, then releases the optional allocation.
+    /// Taking the stored session makes a repeated iced hide notification safe.
+    pub fn form_hide(&mut self, host: &mut impl PanelHostAdapter) {
+        let Some(session) = self.host_session.take() else {
+            self.close.visible = false;
+            return;
+        };
+        host.release_cleanup(session.cleanup);
+        if let Some(allocation) = session.allocation {
+            host.release_allocation(allocation);
+        }
+        self.close.visible = false;
     }
 
     /// Reimplements Ghidra function `FUN_014fd660` at `0x014FD660`.
@@ -707,6 +806,16 @@ impl State {
         self.close.visible
     }
 
+    #[must_use]
+    pub const fn placement(&self) -> Option<PanelPlacement> {
+        self.placement
+    }
+
+    #[must_use]
+    pub const fn help_context(&self) -> u32 {
+        self.help_context
+    }
+
     #[cfg(test)]
     const fn force_alternate_no_progress(&mut self, force: bool) {
         self.force_alternate_no_progress = force;
@@ -729,7 +838,47 @@ mod tests {
     use iced::Task;
     use tiara_core::step_analysis::{BackendKind, SimulationScenario};
 
-    use super::{CloseAction, DEFAULT_DELAY_MILLISECONDS, Message, State, TIME_EPSILON, Transport};
+    use super::{
+        AllocationHandle, CleanupHandle, CloseAction, DEFAULT_DELAY_MILLISECONDS, HELP_CONTEXT,
+        Message, PanelHostAdapter, PanelHostSession, PanelPlacement, State, TIME_EPSILON,
+        Transport,
+    };
+
+    struct FakeHost {
+        with_allocation: bool,
+        events: Vec<&'static str>,
+    }
+
+    impl FakeHost {
+        const fn new(with_allocation: bool) -> Self {
+            Self {
+                with_allocation,
+                events: Vec::new(),
+            }
+        }
+    }
+
+    impl PanelHostAdapter for FakeHost {
+        fn acquire_session(&mut self) -> PanelHostSession {
+            self.events.push("acquire");
+            PanelHostSession::new(
+                CleanupHandle::new(7),
+                self.with_allocation.then_some(AllocationHandle::new(9)),
+                PanelPlacement {
+                    left: 1_200,
+                    top: 700,
+                },
+            )
+        }
+
+        fn release_cleanup(&mut self, _handle: CleanupHandle) {
+            self.events.push("cleanup");
+        }
+
+        fn release_allocation(&mut self, _handle: AllocationHandle) {
+            self.events.push("allocation");
+        }
+    }
 
     fn discard(task: Task<Message>) {
         drop(task);
@@ -746,6 +895,53 @@ mod tests {
         assert_eq!(state.result_entries.len(), state.scenario.node_count);
         assert_time_equal(state.current_time(), 0.0);
         assert_eq!(state.delay_milliseconds(), DEFAULT_DELAY_MILLISECONDS);
+    }
+
+    #[test]
+    fn form_show_acquires_host_resources_places_panel_and_selects_stop() {
+        let mut state = State::new(BackendKind::Normal, SimulationScenario::default());
+        state.pause();
+        let mut host = FakeHost::new(true);
+
+        state.form_show(&mut host);
+
+        assert_eq!(host.events, ["acquire"]);
+        assert!(state.host_session.is_some());
+        assert_eq!(
+            state.placement(),
+            Some(PanelPlacement {
+                left: 1_200,
+                top: 700,
+            })
+        );
+        assert_eq!(state.transport(), Transport::Stop);
+        assert_eq!(state.help_context(), HELP_CONTEXT);
+        assert!(state.is_visible());
+    }
+
+    #[test]
+    fn form_hide_releases_resources_in_order_and_is_safe_when_repeated() {
+        let mut state = State::new(BackendKind::Normal, SimulationScenario::default());
+        let mut host = FakeHost::new(true);
+        state.form_show(&mut host);
+
+        state.form_hide(&mut host);
+        state.form_hide(&mut host);
+
+        assert_eq!(host.events, ["acquire", "cleanup", "allocation"]);
+        assert!(state.host_session.is_none());
+        assert!(!state.is_visible());
+    }
+
+    #[test]
+    fn form_hide_skips_release_for_an_absent_optional_allocation() {
+        let mut state = State::new(BackendKind::Normal, SimulationScenario::default());
+        let mut host = FakeHost::new(false);
+        state.form_show(&mut host);
+
+        state.form_hide(&mut host);
+
+        assert_eq!(host.events, ["acquire", "cleanup"]);
     }
 
     #[test]

@@ -3,6 +3,11 @@
 //! `iced` supplies the state/update/view boundary. The shared
 //! `tiara_core::numeric_format` parser supplies engineering-number input, and
 //! the standard library supplies finite/range checks. No new crate is needed.
+//!
+//! The iced text input validates when settings are collected. A host numeric
+//! editor can route its editor-specific message through
+//! [`Message::EndTimeEditorError`]. The exact legacy parser-exception event
+//! order is not recoverable from static evidence.
 
 use std::fmt;
 
@@ -96,9 +101,7 @@ impl Window {
         match message {
             Message::EndTimeChanged(value) => self.end_time_text = value,
             Message::IdealComponentsToggled(checked) => self.ideal_components = checked,
-            Message::EndTimeEditorError(message) => {
-                self.report_validation_error(ValidationError::Editor(message));
-            }
+            Message::EndTimeEditorError(message) => self.report_end_time_editor_error(message),
             Message::Accept => {
                 self.modal_result = Some(ModalResult::Accept);
                 self.validate_and_commit();
@@ -128,6 +131,15 @@ impl Window {
             self.first_error = Some(error);
         }
         self.close_guard.validation_error = true;
+    }
+
+    /// Ports Ghidra function `FUN_014f7c00` at `0x014F7C00`.
+    ///
+    /// `EditEndVal.OnError` forwards the float editor's own text to the same
+    /// first-error coordinator used by application validation. The coordinator
+    /// sets the one-close veto and does not replace an earlier message.
+    pub fn report_end_time_editor_error(&mut self, message: String) {
+        self.report_validation_error(ValidationError::Editor(message));
     }
 
     /// Validates and commits Digital Timing Analysis settings.
@@ -284,8 +296,8 @@ mod tests {
     fn error_coordinator_keeps_first_message_and_stale_flag_blocks_valid_commit() {
         let original = settings();
         let mut window = Window::new(original);
-        window.report_validation_error(ValidationError::Editor("first".to_owned()));
-        window.report_validation_error(ValidationError::Editor("second".to_owned()));
+        let _ = window.update(Message::EndTimeEditorError("first".to_owned()));
+        window.report_end_time_editor_error("second".to_owned());
         let _ = window.update(Message::EndTimeChanged("10m".to_owned()));
         let _ = window.update(Message::IdealComponentsToggled(false));
 

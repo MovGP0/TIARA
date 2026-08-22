@@ -179,6 +179,11 @@ impl ProgramEditor {
         &self.selection
     }
 
+    #[must_use]
+    pub fn caret_line_column(&self) -> (usize, usize) {
+        line_column(&self.text, self.selection.end)
+    }
+
     pub const fn set_modified(&mut self, modified: bool) {
         self.modified = modified;
     }
@@ -259,4 +264,51 @@ impl TerminalState {
     pub const fn selection(&self) -> &Range<usize> {
         &self.selection
     }
+
+    pub fn set_caret(&mut self, index: usize) {
+        let caret = floor_char_boundary(&self.text, index.min(self.text.len()));
+        self.selection = caret..caret;
+    }
+
+    #[must_use]
+    pub fn caret_line_column(&self) -> (usize, usize) {
+        line_column(&self.text, self.selection.end)
+    }
+
+    #[must_use]
+    pub fn last_prompt_command(&self) -> Option<String> {
+        self.text
+            .lines()
+            .rev()
+            .find_map(|line| line.strip_prefix(">>> "))
+            .map(|command| command.trim_start().to_owned())
+    }
+
+    pub fn append_evaluation(&mut self, response: &str) {
+        if !self.text.is_empty() && !self.text.ends_with('\n') {
+            self.text.push('\n');
+        }
+        if !response.is_empty() {
+            self.text.push_str(response);
+            self.text.push('\n');
+        }
+        self.text.push_str(">>>  ");
+        self.selection = self.text.len()..self.text.len();
+    }
+}
+
+fn line_column(text: &str, index: usize) -> (usize, usize) {
+    let caret = floor_char_boundary(text, index.min(text.len()));
+    let before = &text[..caret];
+    let line = before.bytes().filter(|byte| *byte == b'\n').count() + 1;
+    let line_start = before.rfind('\n').map_or(0, |position| position + 1);
+    let column = before[line_start..].chars().count() + 1;
+    (line, column)
+}
+
+fn floor_char_boundary(text: &str, mut index: usize) -> usize {
+    while index > 0 && !text.is_char_boundary(index) {
+        index -= 1;
+    }
+    index
 }

@@ -18,7 +18,11 @@ use tiara_core::netlist_viewer::{
 
 pub const TITLE: &str = "Netlist Viewer";
 pub const FORM_RESOURCE: &str = "NetlistViewer";
-pub const LIBRARY_EVALUATION: &str = "iced supplies editor state, tasks, widgets, and standard text clipboard operations; rfd supplies maintained file dialogs; std supplies files, paths, ranges, undo snapshots, search, and formatting. Printing, docking, host saves, compilation, ERC, help, and schematic navigation remain typed host adapters.";
+pub const SYNTAX_SCHEME: &str = "bmSpice";
+pub const SPECIAL_LINE_FOREGROUND: [u8; 4] = [255, 255, 255, 255];
+pub const SPECIAL_LINE_BACKGROUND: [u8; 4] = [128, 0, 0, 255];
+pub const MINIMUM_DRAG_Y: i32 = 0x7d;
+pub const LIBRARY_EVALUATION: &str = "iced supplies editor state, tasks, widgets, and standard text clipboard operations; rfd supplies maintained file dialogs; std supplies files, paths, ranges, undo snapshots, search, formatting, and RAII cleanup. Printing, docking, host saves, compilation, ERC, clipboard-format availability, lifecycle coordination, associated-source resolution, help, and schematic navigation remain typed host adapters.";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum GuardedAction {
@@ -60,6 +64,98 @@ enum CompilerState {
     #[default]
     Idle,
     Waiting(CompileRequest),
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct CommandAvailability {
+    has_selection: bool,
+    clipboard_text_available: bool,
+}
+
+impl CommandAvailability {
+    #[must_use]
+    pub const fn cut(self) -> bool {
+        self.has_selection
+    }
+
+    #[must_use]
+    pub const fn copy(self) -> bool {
+        self.has_selection
+    }
+
+    #[must_use]
+    pub const fn paste(self) -> bool {
+        self.clipboard_text_available
+    }
+
+    #[must_use]
+    pub const fn delete(self) -> bool {
+        self.has_selection
+    }
+
+    #[must_use]
+    pub const fn copy_button(self) -> bool {
+        self.has_selection
+    }
+
+    #[must_use]
+    pub const fn paste_button(self) -> bool {
+        self.clipboard_text_available
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DragSource {
+    WarningSeparator,
+    Other,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct WarningDragLayout {
+    pub separator_half_height: i32,
+    pub minimum_list_height: i32,
+    pub list_height: i32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ShowState {
+    pub warnings_visible: bool,
+    pub separator_height: i32,
+    pub warning_list_height: i32,
+    pub host_docked: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SpecialLineStyle {
+    pub foreground: [u8; 4],
+    pub background: [u8; 4],
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DiagnosticResolutionRequest {
+    pub editor_text: String,
+    pub source_identifier: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HostActivationRequest;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HostCloseQueryRequest;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CloseSearchDialogsRequest;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FormCloseAction {
+    Free,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+struct LifecycleState {
+    closing: bool,
+    special_line_highlight: bool,
+    registered_with_host: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -115,6 +211,26 @@ pub enum Message {
     EditSelectedSource,
     ClearMessages,
     RevealSpecialText(String, String, SpecialTextTarget),
+    Idle {
+        clipboard_text_available: bool,
+    },
+    Show(ShowState),
+    Close,
+    CloseQuery {
+        host_available: bool,
+    },
+    Activate {
+        host_available: bool,
+    },
+    DragOver {
+        source: DragSource,
+        pointer_y: i32,
+        client_height: i32,
+    },
+    KeyDown,
+    KeyUp,
+    MouseDown,
+    DiagnosticResolved(Option<usize>),
 }
 
 #[derive(Debug)]
@@ -151,6 +267,16 @@ pub struct Window {
     text_reveal: Option<TextReveal>,
     setting_write: Option<WarningSettingWrite>,
     error: Option<String>,
+    commands: CommandAvailability,
+    warning_drag: WarningDragLayout,
+    lifecycle: LifecycleState,
+    syntax_refresh_generation: u64,
+    special_line: Option<usize>,
+    diagnostic_resolution: Option<DiagnosticResolutionRequest>,
+    form_close_action: Option<FormCloseAction>,
+    close_find_dialogs: Option<CloseSearchDialogsRequest>,
+    host_close_query: Option<HostCloseQueryRequest>,
+    activation_request: Option<HostActivationRequest>,
 }
 
 impl Default for Window {
@@ -164,6 +290,13 @@ impl Default for Window {
 }
 
 impl Window {
+    /// Ports Ghidra `FUN_014b4bf0` at `0x014B4BF0`.
+    ///
+    /// Owned Rust fields and RAII replace the recovered helper, compiler,
+    /// settings, and diagnostic-object allocations. The host performs global
+    /// viewer registration after it observes `registered_with_host`. The
+    /// recovered localized cursor-label resource lookup remains a host concern;
+    /// the core document currently formats the stable English labels.
     #[must_use]
     pub fn new(mode: ViewerMode, default_save_name: PathBuf, help_root: PathBuf) -> Self {
         let document = NetlistDocument::default();
@@ -201,6 +334,19 @@ impl Window {
             text_reveal: None,
             setting_write: None,
             error: None,
+            commands: CommandAvailability::default(),
+            warning_drag: WarningDragLayout::default(),
+            lifecycle: LifecycleState {
+                registered_with_host: true,
+                ..LifecycleState::default()
+            },
+            syntax_refresh_generation: 1,
+            special_line: None,
+            diagnostic_resolution: None,
+            form_close_action: None,
+            close_find_dialogs: None,
+            host_close_query: None,
+            activation_request: None,
         }
     }
 
@@ -249,6 +395,25 @@ impl Window {
             Message::RevealSpecialText(identifier, text, target) => {
                 self.reveal_special_target(&identifier, &text, &target);
             }
+            Message::Idle {
+                clipboard_text_available,
+            } => self.synchronize_idle_commands(clipboard_text_available),
+            Message::Show(state) => self.show(state),
+            Message::Close => self.close(),
+            Message::CloseQuery { host_available } => {
+                self.query_close(host_available);
+            }
+            Message::Activate { host_available } => self.activate(host_available),
+            Message::DragOver {
+                source,
+                pointer_y,
+                client_height,
+            } => {
+                self.drag_warning_separator(source, pointer_y, client_height);
+            }
+            Message::KeyDown | Message::MouseDown => self.clear_special_line_highlight(),
+            Message::KeyUp => self.key_released(),
+            Message::DiagnosticResolved(line) => self.finish_diagnostic_resolution(line),
         }
         Task::none()
     }
@@ -259,6 +424,135 @@ impl Window {
         } else {
             CommandContext::OtherWindow
         };
+    }
+
+    #[must_use]
+    pub const fn command_availability(&self) -> CommandAvailability {
+        self.commands
+    }
+
+    #[must_use]
+    pub const fn warning_drag_layout(&self) -> WarningDragLayout {
+        self.warning_drag
+    }
+
+    #[must_use]
+    pub const fn special_line(&self) -> Option<usize> {
+        self.special_line
+    }
+
+    #[must_use]
+    pub const fn diagnostic_resolution(&self) -> Option<&DiagnosticResolutionRequest> {
+        self.diagnostic_resolution.as_ref()
+    }
+
+    /// Ports Ghidra `FUN_014b4430` at `0x014B4430`.
+    ///
+    /// The window host supplies the platform clipboard text-format probe.
+    pub const fn synchronize_idle_commands(&mut self, clipboard_text_available: bool) {
+        if self.lifecycle.closing {
+            return;
+        }
+        let has_selection = self.document.selection.start != self.document.selection.end;
+        self.commands = CommandAvailability {
+            has_selection,
+            clipboard_text_available,
+        };
+    }
+
+    /// Ports Ghidra `FUN_014b4fd0` at `0x014B4FD0`.
+    ///
+    /// The host reads the persisted warning preference and current dock state,
+    /// then supplies them in `ShowState`.
+    pub const fn show(&mut self, state: ShowState) {
+        self.warning_drag = WarningDragLayout {
+            separator_half_height: state.separator_height / 2,
+            minimum_list_height: state.warning_list_height,
+            list_height: state.warning_list_height,
+        };
+        self.warnings = if state.warnings_visible {
+            WarningPaneState::Visible
+        } else {
+            WarningPaneState::Hidden
+        };
+        self.dock_state = if state.host_docked {
+            DockState::Docked
+        } else {
+            DockState::Floating
+        };
+        self.activation_request = Some(HostActivationRequest);
+    }
+
+    /// Ports Ghidra `FUN_014b5170` at `0x014B5170`.
+    pub const fn close(&mut self) {
+        self.form_close_action = Some(FormCloseAction::Free);
+        self.close_find_dialogs = Some(CloseSearchDialogsRequest);
+    }
+
+    /// Ports Ghidra `FUN_014b51a0` at `0x014B51A0`.
+    pub fn query_close(&mut self, host_available: bool) -> bool {
+        self.host_close_query =
+            (self.mode == ViewerMode::Standalone && host_available && self.document.modified)
+                .then_some(HostCloseQueryRequest);
+        self.lifecycle.closing = true;
+        true
+    }
+
+    /// Ports Ghidra `FUN_014b5220` at `0x014B5220`.
+    pub const fn activate(&mut self, host_available: bool) {
+        if host_available {
+            self.activation_request = Some(HostActivationRequest);
+        }
+    }
+
+    /// Ports Ghidra `FUN_014b6080` at `0x014B6080`.
+    ///
+    /// The iced event adapter must supply `pointer_y` in form-client
+    /// coordinates, matching the conversion performed by the recovered VCL
+    /// handler.
+    pub fn drag_warning_separator(
+        &mut self,
+        source: DragSource,
+        pointer_y: i32,
+        client_height: i32,
+    ) -> bool {
+        if source != DragSource::WarningSeparator {
+            return false;
+        }
+        let pointer_y = pointer_y.max(MINIMUM_DRAG_Y);
+        let proposed = client_height
+            .saturating_sub(pointer_y)
+            .saturating_sub(self.warning_drag.separator_half_height);
+        self.warning_drag.list_height = proposed.max(self.warning_drag.minimum_list_height);
+        true
+    }
+
+    /// Ports Ghidra `FUN_014b6130` at `0x014B6130` and `FUN_014b6190` at
+    /// `0x014B6190`.
+    pub const fn clear_special_line_highlight(&mut self) {
+        if self.lifecycle.special_line_highlight {
+            self.lifecycle.special_line_highlight = false;
+        }
+    }
+
+    /// Ports Ghidra `FUN_014b6150` at `0x014B6150`.
+    pub fn key_released(&mut self) {
+        self.syntax_refresh_generation = self.syntax_refresh_generation.saturating_add(1);
+        self.status.clear();
+        self.caret_panel = self.caret.panel_text();
+    }
+
+    /// Ports Ghidra `FUN_014b61b0` at `0x014B61B0`.
+    #[must_use]
+    pub fn special_line_style(&self, line: usize) -> Option<SpecialLineStyle> {
+        if self.lifecycle.special_line_highlight && self.special_line == Some(line) {
+            Some(SpecialLineStyle {
+                foreground: SPECIAL_LINE_FOREGROUND,
+                background: SPECIAL_LINE_BACKGROUND,
+            })
+        } else {
+            None
+        }
     }
 
     /// Reimplements `FUN_014b5250` at Ghidra address `0x014B5250`.
@@ -386,8 +680,26 @@ impl Window {
     /// Reimplements `FUN_014b59a0` at Ghidra address `0x014B59A0`.
     pub fn search_again(&mut self) {
         if let Some(options) = self.last_search.clone() {
-            self.apply_search(&options, false);
+            self.find_from_dialog(&options);
         }
+    }
+
+    /// Ports Ghidra `FUN_014b61e0` at `0x014B61E0`.
+    ///
+    /// The search engine preserves the recovered options and selection changes.
+    /// Exact localization of the recovered not-found resource remains a host
+    /// integration gap.
+    pub fn find_from_dialog(&mut self, options: &SearchOptions) {
+        self.last_search = Some(options.clone());
+        let outcome = find_next(&mut self.document, options);
+        self.record_search_outcome(options, outcome);
+    }
+
+    /// Ports Ghidra `FUN_014b6360` at `0x014B6360`.
+    pub fn replace_from_dialog(&mut self, options: &SearchOptions) {
+        self.last_search = Some(options.clone());
+        let outcome = replace_matches(&mut self.document, options);
+        self.record_search_outcome(options, outcome);
     }
 
     /// Reimplements `FUN_014b59c0` at Ghidra address `0x014B59C0`.
@@ -434,18 +746,28 @@ impl Window {
         self.caret_panel = caret.panel_text();
     }
 
-    /// Reimplements `FUN_014b6790` at Ghidra address `0x014B6790`.
+    /// Ports Ghidra `FUN_014b64f0` at `0x014B64F0`; the popup wrapper
+    /// `FUN_014b6790` delegates to the same operation.
+    ///
+    /// Native diagnostic-object lookup is represented by the typed
+    /// `DiagnosticResolutionRequest`; the application host resolves that
+    /// request and returns `Message::DiagnosticResolved`.
     pub fn edit_selected_source(&mut self) {
         let Some(diagnostic) = self
             .selected_diagnostic
             .and_then(|index| self.diagnostics.get(index))
+            .cloned()
         else {
             return;
         };
-        if let Some(navigation) = navigate_diagnostic(diagnostic) {
-            self.caret.line = navigation.line;
-            self.caret_panel = self.caret.panel_text();
-            self.navigation = Some(navigation);
+        self.clear_special_line_highlight();
+        if let Some(navigation) = navigate_diagnostic(&diagnostic) {
+            self.apply_diagnostic_navigation(navigation);
+        } else if let Some(source_identifier) = diagnostic.source_identifier {
+            self.diagnostic_resolution = Some(DiagnosticResolutionRequest {
+                editor_text: self.document.text.clone(),
+                source_identifier,
+            });
         }
     }
 
@@ -465,12 +787,17 @@ impl Window {
         self.text_reveal = reveal_special_text_target(editor_identifier, editor_text, target);
     }
 
+    /// Ports Ghidra `FUN_014b4ea0` at `0x014B4EA0`.
+    ///
+    /// Rust RAII releases the recovered owned compiler, settings, diagnostic,
+    /// and syntax objects after the warning preference is staged for the host.
     pub const fn destroy(&mut self) {
         self.setting_write = Some(WarningSettingWrite {
             section: "Netlist Editor",
             key: "ShowWarnings",
             visible: matches!(self.warnings, WarningPaneState::Visible),
         });
+        self.lifecycle.registered_with_host = false;
     }
 
     fn begin_guarded(&mut self, action: GuardedAction) -> Task<Message> {
@@ -582,17 +909,14 @@ impl Window {
     }
 
     fn run_search(&mut self, options: &SearchOptions) {
-        let replace = self.search_dialog == SearchDialogState::Replace;
-        self.last_search = Some(options.clone());
-        self.apply_search(options, replace);
+        if self.search_dialog == SearchDialogState::Replace {
+            self.replace_from_dialog(options);
+        } else {
+            self.find_from_dialog(options);
+        }
     }
 
-    fn apply_search(&mut self, options: &SearchOptions, replace: bool) {
-        let outcome = if replace {
-            replace_matches(&mut self.document, options)
-        } else {
-            find_next(&mut self.document, options)
-        };
+    fn record_search_outcome(&mut self, options: &SearchOptions, outcome: SearchOutcome) {
         match outcome {
             SearchOutcome::NotFound => self.error = Some(format!("Not found: {}", options.query)),
             SearchOutcome::Found => self.error = None,
@@ -601,6 +925,30 @@ impl Window {
                 self.error = None;
             }
         }
+    }
+
+    fn finish_diagnostic_resolution(&mut self, line: Option<usize>) {
+        if self.diagnostic_resolution.take().is_some()
+            && let Some(line) = line
+        {
+            self.apply_diagnostic_navigation(DiagnosticNavigation {
+                line,
+                scroll_into_view: true,
+                highlight_special_line: true,
+            });
+        }
+    }
+
+    fn apply_diagnostic_navigation(&mut self, navigation: DiagnosticNavigation) {
+        self.clear_special_line_highlight();
+        self.special_line = Some(navigation.line);
+        self.caret = CaretPosition {
+            line: navigation.line,
+            column: 1,
+        };
+        self.caret_panel = self.caret.panel_text();
+        self.lifecycle.special_line_highlight = navigation.highlight_special_line;
+        self.navigation = Some(navigation);
     }
 
     fn finish_compiler(&mut self, messages: Vec<Diagnostic>) {
@@ -629,15 +977,33 @@ impl Window {
 
     #[must_use]
     pub fn view(&self) -> Element<'_, Message> {
+        let cut = button("Cut");
+        let cut = if self.commands.cut() {
+            cut.on_press(Message::Cut)
+        } else {
+            cut
+        };
+        let copy = button("Copy");
+        let copy = if self.commands.copy_button() {
+            copy.on_press(Message::Copy)
+        } else {
+            copy
+        };
+        let paste = button("Paste");
+        let paste = if self.commands.paste_button() {
+            paste.on_press(Message::Paste)
+        } else {
+            paste
+        };
         let toolbar = row![
             button("New").on_press(Message::New),
             button("Open").on_press(Message::Open),
             button("Save").on_press(Message::Save),
             button("Save As").on_press(Message::SaveAs),
             button("Undo").on_press(Message::Undo),
-            button("Cut").on_press(Message::Cut),
-            button("Copy").on_press(Message::Copy),
-            button("Paste").on_press(Message::Paste),
+            cut,
+            copy,
+            paste,
             button("Compile").on_press(Message::Compile),
             button("ERC").on_press(Message::ElectricalRulesCheck),
         ]
@@ -704,10 +1070,12 @@ async fn select_save_path(default_name: PathBuf) -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Message, WarningPaneState, Window};
+    use super::{
+        DragSource, FormCloseAction, Message, ShowState, SpecialLineStyle, WarningPaneState, Window,
+    };
     use std::path::{Path, PathBuf};
     use tiara_core::netlist_viewer::{
-        CaretPosition, CloseRequest, CompileKind, CompilerContextPolicy, Diagnostic,
+        CaretPosition, CloseRequest, CompileKind, CompilerContextPolicy, Diagnostic, ReplaceMode,
         SavePromptChoice, SearchOptions, SelectionMode, SpecialTextTarget, ThreadWindowPolicy,
         ViewerMode,
     };
@@ -910,5 +1278,178 @@ mod tests {
         assert_eq!(window.text_reveal.as_ref().expect("reveal").caret, 3);
         update(&mut window, Message::ClearMessages);
         assert!(window.diagnostics.is_empty());
+    }
+
+    #[test]
+    fn idle_synchronizes_selection_and_clipboard_commands_until_close_query() {
+        let mut window = window(ViewerMode::Standalone);
+        window.document.record_editor_text("abc".to_owned());
+        window.document.set_selection(0..2, SelectionMode::Normal);
+        update(
+            &mut window,
+            Message::Idle {
+                clipboard_text_available: true,
+            },
+        );
+        let commands = window.command_availability();
+        assert!(commands.cut() && commands.copy() && commands.delete());
+        assert!(commands.paste() && commands.copy_button() && commands.paste_button());
+
+        assert!(window.query_close(true));
+        assert!(window.host_close_query.is_some());
+        window.document.set_selection(0..0, SelectionMode::Normal);
+        window.synchronize_idle_commands(false);
+        assert_eq!(window.command_availability(), commands);
+    }
+
+    #[test]
+    fn show_close_activate_and_destroy_keep_lifecycle_outputs_typed() {
+        let mut window = window(ViewerMode::Integrated);
+        update(
+            &mut window,
+            Message::Show(ShowState {
+                warnings_visible: false,
+                separator_height: 7,
+                warning_list_height: 56,
+                host_docked: true,
+            }),
+        );
+        assert_eq!(window.warnings, WarningPaneState::Hidden);
+        assert_eq!(window.warning_drag.separator_half_height, 3);
+        assert_eq!(window.warning_drag.minimum_list_height, 56);
+        assert!(matches!(window.dock_state, super::DockState::Docked));
+        assert!(window.activation_request.is_some());
+
+        update(&mut window, Message::Close);
+        assert_eq!(window.form_close_action, Some(FormCloseAction::Free));
+        assert!(window.close_find_dialogs.is_some());
+        window.activation_request = None;
+        window.activate(false);
+        assert!(window.activation_request.is_none());
+        update(
+            &mut window,
+            Message::Activate {
+                host_available: true,
+            },
+        );
+        assert!(window.activation_request.is_some());
+        window.destroy();
+        assert!(!window.lifecycle.registered_with_host);
+        assert!(!window.setting_write.expect("setting").visible);
+    }
+
+    #[test]
+    fn drag_resizes_only_from_separator_and_preserves_minimum_height() {
+        let mut window = window(ViewerMode::Standalone);
+        window.show(ShowState {
+            warnings_visible: true,
+            separator_height: 7,
+            warning_list_height: 56,
+            host_docked: false,
+        });
+        assert!(!window.drag_warning_separator(DragSource::Other, 200, 300));
+        assert_eq!(window.warning_drag_layout().list_height, 56);
+        assert!(window.drag_warning_separator(DragSource::WarningSeparator, 50, 300));
+        assert_eq!(window.warning_drag_layout().list_height, 172);
+        assert!(window.drag_warning_separator(DragSource::WarningSeparator, 290, 300));
+        assert_eq!(window.warning_drag_layout().list_height, 56);
+    }
+
+    #[test]
+    fn input_events_clear_or_refresh_the_diagnostic_line_marker() {
+        let mut window = window(ViewerMode::Standalone);
+        window.diagnostics.push(Diagnostic {
+            message: "line".to_owned(),
+            source_line: Some(12),
+            source_identifier: None,
+        });
+        window.selected_diagnostic = Some(0);
+        window.edit_selected_source();
+        assert_eq!(
+            window.caret,
+            CaretPosition {
+                line: 12,
+                column: 1
+            }
+        );
+        assert_eq!(
+            window.special_line_style(12),
+            Some(SpecialLineStyle {
+                foreground: [255; 4],
+                background: [128, 0, 0, 255],
+            })
+        );
+        update(&mut window, Message::MouseDown);
+        assert!(window.special_line_style(12).is_none());
+
+        window.edit_selected_source();
+        window.status = "old".to_owned();
+        let generation = window.syntax_refresh_generation;
+        update(&mut window, Message::KeyUp);
+        assert_eq!(window.syntax_refresh_generation, generation + 1);
+        assert!(window.status.is_empty());
+        assert!(window.special_line_style(12).is_some());
+        update(&mut window, Message::KeyDown);
+        assert!(window.special_line_style(12).is_none());
+    }
+
+    #[test]
+    fn find_and_replace_dialog_callbacks_preserve_options_and_errors() {
+        let mut window = window(ViewerMode::Standalone);
+        window.document.record_editor_text("R1 r1 R10".to_owned());
+        window.document.selection = 0..0;
+        let find = SearchOptions {
+            query: "r1".to_owned(),
+            case_sensitive: false,
+            whole_word: true,
+            ..SearchOptions::default()
+        };
+        window.find_from_dialog(&find);
+        assert_eq!(window.document.selection, 0..2);
+        window.find_from_dialog(&find);
+        assert_eq!(window.document.selection, 3..5);
+
+        window.document.selection = 0..0;
+        window.replace_from_dialog(&SearchOptions {
+            replacement: "X".to_owned(),
+            replace_mode: ReplaceMode::All,
+            ..find.clone()
+        });
+        assert_eq!(window.document.text, "X X R10");
+        window.find_from_dialog(&SearchOptions {
+            query: "missing".to_owned(),
+            ..SearchOptions::default()
+        });
+        assert_eq!(window.error.as_deref(), Some("Not found: missing"));
+    }
+
+    #[test]
+    fn diagnostic_double_click_requests_resolution_for_associated_sources() {
+        let mut window = window(ViewerMode::Standalone);
+        window.document.record_editor_text("source".to_owned());
+        window.diagnostics.push(Diagnostic {
+            message: "associated".to_owned(),
+            source_line: None,
+            source_identifier: Some("macro-a".to_owned()),
+        });
+        window.selected_diagnostic = Some(0);
+        window.edit_selected_source();
+        assert_eq!(
+            window
+                .diagnostic_resolution()
+                .expect("resolution")
+                .source_identifier,
+            "macro-a"
+        );
+        update(&mut window, Message::DiagnosticResolved(Some(7)));
+        assert_eq!(window.caret, CaretPosition { line: 7, column: 1 });
+        assert!(window.special_line_style(7).is_some());
+        assert!(
+            window
+                .navigation
+                .as_ref()
+                .expect("navigation")
+                .scroll_into_view
+        );
     }
 }

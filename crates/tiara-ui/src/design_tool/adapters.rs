@@ -76,6 +76,86 @@ pub struct PopupAnchor {
     pub y: f32,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DesignToolGeometry {
+    pub client_width: i32,
+    pub client_height: i32,
+    pub parameter_grid_height: i32,
+    pub simple_panel_height: i32,
+    pub advanced_panel_height: i32,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct DesignToolStartup {
+    pub title: String,
+    pub source: String,
+    pub parameters: Vec<ParameterRecord>,
+    pub interface: Interface,
+    pub numerical: InterpreterNumericalSettings,
+    pub terminal_text: String,
+    pub geometry: DesignToolGeometry,
+    pub interpreter_active: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DesignToolShowState {
+    pub title: String,
+    pub more_caption: String,
+    pub python_available: bool,
+}
+
+pub trait DesignToolLifecycleHost {
+    /// Creates application-owned runtime resources and returns their typed UI snapshot.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when startup cannot acquire or read the active Design Tool session.
+    fn load_startup(&mut self) -> Result<DesignToolStartup, String>;
+
+    /// Applies localization and interface availability before the form is shown.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the host cannot prepare the selected interface.
+    fn prepare_show(&mut self, interface: Interface) -> Result<DesignToolShowState, String>;
+
+    /// Publishes whether the Design Tool owns the active application session.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the host cannot update the application state.
+    fn set_active(&mut self, active: bool) -> Result<(), String>;
+
+    /// Releases all resources acquired by [`Self::load_startup`].
+    fn release_resources(&mut self);
+
+    /// Stops the interpreter on the one-shot timer path.
+    fn stop_interpreter(&mut self);
+
+    /// Deactivates objects linked to this tool before the form closes.
+    fn deactivate_design_objects(&mut self);
+
+    /// Refreshes the active schematic after object deactivation.
+    fn refresh_schematic(&mut self);
+
+    /// Returns whether standard text can currently be pasted.
+    fn clipboard_text_available(&mut self) -> bool;
+
+    /// Evaluates one terminal command and returns display text.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when command preparation or evaluation fails.
+    fn evaluate_terminal(&mut self, command: &str) -> Result<String, String>;
+
+    /// Opens the terminal popup at a screen-space point.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the popup cannot be opened.
+    fn open_terminal_popup(&mut self, anchor: PopupAnchor) -> Result<(), String>;
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Notice {
     FirstRowCannotDelete,

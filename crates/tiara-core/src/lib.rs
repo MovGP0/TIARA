@@ -43,6 +43,8 @@ pub mod project_settings;
 pub mod pulse_generator;
 pub mod python_shell;
 pub mod rf_editor;
+pub mod rtl_helpers;
+pub mod runtime_collection;
 pub mod runtime_selection;
 pub mod simulation_time;
 pub mod step_analysis;

@@ -123,6 +123,47 @@ pub struct ResizeDecision {
     pub request: ResizeRequest,
 }
 
+/// Implements the shared Ghidra function `FUN_010e3df0` at `0x010E3DF0`.
+///
+/// Applies the common measurement-window resize policy. The calculation keeps
+/// the minimum width and plot aspect ratio, then limits the result to the
+/// available work-area height.
+#[must_use]
+pub fn constrain_measurement_window_resize(
+    policy: ResizePolicy,
+    request: ResizeRequest,
+    work_area_height: i32,
+) -> ResizeDecision {
+    let enough_vertical_space =
+        (policy.layout_top - policy.plot_top).saturating_mul(2) <= request.height;
+    let allowed = request.width != policy.current_width || enough_vertical_space;
+    let mut constrained = request;
+
+    if policy.reference_width != 0 && policy.preserve_aspect && enough_vertical_space {
+        let minimum_width = round_ratio_i32(i64::from(policy.reference_width) * 2, 3);
+        constrained.width = constrained.width.max(minimum_width);
+        constrained.height = round_ratio_i32(
+            i64::from(policy.plot_top) * i64::from(constrained.width),
+            i64::from(policy.reference_width),
+        ) + policy.layout_top
+            - policy.plot_top;
+
+        let maximum_height = work_area_height.saturating_sub(40);
+        if maximum_height > 0 && constrained.height > maximum_height {
+            constrained.width = round_ratio_i32(
+                i64::from(constrained.width) * i64::from(maximum_height),
+                i64::from(constrained.height),
+            );
+            constrained.height = maximum_height;
+        }
+    }
+
+    ResizeDecision {
+        allowed,
+        request: constrained,
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Coupling {
     Dc,
@@ -1035,35 +1076,7 @@ impl Window {
     /// Ports Ghidra function `FUN_0138d700` at `0x0138D700`.
     #[must_use]
     pub fn can_resize(&self, request: ResizeRequest, work_area_height: i32) -> ResizeDecision {
-        let policy = self.resize_policy;
-        let enough_vertical_space =
-            (policy.layout_top - policy.plot_top).saturating_mul(2) <= request.height;
-        let allowed = request.width != policy.current_width || enough_vertical_space;
-        let mut constrained = request;
-
-        if policy.reference_width != 0 && policy.preserve_aspect && enough_vertical_space {
-            let minimum_width = round_ratio_i32(i64::from(policy.reference_width) * 2, 3);
-            constrained.width = constrained.width.max(minimum_width);
-            constrained.height = round_ratio_i32(
-                i64::from(policy.plot_top) * i64::from(constrained.width),
-                i64::from(policy.reference_width),
-            ) + policy.layout_top
-                - policy.plot_top;
-
-            let maximum_height = work_area_height.saturating_sub(40);
-            if maximum_height > 0 && constrained.height > maximum_height {
-                constrained.width = round_ratio_i32(
-                    i64::from(constrained.width) * i64::from(maximum_height),
-                    i64::from(constrained.height),
-                );
-                constrained.height = maximum_height;
-            }
-        }
-
-        ResizeDecision {
-            allowed,
-            request: constrained,
-        }
+        constrain_measurement_window_resize(self.resize_policy, request, work_area_height)
     }
 
     /// Ports Ghidra function `FUN_0138d720` at `0x0138D720`.

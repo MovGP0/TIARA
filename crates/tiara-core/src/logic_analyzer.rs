@@ -173,6 +173,38 @@ impl AnalyzerModel {
     }
 
     #[must_use]
+    pub fn select_pattern_group_and_first_pattern(&mut self, index: usize) -> Option<String> {
+        let group = self.groups.get(index)?;
+        if group.patterns.is_empty() {
+            return None;
+        }
+        let pattern = Self::format_pattern(group, 0);
+        self.selected_pattern_group = Some(index);
+        self.selected_pattern = Some(0);
+        Some(pattern)
+    }
+
+    pub fn replace_selected_pattern_marker(&mut self, index: usize, value: char) -> bool {
+        let Some(group) = self
+            .selected_pattern_group
+            .and_then(|group_index| self.groups.get_mut(group_index))
+        else {
+            return false;
+        };
+        let Some(pattern) = self
+            .selected_pattern
+            .and_then(|pattern_index| group.patterns.get_mut(pattern_index))
+        else {
+            return false;
+        };
+        let Some(marker) = pattern.markers.get_mut(index) else {
+            return false;
+        };
+        *marker = value;
+        true
+    }
+
+    #[must_use]
     pub fn apply_selected_enabled(&mut self, enabled: bool) -> bool {
         if let Some(group_index) = self.selected_group {
             let Some(group) = self.groups.get(group_index) else {

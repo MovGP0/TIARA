@@ -8,6 +8,12 @@ use std::path::{Path, PathBuf};
 
 const LEGACY_PATH_BYTES: usize = 0x50;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DialogCaller {
+    DialogSelf,
+    GeneratorWindow,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LegacyDialogPath(String);
 
@@ -49,14 +55,42 @@ pub enum DialogAction {
     CloseLoadAndRefresh,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SaveDialogState {
     pub selected_index: i32,
+    caller: DialogCaller,
     pending_picker: Option<PickerKind>,
     remembered_path: Option<LegacyDialogPath>,
 }
 
+impl Default for SaveDialogState {
+    fn default() -> Self {
+        Self::on_create()
+    }
+}
+
 impl SaveDialogState {
+    /// Reimplements Ghidra function `FUN_01509c50` at `0x01509C50`.
+    ///
+    /// The recovered `OnCreate` handler stores its sender as the initial
+    /// caller. Rust records that temporary self-reference as a typed state
+    /// instead of creating a raw self pointer. The generator opener replaces
+    /// it before the modal dialog is shown. Rust ownership and iced state are
+    /// sufficient for this adapter, so no additional crate is required.
+    #[must_use]
+    pub const fn on_create() -> Self {
+        Self {
+            selected_index: 0,
+            caller: DialogCaller::DialogSelf,
+            pending_picker: None,
+            remembered_path: None,
+        }
+    }
+
+    pub const fn attach_generator_window(&mut self) {
+        self.caller = DialogCaller::GeneratorWindow;
+    }
+
     /// Reimplements Ghidra function `FUN_01509840` at `0x01509840`.
     ///
     /// Index zero requests a `.dsg` path, index one requests a `.dgb` path,
@@ -98,14 +132,41 @@ impl SaveDialogState {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoadDialogState {
     pub selected_index: i32,
+    caller: DialogCaller,
     pending_picker: bool,
     remembered_path: Option<LegacyDialogPath>,
 }
 
+impl Default for LoadDialogState {
+    fn default() -> Self {
+        Self::on_create()
+    }
+}
+
 impl LoadDialogState {
+    /// Reimplements Ghidra function `FUN_0150a4e0` at `0x0150A4E0`.
+    ///
+    /// The recovered `OnCreate` handler stores its sender as the initial
+    /// caller. This typed state replaces the temporary raw self pointer. The
+    /// generator opener replaces it before the modal dialog is shown. Rust
+    /// ownership and iced state require no additional crate.
+    #[must_use]
+    pub const fn on_create() -> Self {
+        Self {
+            selected_index: 0,
+            caller: DialogCaller::DialogSelf,
+            pending_picker: false,
+            remembered_path: None,
+        }
+    }
+
+    pub const fn attach_generator_window(&mut self) {
+        self.caller = DialogCaller::GeneratorWindow;
+    }
+
     /// Reimplements Ghidra function `FUN_0150a2c0` at `0x0150A2C0`.
     ///
     /// Exact index zero requests a `.dsg` file. Every nonzero index reloads the
@@ -150,6 +211,28 @@ impl LoadDialogState {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn save_dialog_creation_uses_self_until_the_generator_is_attached() {
+        let mut dialog = SaveDialogState::on_create();
+
+        assert_eq!(dialog.caller, DialogCaller::DialogSelf);
+
+        dialog.attach_generator_window();
+
+        assert_eq!(dialog.caller, DialogCaller::GeneratorWindow);
+    }
+
+    #[test]
+    fn load_dialog_creation_uses_self_until_the_generator_is_attached() {
+        let mut dialog = LoadDialogState::on_create();
+
+        assert_eq!(dialog.caller, DialogCaller::DialogSelf);
+
+        dialog.attach_generator_window();
+
+        assert_eq!(dialog.caller, DialogCaller::GeneratorWindow);
+    }
 
     #[test]
     fn save_dispatches_two_picker_targets_and_all_other_indices_to_tina() {

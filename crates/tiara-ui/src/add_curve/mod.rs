@@ -180,6 +180,20 @@ impl CurveEntry {
     }
 }
 
+/// Removes and drops the first curve with an exact name from a collection.
+///
+/// Ports Ghidra function `FUN_019ae710` at `0x019AE710`.
+/// The recovered active-application lookup is case-sensitive. A missing name
+/// changes nothing. Rust ownership destroys the removed record when it leaves
+/// this function.
+pub fn remove_named_curve(curves: &mut Vec<CurveEntry>, name: &str) -> bool {
+    let Some(index) = curves.iter().position(|curve| curve.name == name) else {
+        return false;
+    };
+    drop(curves.remove(index));
+    true
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FilterState {
     enabled: BTreeSet<CurveCategory>,
@@ -1432,6 +1446,26 @@ mod tests {
         assert!(window.curve(1).is_some());
         assert!(window.curve(4).is_none());
         assert_eq!(window.list_refresh_generation, before + 1);
+    }
+
+    #[test]
+    fn active_collection_removal_uses_first_exact_name_and_missing_is_noop() {
+        let mut curves = vec![
+            CurveEntry::new(1, "Gain"),
+            CurveEntry::new(2, "gain"),
+            CurveEntry::new(3, "Gain"),
+        ];
+
+        assert!(remove_named_curve(&mut curves, "Gain"));
+        assert_eq!(
+            curves.iter().map(|curve| curve.id).collect::<Vec<_>>(),
+            [2, 3]
+        );
+        assert!(!remove_named_curve(&mut curves, "GAIN"));
+        assert_eq!(
+            curves.iter().map(|curve| curve.id).collect::<Vec<_>>(),
+            [2, 3]
+        );
     }
 
     #[test]

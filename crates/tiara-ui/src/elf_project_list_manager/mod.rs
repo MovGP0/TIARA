@@ -34,6 +34,10 @@ impl Window {
         self.manager.configure(mode, caption);
     }
 
+    /// Ports Ghidra `FUN_015e5590` at `0x015E5590`.
+    ///
+    /// The recovered form-show handler delegates directly to the list reload.
+    ///
     /// # Errors
     ///
     /// Returns the registry host error without changing the working list.

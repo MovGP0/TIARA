@@ -113,9 +113,18 @@ pub struct SystemTextExtension {
     pub application_flags: u32,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DiagramCurveLink {
+    pub curve_id: u64,
+    pub first_marker: i64,
+    pub second_marker: i64,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SystemText {
     pub rendered: RenderedTextState,
+    pub enabled: bool,
+    pub size: u16,
     pub mode: SystemTextMode,
     pub geometry: TextGeometry,
     pub foreground: TextColor,
@@ -124,10 +133,35 @@ pub struct SystemText {
     pub background_color: TextColor,
     pub background: BackgroundStyle,
     pub link: Option<String>,
+    pub curve_link: Option<DiagramCurveLink>,
     pub extension: SystemTextExtension,
 }
 
 impl SystemText {
+    /// Implements Ghidra function `FUN_01a5d940` at `0x01A5D940`.
+    ///
+    /// Rust ownership replaces the recovered outer and nested allocations.
+    /// The diagram text starts enabled at size 12 with an owned Arial 12
+    /// rendered-text state. Its background is transparent with white retained
+    /// color, its border is off, and its curve association is absent.
+    #[must_use]
+    pub fn new_diagram_text() -> Self {
+        Self {
+            rendered: RenderedTextState {
+                font_family: "Arial".to_owned(),
+                font_size: 12,
+                ..RenderedTextState::default()
+            },
+            enabled: true,
+            size: 12,
+            background_color: TextColor([255, 255, 255, 255]),
+            background: BackgroundStyle::Transparent,
+            border: BorderStyle::None,
+            curve_link: None,
+            ..Self::default()
+        }
+    }
+
     /// Ports Ghidra `FUN_01a5eb60` at `0x01A5EB60`.
     ///
     /// `Clone::clone_from` supplies the deep copy. The nested popup flag is then
@@ -457,6 +491,8 @@ mod tests {
                 popup_text: false,
                 ..RenderedTextState::default()
             },
+            enabled: false,
+            size: 18,
             mode: SystemTextMode::POPUP,
             geometry: TextGeometry {
                 left: 1,
@@ -471,6 +507,11 @@ mod tests {
             background_color: TextColor([7, 8, 9, 255]),
             background: BackgroundStyle::Opaque,
             link: Some("https://example.test".to_owned()),
+            curve_link: Some(DiagramCurveLink {
+                curve_id: 14,
+                first_marker: 15,
+                second_marker: 16,
+            }),
             extension: SystemTextExtension {
                 tag: 11,
                 layer: 12,
@@ -484,6 +525,22 @@ mod tests {
         let mut expected = source;
         expected.rendered.popup_text = true;
         assert_eq!(destination, expected);
+    }
+
+    #[test]
+    fn diagram_text_constructor_applies_recovered_owned_defaults() {
+        let text = SystemText::new_diagram_text();
+
+        assert!(text.enabled);
+        assert_eq!(text.size, 12);
+        assert_eq!(text.rendered.font_family, "Arial");
+        assert_eq!(text.rendered.font_size, 12);
+        assert_eq!(text.background, BackgroundStyle::Transparent);
+        assert_eq!(text.background_color, TextColor([255, 255, 255, 255]));
+        assert_eq!(text.border, BorderStyle::None);
+        assert_eq!(text.curve_link, None);
+        assert_eq!(text.link, None);
+        assert_eq!(text.extension, SystemTextExtension::default());
     }
 
     #[test]

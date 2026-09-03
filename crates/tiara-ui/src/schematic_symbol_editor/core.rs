@@ -11,6 +11,27 @@ pub struct Bounds {
     pub height: f32,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CanvasPoint {
+    pub x: f32,
+    pub y: f32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CanvasSize {
+    pub width: f32,
+    pub height: f32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MagnifierPlan {
+    pub source: Bounds,
+    pub destination: Bounds,
+    pub crosshair_center: CanvasPoint,
+    pub crosshair_near_offset: f32,
+    pub crosshair_far_offset: f32,
+}
+
 impl Bounds {
     #[must_use]
     pub fn union(self, other: Self) -> Self {
@@ -46,6 +67,15 @@ pub enum ObjectKind {
     Other,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MarkerRole {
+    Primary,
+    Secondary,
+    Tertiary,
+    Sensing,
+    Cursor,
+}
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct NativeColor(pub u32);
 
@@ -54,6 +84,8 @@ pub struct ShapeObject {
     pub id: ObjectId,
     pub kind: ObjectKind,
     pub selected: bool,
+    pub hidden: bool,
+    pub marker_role: Option<MarkerRole>,
     pub object_color: NativeColor,
     pub fill_color: NativeColor,
     pub line_width: u8,
@@ -61,6 +93,9 @@ pub struct ShapeObject {
     pub rotation_quarter_turns: i8,
     pub name: String,
     pub pin_order: usize,
+    pub pin_flags: u8,
+    pub bitmap_frame_count: u8,
+    pub bitmap_frame_index: u8,
     pub attributes: BTreeMap<String, String>,
 }
 
@@ -71,6 +106,8 @@ impl ShapeObject {
             id: ObjectId(id),
             kind,
             selected: false,
+            hidden: false,
+            marker_role: None,
             object_color: NativeColor::default(),
             fill_color: NativeColor::default(),
             line_width: 1,
@@ -78,6 +115,9 @@ impl ShapeObject {
             rotation_quarter_turns: 0,
             name: String::new(),
             pin_order: 0,
+            pin_flags: 0,
+            bitmap_frame_count: 0,
+            bitmap_frame_index: 0,
             attributes: BTreeMap::new(),
         }
     }
@@ -88,16 +128,78 @@ impl ShapeObject {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PaintContext {
+    pub width: f32,
+    pub height: f32,
+    pub horizontal_scroll: f32,
+    pub vertical_scroll: f32,
+    pub scale_x: f32,
+    pub scale_y: f32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct GridLine {
+    pub from: (f32, f32),
+    pub to: (f32, f32),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PaintLayer {
+    PrimaryShape,
+    PrimaryPin,
+    SupplementaryShape,
+    SupplementaryPin,
+    Marker(MarkerRole),
+    Temporary,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PaintItem {
+    pub id: ObjectId,
+    pub layer: PaintLayer,
+    pub native_mode: u8,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct PaintPlan {
+    pub viewport: Bounds,
+    pub grid_lines: Vec<GridLine>,
+    pub grid_color: NativeColor,
+    pub grid_native_style: u8,
+    pub items: Vec<PaintItem>,
+    pub device_bounds: Option<Bounds>,
+    pub bounds_color: NativeColor,
+    pub restored_pen_color: NativeColor,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct DeviceCapabilities {
+    pub can_rotate: bool,
+    pub can_mirror: bool,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct DeviceProperties {
+    pub default_reference_designator: String,
+    pub animated_only: bool,
+    pub capabilities: DeviceCapabilities,
+    pub show_pcb_pin_numbers: bool,
+}
+
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Device {
     pub name: String,
     pub objects: Vec<ShapeObject>,
+    pub library_path: PathBuf,
+    pub properties: DeviceProperties,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 struct Snapshot {
     devices: Vec<Device>,
     current_device: Option<usize>,
+    detached_device: Option<Device>,
     dirty: bool,
     sort_by_name: bool,
 }
@@ -136,6 +238,7 @@ impl UndoManager {
 pub struct Document {
     pub devices: Vec<Device>,
     pub current_device: Option<usize>,
+    pub detached_device: Option<Device>,
     pub temporary_object: Option<ShapeObject>,
     pub filename: PathBuf,
     pub dirty: bool,
@@ -150,8 +253,11 @@ impl Default for Document {
             devices: vec![Device {
                 name: "Device1".to_owned(),
                 objects: Vec::new(),
+                library_path: PathBuf::new(),
+                properties: DeviceProperties::default(),
             }],
             current_device: Some(0),
+            detached_device: None,
             temporary_object: None,
             filename: PathBuf::from("NONAME.DDB"),
             dirty: false,
@@ -164,14 +270,28 @@ impl Default for Document {
 
 impl Document {
     #[must_use]
+    pub fn can_undo(&self) -> bool {
+        !self.undo.undo.is_empty()
+    }
+
+    #[must_use]
+    pub fn can_redo(&self) -> bool {
+        !self.undo.redo.is_empty()
+    }
+
+    #[must_use]
     pub fn current(&self) -> Option<&Device> {
-        self.current_device
-            .and_then(|index| self.devices.get(index))
+        self.detached_device.as_ref().or_else(|| {
+            self.current_device
+                .and_then(|index| self.devices.get(index))
+        })
     }
 
     pub fn current_mut(&mut self) -> Option<&mut Device> {
-        self.current_device
-            .and_then(|index| self.devices.get_mut(index))
+        self.detached_device.as_mut().or_else(|| {
+            self.current_device
+                .and_then(|index| self.devices.get_mut(index))
+        })
     }
 
     pub const fn redraw(&mut self) {
@@ -182,8 +302,11 @@ impl Document {
         self.devices = vec![Device {
             name: "Device1".to_owned(),
             objects: Vec::new(),
+            library_path: PathBuf::new(),
+            properties: DeviceProperties::default(),
         }];
         self.current_device = Some(0);
+        self.detached_device = None;
         self.temporary_object = None;
         self.filename = PathBuf::from("NONAME.DDB");
         self.dirty = false;
@@ -192,9 +315,157 @@ impl Document {
         self.redraw();
     }
 
+    pub fn clear_for_destroy(&mut self) {
+        self.devices.clear();
+        self.current_device = None;
+        self.detached_device = None;
+        self.temporary_object = None;
+        self.filename.clear();
+        self.dirty = false;
+        self.sort_by_name = false;
+        self.undo.clear();
+    }
+
+    pub fn record_edit_attempt(&mut self) {
+        let snapshot = self.snapshot();
+        self.undo.record(snapshot);
+    }
+
+    pub fn clear_undo_history(&mut self) {
+        self.undo.clear();
+    }
+
+    pub fn begin_new_device(&mut self) {
+        self.current_device = None;
+        self.detached_device = Some(Device::default());
+        self.temporary_object = None;
+        self.undo.clear();
+        self.redraw();
+    }
+
+    pub fn select_library_device(&mut self, index: usize) -> bool {
+        if index >= self.devices.len() {
+            return false;
+        }
+        self.current_device = Some(index);
+        self.detached_device = None;
+        self.temporary_object = None;
+        self.undo.clear();
+        self.redraw();
+        true
+    }
+
+    pub fn commit_working_device(&mut self, device: Device) -> usize {
+        let committed_name = device.name.clone();
+        if let Some(index) = self
+            .current_device
+            .filter(|index| *index < self.devices.len())
+        {
+            self.devices[index] = device;
+        } else {
+            self.devices.push(device);
+        }
+        self.detached_device = None;
+        if self.sort_by_name {
+            self.devices
+                .sort_by_key(|device| device.name.to_lowercase());
+        }
+        self.current_device = self
+            .devices
+            .iter()
+            .position(|device| device.name == committed_name)
+            .or_else(|| self.devices.len().checked_sub(1));
+        self.dirty = true;
+        self.redraw();
+        self.current_device.unwrap_or_default()
+    }
+
+    pub fn add_working_device(&mut self, device: Device) -> usize {
+        let committed_name = device.name.clone();
+        self.devices.push(device);
+        self.detached_device = None;
+        if self.sort_by_name {
+            self.devices
+                .sort_by_key(|device| device.name.to_lowercase());
+        }
+        self.current_device = self
+            .devices
+            .iter()
+            .position(|device| device.name == committed_name);
+        self.dirty = true;
+        self.redraw();
+        self.current_device.unwrap_or_default()
+    }
+
+    pub fn delete_library_device(&mut self, index: usize) -> bool {
+        if index >= self.devices.len() {
+            return false;
+        }
+        let current_name = self.current().map(|device| device.name.clone());
+        self.devices.remove(index);
+        self.detached_device = None;
+        self.current_device = current_name
+            .and_then(|name| self.devices.iter().position(|device| device.name == name))
+            .or_else(|| (!self.devices.is_empty()).then_some(0));
+        self.temporary_object = None;
+        self.undo.clear();
+        self.dirty = true;
+        self.redraw();
+        true
+    }
+
+    pub fn cycle_selected_bitmap_frame(&mut self) -> bool {
+        let Some(device) = self.current_mut() else {
+            return false;
+        };
+        let mut selected = device.objects.iter_mut().filter(|object| object.selected);
+        let Some(object) = selected.next() else {
+            return false;
+        };
+        if selected.next().is_some()
+            || object.kind != ObjectKind::Bitmap
+            || object.bitmap_frame_count == 0
+        {
+            return false;
+        }
+        object.bitmap_frame_index =
+            object.bitmap_frame_index.wrapping_add(1) % object.bitmap_frame_count;
+        self.redraw();
+        true
+    }
+
+    pub fn replace_object_without_undo(&mut self, update: ShapeObject) -> bool {
+        let Some(object) = self.current_mut().and_then(|device| {
+            device
+                .objects
+                .iter_mut()
+                .find(|object| object.id == update.id)
+        }) else {
+            return false;
+        };
+        if *object == update {
+            return false;
+        }
+        *object = update;
+        true
+    }
+
+    pub fn move_flagged_pins_to_end(&mut self) {
+        let Some(device) = self.current_mut() else {
+            return;
+        };
+        let (mut ordinary, flagged): (Vec<_>, Vec<_>) = device
+            .objects
+            .drain(..)
+            .partition(|object| !object.is_pin() || object.pin_flags & 4 == 0);
+        ordinary.extend(flagged);
+        device.objects = ordinary;
+    }
+
     pub fn replace_loaded(&mut self, devices: Vec<Device>, filename: PathBuf) {
         self.devices = devices;
         self.current_device = (!self.devices.is_empty()).then_some(0);
+        self.detached_device = None;
         self.temporary_object = None;
         self.filename = filename;
         self.dirty = false;
@@ -209,6 +480,20 @@ impl Document {
                 object.selected = false;
             }
         }
+    }
+
+    pub fn set_selected(&mut self, id: ObjectId, selected: bool) -> bool {
+        let Some(object) = self
+            .current_mut()
+            .and_then(|device| device.objects.iter_mut().find(|object| object.id == id))
+        else {
+            return false;
+        };
+        if object.selected == selected {
+            return false;
+        }
+        object.selected = selected;
+        true
     }
 
     pub fn select_all(&mut self) {
@@ -270,6 +555,14 @@ impl Document {
 
     pub fn apply_object_color(&mut self, color: NativeColor) -> usize {
         self.mutate_selected(|object| object.object_color = color)
+    }
+
+    pub fn apply_fill_color(&mut self, color: NativeColor) -> usize {
+        let changed = self.mutate_selected(|object| object.fill_color = color);
+        if changed == 0 {
+            self.redraw();
+        }
+        changed
     }
 
     pub fn apply_line_width(&mut self, width: u8, embedded: bool) -> usize {
@@ -454,7 +747,11 @@ impl Document {
         if self.sort_by_name == enabled {
             return;
         }
-        let selected_name = self.current().map(|device| device.name.clone());
+        let selected_name = self
+            .detached_device
+            .is_none()
+            .then(|| self.current().map(|device| device.name.clone()))
+            .flatten();
         self.sort_by_name = enabled;
         if enabled {
             self.devices
@@ -544,6 +841,7 @@ impl Document {
         Snapshot {
             devices: self.devices.clone(),
             current_device: self.current_device,
+            detached_device: self.detached_device.clone(),
             dirty: self.dirty,
             sort_by_name: self.sort_by_name,
         }
@@ -552,6 +850,7 @@ impl Document {
     fn restore(&mut self, snapshot: Snapshot) {
         self.devices = snapshot.devices;
         self.current_device = snapshot.current_device;
+        self.detached_device = snapshot.detached_device;
         self.dirty = snapshot.dirty;
         self.sort_by_name = snapshot.sort_by_name;
     }

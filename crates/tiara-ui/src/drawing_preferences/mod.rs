@@ -315,11 +315,11 @@ impl Window {
 
         match self.controls.left_limit.parse::<f64>() {
             Ok(value) => self.staging.left_limit = value,
-            Err(_) => self.report_numeric_error("Left limit is not a valid number."),
+            Err(_) => self.report_limit_error("Left limit is not a valid number."),
         }
         match self.controls.right_limit.parse::<f64>() {
             Ok(value) => self.staging.right_limit = value,
-            Err(_) => self.report_numeric_error("Right limit is not a valid number."),
+            Err(_) => self.report_limit_error("Right limit is not a valid number."),
         }
 
         self.staging.parameter_unit = truncate_fixed_text(&self.controls.parameter_unit);
@@ -329,7 +329,7 @@ impl Window {
 
         match self.controls.subdivisions.parse::<i32>() {
             Ok(value) => self.staging.subdivisions = value,
-            Err(_) => self.report_numeric_error("Interval subdivision is not a valid integer."),
+            Err(_) => self.report_subdivision_error("Interval subdivision is not a valid integer."),
         }
 
         if self.numeric_validation_state == NumericValidationState::ErrorPending {
@@ -384,6 +384,23 @@ impl Window {
         self.accepted = false;
     }
 
+    /// Forwards a limit editor's error text to the shared numeric error guard.
+    ///
+    /// Ports Ghidra function `0x017EBB40`, symbol `FUN_017ebb40`, shared by
+    /// the left- and right-limit `OnError` events. The adapter does not replace
+    /// or classify the editor text.
+    pub fn report_limit_error(&mut self, editor_error_text: impl Into<String>) {
+        self.report_numeric_error(editor_error_text);
+    }
+
+    /// Forwards the interval-subdivision editor's error text to the guard.
+    ///
+    /// Ports Ghidra function `0x017EBB60`, symbol `FUN_017ebb60`, recovered as
+    /// the `ePoints.OnError` event. The adapter preserves the editor text.
+    pub fn report_subdivision_error(&mut self, editor_error_text: impl Into<String>) {
+        self.report_numeric_error(editor_error_text);
+    }
+
     fn update_limit_availability(&mut self) {
         let internal_type = self.controls.selected_type.map_or(-1, |drawing_type| {
             Self::map_drawing_type_index(drawing_type.radio_index())
@@ -403,6 +420,15 @@ impl Window {
         self.staging.clone_from(&self.owner.preferences);
         self.refresh_controls_from_staging();
         self.update_limit_availability();
+    }
+
+    /// Returns the live drawing owner after the modal dialog finishes.
+    ///
+    /// The owner contains validated preference commits and the separate active
+    /// drawing-type side effect produced by Set Default.
+    #[must_use]
+    pub fn into_owner(self) -> DrawingOwner {
+        self.owner
     }
 
     #[cfg(test)]
@@ -658,6 +684,32 @@ mod tests {
         );
         assert!(!window.query_close());
         assert!(window.query_close());
+    }
+
+    #[test]
+    fn fun_017ebb40_forwards_only_the_first_limit_editor_error() {
+        let mut window = Window::new(custom_owner());
+
+        window.report_limit_error("Left editor rejected 1x");
+        window.report_limit_error("Right editor rejected 2x");
+
+        assert_eq!(window.first_error(), Some("Left editor rejected 1x"));
+        assert!(!window.accepted());
+        assert!(!window.query_close());
+    }
+
+    #[test]
+    fn fun_017ebb60_forwards_the_subdivision_editor_error() {
+        let mut window = Window::new(custom_owner());
+
+        window.report_subdivision_error("Subdivision editor rejected 2.5");
+
+        assert_eq!(
+            window.first_error(),
+            Some("Subdivision editor rejected 2.5")
+        );
+        assert!(!window.accepted());
+        assert!(!window.query_close());
     }
 
     #[test]

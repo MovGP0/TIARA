@@ -5,7 +5,11 @@ use crate::shared::window_shell;
 
 pub mod model;
 
-use model::RecorderState;
+use model::{
+    RecorderCanResizeInput, RecorderCreationConfig, RecorderDestroyHost, RecorderResizeInput,
+    RecorderScreenInteractionHost, RecorderState, RecordingMode, ScreenDoubleClickInput,
+    ScreenMouseDownInput, ScreenMouseMoveInput,
+};
 
 pub const TITLE: &str = "XY Recorder";
 pub const SCREENSHOT: &str = "screenshots/XY_Recorder_Window.png";
@@ -30,8 +34,70 @@ impl Default for Window {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    Created(RecorderCreationConfig),
     TextChanged(usize, String),
+    HorizontalPositionKeyPressed {
+        key: char,
+        text: String,
+    },
+    HorizontalPositionExited(String),
+    HorizontalPositionError,
+    HorizontalPositionEnd,
+    HorizontalPositionDown,
+    HorizontalPositionUp,
+    XSensitivityEnd,
+    XSensitivityUp,
+    XSensitivityDown,
+    CursorLeftMouseDown {
+        primary_button: bool,
+    },
+    CursorRightMouseDown {
+        primary_button: bool,
+    },
+    CursorRightMouseUp {
+        primary_button: bool,
+    },
+    CursorLeftMouseUp {
+        primary_button: bool,
+    },
+    ChannelSelected(Option<usize>),
+    XSourceSelected(Option<usize>),
+    RecordingModeSelected(Option<RecordingMode>),
+    RecordingIntervalUp,
+    RecordingIntervalDown,
+    RecordingIntervalKeyPressed {
+        key: char,
+        text: String,
+    },
+    RecordingIntervalExited(String),
+    RecordingIntervalError,
     ChannelOnChanged(bool),
+    YSensitivityDown,
+    YSensitivityUp,
+    YSensitivityEnd,
+    Shown {
+        current_width: u32,
+        current_height: u32,
+        saved_width: u32,
+        saved_height: u32,
+    },
+    Hidden,
+    CloseRequested,
+    CloseQueried {
+        application_exiting: bool,
+        current_decision: bool,
+    },
+    VerticalPositionUp,
+    VerticalPositionDown,
+    VerticalPositionEnd,
+    ScreenPaint {
+        width: u32,
+        height: u32,
+        front_overlay_visible: bool,
+    },
+    Resized(RecorderResizeInput),
+    CanResize(RecorderCanResizeInput),
+    ScreenDoubleClicked(ScreenDoubleClickInput),
     Start,
     Stop,
     Erase,
@@ -48,16 +114,122 @@ pub enum Message {
 }
 
 impl Window {
+    pub fn destroy(&mut self, host: &mut impl RecorderDestroyHost) {
+        self.recorder.destroy(host);
+    }
+
+    pub fn screen_mouse_down(
+        &mut self,
+        input: ScreenMouseDownInput,
+        host: &mut impl RecorderScreenInteractionHost,
+    ) {
+        self.recorder.screen_mouse_down(input, host);
+    }
+
+    pub fn screen_mouse_move(
+        &mut self,
+        input: ScreenMouseMoveInput,
+        host: &mut impl RecorderScreenInteractionHost,
+    ) {
+        self.recorder.screen_mouse_move(input, host);
+    }
+
+    pub fn screen_mouse_up(&mut self, host: &mut impl RecorderScreenInteractionHost) {
+        self.recorder.screen_mouse_up(host);
+    }
+
+    const fn restore_horizontal_position(&mut self) {
+        self.recorder.restore_horizontal_position_after_error();
+    }
+
+    fn restore_recording_interval(&mut self) {
+        self.recorder.restore_recording_interval_after_error();
+    }
+
     pub fn update(&mut self, message: Message) {
         match message {
+            Message::Created(config) => _ = self.recorder.create(config),
             Message::TextChanged(index, value) => {
                 if let Some(field) = self.values.get_mut(index) {
                     *field = value;
                 }
             }
+            Message::HorizontalPositionKeyPressed { key, text } => {
+                _ = self.recorder.horizontal_position_key_pressed(key, &text);
+            }
+            Message::HorizontalPositionExited(text) => {
+                self.recorder.horizontal_position_edit_exited(&text);
+            }
+            Message::HorizontalPositionError => self.restore_horizontal_position(),
+            Message::HorizontalPositionEnd => self.recorder.commit_horizontal_position(),
+            Message::HorizontalPositionDown => self.recorder.decrease_horizontal_position(),
+            Message::HorizontalPositionUp => self.recorder.increase_horizontal_position(),
+            Message::XSensitivityEnd => self.recorder.commit_x_sensitivity(),
+            Message::XSensitivityUp => self.recorder.increase_x_sensitivity(),
+            Message::XSensitivityDown => self.recorder.decrease_x_sensitivity(),
+            Message::CursorLeftMouseDown { primary_button } => {
+                self.recorder.cursor_left_mouse_down(primary_button);
+            }
+            Message::CursorRightMouseDown { primary_button } => {
+                self.recorder.cursor_right_mouse_down(primary_button);
+            }
+            Message::CursorRightMouseUp { primary_button } => {
+                self.recorder.cursor_right_mouse_up(primary_button);
+            }
+            Message::CursorLeftMouseUp { primary_button } => {
+                self.recorder.cursor_left_mouse_up(primary_button);
+            }
+            Message::ChannelSelected(index) => self.recorder.select_y_channel_from_combo(index),
+            Message::XSourceSelected(index) => self.recorder.select_x_source(index),
+            Message::RecordingModeSelected(mode) => self.recorder.select_recording_mode(mode),
+            Message::RecordingIntervalUp => self.recorder.increase_recording_interval(),
+            Message::RecordingIntervalDown => self.recorder.decrease_recording_interval(),
+            Message::RecordingIntervalKeyPressed { key, text } => {
+                _ = self.recorder.recording_interval_key_pressed(key, &text);
+            }
+            Message::RecordingIntervalExited(text) => {
+                self.recorder.recording_interval_edit_exited(&text);
+            }
+            Message::RecordingIntervalError => self.restore_recording_interval(),
             Message::ChannelOnChanged(enabled) => {
                 self.recorder.set_selected_channel_enabled(enabled);
             }
+            Message::YSensitivityDown => self.recorder.decrease_y_sensitivity(),
+            Message::YSensitivityUp => self.recorder.increase_y_sensitivity(),
+            Message::YSensitivityEnd => self.recorder.commit_y_sensitivity(),
+            Message::Shown {
+                current_width,
+                current_height,
+                saved_width,
+                saved_height,
+            } => self
+                .recorder
+                .show(current_width, current_height, saved_width, saved_height),
+            Message::Hidden => self.recorder.hide(),
+            Message::CloseRequested => _ = self.recorder.close(),
+            Message::CloseQueried {
+                application_exiting,
+                current_decision,
+            } => {
+                _ = self
+                    .recorder
+                    .query_close(application_exiting, current_decision);
+            }
+            Message::VerticalPositionUp => self.recorder.increase_vertical_position(),
+            Message::VerticalPositionDown => self.recorder.decrease_vertical_position(),
+            Message::VerticalPositionEnd => self.recorder.commit_vertical_position(),
+            Message::ScreenPaint {
+                width,
+                height,
+                front_overlay_visible,
+            } => {
+                _ = self
+                    .recorder
+                    .paint_screen(width, height, front_overlay_visible);
+            }
+            Message::Resized(input) => _ = self.recorder.resize(input),
+            Message::CanResize(input) => _ = self.recorder.can_resize(input),
+            Message::ScreenDoubleClicked(input) => _ = self.recorder.screen_double_clicked(input),
             Message::Start => self.recorder.start_acquisition(),
             Message::Stop => self.recorder.stop_acquisition(),
             Message::Erase => self.recorder.erase_display(),

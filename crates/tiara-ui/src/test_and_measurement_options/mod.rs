@@ -13,6 +13,7 @@ pub const HARDWARE_SHUTDOWN_MESSAGE: u32 = 0x053E;
 pub const PROFILE_SECTION: &str = "Schematic Editor";
 pub const PROFILE_KEY: &str = "Measurement";
 pub const PROFILE_FILE: &str = "TINA.INI";
+pub const HELP_CONTEXT: u32 = 0x0465;
 
 const STATUS: &str = "Test and measurement settings";
 
@@ -85,6 +86,7 @@ pub enum Message {
 pub struct Window {
     working: MeasurementOptions,
     applied: MeasurementOptions,
+    help_context: u32,
     pending_action: Option<Action>,
 }
 
@@ -100,8 +102,25 @@ impl Window {
         Self {
             working: options,
             applied: options,
+            help_context: HELP_CONTEXT,
             pending_action: None,
         }
+    }
+
+    /// Implements Ghidra function `FUN_01b70fa0` at `0x01B70FA0`.
+    ///
+    /// Creates the T&M Options state from the current application flags. Both
+    /// check boxes start with those values, and Help context `0x465` is bound
+    /// to the dialog.
+    #[must_use]
+    pub const fn create_from_application_state(
+        generator_matching: bool,
+        hardware_disabled: bool,
+    ) -> Self {
+        Self::new(MeasurementOptions {
+            generator_matching,
+            hardware_disabled,
+        })
     }
 
     pub const fn update(&mut self, message: Message) {
@@ -133,6 +152,11 @@ impl Window {
     #[must_use]
     pub const fn applied(&self) -> MeasurementOptions {
         self.applied
+    }
+
+    #[must_use]
+    pub const fn help_context(&self) -> u32 {
+        self.help_context
     }
 
     /// Ports Ghidra function `FUN_01b71000` at `0x01B71000`.
@@ -311,6 +335,20 @@ mod tests {
             }
         );
         assert_eq!(window.applied(), MeasurementOptions::default());
+    }
+
+    #[test]
+    fn form_create_loads_application_flags_and_help_context() {
+        let mut window = Window::create_from_application_state(true, true);
+        let expected = MeasurementOptions {
+            generator_matching: true,
+            hardware_disabled: true,
+        };
+
+        assert_eq!(window.working(), expected);
+        assert_eq!(window.applied(), expected);
+        assert_eq!(window.help_context(), HELP_CONTEXT);
+        assert_eq!(window.take_action(), None);
     }
 
     #[test]

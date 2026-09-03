@@ -9,9 +9,52 @@ use tiara_core::ic_wizard::{
 };
 
 pub const TITLE: &str = "IC Wizard";
+pub const FORM_RESOURCE: &str = "frmICWizard";
+pub const LIBRARY_EVALUATION: &str = "iced supplies the IC Wizard message, state, widgets, and asynchronous file selection. Rust PathBuf builds the configuration path, and the existing tiara-core PinLayout owns the four pin collections, so no INI or collection crate is needed at creation time.";
+pub const COLOR_DIALOG_CUSTOM_COLORS_SECTION: &str = "Color Dialog Custom Colors";
 const DEFAULT_PATH_DISPLAY_CHARACTERS: usize = 32;
 
 pub type PowerGroupSelector = fn(&str) -> PowerGroup;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CustomColorEntry {
+    pub name: String,
+    pub value: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PinLabelColorChoice {
+    pub color: u32,
+    pub custom_colors: Vec<CustomColorEntry>,
+}
+
+pub trait PinLabelColorPort {
+    /// Loads persisted custom color entries for a dialog section.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the configuration store cannot be read.
+    fn load_custom_colors(&mut self, section: &str) -> Result<Vec<CustomColorEntry>, String>;
+
+    /// Opens the color dialog with its current color and custom entries.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the native color dialog cannot complete.
+    fn choose_color(
+        &mut self,
+        current: u32,
+        custom_colors: &[CustomColorEntry],
+    ) -> Result<Option<PinLabelColorChoice>, String>;
+
+    /// Writes one accepted custom color entry to the configuration store.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the entry cannot be persisted.
+    fn write_custom_color(&mut self, section: &str, entry: &CustomColorEntry)
+    -> Result<(), String>;
+}
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum PinLayoutMode {
@@ -36,8 +79,11 @@ struct ValidationState {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    Created(PathBuf),
+    Destroyed,
     SelectMode(PinLayoutMode),
     PinCountChanged(String),
+    PinNumberError(String),
     DecreasePinCount,
     IncreasePinCount,
     ChoosePinList,
@@ -52,7 +98,9 @@ pub enum Message {
 
 #[derive(Debug)]
 pub struct State {
+    configuration_path: Option<PathBuf>,
     mode: PinLayoutMode,
+    pin_label_color: u32,
     pin_count: u32,
     pin_count_text: String,
     up_down_position: u32,
@@ -74,7 +122,9 @@ impl State {
         power_group_selector: PowerGroupSelector,
     ) -> Self {
         let mut state = Self {
+            configuration_path: None,
             mode: PinLayoutMode::Generic,
+            pin_label_color: 0,
             pin_count: 8,
             pin_count_text: String::new(),
             up_down_position: 8,
@@ -94,6 +144,14 @@ impl State {
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::Created(application_directory) => {
+                self.on_create(&application_directory);
+                Task::none()
+            }
+            Message::Destroyed => {
+                self.on_destroy();
+                Task::none()
+            }
             Message::SelectMode(PinLayoutMode::Generic) => {
                 self.select_generic_mode();
                 Task::none()
@@ -108,6 +166,10 @@ impl State {
                     self.up_down_position = count;
                     self.pin_count_text = value;
                 }
+                Task::none()
+            }
+            Message::PinNumberError(message) => {
+                self.on_pin_number_error(message);
                 Task::none()
             }
             Message::DecreasePinCount => {
@@ -155,6 +217,30 @@ impl State {
         }
     }
 
+    /// Initializes the IC Wizard configuration and pin collections.
+    ///
+    /// This is the original Rust implementation of Ghidra function
+    /// `0x01784C80`, symbol `FUN_01784c80` (`TfrmICWizard.FormCreate`). It
+    /// builds the application-local `tina.ini` path, creates four empty pin
+    /// groups, and enters generic pin-layout mode. A later host adapter can
+    /// open the configuration file when a recovered setting needs it.
+    pub fn on_create(&mut self, application_directory: &Path) {
+        self.configuration_path = Some(application_directory.join("tina.ini"));
+        self.layout = PinLayout::default();
+        self.select_generic_mode();
+    }
+
+    /// Releases the IC Wizard configuration and pin collections.
+    ///
+    /// This is the original Rust implementation of Ghidra function
+    /// `0x01784D90`, symbol `FUN_01784d90` (`TfrmICWizard.FormDestroy`). It
+    /// releases the four pin groups and the configuration object. Rust owns
+    /// these values directly, so replacing them drops their allocations.
+    pub fn on_destroy(&mut self) {
+        self.layout = PinLayout::default();
+        self.configuration_path = None;
+    }
+
     /// Reimplements Ghidra function `FUN_01784e00` at `0x01784E00`.
     pub fn select_generic_mode(&mut self) {
         self.mode = PinLayoutMode::Generic;
@@ -164,6 +250,45 @@ impl State {
     /// Reimplements Ghidra function `FUN_01784ea0` at `0x01784EA0`.
     pub const fn select_vendor_mode(&mut self) {
         self.mode = PinLayoutMode::Vendor;
+    }
+
+    /// Forwards a numeric pin-count editor error to wizard validation.
+    ///
+    /// This is the original Rust implementation of Ghidra function
+    /// `0x01784E80`, symbol `FUN_01784e80`
+    /// (`TfrmICWizard.iePinNumberError`). The editor-provided message enters
+    /// the existing first-error latch without modification.
+    pub fn on_pin_number_error(&mut self, message: String) {
+        self.report_validation_error(message);
+    }
+
+    /// Selects the pin-label color and persists accepted custom colors.
+    ///
+    /// This is the original Rust implementation of Ghidra function
+    /// `0x01785020`, symbol `FUN_01785020`
+    /// (`TfrmICWizard.shpColorMouseDown`). It loads the saved custom-color
+    /// entries before opening the dialog with the current shape color. Cancel
+    /// leaves state and configuration unchanged. Acceptance applies the new
+    /// color and writes every returned custom-color entry to the same section.
+    ///
+    /// # Errors
+    ///
+    /// Returns a configuration or color-dialog adapter error. If an entry
+    /// write fails, the accepted color and earlier writes remain applied.
+    pub fn select_pin_label_color(
+        &mut self,
+        port: &mut impl PinLabelColorPort,
+    ) -> Result<bool, String> {
+        let custom_colors = port.load_custom_colors(COLOR_DIALOG_CUSTOM_COLORS_SECTION)?;
+        let Some(choice) = port.choose_color(self.pin_label_color, &custom_colors)? else {
+            return Ok(false);
+        };
+
+        self.pin_label_color = choice.color;
+        for entry in &choice.custom_colors {
+            port.write_custom_color(COLOR_DIALOG_CUSTOM_COLORS_SECTION, entry)?;
+        }
+        Ok(true)
     }
 
     /// Reimplements Ghidra function `FUN_01784f10` at `0x01784F10`.
@@ -310,6 +435,11 @@ impl State {
     }
 
     #[must_use]
+    pub const fn pin_label_color(&self) -> u32 {
+        self.pin_label_color
+    }
+
+    #[must_use]
     pub const fn layout(&self) -> &PinLayout {
         &self.layout
     }
@@ -327,6 +457,11 @@ impl State {
     #[must_use]
     pub fn full_pin_list_path(&self) -> Option<&Path> {
         self.full_pin_list_path.as_deref()
+    }
+
+    #[must_use]
+    pub fn configuration_path(&self) -> Option<&Path> {
+        self.configuration_path.as_deref()
     }
 
     #[must_use]
@@ -350,7 +485,50 @@ mod tests {
     use iced::Task;
     use tiara_core::ic_wizard::PowerGroup;
 
-    use super::{Message, ModalResult, PinLayoutMode, State};
+    use super::{
+        COLOR_DIALOG_CUSTOM_COLORS_SECTION, CustomColorEntry, Message, ModalResult,
+        PinLabelColorChoice, PinLabelColorPort, PinLayoutMode, State,
+    };
+
+    #[derive(Debug, Default)]
+    struct ColorPort {
+        loaded: Vec<CustomColorEntry>,
+        choice: Option<PinLabelColorChoice>,
+        choose_inputs: Vec<(u32, Vec<CustomColorEntry>)>,
+        writes: Vec<(String, CustomColorEntry)>,
+    }
+
+    impl PinLabelColorPort for ColorPort {
+        fn load_custom_colors(&mut self, section: &str) -> Result<Vec<CustomColorEntry>, String> {
+            assert_eq!(section, COLOR_DIALOG_CUSTOM_COLORS_SECTION);
+            Ok(self.loaded.clone())
+        }
+
+        fn choose_color(
+            &mut self,
+            current: u32,
+            custom_colors: &[CustomColorEntry],
+        ) -> Result<Option<PinLabelColorChoice>, String> {
+            self.choose_inputs.push((current, custom_colors.to_vec()));
+            Ok(self.choice.take())
+        }
+
+        fn write_custom_color(
+            &mut self,
+            section: &str,
+            entry: &CustomColorEntry,
+        ) -> Result<(), String> {
+            self.writes.push((section.to_owned(), entry.clone()));
+            Ok(())
+        }
+    }
+
+    fn custom_color(name: &str, value: &str) -> CustomColorEntry {
+        CustomColorEntry {
+            name: name.to_owned(),
+            value: value.to_owned(),
+        }
+    }
 
     fn power_group(name: &str) -> PowerGroup {
         if name == "VCC" {
@@ -380,6 +558,44 @@ mod tests {
     }
 
     #[test]
+    fn create_builds_configuration_path_clears_pin_groups_and_selects_generic_mode() {
+        let mut state = State::new("Pin count must be even", power_group);
+        state
+            .load_vendor_text(Path::new("pins.csv"), "1,A,INPUT\n2,VCC,POWER\n")
+            .expect("pin list");
+        discard(state.update(Message::SelectMode(PinLayoutMode::Vendor)));
+
+        discard(state.update(Message::Created(Path::new("C:/Tina").to_path_buf())));
+
+        assert_eq!(
+            state.configuration_path(),
+            Some(Path::new("C:/Tina/tina.ini"))
+        );
+        assert_eq!(state.mode(), PinLayoutMode::Generic);
+        assert!(state.layout().input_group.is_empty());
+        assert!(state.layout().output_group.is_empty());
+        assert!(state.layout().first_power_group.is_empty());
+        assert!(state.layout().second_power_group.is_empty());
+    }
+
+    #[test]
+    fn destroy_releases_configuration_and_all_four_pin_groups() {
+        let mut state = State::new("Pin count must be even", power_group);
+        discard(state.update(Message::Created(Path::new("C:/Tina").to_path_buf())));
+        state
+            .load_vendor_text(Path::new("pins.csv"), "1,A,INPUT\n2,VCC,POWER\n")
+            .expect("pin list");
+
+        discard(state.update(Message::Destroyed));
+
+        assert_eq!(state.configuration_path(), None);
+        assert!(state.layout().input_group.is_empty());
+        assert!(state.layout().output_group.is_empty());
+        assert!(state.layout().first_power_group.is_empty());
+        assert!(state.layout().second_power_group.is_empty());
+    }
+
+    #[test]
     fn failed_ok_close_is_vetoed_and_retry_clears_first_error() {
         let mut state = State::new("Pin count must be even", power_group);
         discard(state.update(Message::PinCountChanged("5".to_owned())));
@@ -393,6 +609,68 @@ mod tests {
         discard(state.update(Message::Ok));
         assert_eq!(state.validation_error(), None);
         assert!(state.query_close());
+    }
+
+    #[test]
+    fn pin_number_error_routes_editor_text_to_the_first_error_latch() {
+        let mut state = State::new("Pin count must be even", power_group);
+
+        discard(state.update(Message::PinNumberError(
+            "Pin count is outside the allowed range".to_owned(),
+        )));
+        discard(state.update(Message::PinNumberError(
+            "A later error must not replace it".to_owned(),
+        )));
+
+        assert_eq!(
+            state.validation_error(),
+            Some("Pin count is outside the allowed range")
+        );
+    }
+
+    #[test]
+    fn pin_label_color_loads_dialog_entries_applies_choice_and_persists_all_entries() {
+        let loaded = vec![custom_color("ColorA", "255")];
+        let accepted = vec![
+            custom_color("ColorA", "65280"),
+            custom_color("ColorB", "16711680"),
+        ];
+        let mut port = ColorPort {
+            loaded: loaded.clone(),
+            choice: Some(PinLabelColorChoice {
+                color: 0x0000_ff00,
+                custom_colors: accepted.clone(),
+            }),
+            ..ColorPort::default()
+        };
+        let mut state = State::new("Pin count must be even", power_group);
+
+        assert_eq!(state.select_pin_label_color(&mut port), Ok(true));
+
+        assert_eq!(state.pin_label_color(), 0x0000_ff00);
+        assert_eq!(port.choose_inputs, vec![(0, loaded)]);
+        assert_eq!(
+            port.writes,
+            accepted
+                .into_iter()
+                .map(|entry| (COLOR_DIALOG_CUSTOM_COLORS_SECTION.to_owned(), entry))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn canceled_pin_label_color_dialog_preserves_color_and_configuration() {
+        let mut port = ColorPort {
+            loaded: vec![custom_color("ColorA", "255")],
+            choice: None,
+            ..ColorPort::default()
+        };
+        let mut state = State::new("Pin count must be even", power_group);
+
+        assert_eq!(state.select_pin_label_color(&mut port), Ok(false));
+
+        assert_eq!(state.pin_label_color(), 0);
+        assert!(port.writes.is_empty());
     }
 
     #[test]

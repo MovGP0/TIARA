@@ -4,20 +4,49 @@ use iced::{Element, Length, Task};
 pub const TITLE: &str = "List Circuits";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CloseAction {
+    Free,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Message {
     CircuitSelected(usize),
+    CircuitDoubleClicked,
     OkPressed,
     CancelPressed,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Window {
     circuits: Vec<String>,
     selected_index: Option<usize>,
+    pending_open_circuit: Option<String>,
     close_requested: bool,
 }
 
+impl Default for Window {
+    fn default() -> Self {
+        Self::initialize_form()
+    }
+}
+
 impl Window {
+    /// Creates the form state with a new owned circuit string list.
+    ///
+    /// This is the original Rust implementation of Ghidra function
+    /// `0x019D7860`, symbol `FUN_019d7860` (`TListCircuits.FormCreate`). A
+    /// standard `Vec<String>` replaces the recovered owned Delphi string-list
+    /// object. Selection and close state start empty for the new iced window.
+    #[must_use]
+    pub const fn initialize_form() -> Self {
+        Self {
+            circuits: Vec::new(),
+            selected_index: None,
+            pending_open_circuit: None,
+            close_requested: false,
+        }
+    }
+
     #[must_use]
     pub fn new(circuits: impl IntoIterator<Item = String>) -> Self {
         Self {
@@ -33,6 +62,7 @@ impl Window {
                     self.selected_index = Some(index);
                 }
             }
+            Message::CircuitDoubleClicked => self.list_double_clicked(),
             Message::OkPressed => self.request_ok_close(),
             Message::CancelPressed => self.request_cancel_close(),
         }
@@ -58,6 +88,29 @@ impl Window {
         self.close_requested = true;
     }
 
+    /// Queues the selected circuit path for application-level opening.
+    ///
+    /// This is the original Rust implementation of Ghidra function
+    /// `0x019D7890`, symbol `FUN_019d7890`
+    /// (`TListCircuits.ListBoxDblClick`). The window reads the selected row
+    /// from its retained source list. The surrounding application owns the
+    /// actual circuit-opening service and its fixed options.
+    pub fn list_double_clicked(&mut self) {
+        self.pending_open_circuit = self.selected_circuit().map(str::to_owned);
+    }
+
+    /// Clears the cached modeless window and requests release after closure.
+    ///
+    /// This is the original Rust implementation of Ghidra function
+    /// `0x019D7850`, symbol `FUN_019d7850` (`TListCircuits.FormClose`). Rust's
+    /// `Option` replaces the recovered global form pointer. Returning
+    /// [`CloseAction::Free`] preserves the recovered VCL close action while the
+    /// caller controls the actual iced window lifetime.
+    pub fn on_close(cached_window: &mut Option<Self>) -> CloseAction {
+        *cached_window = None;
+        CloseAction::Free
+    }
+
     #[must_use]
     pub fn circuits(&self) -> &[String] {
         &self.circuits
@@ -73,6 +126,11 @@ impl Window {
         self.selected_index
             .and_then(|index| self.circuits.get(index))
             .map(String::as_str)
+    }
+
+    #[must_use]
+    pub const fn take_open_circuit_request(&mut self) -> Option<String> {
+        self.pending_open_circuit.take()
     }
 
     #[must_use]
@@ -176,5 +234,42 @@ mod tests {
         assert_eq!(window.selected_index(), Some(0));
         assert_eq!(window.circuits(), circuits);
         assert!(!window.close_requested());
+    }
+
+    #[test]
+    fn close_clears_the_cached_window_and_requests_release() {
+        let mut cached_window = Some(window_with_selection());
+
+        let action = Window::on_close(&mut cached_window);
+
+        assert_eq!(action, CloseAction::Free);
+        assert_eq!(cached_window, None);
+    }
+
+    #[test]
+    fn form_creation_allocates_fresh_empty_owned_state() {
+        let first = Window::initialize_form();
+        let second = Window::initialize_form();
+
+        assert!(first.circuits().is_empty());
+        assert_eq!(first.selected_index(), None);
+        assert!(!first.close_requested());
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn double_click_queues_only_the_selected_source_row() {
+        let mut window = Window::new(["first.tsc".to_owned(), "second.tsc".to_owned()]);
+
+        drop(window.update(Message::CircuitDoubleClicked));
+        assert_eq!(window.take_open_circuit_request(), None);
+
+        drop(window.update(Message::CircuitSelected(1)));
+        drop(window.update(Message::CircuitDoubleClicked));
+        assert_eq!(
+            window.take_open_circuit_request().as_deref(),
+            Some("second.tsc")
+        );
+        assert_eq!(window.take_open_circuit_request(), None);
     }
 }

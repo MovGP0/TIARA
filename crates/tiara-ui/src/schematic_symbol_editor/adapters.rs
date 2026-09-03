@@ -2,7 +2,10 @@
 
 use std::path::{Path, PathBuf};
 
-use super::core::{Device, NativeColor, ObjectId, ShapeObject};
+use iced::mouse;
+
+use super::core::{CanvasPoint, Device, DeviceProperties, NativeColor, ObjectId, ShapeObject};
+use super::{MouseButton, MouseModifiers};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnsavedDecision {
@@ -45,6 +48,18 @@ pub struct PinPropertyUpdate {
     pub id: ObjectId,
     pub name: String,
     pub attributes: Vec<(String, String)>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DevicePropertyUpdate {
+    pub name: String,
+    pub properties: DeviceProperties,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShapeCloseNotification {
+    pub library: PathBuf,
+    pub shape: String,
 }
 
 pub trait ShapeFilePort {
@@ -132,6 +147,28 @@ pub trait ShapeImportPort {
     fn resolve_duplicate(&mut self, name: &str) -> Result<DuplicateDecision, String>;
 }
 
+pub trait ShapeDeviceDeletePort {
+    /// Confirms deletion of the named library device.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the confirmation dialog cannot complete.
+    fn confirm_delete(&mut self, device_name: &str) -> Result<bool, String>;
+}
+
+pub trait ShapeDevicePropertiesPort {
+    /// Edits the recovered device-property fields.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the modal property editor cannot complete.
+    fn edit_device_properties(
+        &mut self,
+        name: &str,
+        properties: &DeviceProperties,
+    ) -> Result<Option<DevicePropertyUpdate>, String>;
+}
+
 pub trait ShapeHelpPort {
     /// Opens the `ShapeEdit` About dialog modally.
     ///
@@ -148,6 +185,90 @@ pub trait ShapeHelpPort {
     fn open_contents(&mut self, relative_path: &Path, command: u32) -> Result<(), String>;
 }
 
+pub trait ShapeLocalizationPort {
+    /// Applies the active application language to a form and its controls.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when localized resources cannot be resolved or applied.
+    fn localize_form(&mut self, form_resource: &str) -> Result<(), String>;
+}
+
+pub trait ShapeLifecyclePort {
+    /// Notifies the native owner that the shape editor has closed.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the owner notification cannot be delivered.
+    fn notify_closed(
+        &mut self,
+        owner_handle: u32,
+        notification: &ShapeCloseNotification,
+    ) -> Result<(), String>;
+}
+
+pub trait ShapeObjectEditPort {
+    /// Lets an active drawing interaction handle a double-click first.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when interaction dispatch fails.
+    fn temporary_double_click(&mut self, object: &ShapeObject) -> Result<bool, String>;
+
+    /// Lets an active drawing interaction handle a mouse-down event first.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when interaction dispatch fails.
+    fn temporary_mouse_down(
+        &mut self,
+        object: &ShapeObject,
+        button: MouseButton,
+        modifiers: MouseModifiers,
+        screen_point: CanvasPoint,
+    ) -> Result<bool, String>;
+
+    /// Forwards a mouse-up event to an active drawing interaction.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when interaction dispatch fails.
+    fn temporary_mouse_up(
+        &mut self,
+        object: &ShapeObject,
+        button: MouseButton,
+        modifiers: MouseModifiers,
+        screen_point: CanvasPoint,
+    ) -> Result<(), String>;
+
+    /// Lets an active drawing interaction handle a mouse-move event first.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when interaction dispatch fails.
+    fn temporary_mouse_move(
+        &mut self,
+        object: &ShapeObject,
+        modifiers: MouseModifiers,
+        screen_point: CanvasPoint,
+    ) -> Result<bool, String>;
+
+    fn hit_test(&mut self, object: &ShapeObject, point: CanvasPoint) -> bool;
+
+    fn can_select(&mut self, object: &ShapeObject) -> bool;
+
+    fn hit_handle(&mut self, object: &ShapeObject, point: CanvasPoint) -> Option<i32>;
+
+    fn cursor_for(&mut self, object: &ShapeObject, point: CanvasPoint) -> mouse::Interaction;
+
+    /// Opens the class-specific editor for a hit object.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the object editor cannot complete.
+    fn edit_object(&mut self, object: &ShapeObject) -> Result<Option<ShapeObject>, String>;
+}
+
 pub trait ShapeColorPort {
     /// Selects a native color and returns the updated custom-color set.
     ///
@@ -159,6 +280,33 @@ pub trait ShapeColorPort {
         current: NativeColor,
         custom_colors: &[NativeColor],
     ) -> Result<Option<ColorChoice>, String>;
+}
+
+pub trait ShapeFillColorPort {
+    /// Loads the persisted custom-color palette.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the palette cannot be read.
+    fn load_custom_colors(&mut self) -> Result<Vec<NativeColor>, String>;
+
+    /// Selects a native fill color and returns the updated palette.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the color dialog cannot complete.
+    fn choose_fill_color(
+        &mut self,
+        current: NativeColor,
+        custom_colors: &[NativeColor],
+    ) -> Result<Option<ColorChoice>, String>;
+
+    /// Persists every accepted custom color in its returned order.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the palette cannot be written completely.
+    fn save_custom_colors(&mut self, custom_colors: &[NativeColor]) -> Result<(), String>;
 }
 
 pub trait ShapeFontPort {

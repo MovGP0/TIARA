@@ -16,6 +16,7 @@ use tiara_core::numeric_format::{format_display_value, parse_engineering_number}
 
 pub const TITLE: &str = "Network Analysis";
 pub const FORM_RESOURCE: &str = "NetworkAnalysisDlg";
+pub const NOTEBOOK_PAGE_HELP_CONTEXT: u32 = 0x96;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NumericField {
@@ -135,11 +136,20 @@ pub struct Window {
     committed: NetworkAnalysisSettings,
     edits: Edits,
     active_page: DiagramPage,
+    active_page_help_context: u32,
     first_error: Option<ValidationError>,
     error_latched: bool,
 }
 
 impl Window {
+    /// Creates the dialog controls from the saved Network Analysis settings.
+    ///
+    /// Reimplements the form-create handler at Ghidra function
+    /// `FUN_01535ae0` (`0x01535AE0`). The numeric editors use the shared
+    /// engineering-number formatter. The radio indexes and all three diagram
+    /// pages receive their saved values, including pages that are not active.
+    /// `iced` owns the resulting control state, so no extra GUI-state library
+    /// is required.
     #[must_use]
     pub fn new(settings: NetworkAnalysisSettings, active_page: DiagramPage) -> Self {
         Self {
@@ -153,6 +163,7 @@ impl Window {
             },
             committed: settings,
             active_page,
+            active_page_help_context: 0,
             first_error: None,
             error_latched: false,
         }
@@ -252,7 +263,17 @@ impl Window {
         self.edits.mode_index = mode_index;
         if let Some(page) = page_for_mode(mode_index) {
             self.active_page = page;
+            self.notebook_changed();
         }
+    }
+
+    /// Assigns the recovered help context to the active notebook page.
+    ///
+    /// Reimplements Ghidra function `FUN_01535e80` at `0x01535E80`.
+    /// `iced` keeps this context in typed dialog state, so no additional
+    /// notebook-state library is required.
+    pub const fn notebook_changed(&mut self) {
+        self.active_page_help_context = NOTEBOOK_PAGE_HELP_CONTEXT;
     }
 
     #[must_use]
@@ -263,6 +284,11 @@ impl Window {
     #[must_use]
     pub const fn active_page(&self) -> DiagramPage {
         self.active_page
+    }
+
+    #[must_use]
+    pub const fn active_page_help_context(&self) -> u32 {
+        self.active_page_help_context
     }
 
     #[must_use]
@@ -371,6 +397,43 @@ mod tests {
     }
 
     #[test]
+    fn form_create_initializes_every_control_group_from_saved_settings() {
+        let settings = NetworkAnalysisSettings {
+            start_frequency_hz: 1_250.0,
+            end_frequency_hz: 2_500_000.0,
+            point_count: 321,
+            sweep_type_index: 1,
+            mode_index: 5,
+            diagrams: NetworkDiagramOptions {
+                szyh: DiagramMask::new(0x0065),
+                reflection: DiagramMask::new(0x01e2),
+                transmission: DiagramMask::new(0x00f3),
+            },
+        };
+
+        let window = Window::new(settings.clone(), DiagramPage::Reflection);
+
+        assert_eq!(window.edits.start_frequency, "1.25k");
+        assert_eq!(window.edits.end_frequency, "2.5M");
+        assert_eq!(window.edits.point_count, "321");
+        assert_eq!(window.edits.sweep_type_index, 1);
+        assert_eq!(window.edits.mode_index, 5);
+        assert_eq!(window.edits.pages.szyh, vec![true, true, false, true, true]);
+        assert_eq!(
+            window.edits.pages.reflection,
+            vec![true, true, true, true, true]
+        );
+        assert_eq!(
+            window.edits.pages.transmission,
+            vec![true, true, true, true, true, true]
+        );
+        assert_eq!(window.committed(), &settings);
+        assert_eq!(window.active_page(), DiagramPage::Reflection);
+        assert_eq!(window.active_page_help_context(), 0);
+        assert_eq!(window.first_error(), None);
+    }
+
+    #[test]
     fn valid_accept_commits_values_and_only_active_page_mask() {
         let mut window = Window::new(settings(), DiagramPage::Szyh);
         window.edits.start_frequency = "1k".to_owned();
@@ -424,8 +487,28 @@ mod tests {
         assert_eq!(window.active_page(), DiagramPage::Transmission);
         window.select_page_for_mode(5);
         assert_eq!(window.active_page(), DiagramPage::Reflection);
+        assert_eq!(
+            window.active_page_help_context(),
+            NOTEBOOK_PAGE_HELP_CONTEXT
+        );
         window.select_page_for_mode(8);
         assert_eq!(window.active_page(), DiagramPage::Reflection);
+        assert_eq!(
+            window.active_page_help_context(),
+            NOTEBOOK_PAGE_HELP_CONTEXT
+        );
+    }
+
+    #[test]
+    fn notebook_change_assigns_the_recovered_active_page_help_context() {
+        let mut window = Window::new(settings(), DiagramPage::Transmission);
+
+        assert_eq!(window.active_page_help_context(), 0);
+        window.notebook_changed();
+        assert_eq!(
+            window.active_page_help_context(),
+            NOTEBOOK_PAGE_HELP_CONTEXT
+        );
     }
 
     #[test]

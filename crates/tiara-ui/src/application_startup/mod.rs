@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use iced::widget::{button, column, container, row, text};
 use iced::{Element, Length};
@@ -9,6 +10,7 @@ pub const DEFAULT_PARAMETERS_FILE: &str = "default.prm";
 pub const SET_REAL_DPI_EXECUTABLE: &str = "SetRealDPI.exe";
 pub const SPICE_LIBRARY_DIRECTORY: &str = "SPICELIB";
 pub const SPICE_INDEX_FILE: &str = "SPMACROS.IND";
+pub const DIAGRAM_CLIPBOARD_FORMAT_NAME: &str = "&Tina Diagram Data";
 const PRODUCT_KEY_PREFIX: &str = r"SOFTWARE\DesignSoft";
 const CHECKPOINTS: [&str; 7] = [
     "TSchematicEditor.FormCreate.0",
@@ -19,6 +21,27 @@ const CHECKPOINTS: [&str; 7] = [
     "TSchematicEditor.FormCreate.5",
     "TSchematicEditor.FormCreate.6",
 ];
+
+pub trait ClipboardFormatRegistrationHost {
+    fn register_clipboard_format(&mut self, name: &str) -> u32;
+}
+
+#[derive(Debug, Default)]
+pub struct DiagramClipboardFormatRegistration {
+    identifier: OnceLock<u32>,
+}
+
+impl DiagramClipboardFormatRegistration {
+    /// Implements Ghidra function `FUN_01a8b880` at `0x01A8B880`.
+    ///
+    /// Registers the private diagram-data clipboard name on first use and
+    /// returns the stored platform format identifier on later calls.
+    pub fn register(&self, host: &mut impl ClipboardFormatRegistrationHost) -> u32 {
+        *self
+            .identifier
+            .get_or_init(|| host.register_clipboard_format(DIAGRAM_CLIPBOARD_FORMAT_NAME))
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StartupConfiguration {
@@ -536,6 +559,18 @@ mod tests {
         keys: Vec<String>,
     }
 
+    #[derive(Debug, Default)]
+    struct ClipboardFormatHost {
+        names: Vec<String>,
+    }
+
+    impl ClipboardFormatRegistrationHost for ClipboardFormatHost {
+        fn register_clipboard_format(&mut self, name: &str) -> u32 {
+            self.names.push(name.to_owned());
+            49_165
+        }
+    }
+
     impl EnvironmentRepairHost for EnvironmentHost {
         type Error = Infallible;
 
@@ -693,6 +728,16 @@ mod tests {
                 .count(),
             7
         );
+    }
+
+    #[test]
+    fn diagram_clipboard_format_is_registered_once_and_reused() {
+        let registration = DiagramClipboardFormatRegistration::default();
+        let mut host = ClipboardFormatHost::default();
+
+        assert_eq!(registration.register(&mut host), 49_165);
+        assert_eq!(registration.register(&mut host), 49_165);
+        assert_eq!(host.names, [DIAGRAM_CLIPBOARD_FORMAT_NAME]);
     }
 
     #[test]

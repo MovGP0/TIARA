@@ -137,6 +137,20 @@ impl Window {
         self.modal_result = None;
     }
 
+    /// Implements Ghidra function `FUN_01b72900` at `0x01B72900`.
+    ///
+    /// Applies the caller-formatted advice title when the dialog activates.
+    /// Equal text is left unchanged, matching the shared VCL text setter's
+    /// change suppression.
+    pub fn activate(&self, displayed_title: &mut String) -> bool {
+        if displayed_title == &self.title {
+            return false;
+        }
+
+        self.title.clone_into(displayed_title);
+        true
+    }
+
     /// Copies accepted fields from the staging dialog to the live record.
     ///
     /// Ports Ghidra function `FUN_01b72860` at `0x01B72860`. The accepted
@@ -309,6 +323,17 @@ mod tests {
         assert_eq!(window.advice_lines(), ["First line", "Second line"]);
         assert!(!window.validation_requested());
         assert_eq!(window.modal_result(), None);
+    }
+
+    #[test]
+    fn activation_applies_the_formatted_title_only_when_changed() {
+        let window = Window::new(3, &record());
+        let mut displayed_title = "Edit Advice".to_owned();
+
+        assert!(window.activate(&mut displayed_title));
+        assert_eq!(displayed_title, "Edit Advice #3");
+        assert!(!window.activate(&mut displayed_title));
+        assert_eq!(displayed_title, "Edit Advice #3");
     }
 
     #[test]

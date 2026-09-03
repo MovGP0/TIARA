@@ -1,6 +1,7 @@
 //! `LLM` auto-test and Ollama download dialog state machines.
 
 pub mod auto_test;
+pub mod local_llm;
 pub mod ollama_download;
 
 use std::future::Future;

@@ -25,6 +25,8 @@ pub const HELP_CONTEXT: u32 = 1013;
 
 const STATUS: &str = "Report settings";
 const EMPTY_GRID_ROW_COUNT: usize = 2;
+const DEFAULT_PARAMETER_NAMES: [&str; 4] =
+    ["Parameter 1", "Parameter 2", "Parameter 3", "Parameter 4"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ReportField {
@@ -78,6 +80,7 @@ pub enum OrderBy {
     #[default]
     Label,
     Value,
+    Footprint,
     Parameter1,
     Parameter2,
     Parameter3,
@@ -85,9 +88,10 @@ pub enum OrderBy {
 }
 
 impl OrderBy {
-    const ALL: [Self; 6] = [
+    const ALL: [Self; 7] = [
         Self::Label,
         Self::Value,
+        Self::Footprint,
         Self::Parameter1,
         Self::Parameter2,
         Self::Parameter3,
@@ -98,6 +102,7 @@ impl OrderBy {
         match self {
             Self::Label => ReportField::Label,
             Self::Value => ReportField::Value,
+            Self::Footprint => ReportField::Footprint,
             Self::Parameter1 => ReportField::Parameter1,
             Self::Parameter2 => ReportField::Parameter2,
             Self::Parameter3 => ReportField::Parameter3,
@@ -110,6 +115,62 @@ impl fmt::Display for OrderBy {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(self.field().heading())
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FormInitialization {
+    pub grid_headers: [String; 9],
+    pub parameter_checkbox_captions: [String; 4],
+    pub order_by_fields: [OrderBy; 7],
+    pub selected_order_by: OrderBy,
+    pub help_context: u32,
+    pub report_data_binding: &'static str,
+}
+
+/// Initializes the Bill of Materials form and its report adapter metadata.
+///
+/// Ports Ghidra function `FUN_01983fe0` at `0x01983FE0`.
+/// The recovered form-create event sets the nine report headers, uses the four
+/// application parameter names in the grid and check boxes, rebuilds the
+/// ordering choices, selects Value, assigns help context 1013, and creates the
+/// report-data binding. Iced owns layout widths, so the two VCL pixel-width
+/// assignments have no separate application state.
+#[must_use]
+pub fn initialize_form(parameter_names: [&str; 4]) -> FormInitialization {
+    let parameter_names = parameter_names.map(str::to_owned);
+    FormInitialization {
+        grid_headers: [
+            "#".to_owned(),
+            "Quantity".to_owned(),
+            "Label".to_owned(),
+            "Value".to_owned(),
+            "Footprint".to_owned(),
+            parameter_names[0].clone(),
+            parameter_names[1].clone(),
+            parameter_names[2].clone(),
+            parameter_names[3].clone(),
+        ],
+        parameter_checkbox_captions: std::array::from_fn(|index| {
+            format!("&{}: {}", index + 1, parameter_names[index])
+        }),
+        order_by_fields: OrderBy::ALL,
+        selected_order_by: OrderBy::Value,
+        help_context: HELP_CONTEXT,
+        report_data_binding: "QRListForm.ReportDS",
+    }
+}
+
+/// Releases the Bill of Materials row storage and report adapter in order.
+///
+/// Ports Ghidra function `FUN_019848b0` at `0x019848B0`.
+/// Rust ownership supplies the recovered nil-safe destruction behavior. The
+/// explicit drops keep the observed row-storage-before-report-adapter order.
+pub fn destroy_form_resources<RowStorage, ReportAdapter>(
+    row_storage: RowStorage,
+    report_adapter: ReportAdapter,
+) {
+    drop(row_storage);
+    drop(report_adapter);
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -296,6 +357,7 @@ pub struct Window {
     report_request: Option<ReportRequest>,
     help_request: Option<HelpRequest>,
     last_error: Option<String>,
+    form_initialization: FormInitialization,
 }
 
 impl Default for Window {
@@ -307,9 +369,14 @@ impl Default for Window {
 impl Window {
     #[must_use]
     pub fn new(records: Vec<ComponentRecord>, install_folder: PathBuf) -> Self {
+        let form_initialization = initialize_form(DEFAULT_PARAMETER_NAMES);
+        let settings = ReportSettings {
+            order_by: form_initialization.selected_order_by,
+            ..ReportSettings::default()
+        };
         let mut window = Self {
             records,
-            settings: ReportSettings::default(),
+            settings,
             generated_rows: Vec::new(),
             grid: ReportGrid::default(),
             save_enabled: false,
@@ -321,6 +388,7 @@ impl Window {
             report_request: None,
             help_request: None,
             last_error: None,
+            form_initialization,
         };
         window.rebuild_report();
         window
@@ -473,6 +541,11 @@ impl Window {
     #[must_use]
     pub fn last_error(&self) -> Option<&str> {
         self.last_error.as_deref()
+    }
+
+    #[must_use]
+    pub const fn form_initialization(&self) -> &FormInitialization {
+        &self.form_initialization
     }
 
     /// Builds the controls associated with `SCREENSHOT` and `FORM_RESOURCE`.
@@ -733,6 +806,8 @@ fn report_row(cells: &[String]) -> Row<'_, Message> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::cell::RefCell;
+    use std::rc::Rc;
 
     fn record(label: &str, value: &str, footprint: &str, parameters: [&str; 4]) -> ComponentRecord {
         ComponentRecord {
@@ -758,6 +833,70 @@ mod tests {
         assert_eq!(take_first_tab_field(&mut source), "two");
         assert_eq!(take_first_tab_field(&mut source), "three");
         assert!(source.is_empty());
+    }
+
+    #[test]
+    fn form_create_initializes_headers_labels_ordering_help_and_report_binding() {
+        let initialization = initialize_form(["Tolerance", "Power", "Voltage", "Comment"]);
+
+        assert_eq!(
+            initialization.grid_headers,
+            [
+                "#",
+                "Quantity",
+                "Label",
+                "Value",
+                "Footprint",
+                "Tolerance",
+                "Power",
+                "Voltage",
+                "Comment",
+            ]
+        );
+        assert_eq!(
+            initialization.parameter_checkbox_captions,
+            ["&1: Tolerance", "&2: Power", "&3: Voltage", "&4: Comment",]
+        );
+        assert_eq!(initialization.order_by_fields, OrderBy::ALL);
+        assert!(initialization.order_by_fields.contains(&OrderBy::Footprint));
+        assert_eq!(initialization.selected_order_by, OrderBy::Value);
+        assert_eq!(initialization.help_context, HELP_CONTEXT);
+        assert_eq!(initialization.report_data_binding, "QRListForm.ReportDS");
+
+        let window = Window::default();
+        assert_eq!(window.settings().order_by, OrderBy::Value);
+        assert_eq!(
+            window.form_initialization(),
+            &initialize_form(DEFAULT_PARAMETER_NAMES)
+        );
+    }
+
+    #[test]
+    fn form_destroy_releases_owned_helpers_in_recovered_order() {
+        struct DropProbe {
+            name: &'static str,
+            events: Rc<RefCell<Vec<&'static str>>>,
+        }
+
+        impl Drop for DropProbe {
+            fn drop(&mut self) {
+                self.events.borrow_mut().push(self.name);
+            }
+        }
+
+        let events = Rc::new(RefCell::new(Vec::new()));
+        let row_storage = DropProbe {
+            name: "row-storage",
+            events: Rc::clone(&events),
+        };
+        let report_adapter = DropProbe {
+            name: "report-adapter",
+            events: Rc::clone(&events),
+        };
+
+        destroy_form_resources(row_storage, report_adapter);
+
+        assert_eq!(*events.borrow(), ["row-storage", "report-adapter"]);
     }
 
     #[test]

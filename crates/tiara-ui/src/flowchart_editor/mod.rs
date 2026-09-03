@@ -1,3 +1,5 @@
+use std::io::{self, Write};
+
 use iced::widget::{button, column, container, row, text};
 use iced::{Element, Length};
 
@@ -29,6 +31,50 @@ const PALETTE: &[&str] = &[
     "Code",
 ];
 
+/// Maps an MCU type code to the family name used in the Flowchart title.
+///
+/// This is the original Rust implementation of Ghidra function
+/// `0x01600370`, symbol `FUN_01600370`. Only the seven recovered single codes
+/// have family names. All other values use the recovered fallback.
+#[must_use]
+pub const fn mcu_family_display_name(mcu_type_code: i32) -> &'static str {
+    match mcu_type_code {
+        1 => "PIC",
+        2 => "8051",
+        4 => "AVR",
+        8 => "PIC18",
+        0x20 => "HCS08",
+        0x200 => "PIC24",
+        0x400 => "PIC32",
+        _ => "Undefined",
+    }
+}
+
+/// Implements Ghidra function `FUN_01b20e90` at `0x01B20E90`.
+///
+/// Writes a little-endian four-byte UTF-16 code-unit count followed by exactly
+/// two little-endian bytes per code unit. The stream contains no BOM and no
+/// terminating null. A null or empty value writes a zero count and no payload.
+///
+/// # Errors
+///
+/// Returns an error when the UTF-16 length exceeds `u32` or the writer rejects
+/// the count or payload bytes.
+pub fn write_length_prefixed_utf16(writer: &mut impl Write, value: Option<&str>) -> io::Result<()> {
+    let value = value.unwrap_or_default();
+    let count = u32::try_from(value.encode_utf16().count()).map_err(|_| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "the UTF-16 string exceeds the stream length field",
+        )
+    })?;
+    writer.write_all(&count.to_le_bytes())?;
+    for code_unit in value.encode_utf16() {
+        writer.write_all(&code_unit.to_le_bytes())?;
+    }
+    Ok(())
+}
+
 #[derive(Debug, Default)]
 pub struct Window {
     code_tab: bool,
@@ -52,6 +98,7 @@ impl Window {
 
     /// Builds the controls associated with `SCREENSHOT` and `FORM_RESOURCE`.
     /// `ORIGINAL_FUNCTION` preserves the recovered function connection when available.
+    #[must_use]
     pub fn view(&self) -> Element<'_, Message> {
         let palette = PALETTE.iter().fold(column![].spacing(7), |palette, label| {
             palette.push(
@@ -87,5 +134,52 @@ impl Window {
             body.into(),
             STATUS,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mcu_family_display_name_maps_every_recovered_code() {
+        assert_eq!(mcu_family_display_name(1), "PIC");
+        assert_eq!(mcu_family_display_name(2), "8051");
+        assert_eq!(mcu_family_display_name(4), "AVR");
+        assert_eq!(mcu_family_display_name(8), "PIC18");
+        assert_eq!(mcu_family_display_name(0x20), "HCS08");
+        assert_eq!(mcu_family_display_name(0x200), "PIC24");
+        assert_eq!(mcu_family_display_name(0x400), "PIC32");
+    }
+
+    #[test]
+    fn mcu_family_display_name_uses_undefined_for_every_other_value() {
+        assert_eq!(mcu_family_display_name(0), "Undefined");
+        assert_eq!(mcu_family_display_name(-1), "Undefined");
+        assert_eq!(mcu_family_display_name(1 | 2), "Undefined");
+        assert_eq!(mcu_family_display_name(0x800), "Undefined");
+    }
+
+    #[test]
+    fn utf16_writer_counts_code_units_and_uses_little_endian_payload() {
+        let mut bytes = Vec::new();
+
+        write_length_prefixed_utf16(&mut bytes, Some("A😀é")).expect("write succeeds");
+
+        assert_eq!(
+            bytes,
+            [4, 0, 0, 0, 0x41, 0x00, 0x3d, 0xd8, 0x00, 0xde, 0xe9, 0x00,]
+        );
+    }
+
+    #[test]
+    fn null_and_empty_utf16_values_write_only_a_zero_count() {
+        for value in [None, Some("")] {
+            let mut bytes = Vec::new();
+
+            write_length_prefixed_utf16(&mut bytes, value).expect("write succeeds");
+
+            assert_eq!(bytes, [0, 0, 0, 0]);
+        }
     }
 }

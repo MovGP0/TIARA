@@ -22,6 +22,52 @@ impl SweepMode {
     pub const ALL: [Self; 3] = [Self::Linear, Self::Logarithmic, Self::List];
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum LogarithmicInterpretation {
+    #[default]
+    EndPointRatio,
+    DecadeSteps,
+}
+
+/// Calculates one value in a linear, logarithmic, or explicit-list sweep.
+///
+/// Ports Ghidra function `0x017C58F0`, symbol `FUN_017c58f0`. A zero interval
+/// count returns `start` before any division or list access. Normal logarithmic
+/// spacing interpolates the ratio from `start` through `end`. Decade spacing
+/// advances by `10^(1 / interval_count)` for each index and does not use
+/// `end`. List mode returns zero for a negative or out-of-range index.
+#[must_use]
+pub fn calculate_sweep_value(
+    start: f64,
+    end: f64,
+    list_values: &[f64],
+    interval_count: i32,
+    index: i32,
+    mode: SweepMode,
+    logarithmic_interpretation: LogarithmicInterpretation,
+) -> f64 {
+    if interval_count == 0 {
+        return start;
+    }
+    let interval_count = f64::from(interval_count);
+    match mode {
+        SweepMode::Linear => ((end - start) / interval_count).mul_add(f64::from(index), start),
+        SweepMode::Logarithmic => match logarithmic_interpretation {
+            LogarithmicInterpretation::EndPointRatio => {
+                start * (end / start).powf(f64::from(index) / interval_count)
+            }
+            LogarithmicInterpretation::DecadeSteps => {
+                start * 10.0_f64.powf(1.0 / interval_count).powi(index)
+            }
+        },
+        SweepMode::List => usize::try_from(index)
+            .ok()
+            .and_then(|index| list_values.get(index))
+            .copied()
+            .unwrap_or(0.0),
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct ParameterStepRecord {
     pub parameter_name: String,
@@ -98,7 +144,110 @@ fn same_value(left: f64, right: f64) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{ParameterStepRecord, StepValidationError, SweepMode};
+    use super::{
+        LogarithmicInterpretation, ParameterStepRecord, StepValidationError, SweepMode,
+        calculate_sweep_value,
+    };
+
+    fn assert_near(actual: f64, expected: f64) {
+        assert!(
+            (actual - expected).abs() < 1.0e-12,
+            "{actual} != {expected}"
+        );
+    }
+
+    #[test]
+    fn fun_017c58f0_returns_start_when_interval_count_is_zero() {
+        assert_eq!(
+            calculate_sweep_value(
+                4.5,
+                90.0,
+                &[],
+                0,
+                20,
+                SweepMode::List,
+                LogarithmicInterpretation::DecadeSteps,
+            )
+            .to_bits(),
+            4.5_f64.to_bits()
+        );
+    }
+
+    #[test]
+    fn fun_017c58f0_calculates_linear_and_endpoint_logarithmic_values() {
+        assert_near(
+            calculate_sweep_value(
+                -100.0,
+                500.0,
+                &[],
+                4,
+                2,
+                SweepMode::Linear,
+                LogarithmicInterpretation::EndPointRatio,
+            ),
+            200.0,
+        );
+        assert_near(
+            calculate_sweep_value(
+                1.0,
+                100.0,
+                &[],
+                4,
+                2,
+                SweepMode::Logarithmic,
+                LogarithmicInterpretation::EndPointRatio,
+            ),
+            10.0,
+        );
+    }
+
+    #[test]
+    fn fun_017c58f0_calculates_decade_steps_without_using_end() {
+        assert_near(
+            calculate_sweep_value(
+                2.0,
+                99_999.0,
+                &[],
+                2,
+                2,
+                SweepMode::Logarithmic,
+                LogarithmicInterpretation::DecadeSteps,
+            ),
+            20.0,
+        );
+    }
+
+    #[test]
+    fn fun_017c58f0_reads_list_and_returns_zero_outside_it() {
+        let values = [2.5, 7.5];
+        assert_near(
+            calculate_sweep_value(
+                1.0,
+                2.0,
+                &values,
+                1,
+                1,
+                SweepMode::List,
+                LogarithmicInterpretation::EndPointRatio,
+            ),
+            7.5,
+        );
+        for index in [-1, 2] {
+            assert_eq!(
+                calculate_sweep_value(
+                    1.0,
+                    2.0,
+                    &values,
+                    1,
+                    index,
+                    SweepMode::List,
+                    LogarithmicInterpretation::EndPointRatio,
+                )
+                .to_bits(),
+                0.0_f64.to_bits()
+            );
+        }
+    }
 
     #[test]
     fn logarithmic_sweep_requires_positive_distinct_endpoints() {

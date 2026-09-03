@@ -9,6 +9,7 @@ use tiara_core::analysis_result_publishing::{
 pub const TITLE: &str = "Tolerance Analysis - Statistics";
 pub const DEFAULT_COLLAPSED_HEIGHT: u32 = 168;
 pub const DEFAULT_RESULT_PANEL_HEIGHT: u32 = 112;
+pub const HELP_CONTEXT: u32 = 0x47b;
 pub const LIBRARY_EVALUATION: &str = "Rust iterators and f64::sqrt supply the recovered statistics, Vec supplies owned samples and counters, and tiara-core supplies typed AnalysisSeries publication. No chart-rendering crate is needed because this dialog only prepares and publishes histogram points.";
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -138,6 +139,14 @@ pub trait StatisticOutputRecord {
     fn is_eligible(&self) -> bool;
     fn has_special_state(&self) -> bool;
     fn statistic_value(&self, option: StatisticOption, cut_input: f64) -> f64;
+}
+
+pub trait StatisticTextCatalog {
+    fn text(&mut self, resource_id: u32) -> String;
+}
+
+pub trait StatisticErrorPresenter {
+    fn show_validation_error(&mut self, message: &str);
 }
 
 fn matching_record<'a, R: StatisticOutputRecord>(
@@ -296,6 +305,25 @@ pub trait StatisticResultPublisher {
     fn publish_statistic_series(&mut self, series: Option<AnalysisSeries>) -> bool;
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StatisticCurveHandle(pub u64);
+
+pub trait StatisticModalHost {
+    fn show_statistic_dialog(&mut self, selected_curves: &[StatisticCurveHandle]) -> ModalState;
+}
+
+/// Implements Ghidra function `FUN_01ac8200` at `0x01AC8200`.
+///
+/// Gives the selected-curve list to the injected modal iced host. The launcher
+/// intentionally ignores the dialog result because calculation and optional
+/// histogram publication belong to the dialog's own message handlers.
+pub fn show_statistic_dialog_modally(
+    selected_curves: &[StatisticCurveHandle],
+    host: &mut impl StatisticModalHost,
+) {
+    let _ = host.show_statistic_dialog(selected_curves);
+}
+
 impl StatisticResultPublisher for AnalysisResultManager {
     fn publish_statistic_series(&mut self, series: Option<AnalysisSeries>) -> bool {
         self.publish_statistic(series)
@@ -311,6 +339,10 @@ pub enum CalculationOutcome {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Window {
+    output_choices: Vec<String>,
+    grid_labels: Vec<String>,
+    source_context_label: String,
+    help_context: u32,
     selected_output: String,
     option: StatisticOption,
     cut_input: f64,
@@ -330,6 +362,10 @@ pub struct Window {
 impl Default for Window {
     fn default() -> Self {
         Self {
+            output_choices: Vec::new(),
+            grid_labels: Vec::new(),
+            source_context_label: String::new(),
+            help_context: 0,
             selected_output: String::new(),
             option: StatisticOption::default(),
             cut_input: 0.0,
@@ -349,6 +385,80 @@ impl Default for Window {
 }
 
 impl Window {
+    /// Implements Ghidra function `FUN_01ac70f0` at `0x01AC70F0`.
+    ///
+    /// Collects unique eligible output names in provider order, loads the grid
+    /// labels for the active analysis mode, copies the source-context label,
+    /// and installs the recovered help context.
+    pub fn on_create<R: StatisticOutputRecord>(
+        &mut self,
+        records: &[R],
+        display_mode: DisplayMode,
+        source_context_label: impl Into<String>,
+        catalog: &mut impl StatisticTextCatalog,
+    ) {
+        self.output_choices.clear();
+        for record in records.iter().filter(|record| record.is_eligible()) {
+            let name = record.statistic_name();
+            if !self.output_choices.iter().any(|choice| choice == name) {
+                self.output_choices.push(name.to_owned());
+            }
+        }
+        let resource_ids: &[u32] = match display_mode {
+            DisplayMode::Range => &[0x305, 0x306, 0x307, 0x308, 0x309, 0x30a],
+            DisplayMode::Distribution => &[0x301, 0x302, 0x300],
+        };
+        self.grid_labels = resource_ids
+            .iter()
+            .map(|resource_id| catalog.text(*resource_id))
+            .collect();
+        self.source_context_label = source_context_label.into();
+        self.help_context = HELP_CONTEXT;
+    }
+
+    /// Implements Ghidra function `FUN_01ac74f0` at `0x01AC74F0`.
+    ///
+    /// Consuming the dialog releases its owned sample buffer and all other
+    /// temporary statistic state through Rust ownership.
+    pub fn on_destroy(self) {
+        drop(self);
+    }
+
+    /// Implements Ghidra function `FUN_01ac7510` at `0x01AC7510`.
+    ///
+    /// Collapses the result panel, selects the first output and X-maximum
+    /// option, and clears the cut value before the modal dialog is shown.
+    pub fn on_show(&mut self) {
+        self.result_panel = Visibility::Hidden;
+        self.result_state = ResultState::Inactive;
+        self.draw_availability = Availability::Disabled;
+        self.form_height = DEFAULT_COLLAPSED_HEIGHT;
+        self.selected_output = self.output_choices.first().cloned().unwrap_or_default();
+        self.option = StatisticOption::XMaximum;
+        self.cut_input = 0.0;
+        self.cut_availability = Availability::Disabled;
+    }
+
+    #[must_use]
+    pub fn output_choices(&self) -> &[String] {
+        &self.output_choices
+    }
+
+    #[must_use]
+    pub fn grid_labels(&self) -> &[String] {
+        &self.grid_labels
+    }
+
+    #[must_use]
+    pub fn source_context_label(&self) -> &str {
+        &self.source_context_label
+    }
+
+    #[must_use]
+    pub const fn help_context(&self) -> u32 {
+        self.help_context
+    }
+
     #[must_use]
     pub fn selected_output(&self) -> &str {
         &self.selected_output
@@ -369,6 +479,11 @@ impl Window {
     #[must_use]
     pub const fn option(&self) -> StatisticOption {
         self.option
+    }
+
+    #[must_use]
+    pub const fn cut_input(&self) -> f64 {
+        self.cut_input
     }
 
     #[must_use]
@@ -404,8 +519,33 @@ impl Window {
     pub fn update(&mut self, message: Message) {
         match message {
             Message::OptionSelected(option) => self.select_option(option),
-            Message::InputChanged => self.invalidate_results(),
+            Message::InputChanged => self.input_changed(),
         }
+    }
+
+    /// Implements Ghidra function `FUN_01ac7f30` at `0x01AC7F30`.
+    ///
+    /// Output-selection and cut-value changes share the result invalidation
+    /// path and do not start a new calculation.
+    pub fn input_changed(&mut self) {
+        self.invalidate_results();
+    }
+
+    /// Implements Ghidra function `FUN_01ac7f40` at `0x01AC7F40`.
+    ///
+    /// Presents only the first cut-editor error for one calculation attempt and
+    /// sets the one-shot guard that suppresses that calculation.
+    pub fn report_cut_error(
+        &mut self,
+        message: &str,
+        presenter: &mut impl StatisticErrorPresenter,
+    ) -> bool {
+        if self.guard == CalculationGuard::SuppressOnce {
+            return false;
+        }
+        presenter.show_validation_error(message);
+        self.guard = CalculationGuard::SuppressOnce;
+        true
     }
 
     /// Ports Ghidra `FUN_01ac7ed0` at `0x01AC7ED0`.
@@ -565,6 +705,45 @@ mod tests {
         series: Vec<Option<AnalysisSeries>>,
     }
 
+    #[derive(Default)]
+    struct ModalHost {
+        selections: Vec<Vec<StatisticCurveHandle>>,
+        result: ModalState,
+    }
+
+    impl StatisticModalHost for ModalHost {
+        fn show_statistic_dialog(
+            &mut self,
+            selected_curves: &[StatisticCurveHandle],
+        ) -> ModalState {
+            self.selections.push(selected_curves.to_vec());
+            self.result
+        }
+    }
+
+    #[derive(Default)]
+    struct Catalog {
+        requests: Vec<u32>,
+    }
+
+    #[derive(Default)]
+    struct ErrorPresenter {
+        messages: Vec<String>,
+    }
+
+    impl StatisticErrorPresenter for ErrorPresenter {
+        fn show_validation_error(&mut self, message: &str) {
+            self.messages.push(message.to_owned());
+        }
+    }
+
+    impl StatisticTextCatalog for Catalog {
+        fn text(&mut self, resource_id: u32) -> String {
+            self.requests.push(resource_id);
+            format!("resource-{resource_id:x}")
+        }
+    }
+
     impl StatisticResultPublisher for Publisher {
         fn publish_statistic_series(&mut self, series: Option<AnalysisSeries>) -> bool {
             let published = series.is_some();
@@ -610,6 +789,85 @@ mod tests {
                 base: 99.0,
             },
         ]
+    }
+
+    #[test]
+    fn modal_launcher_passes_the_selected_curves_and_ignores_the_result() {
+        let selected = [StatisticCurveHandle(17), StatisticCurveHandle(23)];
+        let mut host = ModalHost {
+            result: ModalState::Accepted,
+            ..ModalHost::default()
+        };
+
+        show_statistic_dialog_modally(&selected, &mut host);
+
+        assert_eq!(host.selections, [selected]);
+    }
+
+    #[test]
+    fn create_collects_unique_outputs_and_loads_range_labels() {
+        let mut window = Window::default();
+        let mut catalog = Catalog::default();
+
+        window.on_create(
+            &records(),
+            DisplayMode::Range,
+            "Tolerance run",
+            &mut catalog,
+        );
+
+        assert_eq!(window.output_choices(), ["VOUT", "OTHER"]);
+        assert_eq!(catalog.requests, [0x305, 0x306, 0x307, 0x308, 0x309, 0x30a]);
+        assert_eq!(window.grid_labels().len(), 6);
+        assert_eq!(window.source_context_label(), "Tolerance run");
+        assert_eq!(window.help_context(), HELP_CONTEXT);
+    }
+
+    #[test]
+    fn distribution_create_loads_its_three_labels() {
+        let mut window = Window::default();
+        let mut catalog = Catalog::default();
+
+        window.on_create(&records(), DisplayMode::Distribution, "", &mut catalog);
+
+        assert_eq!(catalog.requests, [0x301, 0x302, 0x300]);
+        assert_eq!(window.grid_labels().len(), 3);
+    }
+
+    #[test]
+    fn destroy_releases_a_populated_owned_sample_buffer() {
+        let mut window = Window::default();
+        window.set_selected_output("VOUT");
+        assert_eq!(
+            window.calculate(&records(), DisplayMode::Distribution),
+            CalculationOutcome::Calculated
+        );
+
+        window.on_destroy();
+    }
+
+    #[test]
+    fn show_collapses_results_and_selects_the_initial_inputs() {
+        let mut window = Window::default();
+        let mut catalog = Catalog::default();
+        window.on_create(&records(), DisplayMode::Range, "", &mut catalog);
+        window.set_selected_output("OTHER");
+        window.set_cut_input(12.5);
+        window.select_option(StatisticOption::Cut);
+        assert_eq!(
+            window.calculate(&records(), DisplayMode::Range),
+            CalculationOutcome::Calculated
+        );
+
+        window.on_show();
+
+        assert_eq!(window.result_panel(), Visibility::Hidden);
+        assert_eq!(window.form_height(), DEFAULT_COLLAPSED_HEIGHT);
+        assert_eq!(window.selected_output(), "VOUT");
+        assert_eq!(window.option(), StatisticOption::XMaximum);
+        assert!(window.cut_input().abs() < f64::EPSILON);
+        assert_eq!(window.cut_availability(), Availability::Disabled);
+        assert_eq!(window.draw_availability(), Availability::Disabled);
     }
 
     #[test]
@@ -680,6 +938,38 @@ mod tests {
         assert_eq!(window.result_panel(), Visibility::Hidden);
         assert_eq!(window.draw_availability(), Availability::Disabled);
         assert_eq!(window.form_height(), 168);
+    }
+
+    #[test]
+    fn output_or_cut_input_change_invalidates_visible_results() {
+        let mut window = Window {
+            result_panel: Visibility::Visible,
+            result_state: ResultState::Active,
+            draw_availability: Availability::Enabled,
+            form_height: 280,
+            ..Window::default()
+        };
+
+        window.update(Message::InputChanged);
+
+        assert_eq!(window.result_panel(), Visibility::Hidden);
+        assert_eq!(window.draw_availability(), Availability::Disabled);
+        assert_eq!(window.form_height(), DEFAULT_COLLAPSED_HEIGHT);
+    }
+
+    #[test]
+    fn cut_error_is_presented_once_and_suppresses_one_calculation() {
+        let mut window = Window::default();
+        let mut presenter = ErrorPresenter::default();
+
+        assert!(window.report_cut_error("Invalid cut value", &mut presenter));
+        assert!(!window.report_cut_error("Second error", &mut presenter));
+        assert_eq!(presenter.messages, ["Invalid cut value"]);
+        assert_eq!(
+            window.calculate(&records(), DisplayMode::Distribution),
+            CalculationOutcome::Suppressed
+        );
+        assert_eq!(window.guard, CalculationGuard::Clear);
     }
 
     #[test]

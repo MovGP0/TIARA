@@ -44,6 +44,45 @@ pub struct PaperDefinition {
     pub height_mm: f64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ReportPageSettings {
+    pub paper_code: i32,
+    pub width_mm: f64,
+    pub height_mm: f64,
+    pub orientation: Orientation,
+    pub margin_left_mm: f64,
+    pub margin_top_mm: f64,
+    pub margin_right_mm: f64,
+    pub margin_bottom_mm: f64,
+}
+
+impl ReportPageSettings {
+    fn set_orientation(&mut self, orientation: Orientation) {
+        if self.orientation == orientation {
+            return;
+        }
+
+        std::mem::swap(&mut self.width_mm, &mut self.height_mm);
+        let left = self.margin_left_mm;
+        let right = self.margin_right_mm;
+        match orientation {
+            Orientation::Landscape => {
+                self.margin_left_mm = self.margin_top_mm;
+                self.margin_right_mm = self.margin_bottom_mm;
+                self.margin_top_mm = right;
+                self.margin_bottom_mm = left;
+            }
+            Orientation::Portrait => {
+                self.margin_left_mm = self.margin_bottom_mm;
+                self.margin_right_mm = self.margin_top_mm;
+                self.margin_top_mm = left;
+                self.margin_bottom_mm = right;
+            }
+        }
+        self.orientation = orientation;
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PageSettingsError {
     NoPaperDefinitions,
@@ -70,6 +109,12 @@ pub enum Message {
     PaperSelected(String),
     WidthChanged(String),
     HeightChanged(String),
+    KeyDown(u16),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PageSettingsHelpRequest {
+    pub form_resource: &'static str,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -79,11 +124,16 @@ pub struct PageSettingsDialog {
     pub selected_paper_code: i32,
     pub width_text: String,
     pub height_text: String,
+    pub margin_left_text: String,
+    pub margin_top_text: String,
+    pub margin_right_text: String,
+    pub margin_bottom_text: String,
     pub orientation: Orientation,
     pub portrait_preview_enabled: bool,
     pub landscape_preview_enabled: bool,
     pub display_unit: DisplayUnit,
     pub last_error: Option<PageSettingsError>,
+    help_request: Option<PageSettingsHelpRequest>,
     updating_dimensions: bool,
 }
 
@@ -103,11 +153,16 @@ impl PageSettingsDialog {
             selected_paper_code: 0,
             width_text: width_text.into(),
             height_text: height_text.into(),
+            margin_left_text: String::new(),
+            margin_top_text: String::new(),
+            margin_right_text: String::new(),
+            margin_bottom_text: String::new(),
             orientation,
             portrait_preview_enabled: orientation == Orientation::Portrait,
             landscape_preview_enabled: orientation == Orientation::Landscape,
             display_unit,
             last_error: None,
+            help_request: None,
             updating_dimensions: false,
         }
     }
@@ -122,15 +177,160 @@ impl PageSettingsDialog {
             }
             Message::WidthChanged(value) => {
                 self.width_text = value;
+                self.dimension_changed();
                 Ok(())
             }
             Message::HeightChanged(value) => {
                 self.height_text = value;
+                self.dimension_changed();
+                Ok(())
+            }
+            Message::KeyDown(key_code) => {
+                self.form_key_down(key_code);
                 Ok(())
             }
         };
         self.last_error = result.err();
         Task::none()
+    }
+
+    /// Requests context help when the page-settings form receives F1.
+    ///
+    /// Reimplements Ghidra function `FUN_0189cfa0` at `0x0189CFA0`.
+    /// Every other key leaves the pending request unchanged.
+    pub const fn form_key_down(&mut self, key_code: u16) {
+        if key_code == 0x70 {
+            self.help_request = Some(PageSettingsHelpRequest {
+                form_resource: "frxPageSettingsForm",
+            });
+        }
+    }
+
+    #[must_use]
+    pub const fn take_help_request(&mut self) -> Option<PageSettingsHelpRequest> {
+        self.help_request.take()
+    }
+
+    /// Selects the first paper choice after a manual dimension edit.
+    ///
+    /// Reimplements Ghidra function `FUN_0189cf70` at `0x0189CF70`.
+    /// Dimension changes raised during the guarded form load are no-ops.
+    pub fn dimension_changed(&mut self) {
+        if self.updating_dimensions {
+            return;
+        }
+        if let Some(paper) = self.papers.first() {
+            self.selected_paper_code = paper.code;
+            self.selected_paper_name.clone_from(&paper.name);
+        } else {
+            self.selected_paper_code = 0;
+            self.selected_paper_name.clear();
+        }
+    }
+
+    /// Loads the active report page into the page-settings controls.
+    ///
+    /// Reimplements Ghidra function `FUN_0189c270` at `0x0189C270`.
+    /// The load guard prevents orientation and dimension change handlers from
+    /// replacing the source values while the Iced state is initialized.
+    pub fn form_show(&mut self, page: ReportPageSettings) {
+        self.updating_dimensions = true;
+        let paper = self
+            .papers
+            .iter()
+            .find(|paper| paper.code == page.paper_code)
+            .or_else(|| {
+                self.papers
+                    .iter()
+                    .find(|paper| paper.code == CUSTOM_PAPER_CODE)
+            });
+        if let Some(paper) = paper {
+            self.selected_paper_code = paper.code;
+            self.selected_paper_name.clone_from(&paper.name);
+        } else {
+            self.selected_paper_code = CUSTOM_PAPER_CODE;
+            self.selected_paper_name.clear();
+        }
+
+        self.width_text = self.format_measurement(page.width_mm);
+        self.height_text = self.format_measurement(page.height_mm);
+        self.margin_left_text = self.format_measurement(page.margin_left_mm);
+        self.margin_top_text = self.format_measurement(page.margin_top_mm);
+        self.margin_right_text = self.format_measurement(page.margin_right_mm);
+        self.margin_bottom_text = self.format_measurement(page.margin_bottom_mm);
+        self.orientation = page.orientation;
+        self.portrait_preview_enabled = page.orientation == Orientation::Portrait;
+        self.landscape_preview_enabled = page.orientation == Orientation::Landscape;
+        self.last_error = None;
+        self.updating_dimensions = false;
+    }
+
+    /// Writes accepted page-settings values back to the report page.
+    ///
+    /// Reimplements Ghidra function `FUN_0189c660` at `0x0189C660`.
+    /// Cancel is a no-op. Orientation is applied before blank dimension values
+    /// are restored, and blank margin values become zero.
+    ///
+    /// # Errors
+    ///
+    /// Returns a paper-catalog or numeric conversion error. Changes that the
+    /// recovered handler applies before the error remain visible.
+    pub fn form_hide(
+        &mut self,
+        accepted: bool,
+        page: &mut ReportPageSettings,
+    ) -> Result<bool, PageSettingsError> {
+        if !accepted {
+            return Ok(false);
+        }
+
+        page.set_orientation(self.orientation);
+        page.height_mm = parse_or_replace_blank(
+            "Height",
+            &mut self.height_text,
+            page.height_mm,
+            self.display_unit,
+        )?;
+        page.width_mm = parse_or_replace_blank(
+            "Width",
+            &mut self.width_text,
+            page.width_mm,
+            self.display_unit,
+        )?;
+        let paper = self
+            .papers
+            .iter()
+            .find(|paper| paper.name == self.selected_paper_name)
+            .or_else(|| self.papers.first())
+            .ok_or(PageSettingsError::NoPaperDefinitions)?;
+        page.paper_code = paper.code;
+        self.selected_paper_code = paper.code;
+
+        page.margin_left_mm = parse_or_replace_blank(
+            "Left margin",
+            &mut self.margin_left_text,
+            0.0,
+            self.display_unit,
+        )?;
+        page.margin_right_mm = parse_or_replace_blank(
+            "Right margin",
+            &mut self.margin_right_text,
+            0.0,
+            self.display_unit,
+        )?;
+        page.margin_top_mm = parse_or_replace_blank(
+            "Top margin",
+            &mut self.margin_top_text,
+            0.0,
+            self.display_unit,
+        )?;
+        page.margin_bottom_mm = parse_or_replace_blank(
+            "Bottom margin",
+            &mut self.margin_bottom_text,
+            0.0,
+            self.display_unit,
+        )?;
+        Ok(true)
     }
 
     /// Updates orientation previews and recalculates staged dimensions.
@@ -225,16 +425,33 @@ impl PageSettingsDialog {
         self.height_text = format_dimension(self.display_unit.millimetres_to_display(height_mm));
         Ok(())
     }
+
+    fn format_measurement(&self, millimetres: f64) -> String {
+        format_dimension(self.display_unit.millimetres_to_display(millimetres))
+    }
 }
 
 fn parse_dimension(field: &'static str, value: &str) -> Result<f64, PageSettingsError> {
     value
+        .trim()
         .replace(',', ".")
         .parse::<f64>()
         .map_err(|_| PageSettingsError::InvalidDimension {
             field,
             value: value.to_owned(),
         })
+}
+
+fn parse_or_replace_blank(
+    field: &'static str,
+    text: &mut String,
+    blank_value_mm: f64,
+    display_unit: DisplayUnit,
+) -> Result<f64, PageSettingsError> {
+    if text.trim().is_empty() {
+        *text = format_dimension(display_unit.millimetres_to_display(blank_value_mm));
+    }
+    parse_dimension(field, text).map(|value| display_unit.to_millimetres(value))
 }
 
 const fn orient_dimensions(width: f64, height: f64, orientation: Orientation) -> (f64, f64) {
@@ -257,6 +474,10 @@ fn format_dimension(value: f64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn assert_close(actual: f64, expected: f64) {
+        assert!((actual - expected).abs() < 1e-9);
+    }
 
     fn papers() -> Vec<PaperDefinition> {
         vec![
@@ -352,5 +573,191 @@ mod tests {
         drop(dialog.update(Message::LandscapeSelected));
         assert_eq!(dialog.orientation, Orientation::Landscape);
         assert!(dialog.last_error.is_none());
+    }
+
+    #[test]
+    fn form_show_loads_page_size_orientation_and_margins() {
+        let mut dialog = dialog();
+
+        dialog.form_show(ReportPageSettings {
+            paper_code: 9,
+            width_mm: 210.0,
+            height_mm: 297.0,
+            orientation: Orientation::Landscape,
+            margin_left_mm: 10.0,
+            margin_top_mm: 20.0,
+            margin_right_mm: 30.0,
+            margin_bottom_mm: 40.0,
+        });
+
+        assert_eq!(dialog.selected_paper_code, 9);
+        assert_eq!(dialog.selected_paper_name, "A4");
+        assert_eq!(dialog.width_text, "21");
+        assert_eq!(dialog.height_text, "29.70");
+        assert_eq!(dialog.margin_left_text, "1");
+        assert_eq!(dialog.margin_top_text, "2");
+        assert_eq!(dialog.margin_right_text, "3");
+        assert_eq!(dialog.margin_bottom_text, "4");
+        assert!(!dialog.portrait_preview_enabled);
+        assert!(dialog.landscape_preview_enabled);
+        assert!(!dialog.is_updating_dimensions());
+    }
+
+    #[test]
+    fn form_show_falls_back_to_custom_paper_for_unknown_code() {
+        let mut dialog = dialog();
+
+        dialog.form_show(ReportPageSettings {
+            paper_code: 999,
+            width_mm: 100.0,
+            height_mm: 200.0,
+            orientation: Orientation::Portrait,
+            margin_left_mm: 0.0,
+            margin_top_mm: 0.0,
+            margin_right_mm: 0.0,
+            margin_bottom_mm: 0.0,
+        });
+
+        assert_eq!(dialog.selected_paper_code, CUSTOM_PAPER_CODE);
+        assert_eq!(dialog.selected_paper_name, "Custom");
+        assert!(dialog.portrait_preview_enabled);
+        assert!(!dialog.landscape_preview_enabled);
+    }
+
+    #[test]
+    fn form_hide_cancel_does_not_modify_the_report_page() -> Result<(), PageSettingsError> {
+        let mut dialog = dialog();
+        let mut page = ReportPageSettings {
+            paper_code: 9,
+            width_mm: 210.0,
+            height_mm: 297.0,
+            orientation: Orientation::Portrait,
+            margin_left_mm: 10.0,
+            margin_top_mm: 20.0,
+            margin_right_mm: 30.0,
+            margin_bottom_mm: 40.0,
+        };
+        let before = page;
+
+        assert!(!dialog.form_hide(false, &mut page)?);
+        assert_eq!(page, before);
+        Ok(())
+    }
+
+    #[test]
+    fn form_hide_writes_accepted_dimensions_paper_and_margins() -> Result<(), PageSettingsError> {
+        let mut dialog = dialog();
+        dialog.orientation = Orientation::Landscape;
+        dialog.selected_paper_name = "Custom".to_owned();
+        dialog.width_text = "30".to_owned();
+        dialog.height_text = "20".to_owned();
+        dialog.margin_left_text = "1".to_owned();
+        dialog.margin_top_text = "2".to_owned();
+        dialog.margin_right_text = "3".to_owned();
+        dialog.margin_bottom_text = "4".to_owned();
+        let mut page = ReportPageSettings {
+            paper_code: 9,
+            width_mm: 210.0,
+            height_mm: 297.0,
+            orientation: Orientation::Portrait,
+            margin_left_mm: 10.0,
+            margin_top_mm: 20.0,
+            margin_right_mm: 30.0,
+            margin_bottom_mm: 40.0,
+        };
+
+        assert!(dialog.form_hide(true, &mut page)?);
+        assert_eq!(page.paper_code, CUSTOM_PAPER_CODE);
+        assert_close(page.width_mm, 300.0);
+        assert_close(page.height_mm, 200.0);
+        assert_eq!(page.orientation, Orientation::Landscape);
+        assert_close(page.margin_left_mm, 10.0);
+        assert_close(page.margin_top_mm, 20.0);
+        assert_close(page.margin_right_mm, 30.0);
+        assert_close(page.margin_bottom_mm, 40.0);
+        Ok(())
+    }
+
+    #[test]
+    fn form_hide_restores_blank_rotated_dimensions_and_zeros_blank_margins()
+    -> Result<(), PageSettingsError> {
+        let mut dialog = dialog();
+        dialog.orientation = Orientation::Landscape;
+        dialog.width_text.clear();
+        dialog.height_text.clear();
+        let mut page = ReportPageSettings {
+            paper_code: 9,
+            width_mm: 210.0,
+            height_mm: 297.0,
+            orientation: Orientation::Portrait,
+            margin_left_mm: 10.0,
+            margin_top_mm: 20.0,
+            margin_right_mm: 30.0,
+            margin_bottom_mm: 40.0,
+        };
+
+        assert!(dialog.form_hide(true, &mut page)?);
+        assert_close(page.width_mm, 297.0);
+        assert_close(page.height_mm, 210.0);
+        assert_eq!(dialog.width_text, "29.70");
+        assert_eq!(dialog.height_text, "21");
+        assert_close(page.margin_left_mm, 0.0);
+        assert_close(page.margin_top_mm, 0.0);
+        assert_close(page.margin_right_mm, 0.0);
+        assert_close(page.margin_bottom_mm, 0.0);
+        Ok(())
+    }
+
+    #[test]
+    fn manual_width_or_height_change_selects_first_paper() {
+        let mut dialog = dialog();
+        dialog.selected_paper_code = CUSTOM_PAPER_CODE;
+        dialog.selected_paper_name = "Custom".to_owned();
+
+        drop(dialog.update(Message::WidthChanged("22".to_owned())));
+        assert_eq!(dialog.selected_paper_code, 9);
+        assert_eq!(dialog.selected_paper_name, "A4");
+
+        dialog.selected_paper_code = CUSTOM_PAPER_CODE;
+        dialog.selected_paper_name = "Custom".to_owned();
+        drop(dialog.update(Message::HeightChanged("30".to_owned())));
+        assert_eq!(dialog.selected_paper_code, 9);
+        assert_eq!(dialog.selected_paper_name, "A4");
+    }
+
+    #[test]
+    fn dimension_change_during_form_load_preserves_paper_selection() {
+        let mut dialog = dialog();
+        dialog.selected_paper_code = CUSTOM_PAPER_CODE;
+        dialog.selected_paper_name = "Custom".to_owned();
+        dialog.updating_dimensions = true;
+
+        dialog.dimension_changed();
+
+        assert_eq!(dialog.selected_paper_code, CUSTOM_PAPER_CODE);
+        assert_eq!(dialog.selected_paper_name, "Custom");
+    }
+
+    #[test]
+    fn f1_requests_page_settings_context_help() {
+        let mut dialog = dialog();
+
+        drop(dialog.update(Message::KeyDown(0x70)));
+
+        assert_eq!(
+            dialog.take_help_request(),
+            Some(PageSettingsHelpRequest {
+                form_resource: "frxPageSettingsForm",
+            })
+        );
+    }
+
+    #[test]
+    fn non_f1_key_does_not_request_help() {
+        let mut dialog = dialog();
+
+        dialog.form_key_down(0x1b);
+
+        assert_eq!(dialog.take_help_request(), None);
     }
 }

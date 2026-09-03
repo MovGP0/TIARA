@@ -6,6 +6,9 @@ use iced::{Element, Length};
 pub const TITLE: &str = "TINA DDE Manager";
 pub const PCB_SEND_FAILURE: &str = "Tina SendDDEMessage failed to PCBViewer!";
 pub const PCB_SEND_LOG_PREFIX: &str = "Tina DDE Log - DDE Message sent: ";
+pub const EDISON_CONNECT_FAILURE: &str = "Tina could not connect to Edison!";
+pub const PCB_CONNECT_FAILURE: &str = "Tina could not connect to PCBViewer!";
+pub const DDE_LOG_SEPARATOR: &str = "--------------------";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AnsiMessage(Vec<u8>);
@@ -51,6 +54,40 @@ pub trait PcbViewerTargetAdapter {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DdeConnectionTarget {
+    Edison,
+    PcbViewer,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct DdeConnectionOutcome {
+    pub connected: bool,
+    pub state_changed: bool,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct DdeMacroBatchReport {
+    pub processed: usize,
+    pub edison_state_changed: bool,
+    pub pcb_viewer_state_changed: bool,
+}
+
+pub trait DdeMacroExecutionHost {
+    fn set_server_status(&mut self, status: &str);
+    fn macro_logging_enabled(&self) -> bool;
+    fn log_macro(&mut self, macro_text: &str);
+    fn connect(&mut self, target: DdeConnectionTarget) -> DdeConnectionOutcome;
+    fn report_connection_failure(&mut self, message: &str);
+    fn initialize_edison_connection(&mut self);
+    fn reset_edison_required(&self) -> bool;
+    fn reset_edison_connection(&mut self);
+    fn show_edison(&mut self);
+    fn show_dde_window(&mut self);
+    fn dispatch_macro(&mut self, macro_text: &str);
+    fn publish_connection_state(&mut self, edison_changed: bool, pcb_viewer_changed: bool);
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TargetSelection {
     Both,
     Edison,
@@ -87,9 +124,98 @@ pub struct DdeManager {
     pub edison: TargetState,
     pub pcb_viewer: TargetState,
     pub pcb_failure_latched: bool,
+    pub show_edison_on_connect: bool,
 }
 
 impl DdeManager {
+    /// Initializes the TINA DDE manager form connection state.
+    ///
+    /// Ports Ghidra function `0x017FE730`, symbol `FUN_017fe730`, recovered as
+    /// `TinaDDEMgr.OnCreate`. Both target-enabled flags and the automatic Edison
+    /// show flag start clear. Status text and the independent PCB send-failure
+    /// latch are not changed by this handler.
+    pub const fn form_create(&mut self) {
+        self.edison.enabled = false;
+        self.pcb_viewer.enabled = false;
+        self.show_edison_on_connect = false;
+    }
+
+    /// Handles TINA DDE manager form destruction without additional work.
+    ///
+    /// Ports Ghidra function `0x017FEA90`, symbol `FUN_017fea90`, recovered as
+    /// `TinaDDEMgr.OnDestroy`. The recovered handler returns immediately, so
+    /// Rust ownership performs normal cleanup and all manager state is unchanged.
+    pub const fn form_destroy(&self) {}
+
+    /// Executes a received batch of TINA DDE macros.
+    ///
+    /// Ports Ghidra function `0x017FC9E0`, symbol `FUN_017fc9e0`, recovered as
+    /// `TinaDDEMgr.TinaServer.OnExecuteMacro`. The coordinator marks the server
+    /// Busy, consumes every command in order, handles the two exact Connect and
+    /// `ShowDDEWindow` commands, delegates other macros, publishes accumulated
+    /// connection changes, and restores Ready. Optional logging records each
+    /// command and one final separator.
+    pub fn execute_macro_batch(
+        &mut self,
+        macros: &mut Vec<String>,
+        host: &mut impl DdeMacroExecutionHost,
+    ) -> DdeMacroBatchReport {
+        host.set_server_status("Busy");
+        let mut report = DdeMacroBatchReport::default();
+
+        for macro_text in std::mem::take(macros) {
+            if host.macro_logging_enabled() {
+                host.log_macro(&macro_text);
+            }
+
+            match macro_text.as_str() {
+                "Connect(Edison)" => {
+                    let outcome = host.connect(DdeConnectionTarget::Edison);
+                    report.edison_state_changed |= outcome.state_changed;
+                    if outcome.connected {
+                        self.edison.enabled = true;
+                        host.initialize_edison_connection();
+                        if host.reset_edison_required() {
+                            host.reset_edison_connection();
+                            self.edison.enabled = false;
+                        } else if self.show_edison_on_connect {
+                            host.show_edison();
+                        }
+                    } else {
+                        host.report_connection_failure(EDISON_CONNECT_FAILURE);
+                    }
+                }
+                "Connect(PCBViewer)" => {
+                    let outcome = host.connect(DdeConnectionTarget::PcbViewer);
+                    report.pcb_viewer_state_changed |= outcome.state_changed;
+                    if outcome.connected {
+                        self.pcb_viewer.enabled = true;
+                        self.pcb_failure_latched = false;
+                    } else {
+                        host.report_connection_failure(PCB_CONNECT_FAILURE);
+                    }
+                }
+                "ShowDDEWindow(PCBViewer)" | "ShowDDEWindow(Edison)" => {
+                    host.show_dde_window();
+                }
+                _ => host.dispatch_macro(&macro_text),
+            }
+            report.processed = report.processed.saturating_add(1);
+        }
+
+        if host.macro_logging_enabled() {
+            host.log_macro(DDE_LOG_SEPARATOR);
+        }
+        if report.edison_state_changed || report.pcb_viewer_state_changed {
+            host.publish_connection_state(
+                report.edison_state_changed,
+                report.pcb_viewer_state_changed,
+            );
+        }
+        host.set_server_status("Ready");
+        report
+    }
+
     fn recipient_route_is_active(
         &self,
         edison: &impl EdisonTargetAdapter,
@@ -389,6 +515,23 @@ mod tests {
         logs: Vec<(String, Vec<u8>)>,
     }
 
+    struct MacroHost {
+        statuses: Vec<String>,
+        logging: bool,
+        logs: Vec<String>,
+        connections: Vec<DdeConnectionTarget>,
+        edison_outcome: DdeConnectionOutcome,
+        pcb_outcome: DdeConnectionOutcome,
+        failures: Vec<String>,
+        edison_initializations: usize,
+        reset_required: bool,
+        edison_resets: usize,
+        edison_shows: usize,
+        dde_window_shows: usize,
+        dispatched: Vec<String>,
+        publications: Vec<(bool, bool)>,
+    }
+
     impl PcbViewerTargetAdapter for PcbViewer {
         fn recipient_is_active(&self) -> bool {
             self.active
@@ -417,6 +560,79 @@ mod tests {
         }
     }
 
+    impl DdeMacroExecutionHost for MacroHost {
+        fn set_server_status(&mut self, status: &str) {
+            self.statuses.push(status.to_owned());
+        }
+
+        fn macro_logging_enabled(&self) -> bool {
+            self.logging
+        }
+
+        fn log_macro(&mut self, macro_text: &str) {
+            self.logs.push(macro_text.to_owned());
+        }
+
+        fn connect(&mut self, target: DdeConnectionTarget) -> DdeConnectionOutcome {
+            self.connections.push(target);
+            match target {
+                DdeConnectionTarget::Edison => self.edison_outcome,
+                DdeConnectionTarget::PcbViewer => self.pcb_outcome,
+            }
+        }
+
+        fn report_connection_failure(&mut self, message: &str) {
+            self.failures.push(message.to_owned());
+        }
+
+        fn initialize_edison_connection(&mut self) {
+            self.edison_initializations = self.edison_initializations.saturating_add(1);
+        }
+
+        fn reset_edison_required(&self) -> bool {
+            self.reset_required
+        }
+
+        fn reset_edison_connection(&mut self) {
+            self.edison_resets = self.edison_resets.saturating_add(1);
+        }
+
+        fn show_edison(&mut self) {
+            self.edison_shows = self.edison_shows.saturating_add(1);
+        }
+
+        fn show_dde_window(&mut self) {
+            self.dde_window_shows = self.dde_window_shows.saturating_add(1);
+        }
+
+        fn dispatch_macro(&mut self, macro_text: &str) {
+            self.dispatched.push(macro_text.to_owned());
+        }
+
+        fn publish_connection_state(&mut self, edison_changed: bool, pcb_viewer_changed: bool) {
+            self.publications.push((edison_changed, pcb_viewer_changed));
+        }
+    }
+
+    fn macro_host() -> MacroHost {
+        MacroHost {
+            statuses: Vec::new(),
+            logging: false,
+            logs: Vec::new(),
+            connections: Vec::new(),
+            edison_outcome: DdeConnectionOutcome::default(),
+            pcb_outcome: DdeConnectionOutcome::default(),
+            failures: Vec::new(),
+            edison_initializations: 0,
+            reset_required: false,
+            edison_resets: 0,
+            edison_shows: 0,
+            dde_window_shows: 0,
+            dispatched: Vec::new(),
+            publications: Vec::new(),
+        }
+    }
+
     fn enabled_manager() -> DdeManager {
         DdeManager {
             edison: TargetState {
@@ -428,7 +644,150 @@ mod tests {
                 status: String::new(),
             },
             pcb_failure_latched: false,
+            show_edison_on_connect: false,
         }
+    }
+
+    #[test]
+    fn fun_017fe730_form_create_clears_only_connection_and_show_flags() {
+        let mut manager = DdeManager {
+            edison: TargetState {
+                enabled: true,
+                status: "Edison Busy".to_owned(),
+            },
+            pcb_viewer: TargetState {
+                enabled: true,
+                status: "PCB Ready".to_owned(),
+            },
+            pcb_failure_latched: true,
+            show_edison_on_connect: true,
+        };
+
+        manager.form_create();
+
+        assert!(!manager.edison.enabled);
+        assert!(!manager.pcb_viewer.enabled);
+        assert!(!manager.show_edison_on_connect);
+        assert_eq!(manager.edison.status, "Edison Busy");
+        assert_eq!(manager.pcb_viewer.status, "PCB Ready");
+        assert!(manager.pcb_failure_latched);
+    }
+
+    #[test]
+    fn fun_017fea90_form_destroy_is_an_explicit_no_op() {
+        let manager = DdeManager {
+            edison: TargetState {
+                enabled: true,
+                status: "Edison Busy".to_owned(),
+            },
+            pcb_viewer: TargetState {
+                enabled: true,
+                status: "PCB Busy".to_owned(),
+            },
+            pcb_failure_latched: true,
+            show_edison_on_connect: true,
+        };
+        let expected = manager.clone();
+
+        manager.form_destroy();
+
+        assert_eq!(manager, expected);
+    }
+
+    #[test]
+    fn fun_017fc9e0_consumes_logged_batch_and_routes_exact_commands() {
+        let mut manager = DdeManager {
+            pcb_failure_latched: true,
+            ..DdeManager::default()
+        };
+        let mut macros = vec![
+            "Connect(Edison)".to_owned(),
+            "Connect(PCBViewer)".to_owned(),
+            "ShowDDEWindow(PCBViewer)".to_owned(),
+            "ShowDDEWindow(Edison)".to_owned(),
+            "SetParameters(Edison,x)".to_owned(),
+        ];
+        let expected_logs = macros
+            .iter()
+            .cloned()
+            .chain([DDE_LOG_SEPARATOR.to_owned()])
+            .collect::<Vec<_>>();
+        let mut host = macro_host();
+        host.logging = true;
+        manager.show_edison_on_connect = true;
+        host.edison_outcome = DdeConnectionOutcome {
+            connected: true,
+            state_changed: true,
+        };
+        host.pcb_outcome = DdeConnectionOutcome {
+            connected: true,
+            state_changed: false,
+        };
+
+        let report = manager.execute_macro_batch(&mut macros, &mut host);
+
+        assert_eq!(report.processed, 5);
+        assert!(report.edison_state_changed);
+        assert!(!report.pcb_viewer_state_changed);
+        assert!(macros.is_empty());
+        assert_eq!(host.statuses, ["Busy", "Ready"]);
+        assert_eq!(host.logs, expected_logs);
+        assert_eq!(
+            host.connections,
+            [DdeConnectionTarget::Edison, DdeConnectionTarget::PcbViewer]
+        );
+        assert_eq!(host.edison_initializations, 1);
+        assert_eq!(host.edison_shows, 1);
+        assert_eq!(host.dde_window_shows, 2);
+        assert_eq!(host.dispatched, ["SetParameters(Edison,x)"]);
+        assert_eq!(host.publications, [(true, false)]);
+        assert!(manager.edison.enabled);
+        assert!(manager.pcb_viewer.enabled);
+        assert!(!manager.pcb_failure_latched);
+    }
+
+    #[test]
+    fn fun_017fc9e0_required_reset_disconnects_new_edison_target() {
+        let mut manager = DdeManager::default();
+        let mut macros = vec!["Connect(Edison)".to_owned()];
+        let mut host = macro_host();
+        host.reset_required = true;
+        manager.show_edison_on_connect = true;
+        host.edison_outcome = DdeConnectionOutcome {
+            connected: true,
+            state_changed: false,
+        };
+
+        let report = manager.execute_macro_batch(&mut macros, &mut host);
+
+        assert_eq!(report.processed, 1);
+        assert_eq!(host.edison_initializations, 1);
+        assert_eq!(host.edison_resets, 1);
+        assert_eq!(host.edison_shows, 0);
+        assert!(!manager.edison.enabled);
+        assert!(host.publications.is_empty());
+    }
+
+    #[test]
+    fn fun_017fc9e0_reports_connection_failures_and_publishes_changes() {
+        let mut manager = DdeManager::default();
+        let mut macros = vec![
+            "Connect(Edison)".to_owned(),
+            "Connect(PCBViewer)".to_owned(),
+        ];
+        let mut host = macro_host();
+        host.edison_outcome.state_changed = false;
+        host.pcb_outcome.state_changed = true;
+
+        let report = manager.execute_macro_batch(&mut macros, &mut host);
+
+        assert_eq!(report.processed, 2);
+        assert_eq!(host.failures, [EDISON_CONNECT_FAILURE, PCB_CONNECT_FAILURE]);
+        assert_eq!(host.statuses, ["Busy", "Ready"]);
+        assert!(host.logs.is_empty());
+        assert_eq!(host.publications, [(false, true)]);
+        assert!(!manager.edison.enabled);
+        assert!(!manager.pcb_viewer.enabled);
     }
 
     #[test]

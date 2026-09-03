@@ -1,11 +1,13 @@
+use std::collections::HashMap;
 use std::fmt;
 use std::path::Path;
 
 use iced::widget::{button, checkbox, column, container, row, text};
 use iced::{Element, Length, Task};
 use tiara_core::electrical_rules::{
-    CheckReport, ElectricalRulesSettings, GraphId, MANUAL_RECHECK_MODE, PageId, ResultRow,
-    ResultTarget, should_present_automatic_result, should_run_automatic_check,
+    CheckReport, ElectricalRulesSettings, ErcSchematic, GraphId, MANUAL_RECHECK_MODE, PageId,
+    ResultRow, ResultTarget, run_electrical_rules_check, should_present_automatic_result,
+    should_run_automatic_check,
 };
 
 pub const TITLE: &str = "Electric Rules Check";
@@ -65,6 +67,43 @@ pub trait CheckEngine {
         settings: &ElectricalRulesSettings,
         mode: u8,
     ) -> Result<CheckReport, ErcUiError>;
+}
+
+#[derive(Debug, Default)]
+pub struct SchematicCheckEngine {
+    schematics: HashMap<GraphId, ErcSchematic>,
+}
+
+impl SchematicCheckEngine {
+    #[must_use]
+    pub fn new(schematics: impl IntoIterator<Item = (GraphId, ErcSchematic)>) -> Self {
+        Self {
+            schematics: schematics.into_iter().collect(),
+        }
+    }
+
+    pub fn insert(&mut self, graph: GraphId, schematic: ErcSchematic) -> Option<ErcSchematic> {
+        self.schematics.insert(graph, schematic)
+    }
+
+    #[must_use]
+    pub fn schematic(&self, graph: GraphId) -> Option<&ErcSchematic> {
+        self.schematics.get(&graph)
+    }
+}
+
+impl CheckEngine for SchematicCheckEngine {
+    fn check(
+        &mut self,
+        graph: GraphId,
+        settings: &ElectricalRulesSettings,
+        mode: u8,
+    ) -> Result<CheckReport, ErcUiError> {
+        let schematic = self.schematics.get_mut(&graph).ok_or_else(|| {
+            ErcUiError::Engine(format!("No schematic is registered for graph {}", graph.0))
+        })?;
+        Ok(run_electrical_rules_check(schematic, settings, mode))
+    }
 }
 
 /// Loads the shared ERC rule matrix and switches.
@@ -1023,5 +1062,52 @@ mod tests {
         assert_eq!(errors.internal, 1);
         assert!(engine.calls.is_empty());
         Ok(())
+    }
+
+    #[test]
+    fn concrete_engine_runs_recovered_checker_for_registered_graph() -> Result<(), ErcUiError> {
+        let graph = GraphId(42);
+        let schematic = ErcSchematic {
+            detailed_checks_available: true,
+            wires: vec![tiara_core::electrical_rules::ErcWire {
+                name: "W1".to_owned(),
+                connected: false,
+                target: target(3, 30),
+            }],
+            ..ErcSchematic::default()
+        };
+        let mut engine = SchematicCheckEngine::new([(graph, schematic)]);
+        let mut window = Window::new(settings());
+
+        window.recheck(graph, &mut engine)?;
+
+        assert!(
+            window
+                .rows()
+                .iter()
+                .any(|row| row.message == "Unconnected wire: W1")
+        );
+        assert_eq!(window.layout(), ResultLayout::InstructionVisible);
+        assert_eq!(
+            engine
+                .schematic(graph)
+                .map(|schematic| schematic.engine_messages.as_slice()),
+            Some(window.rows())
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn concrete_engine_reports_an_unregistered_graph() {
+        let mut engine = SchematicCheckEngine::default();
+
+        let error = engine
+            .check(GraphId(99), &settings(), MANUAL_RECHECK_MODE)
+            .expect_err("missing graph must fail");
+
+        assert_eq!(
+            error,
+            ErcUiError::Engine("No schematic is registered for graph 99".to_owned())
+        );
     }
 }

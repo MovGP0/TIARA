@@ -401,6 +401,315 @@ impl Window {
     }
 }
 
+/// The colour the group edit takes when its text names no existing group.
+pub const NEW_GROUP_COLOR: u32 = 0xff00_0008;
+
+/// The colour the group edit takes when its text names an existing group.
+pub const EXISTING_GROUP_COLOR: u32 = 0xff00_0010;
+
+/// The literal character list the invalid-name balloon appends to its message.
+pub const INVALID_NAME_CHARACTER_LIST: &str = " \\ / ? \" < > |";
+
+/// A rectangle the icon combo paints one row into.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct IconRowRect {
+    pub left: i32,
+    pub top: i32,
+    pub right: i32,
+    pub bottom: i32,
+}
+
+pub trait IconRowPainter {
+    /// Paints the row background.
+    fn fill_background(&mut self, rect: IconRowRect);
+
+    /// Draws one image-list entry at a position.
+    fn draw_icon(&mut self, index: i32, x: i32, y: i32, transparent: bool);
+}
+
+/// Reimplements Ghidra function `FUN_01bc2780` at `0x01BC2780`.
+///
+/// Paints one icon-combo row: the background first, then the image-list entry
+/// inset by one pixel from the row's top-left corner and drawn transparently.
+/// The recovered handler draws no text, so a row shows only its icon.
+pub fn draw_icon_row(index: i32, rect: IconRowRect, painter: &mut impl IconRowPainter) {
+    painter.fill_background(rect);
+    painter.draw_icon(index, rect.left + 1, rect.top + 1, true);
+}
+
+pub trait WizardTeardownHost {
+    fn hide_hint_window(&mut self);
+
+    fn release_hint_window(&mut self);
+
+    /// Releases the three remaining private objects the wizard owns.
+    fn release_private_objects(&mut self);
+}
+
+/// Reimplements Ghidra function `FUN_01bc4140` at `0x01BC4140`.
+///
+/// Hides and releases the balloon hint window and then releases the wizard's
+/// three remaining private objects. The recovered handler saves nothing, so
+/// closing without accepting discards every staged value.
+pub fn destroy_wizard(host: &mut impl WizardTeardownHost) {
+    host.hide_hint_window();
+    host.release_hint_window();
+    host.release_private_objects();
+}
+
+/// Reimplements Ghidra function `FUN_01bc4230` at `0x01BC4230`.
+///
+/// Recolours the group edit on every keystroke so the user can see whether the
+/// name they are typing would create a group or reuse one. A name the group
+/// list does not hold takes the new-group colour and a known name takes the
+/// existing-group colour.
+///
+/// The recovered handler only recolours: it creates no group, selects nothing,
+/// and shows no message.
+#[must_use]
+pub fn group_name_color(group_name: &str, known_groups: &[String]) -> u32 {
+    if known_groups.iter().any(|known| known == group_name) {
+        EXISTING_GROUP_COLOR
+    } else {
+        NEW_GROUP_COLOR
+    }
+}
+
+pub trait RegistryFileChoiceHost {
+    /// The registry-file entry at one index.
+    fn registry_file_path(&mut self, index: usize) -> String;
+
+    /// Rebuilds the group list for the newly selected registry file.
+    fn rebuild_groups(&mut self);
+
+    fn select_group(&mut self, index: i32);
+}
+
+/// Reimplements Ghidra function `FUN_01bc42f0` at `0x01BC42F0`.
+///
+/// Adopts the newly selected registry file: its stored path becomes the
+/// wizard's target, the group list is rebuilt from that file, and the group
+/// combo returns to its first entry.
+///
+/// Resetting the selection matters because the previous group name almost
+/// certainly does not exist in the new file, and the recovered handler does not
+/// try to carry it over.
+pub fn choose_registry_file(
+    selected_index: usize,
+    host: &mut impl RegistryFileChoiceHost,
+) -> String {
+    let path = host.registry_file_path(selected_index);
+    host.rebuild_groups();
+    host.select_group(0);
+    path
+}
+
+pub trait NameHintHost {
+    /// Hides the invalid-character balloon.
+    fn hide_name_hint(&mut self);
+
+    /// The localized message the balloon shows before the character list.
+    fn invalid_name_message(&mut self) -> String;
+
+    /// Shows the balloon beside the name edit.
+    fn show_name_hint(&mut self, message: &str);
+}
+
+/// Reimplements Ghidra function `FUN_01bc43b0` at `0x01BC43B0`.
+///
+/// Hides the invalid-character balloon on the next key down in the name edit.
+/// The recovered handler inspects no key, so any further typing clears the
+/// balloon whether or not the new key is valid.
+pub fn hide_invalid_name_hint(host: &mut impl NameHintHost) {
+    host.hide_name_hint();
+}
+
+/// Reimplements Ghidra function `FUN_01bc43D0` at `0x01BC43D0`.
+///
+/// Rejects a character that cannot appear in a component name: the key is
+/// swallowed so the edit never receives it, and a balloon naming the forbidden
+/// characters appears beside the edit. An accepted character passes through and
+/// shows nothing.
+///
+/// The recovered test reads a lookup table the decompiler did not recover as
+/// literals, so the rejected set is supplied by the caller. The message is a
+/// stored sentence followed by the recovered
+/// [`INVALID_NAME_CHARACTER_LIST`].
+pub fn reject_invalid_name_key(typed: char, rejected: &str, host: &mut impl NameHintHost) -> bool {
+    if !rejected.contains(typed) {
+        return false;
+    }
+    let mut message = host.invalid_name_message();
+    message.push_str(INVALID_NAME_CHARACTER_LIST);
+    host.show_name_hint(&message);
+    true
+}
+
+#[cfg(test)]
+mod wizard_handler_tests {
+    use super::*;
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    enum PaintStep {
+        Background(IconRowRect),
+        Icon(i32, i32, i32, bool),
+    }
+
+    #[derive(Debug, Default)]
+    struct Painter {
+        steps: Vec<PaintStep>,
+    }
+
+    impl IconRowPainter for Painter {
+        fn fill_background(&mut self, rect: IconRowRect) {
+            self.steps.push(PaintStep::Background(rect));
+        }
+
+        fn draw_icon(&mut self, index: i32, x: i32, y: i32, transparent: bool) {
+            self.steps.push(PaintStep::Icon(index, x, y, transparent));
+        }
+    }
+
+    #[test]
+    fn an_icon_row_paints_the_background_then_the_inset_icon() {
+        let mut painter = Painter::default();
+        let rect = IconRowRect {
+            left: 6,
+            top: 12,
+            right: 40,
+            bottom: 28,
+        };
+
+        draw_icon_row(3, rect, &mut painter);
+
+        assert_eq!(
+            painter.steps,
+            [PaintStep::Background(rect), PaintStep::Icon(3, 7, 13, true)]
+        );
+    }
+
+    #[derive(Debug, Default)]
+    struct TeardownHost {
+        steps: Vec<&'static str>,
+    }
+
+    impl WizardTeardownHost for TeardownHost {
+        fn hide_hint_window(&mut self) {
+            self.steps.push("hide");
+        }
+
+        fn release_hint_window(&mut self) {
+            self.steps.push("release-hint");
+        }
+
+        fn release_private_objects(&mut self) {
+            self.steps.push("release-objects");
+        }
+    }
+
+    #[test]
+    fn destroy_hides_the_balloon_before_it_releases_anything() {
+        let mut host = TeardownHost::default();
+
+        destroy_wizard(&mut host);
+
+        assert_eq!(host.steps, ["hide", "release-hint", "release-objects"]);
+    }
+
+    #[test]
+    fn the_group_edit_colour_shows_whether_the_name_already_exists() {
+        let known = vec!["Passives".to_owned(), "Sources".to_owned()];
+
+        assert_eq!(group_name_color("Passives", &known), EXISTING_GROUP_COLOR);
+        assert_eq!(group_name_color("Brand New", &known), NEW_GROUP_COLOR);
+        assert_eq!(group_name_color("", &known), NEW_GROUP_COLOR);
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    enum ChoiceStep {
+        Rebuild,
+        Select(i32),
+    }
+
+    #[derive(Debug, Default)]
+    struct ChoiceHost {
+        paths: Vec<String>,
+        steps: Vec<ChoiceStep>,
+    }
+
+    impl RegistryFileChoiceHost for ChoiceHost {
+        fn registry_file_path(&mut self, index: usize) -> String {
+            self.paths.get(index).cloned().unwrap_or_default()
+        }
+
+        fn rebuild_groups(&mut self) {
+            self.steps.push(ChoiceStep::Rebuild);
+        }
+
+        fn select_group(&mut self, index: i32) {
+            self.steps.push(ChoiceStep::Select(index));
+        }
+    }
+
+    #[test]
+    fn choosing_a_registry_file_rebuilds_the_groups_and_resets_the_selection() {
+        let mut host = ChoiceHost {
+            paths: vec!["core.tcr".to_owned(), "mine.tcr".to_owned()],
+            steps: Vec::new(),
+        };
+
+        assert_eq!(choose_registry_file(1, &mut host), "mine.tcr");
+
+        assert_eq!(host.steps, [ChoiceStep::Rebuild, ChoiceStep::Select(0)]);
+    }
+
+    #[derive(Debug, Default)]
+    struct HintHost {
+        hides: usize,
+        shown: Vec<String>,
+    }
+
+    impl NameHintHost for HintHost {
+        fn hide_name_hint(&mut self) {
+            self.hides += 1;
+        }
+
+        fn invalid_name_message(&mut self) -> String {
+            "A name cannot contain:".to_owned()
+        }
+
+        fn show_name_hint(&mut self, message: &str) {
+            self.shown.push(message.to_owned());
+        }
+    }
+
+    #[test]
+    fn a_rejected_name_character_is_swallowed_and_named_in_the_balloon() {
+        let mut host = HintHost::default();
+
+        assert!(reject_invalid_name_key('|', r#"\/?"<>|"#, &mut host));
+
+        assert_eq!(
+            host.shown,
+            [format!(
+                "A name cannot contain:{INVALID_NAME_CHARACTER_LIST}"
+            )]
+        );
+    }
+
+    #[test]
+    fn an_accepted_character_passes_through_and_any_key_down_clears_the_balloon() {
+        let mut host = HintHost::default();
+
+        assert!(!reject_invalid_name_key('a', r#"\/?"<>|"#, &mut host));
+        assert!(host.shown.is_empty());
+
+        hide_invalid_name_hint(&mut host);
+        hide_invalid_name_hint(&mut host);
+        assert_eq!(host.hides, 2);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -589,6 +589,149 @@ fn append_analysis_directives(
     }
 }
 
+/// The setting that decides whether the extended export targets stay listed.
+pub const EXTENDED_EXPORT_SETTING: &str = "ExtendedSpiceExport";
+
+/// The target entries the recovered create handler removes, highest index
+/// first, when the extended export setting is off.
+pub const EXTENDED_TARGET_INDEXES: [usize; 4] = [5, 4, 3, 2];
+
+/// One group of analysis settings the export dialog compares against the
+/// stored reference.
+///
+/// The recovered handler compares each group field by field and treats the
+/// whole group as changed as soon as one field differs.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct AnalysisSettingsGroup {
+    pub flags: Vec<u16>,
+    pub values: Vec<f64>,
+    pub bytes: Vec<u8>,
+    pub text: String,
+}
+
+impl AnalysisSettingsGroup {
+    /// Reports whether this group differs from a reference group.
+    #[must_use]
+    pub fn differs_from(&self, reference: &Self) -> bool {
+        self != reference
+    }
+}
+
+/// The three comparison groups and their resulting check-box states.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct ChangedAnalysisGroups {
+    pub first: bool,
+    pub second: bool,
+    pub third: bool,
+}
+
+/// Implements Ghidra function `FUN_01bae540` at `0x01BAE540`.
+///
+/// Decides which analysis groups the export dialog offers and which targets
+/// stay listed.
+///
+/// Each of the three check boxes is ticked when any field of its group differs
+/// from the stored reference settings, so the dialog pre-selects exactly the
+/// analyses the user actually changed. When no group differs the recovered
+/// handler falls back to ticking the first one, so the export is never
+/// completely unselected.
+///
+/// The extended export setting only removes target entries. They are removed
+/// from the highest index down, which keeps the lower indexes valid while the
+/// removal runs.
+#[must_use]
+pub fn create_spice_export_dialog(
+    live: [&AnalysisSettingsGroup; 3],
+    reference: [&AnalysisSettingsGroup; 3],
+    extended_export_enabled: bool,
+) -> (ChangedAnalysisGroups, Vec<usize>) {
+    let mut changed = ChangedAnalysisGroups {
+        first: live[0].differs_from(reference[0]),
+        second: live[1].differs_from(reference[1]),
+        third: live[2].differs_from(reference[2]),
+    };
+    if !changed.first && !changed.second && !changed.third {
+        changed.first = true;
+    }
+
+    let removed = if extended_export_enabled {
+        Vec::new()
+    } else {
+        EXTENDED_TARGET_INDEXES.to_vec()
+    };
+    (changed, removed)
+}
+
+#[cfg(test)]
+mod export_create_tests {
+    use super::*;
+
+    fn group(value: f64) -> AnalysisSettingsGroup {
+        AnalysisSettingsGroup {
+            flags: vec![1, 2],
+            values: vec![value],
+            bytes: vec![7],
+            text: "sine".to_owned(),
+        }
+    }
+
+    #[test]
+    fn each_group_is_ticked_only_when_one_of_its_fields_differs() {
+        let live = [group(1.0), group(2.0), group(3.0)];
+        let reference = [group(1.0), group(9.0), group(3.0)];
+
+        let (changed, removed) = create_spice_export_dialog(
+            [&live[0], &live[1], &live[2]],
+            [&reference[0], &reference[1], &reference[2]],
+            true,
+        );
+
+        assert_eq!(
+            changed,
+            ChangedAnalysisGroups {
+                first: false,
+                second: true,
+                third: false,
+            }
+        );
+        assert!(removed.is_empty());
+    }
+
+    #[test]
+    fn an_unchanged_circuit_still_ticks_the_first_group() {
+        let live = [group(1.0), group(2.0), group(3.0)];
+
+        let (changed, _) = create_spice_export_dialog(
+            [&live[0], &live[1], &live[2]],
+            [&live[0], &live[1], &live[2]],
+            true,
+        );
+
+        assert_eq!(
+            changed,
+            ChangedAnalysisGroups {
+                first: true,
+                second: false,
+                third: false,
+            }
+        );
+    }
+
+    #[test]
+    fn the_extended_targets_are_removed_from_the_highest_index_down() {
+        let live = [group(1.0), group(2.0), group(3.0)];
+
+        let (_, removed) = create_spice_export_dialog(
+            [&live[0], &live[1], &live[2]],
+            [&live[0], &live[1], &live[2]],
+            false,
+        );
+
+        assert_eq!(removed, EXTENDED_TARGET_INDEXES.to_vec());
+        assert!(removed.windows(2).all(|pair| pair[0] > pair[1]));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

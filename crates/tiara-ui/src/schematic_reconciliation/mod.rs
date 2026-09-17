@@ -139,6 +139,13 @@ impl<B: ReconciliationBlock> ReconciliationSession<B> {
         &self.current
     }
 
+    /// Takes the current circuit out of the session so the destroy handler can
+    /// release it.
+    #[must_use]
+    pub fn into_current(self) -> Circuit<B> {
+        self.current
+    }
+
     #[must_use]
     pub fn selected(&self) -> &[SelectableBlock<B>] {
         &self.selected
@@ -281,6 +288,54 @@ impl<B: ReconciliationBlock> ReconciliationSession<B> {
     }
 }
 
+pub trait ReconciliationLifecycleHost<B> {
+    /// Builds the current-circuit model from the active document.
+    fn load_current_circuit(&mut self) -> Circuit<B>;
+
+    /// Fills the current-circuit list box from the loaded model.
+    fn fill_current_list(&mut self, circuit: &Circuit<B>);
+
+    fn set_help_context(&mut self, context: u32);
+
+    /// Releases one circuit model the dialog owns.
+    fn release_circuit(&mut self, circuit: Circuit<B>);
+}
+
+/// Implements Ghidra function `FUN_01b9f0f0` at `0x01B9F0F0`.
+///
+/// Starts one reconciliation session: the selected circuit begins empty because
+/// only the picker loads it, the current circuit is built from the active
+/// document, the current list box is filled from that model, and the form help
+/// context is assigned.
+///
+/// The handler compares nothing, copies nothing, and writes nothing back to the
+/// document; the copy and OK handlers own those steps.
+pub fn create_reconciliation_session<B: ReconciliationBlock>(
+    host: &mut impl ReconciliationLifecycleHost<B>,
+) -> ReconciliationSession<B> {
+    let current = host.load_current_circuit();
+    host.fill_current_list(&current);
+    host.set_help_context(HELP_CONTEXT);
+    ReconciliationSession::new(current)
+}
+
+/// Implements Ghidra function `FUN_01b9f7a0` at `0x01B9F7A0`.
+///
+/// Releases the selected circuit first and the current circuit second, each
+/// only when it exists. The recovered handler commits nothing, so closing with
+/// Cancel discards every staged reconciliation, and an accepted OK has already
+/// written its changes before this runs.
+pub fn destroy_reconciliation_session<B: ReconciliationBlock>(
+    session: ReconciliationSession<B>,
+    selected_circuit: Option<Circuit<B>>,
+    host: &mut impl ReconciliationLifecycleHost<B>,
+) {
+    if let Some(selected_circuit) = selected_circuit {
+        host.release_circuit(selected_circuit);
+    }
+    host.release_circuit(session.into_current());
+}
+
 pub trait LocalizedHelpResolver {
     fn resolve(&self, base_path: &Path) -> PathBuf;
 }
@@ -405,6 +460,84 @@ mod tests {
     use std::cell::RefCell;
 
     use super::*;
+
+    #[derive(Debug, Default)]
+    struct LifecycleHost {
+        loaded: Vec<TestBlock>,
+        filled: Vec<usize>,
+        help_contexts: Vec<u32>,
+        released: Vec<usize>,
+    }
+
+    impl ReconciliationLifecycleHost<TestBlock> for LifecycleHost {
+        fn load_current_circuit(&mut self) -> Circuit<TestBlock> {
+            Circuit {
+                blocks: self.loaded.clone(),
+                modified: false,
+            }
+        }
+
+        fn fill_current_list(&mut self, circuit: &Circuit<TestBlock>) {
+            self.filled.push(circuit.blocks.len());
+        }
+
+        fn set_help_context(&mut self, context: u32) {
+            self.help_contexts.push(context);
+        }
+
+        fn release_circuit(&mut self, circuit: Circuit<TestBlock>) {
+            self.released.push(circuit.blocks.len());
+        }
+    }
+
+    #[test]
+    fn create_loads_the_current_circuit_fills_the_list_and_sets_the_help_context() {
+        let mut host = LifecycleHost {
+            loaded: vec![block("R1", "a", "m", 1.0, "p")],
+            ..LifecycleHost::default()
+        };
+
+        let session = create_reconciliation_session(&mut host);
+
+        assert_eq!(session.current().blocks.len(), 1);
+        assert!(session.selected().is_empty());
+        assert_eq!(host.filled, [1]);
+        assert_eq!(host.help_contexts, [HELP_CONTEXT]);
+        assert!(host.released.is_empty());
+    }
+
+    #[test]
+    fn destroy_releases_the_selected_circuit_before_the_current_one() {
+        let mut host = LifecycleHost {
+            loaded: vec![block("R1", "a", "m", 1.0, "p")],
+            ..LifecycleHost::default()
+        };
+        let session = create_reconciliation_session(&mut host);
+
+        destroy_reconciliation_session(
+            session,
+            Some(Circuit {
+                blocks: vec![
+                    block("R2", "b", "m", 2.0, "q"),
+                    block("R3", "c", "m", 3.0, "r"),
+                ],
+                modified: false,
+            }),
+            &mut host,
+        );
+
+        assert_eq!(host.released, [2, 1]);
+    }
+
+    #[test]
+    fn destroy_skips_a_selected_circuit_that_was_never_picked() {
+        let mut host = LifecycleHost::default();
+        let session = create_reconciliation_session(&mut host);
+
+        destroy_reconciliation_session(session, None, &mut host);
+
+        assert_eq!(host.released, [0]);
+    }
 
     #[derive(Debug, Clone, PartialEq)]
     struct TestBlock {

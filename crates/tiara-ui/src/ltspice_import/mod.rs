@@ -179,6 +179,59 @@ pub fn import_ltspice_schematic(
     Ok(document_path)
 }
 
+/// The recovered one-shot latch that the close query consumes.
+///
+/// Only the create and close-query handlers reach this latch in the recovered
+/// dialog, and both of them clear it. No recovered path sets it, so every
+/// recovered close request is allowed. The latch is kept here because the
+/// recovered close query still reads it before it clears it.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct CloseVeto(pub bool);
+
+/// The state the recovered create handler establishes for one dialog session.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ImportDialogState {
+    pub close_veto: CloseVeto,
+    /// The recovered per-session path field, which the create handler clears.
+    pub staged_source: String,
+    /// The file-name edit value.
+    pub file_name: String,
+}
+
+/// Implements Ghidra function `FUN_01b8fda0` at `0x01B8FDA0`.
+///
+/// Prepares one dialog session: it clears the close-veto latch, clears the
+/// staged source path, and restores the last accepted import path into the
+/// file-name edit. A settings read that fails or finds nothing leaves the edit
+/// value as designed, which is empty. The handler validates nothing, opens no
+/// chooser, and imports nothing.
+///
+/// # Errors
+///
+/// Returns the settings adapter error. The latch and the staged path are
+/// already cleared when a read fails, so the session still starts closable.
+pub fn create_import_dialog_state(
+    settings: &mut impl UserSettings,
+) -> Result<ImportDialogState, ImportError> {
+    let mut state = ImportDialogState::default();
+    let restored = settings.read_user_setting(IMPORT_FILE_SETTING)?;
+    if let Some(restored) = restored {
+        state.file_name = restored;
+    }
+    Ok(state)
+}
+
+/// Implements Ghidra function `FUN_01b8fd80` at `0x01B8FD80`.
+///
+/// Allows the close only while the one-shot veto latch is clear, then clears
+/// the latch so a single veto never blocks a second attempt. The recovered
+/// handler checks no file, writes no setting, and shows no message.
+pub const fn query_import_dialog_close(state: &mut ImportDialogState) -> bool {
+    let can_close = !state.close_veto.0;
+    state.close_veto = CloseVeto(false);
+    can_close
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum ImportStatus {
     #[default]
@@ -598,5 +651,71 @@ mod tests {
             &ImportStatus::Failed("File not found".to_owned())
         );
         assert!(!window.is_cancelled());
+    }
+
+    #[derive(Default)]
+    struct FailingSettings;
+
+    impl UserSettings for FailingSettings {
+        fn read_user_setting(&mut self, _name: &str) -> Result<Option<String>, ImportError> {
+            Err(ImportError::Settings("registry unavailable".to_owned()))
+        }
+
+        fn write_user_setting_best_effort(&mut self, _name: &str, _value: &str) {}
+    }
+
+    #[test]
+    fn create_restores_the_last_accepted_path_into_a_closable_session() {
+        let mut services = FakeServices {
+            saved_directory: Some(r"C:\LTspice\demo.asc".to_owned()),
+            ..FakeServices::default()
+        };
+
+        let state = create_import_dialog_state(&mut services).expect("settings read succeeds");
+
+        assert_eq!(
+            services.calls,
+            [Call::ReadSetting(IMPORT_FILE_SETTING.to_owned())]
+        );
+        assert_eq!(
+            state,
+            ImportDialogState {
+                close_veto: CloseVeto(false),
+                staged_source: String::new(),
+                file_name: r"C:\LTspice\demo.asc".to_owned(),
+            }
+        );
+    }
+
+    #[test]
+    fn create_leaves_the_edit_empty_when_no_path_was_stored() {
+        let mut services = FakeServices::default();
+
+        let state = create_import_dialog_state(&mut services).expect("settings read succeeds");
+
+        assert_eq!(state, ImportDialogState::default());
+    }
+
+    #[test]
+    fn create_propagates_a_settings_read_failure() {
+        let result = create_import_dialog_state(&mut FailingSettings);
+
+        assert_eq!(
+            result,
+            Err(ImportError::Settings("registry unavailable".to_owned()))
+        );
+    }
+
+    #[test]
+    fn the_close_query_consumes_a_single_veto_and_then_allows_the_close() {
+        let mut state = ImportDialogState {
+            close_veto: CloseVeto(true),
+            ..ImportDialogState::default()
+        };
+
+        assert!(!query_import_dialog_close(&mut state));
+        assert_eq!(state.close_veto, CloseVeto(false));
+        assert!(query_import_dialog_close(&mut state));
+        assert!(query_import_dialog_close(&mut state));
     }
 }

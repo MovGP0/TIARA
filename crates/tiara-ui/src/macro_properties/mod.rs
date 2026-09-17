@@ -594,6 +594,147 @@ impl Window {
     }
 }
 
+/// The recovered Macro Properties help context.
+pub const HELP_CONTEXT: u32 = 0x046a;
+
+/// The two halves of the stored macro content reference.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct StorageReferenceParts {
+    /// The text before the separator. Empty when the reference has none.
+    pub qualifier: String,
+    /// The text the Content edit shows.
+    pub content: String,
+}
+
+/// Splits the stored content reference at its first separator.
+///
+/// The recovered copy lengths assume a single-character separator, so this port
+/// takes a [`char`]. A reference without the separator keeps its whole text as
+/// the visible content and leaves the qualifier empty.
+#[must_use]
+pub fn split_storage_reference(reference: &str, separator: char) -> StorageReferenceParts {
+    reference.find(separator).map_or_else(
+        || StorageReferenceParts {
+            qualifier: String::new(),
+            content: reference.to_owned(),
+        },
+        |index| StorageReferenceParts {
+            qualifier: reference[..index].to_owned(),
+            content: reference[index + separator.len_utf8()..].to_owned(),
+        },
+    )
+}
+
+/// Where the dialog's working circuit comes from, selected by the recovered
+/// storage-mode byte.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MacroStorageSource<'a> {
+    /// Recovered mode 1. The dialog borrows a circuit the caller already holds
+    /// and must not release it.
+    LoadedCircuit(MacroCircuit),
+    /// Recovered mode 2. The dialog builds its own circuit from embedded
+    /// content and owns it. The secondary input is supplied only when the
+    /// recovered gate byte is set.
+    EmbeddedContent {
+        content: &'a str,
+        secondary: Option<&'a str>,
+    },
+    /// Every other recovered mode leaves the dialog without a working circuit.
+    Absent,
+}
+
+/// The staged dialog state the create handler produces.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct MacroPropertiesStaging {
+    pub shape: String,
+    pub default_label: String,
+    pub default_parameters: String,
+    pub content: String,
+    pub storage_qualifier: String,
+    pub name: String,
+    pub working_circuit: Option<MacroCircuit>,
+    /// True only for the recovered mode that builds the circuit here.
+    pub owns_working_circuit: bool,
+    pub change_storage_enabled: bool,
+    pub embed_enabled: bool,
+    pub embed_reference: String,
+}
+
+pub trait MacroPropertiesCreateHost {
+    /// Builds a circuit from embedded macro content.
+    fn load_embedded_circuit(
+        &mut self,
+        content: &str,
+        secondary: Option<&str>,
+    ) -> Option<MacroCircuit>;
+
+    fn set_help_context(&mut self, context: u32);
+}
+
+/// Reimplements Ghidra function `FUN_01b925f0` at `0x01B925F0`.
+///
+/// Seeds the shape, default label, default parameters, name, and content edits
+/// from the macro definition, splitting the stored content reference so the
+/// Content edit shows only the part after the separator while the dialog keeps
+/// the leading qualifier privately.
+///
+/// The storage mode decides the working circuit and its ownership: the
+/// loaded-circuit mode borrows the caller's circuit, the embedded-content mode
+/// builds one here and owns it, and every other mode leaves it absent. The
+/// change-storage button follows the definition's referenced-storage byte and
+/// the embed button follows the presence of an embed reference.
+///
+/// The handler assigns the help context and stages values only. It validates
+/// nothing, writes no file, and changes no macro definition.
+pub fn create_macro_properties_staging(
+    definition: &MacroDefinition,
+    embed_reference: &str,
+    storage: MacroStorageSource<'_>,
+    separator: char,
+    host: &mut impl MacroPropertiesCreateHost,
+) -> MacroPropertiesStaging {
+    let parts = split_storage_reference(&definition.storage_reference, separator);
+    let (working_circuit, owns_working_circuit) = match storage {
+        MacroStorageSource::LoadedCircuit(circuit) => (Some(circuit), false),
+        MacroStorageSource::EmbeddedContent { content, secondary } => {
+            (host.load_embedded_circuit(content, secondary), true)
+        }
+        MacroStorageSource::Absent => (None, false),
+    };
+
+    host.set_help_context(HELP_CONTEXT);
+
+    MacroPropertiesStaging {
+        shape: definition.shape.name.clone(),
+        default_label: definition.default_label.clone(),
+        default_parameters: definition.default_parameters.clone(),
+        content: parts.content,
+        storage_qualifier: parts.qualifier,
+        name: definition.name.clone(),
+        working_circuit,
+        owns_working_circuit,
+        change_storage_enabled: definition.referenced_storage,
+        embed_enabled: !embed_reference.is_empty(),
+        embed_reference: embed_reference.to_owned(),
+    }
+}
+
+/// Reimplements Ghidra function `FUN_01b92930` at `0x01B92930`.
+///
+/// Releases the working circuit only when the create handler built it for the
+/// embedded-content storage mode. A borrowed circuit belongs to the caller and
+/// is left alone, which is why the recovered handler tests the storage mode
+/// before it frees anything. The handler saves nothing and changes no macro
+/// definition, so closing with Cancel discards every staged edit.
+pub fn destroy_macro_properties_staging(staging: &mut MacroPropertiesStaging) -> bool {
+    if staging.owns_working_circuit && staging.working_circuit.is_some() {
+        staging.working_circuit = None;
+        staging.owns_working_circuit = false;
+        return true;
+    }
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -847,5 +988,178 @@ mod tests {
         );
         let _ = window.update(Message::Cancel);
         assert_eq!(window.definition().active_shape.as_ref(), Some(&active));
+    }
+
+    #[derive(Debug, Default)]
+    struct CreateHost {
+        embedded: Option<MacroCircuit>,
+        loads: Vec<(String, Option<String>)>,
+        help_contexts: Vec<u32>,
+    }
+
+    impl MacroPropertiesCreateHost for CreateHost {
+        fn load_embedded_circuit(
+            &mut self,
+            content: &str,
+            secondary: Option<&str>,
+        ) -> Option<MacroCircuit> {
+            self.loads
+                .push((content.to_owned(), secondary.map(ToOwned::to_owned)));
+            self.embedded.clone()
+        }
+
+        fn set_help_context(&mut self, context: u32) {
+            self.help_contexts.push(context);
+        }
+    }
+
+    fn stored_definition(reference: &str, referenced_storage: bool) -> MacroDefinition {
+        MacroDefinition {
+            name: "Amplifier".to_owned(),
+            default_label: "U".to_owned(),
+            default_parameters: "gain=10".to_owned(),
+            shape: ShapeReference {
+                library_qualifier: None,
+                name: "OpAmp".to_owned(),
+            },
+            referenced_storage,
+            storage_reference: reference.to_owned(),
+            active_shape: None,
+            live_graphic_shape: None,
+        }
+    }
+
+    #[test]
+    fn a_reference_without_the_separator_stays_whole_in_the_content_edit() {
+        assert_eq!(
+            split_storage_reference(r"C:/Macros/amp.tsm", '|'),
+            StorageReferenceParts {
+                qualifier: String::new(),
+                content: r"C:/Macros/amp.tsm".to_owned(),
+            }
+        );
+    }
+
+    #[test]
+    fn a_reference_with_the_separator_hides_the_leading_qualifier() {
+        assert_eq!(
+            split_storage_reference(r"lib|C:/Macros/amp.tsm", '|'),
+            StorageReferenceParts {
+                qualifier: "lib".to_owned(),
+                content: r"C:/Macros/amp.tsm".to_owned(),
+            }
+        );
+        assert_eq!(
+            split_storage_reference("|tail", '|'),
+            StorageReferenceParts {
+                qualifier: String::new(),
+                content: "tail".to_owned(),
+            }
+        );
+    }
+
+    #[test]
+    fn create_seeds_the_edits_and_borrows_a_loaded_circuit() {
+        let mut host = CreateHost::default();
+        let circuit = MacroCircuit {
+            terminals: Vec::new(),
+        };
+
+        let staging = create_macro_properties_staging(
+            &stored_definition("lib|amp.tsm", true),
+            "embedded-ref",
+            MacroStorageSource::LoadedCircuit(circuit.clone()),
+            '|',
+            &mut host,
+        );
+
+        assert_eq!(staging.name, "Amplifier");
+        assert_eq!(staging.shape, "OpAmp");
+        assert_eq!(staging.default_label, "U");
+        assert_eq!(staging.default_parameters, "gain=10");
+        assert_eq!(staging.content, "amp.tsm");
+        assert_eq!(staging.storage_qualifier, "lib");
+        assert_eq!(staging.working_circuit, Some(circuit));
+        assert!(!staging.owns_working_circuit);
+        assert!(staging.change_storage_enabled);
+        assert!(staging.embed_enabled);
+        assert_eq!(host.help_contexts, [HELP_CONTEXT]);
+        assert!(host.loads.is_empty());
+    }
+
+    #[test]
+    fn create_owns_a_circuit_it_builds_from_embedded_content() {
+        let mut host = CreateHost {
+            embedded: Some(MacroCircuit {
+                terminals: Vec::new(),
+            }),
+            ..CreateHost::default()
+        };
+
+        let staging = create_macro_properties_staging(
+            &stored_definition("amp.tsm", false),
+            "",
+            MacroStorageSource::EmbeddedContent {
+                content: "payload",
+                secondary: Some("extra"),
+            },
+            '|',
+            &mut host,
+        );
+
+        assert!(staging.owns_working_circuit);
+        assert!(staging.working_circuit.is_some());
+        assert!(!staging.change_storage_enabled);
+        assert!(!staging.embed_enabled);
+        assert_eq!(
+            host.loads,
+            [("payload".to_owned(), Some("extra".to_owned()))]
+        );
+    }
+
+    #[test]
+    fn create_leaves_every_other_storage_mode_without_a_circuit() {
+        let mut host = CreateHost::default();
+
+        let staging = create_macro_properties_staging(
+            &stored_definition("amp.tsm", false),
+            "",
+            MacroStorageSource::Absent,
+            '|',
+            &mut host,
+        );
+
+        assert_eq!(staging.working_circuit, None);
+        assert!(!staging.owns_working_circuit);
+    }
+
+    #[test]
+    fn destroy_releases_only_a_circuit_the_dialog_owns() {
+        let mut borrowed = MacroPropertiesStaging {
+            working_circuit: Some(MacroCircuit {
+                terminals: Vec::new(),
+            }),
+            owns_working_circuit: false,
+            ..MacroPropertiesStaging::default()
+        };
+        assert!(!destroy_macro_properties_staging(&mut borrowed));
+        assert!(borrowed.working_circuit.is_some());
+
+        let mut owned = MacroPropertiesStaging {
+            working_circuit: Some(MacroCircuit {
+                terminals: Vec::new(),
+            }),
+            owns_working_circuit: true,
+            ..MacroPropertiesStaging::default()
+        };
+        assert!(destroy_macro_properties_staging(&mut owned));
+        assert!(owned.working_circuit.is_none());
+        assert!(!destroy_macro_properties_staging(&mut owned));
+
+        let mut empty = MacroPropertiesStaging {
+            owns_working_circuit: true,
+            ..MacroPropertiesStaging::default()
+        };
+        assert!(!destroy_macro_properties_staging(&mut empty));
     }
 }

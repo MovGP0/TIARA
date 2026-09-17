@@ -17,8 +17,8 @@ pub const FORM_RESOURCE: &str = "frmSBlockWizard";
 pub const ORIGINAL_FUNCTION: Option<&str> = Some("01ba67e0");
 const STATUS: &str = "Create an S-parameter block";
 const TOOLBAR: &[&str] = &[];
-const ALL_LIBRARIES: &str = "All";
-const GROUND_PIN: &str = "*GND*";
+pub const ALL_LIBRARIES: &str = "All";
+pub const GROUND_PIN: &str = "*GND*";
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum PortMode {
@@ -296,6 +296,28 @@ pub enum Message {
     NoOp,
 }
 
+/// The recovered catch-all entry of the shape-library combo.
+pub const ALL_LIBRARIES_INDEX: usize = 0;
+
+/// The mode entry that appends the recovered ground pin choice.
+pub const GROUND_PIN_MODE_INDEX: usize = 1;
+
+/// The mapping column and header row of the recovered pin-match grid.
+pub const MAPPING_COLUMN: usize = 1;
+pub const HEADER_ROW: usize = 0;
+
+/// The recovered grid keeps one fixed header row, so grid row `n` holds
+/// mapping value `n - 1`.
+pub const FIXED_ROWS: usize = 1;
+
+/// The floating pin combo the grid moves over the selected mapping cell.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CellEditor {
+    pub row: usize,
+    pub visible: bool,
+    pub selected_choice: Option<usize>,
+}
+
 #[derive(Debug, Clone)]
 pub struct Window {
     mode: PortMode,
@@ -306,6 +328,8 @@ pub struct Window {
     pin_count_filter: usize,
     visible_shape_indices: Vec<usize>,
     selected_shape_index: Option<usize>,
+    pin_choices: Vec<String>,
+    cell_editor: Option<CellEditor>,
     grid_values: Vec<String>,
     load_state: LoadState,
     readiness: Readiness,
@@ -332,6 +356,8 @@ impl Window {
             pin_count_filter: 0,
             visible_shape_indices: Vec::new(),
             selected_shape_index: None,
+            pin_choices: Vec::new(),
+            cell_editor: None,
             grid_values: Vec::new(),
             load_state: LoadState::NotLoaded,
             readiness: Readiness::Blocked,
@@ -517,6 +543,140 @@ impl Window {
         } else {
             None
         }
+    }
+
+    /// Implements Ghidra function `FUN_01ba8320` at `0x01BA8320`.
+    ///
+    /// Applies the shape-library combo selection. The first entry is the
+    /// recovered catch-all and clears the filter; every other entry stores that
+    /// entry's own text as the filter. Either way the shape list is rebuilt, so
+    /// the selection, the mapping cells, and OK readiness all reset.
+    pub fn choose_shape_library(&mut self, selected_index: usize, library_items: &[String]) {
+        let library = if selected_index == ALL_LIBRARIES_INDEX {
+            None
+        } else {
+            library_items.get(selected_index).cloned()
+        };
+        self.set_library_filter(library);
+    }
+
+    /// Implements Ghidra function `FUN_01ba86e0` at `0x01BA86E0`.
+    ///
+    /// The pin-count filter combo forwards straight to the shared shape
+    /// rebuild. The recovered handler reads no control of its own, which is why
+    /// the current filter value is already stored when it runs.
+    pub fn apply_pin_filter_change(&mut self) {
+        self.refresh_shapes();
+    }
+
+    /// Implements Ghidra function `FUN_01ba83f0` at `0x01BA83F0`.
+    ///
+    /// Rebuilds the pin-choice list for the newly selected shape and clears
+    /// every mapping cell.
+    ///
+    /// The list is cleared first, so a shape list with no entries leaves it
+    /// empty. The selected shape contributes its pin names in catalog order,
+    /// and the second mode entry appends the recovered [`GROUND_PIN`]
+    /// entry. The recovered handler clears the mapping column for every data
+    /// row but does not touch the loaded S-parameter file or the mode.
+    pub fn rebuild_pin_choices(&mut self, mode_selection_index: usize) {
+        self.pin_choices.clear();
+        if let Some(shape) = self
+            .selected_shape_index
+            .and_then(|index| self.shapes.get(index))
+        {
+            self.pin_choices.extend(shape.pin_names.iter().cloned());
+        }
+        if mode_selection_index == GROUND_PIN_MODE_INDEX {
+            self.pin_choices.push(GROUND_PIN.to_owned());
+        }
+        self.grid_values.fill(String::new());
+        self.cell_editor = None;
+        self.update_readiness();
+    }
+
+    /// Implements Ghidra function `FUN_01ba86f0` at `0x01BA86F0`.
+    ///
+    /// Moves the floating pin combo over the selected mapping cell and seeds it
+    /// from that cell's current text.
+    ///
+    /// The combo is only repositioned and shown for a data row of the mapping
+    /// column; the header row and every other column leave it where it is. The
+    /// recovered handler always allows the selection, so it never blocks a
+    /// click. An empty cell selects the first pin entry rather than clearing
+    /// the selection, and a cell whose text is missing from the list leaves the
+    /// combo unselected.
+    pub fn begin_cell_edit(&mut self, column: usize, row: usize) -> bool {
+        if column == MAPPING_COLUMN && row != HEADER_ROW {
+            self.cell_editor = Some(CellEditor {
+                row,
+                visible: true,
+                selected_choice: None,
+            });
+        }
+
+        let text = row
+            .checked_sub(FIXED_ROWS)
+            .and_then(|data_row| self.grid_values.get(data_row))
+            .cloned()
+            .unwrap_or_default();
+        let selected_choice = if text.is_empty() {
+            Some(0)
+        } else {
+            self.pin_choices.iter().position(|choice| *choice == text)
+        };
+        if let Some(editor) = &mut self.cell_editor {
+            editor.selected_choice = selected_choice;
+        }
+        true
+    }
+
+    /// Implements Ghidra functions `FUN_01ba88a0` at `0x01BA88A0` and
+    /// `FUN_01ba8990` at `0x01BA8990`.
+    ///
+    /// Commits the pin combo's selected text into the grid cell the editor is
+    /// covering, hides the combo, and returns focus to the grid so it repaints.
+    ///
+    /// The two recovered handlers, the combo's change and its exit, have
+    /// identical bodies, so choosing a pin and leaving the combo commit exactly
+    /// the same way. The recovered code reads the selected item without a guard;
+    /// this port treats "no selection" as no commit, because the combo is only
+    /// shown after a cell selection has already seeded it.
+    pub fn commit_cell_edit(&mut self) -> bool {
+        let Some(editor) = self.cell_editor else {
+            return false;
+        };
+        let Some(text) = editor
+            .selected_choice
+            .and_then(|choice| self.pin_choices.get(choice))
+            .cloned()
+        else {
+            self.cell_editor = None;
+            return false;
+        };
+
+        if let Some(data_row) = editor.row.checked_sub(FIXED_ROWS) {
+            self.set_mapping(data_row, text);
+        }
+        self.cell_editor = None;
+        true
+    }
+
+    /// Selects one entry in the floating pin combo.
+    pub const fn select_pin_choice(&mut self, choice: Option<usize>) {
+        if let Some(editor) = &mut self.cell_editor {
+            editor.selected_choice = choice;
+        }
+    }
+
+    #[must_use]
+    pub fn pin_choices(&self) -> &[String] {
+        &self.pin_choices
+    }
+
+    #[must_use]
+    pub const fn cell_editor(&self) -> Option<&CellEditor> {
+        self.cell_editor.as_ref()
     }
 
     /// Recomputes OK readiness from the loaded flag and every mapping cell.
@@ -784,6 +944,167 @@ mod tests {
             shape("Three A", "A", &["1", "2", "3"]),
             shape("Four B", "B", &["A", "B", "C", "D"]),
         ]
+    }
+
+    fn library_items() -> Vec<String> {
+        vec![ALL_LIBRARIES.to_owned(), "A".to_owned(), "B".to_owned()]
+    }
+
+    #[test]
+    fn the_first_library_entry_clears_the_filter_and_the_others_set_it() {
+        let mut window = Window::new(sample_shapes());
+        window.configure_mode(PortMode::S2P);
+        window.set_pin_count_filter(2);
+
+        window.choose_shape_library(1, &library_items());
+        assert_eq!(window.library_filter.as_deref(), Some("A"));
+
+        window.choose_shape_library(ALL_LIBRARIES_INDEX, &library_items());
+        assert_eq!(window.library_filter, None);
+
+        window.choose_shape_library(99, &library_items());
+        assert_eq!(window.library_filter, None);
+    }
+
+    #[test]
+    fn the_pin_filter_change_only_rebuilds_the_shape_list() {
+        let mut window = Window::new(sample_shapes());
+        window.configure_mode(PortMode::S2P);
+        window.set_pin_count_filter(2);
+        let before = window.visible_shape_indices.clone();
+
+        window.apply_pin_filter_change();
+
+        assert_eq!(window.visible_shape_indices, before);
+        assert_eq!(window.readiness, Readiness::Blocked);
+    }
+
+    #[test]
+    fn selecting_a_shape_rebuilds_the_pin_choices_and_clears_the_mapping() {
+        let mut window = Window::new(sample_shapes());
+        window.configure_mode(PortMode::S2P);
+        window.set_pin_count_filter(2);
+        window.set_mapping(0, "1".to_owned());
+
+        window.rebuild_pin_choices(0);
+
+        assert_eq!(window.pin_choices(), ["1".to_owned(), "2".to_owned()]);
+        assert!(window.grid_values.iter().all(String::is_empty));
+        assert!(window.cell_editor().is_none());
+    }
+
+    #[test]
+    fn the_second_mode_entry_appends_the_recovered_ground_pin() {
+        let mut window = Window::new(sample_shapes());
+        window.configure_mode(PortMode::S2P);
+        window.set_pin_count_filter(2);
+
+        window.rebuild_pin_choices(GROUND_PIN_MODE_INDEX);
+
+        assert_eq!(
+            window.pin_choices(),
+            ["1".to_owned(), "2".to_owned(), GROUND_PIN.to_owned()]
+        );
+    }
+
+    #[test]
+    fn a_shape_list_with_no_selection_leaves_the_pin_choices_empty() {
+        let mut window = Window::new(Vec::new());
+        window.configure_mode(PortMode::S2P);
+
+        window.rebuild_pin_choices(0);
+
+        assert!(window.pin_choices().is_empty());
+    }
+
+    #[test]
+    fn selecting_a_mapping_cell_shows_the_combo_and_always_allows_the_click() {
+        let mut window = Window::new(sample_shapes());
+        window.configure_mode(PortMode::S2P);
+        window.set_pin_count_filter(2);
+        window.rebuild_pin_choices(0);
+
+        assert!(window.begin_cell_edit(MAPPING_COLUMN, 1));
+
+        assert_eq!(
+            window.cell_editor(),
+            Some(&CellEditor {
+                row: 1,
+                visible: true,
+                selected_choice: Some(0),
+            })
+        );
+    }
+
+    #[test]
+    fn the_header_row_and_other_columns_never_show_the_combo() {
+        let mut window = Window::new(sample_shapes());
+        window.configure_mode(PortMode::S2P);
+        window.set_pin_count_filter(2);
+        window.rebuild_pin_choices(0);
+
+        assert!(window.begin_cell_edit(MAPPING_COLUMN, HEADER_ROW));
+        assert!(window.cell_editor().is_none());
+        assert!(window.begin_cell_edit(0, 1));
+        assert!(window.cell_editor().is_none());
+    }
+
+    #[test]
+    fn a_cell_value_outside_the_pin_list_leaves_the_combo_unselected() {
+        let mut window = Window::new(sample_shapes());
+        window.configure_mode(PortMode::S2P);
+        window.set_pin_count_filter(2);
+        window.rebuild_pin_choices(0);
+        window.set_mapping(0, "2".to_owned());
+
+        assert!(window.begin_cell_edit(MAPPING_COLUMN, 1));
+        assert_eq!(
+            window
+                .cell_editor()
+                .and_then(|editor| editor.selected_choice),
+            Some(1)
+        );
+
+        window.set_mapping(0, "missing".to_owned());
+        assert!(window.begin_cell_edit(MAPPING_COLUMN, 1));
+        assert_eq!(
+            window
+                .cell_editor()
+                .and_then(|editor| editor.selected_choice),
+            None
+        );
+    }
+
+    #[test]
+    fn choosing_a_pin_writes_it_into_the_covered_cell_and_hides_the_combo() {
+        let mut window = Window::new(sample_shapes());
+        window.configure_mode(PortMode::S2P);
+        window.set_pin_count_filter(2);
+        window.rebuild_pin_choices(0);
+        assert!(window.begin_cell_edit(MAPPING_COLUMN, 2));
+
+        window.select_pin_choice(Some(1));
+        assert!(window.commit_cell_edit());
+
+        assert_eq!(window.grid_values[1], "2");
+        assert!(window.cell_editor().is_none());
+    }
+
+    #[test]
+    fn committing_without_an_open_editor_or_a_selection_writes_nothing() {
+        let mut window = Window::new(sample_shapes());
+        window.configure_mode(PortMode::S2P);
+        window.set_pin_count_filter(2);
+        window.rebuild_pin_choices(0);
+
+        assert!(!window.commit_cell_edit());
+
+        assert!(window.begin_cell_edit(MAPPING_COLUMN, 1));
+        window.select_pin_choice(None);
+        assert!(!window.commit_cell_edit());
+
+        assert!(window.grid_values.iter().all(String::is_empty));
+        assert!(window.cell_editor().is_none());
     }
 
     #[test]

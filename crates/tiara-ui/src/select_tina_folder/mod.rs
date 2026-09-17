@@ -708,6 +708,479 @@ fn set_ini_boolean(contents: &str, section: &str, key: &str, value: bool) -> Str
     output
 }
 
+/// The lowest installation version the browse row accepts.
+pub const MINIMUM_INSTALLATION_VERSION: i32 = 8;
+
+/// The executable the browse row requires inside a chosen folder.
+pub const TINA_EXECUTABLE: &str = "tina.exe";
+
+/// The setup file and key the browse row reads the program folder from.
+pub const SETUP_FILE: &str = "setup.ini";
+pub const SETUP_SECTION: &str = "Setup Settings";
+pub const PROGRAM_FOLDER_KEY: &str = "Program Folder";
+
+/// The registry location and values the browse row reads afterwards.
+pub const REGISTRY_ROOT: &str = r"\SOFTWARE\DesignSoft\";
+pub const SETTINGS_DIR_VALUE: &str = "SettingsDir";
+pub const CATALOG_DIR_VALUE: &str = "CatalogDir";
+
+/// The hint timing the installed-list hint handler assigns.
+pub const INSTALLED_LIST_HINT_TIMING: u32 = 100;
+
+/// The localized caption that marks the list's browse row.
+pub const BROWSE_ROW_CAPTION_KEY: &str = "d.SelectTinaFolder_sBrowseTina";
+
+/// The separators the browse row builds its detail line with.
+///
+/// Neither was recovered as a literal, so the caller supplies both.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DetailSeparators {
+    /// Joins the chosen folder to itself in the first detail line.
+    pub folder: char,
+    /// Joins the registry directories onto the detail line.
+    pub registry: char,
+    /// Ends the visible part of a detail line for the hint.
+    pub hint_terminator: char,
+}
+
+pub trait InstalledListTeardownHost {
+    /// Releases the private detail list.
+    fn release_detail_list(&mut self);
+}
+
+/// Implements Ghidra function `FUN_01c44fe0` at `0x01C44FE0`.
+///
+/// Releases the private detail list that backs the installed-installation
+/// hints. The recovered handler does nothing else, so a chosen folder that the
+/// caller has not already read is lost with the form.
+pub fn destroy_installed_list(host: &mut impl InstalledListTeardownHost) {
+    host.release_detail_list();
+}
+
+pub trait TinaFolderBrowseHost {
+    /// Opens the folder picker. `None` is the recovered cancel result.
+    fn choose_folder(&mut self) -> Option<String>;
+
+    /// Reports whether the folder holds the required executable.
+    fn has_tina_executable(&mut self, folder: &str) -> bool;
+
+    /// The installation version found in one folder.
+    fn installation_version(&mut self, folder: &str) -> i32;
+
+    /// Reads the program folder from the chosen installation's setup file.
+    fn read_program_folder(&mut self, folder: &str) -> String;
+
+    /// The folder this application is running from.
+    fn current_folder(&mut self) -> String;
+
+    fn set_last_row(&mut self, folder: &str);
+
+    fn last_detail(&mut self) -> String;
+
+    fn set_last_detail(&mut self, detail: &str);
+
+    /// Reads the two directory values under the `DesignSoft` program folder.
+    fn read_registry_directories(&mut self, program_folder: &str) -> Option<(String, String)>;
+}
+
+/// The outcome of one browse-row double-click.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BrowseOutcome {
+    /// The double-click was not on the browse row.
+    NotBrowseRow,
+    /// The user cancelled the folder picker.
+    Cancelled,
+    /// The chosen folder is the one already running, so nothing was added.
+    AlreadyCurrent(String),
+    /// The chosen folder replaced the browse row.
+    Chosen(String),
+}
+
+/// Implements Ghidra function `FUN_01c45000` at `0x01C45000`.
+///
+/// Lets the user point at another installation from the list's last row.
+///
+/// Only that last row browses; every other row is a listed installation and is
+/// left alone. The picker repeats until the user cancels or picks a folder that
+/// both holds the required executable and reports at least the recovered
+/// minimum version, so an unsuitable folder silently re-opens the picker rather
+/// than reporting an error.
+///
+/// The program folder is read from the chosen installation's setup file even
+/// when the folder turns out to be the one already running; only a different
+/// folder replaces the browse row, builds its detail line, and appends the two
+/// registry directories when that key opens.
+///
+/// The recovered handler creates its registry reader before the comparison and
+/// never destroys it, which this port keeps out of the model by leaving the
+/// reader entirely behind the adapter.
+pub fn browse_for_installation(
+    is_browse_row: bool,
+    separators: DetailSeparators,
+    host: &mut impl TinaFolderBrowseHost,
+) -> BrowseOutcome {
+    if !is_browse_row {
+        return BrowseOutcome::NotBrowseRow;
+    }
+
+    let folder = loop {
+        let Some(candidate) = host.choose_folder() else {
+            return BrowseOutcome::Cancelled;
+        };
+        if host.has_tina_executable(&candidate)
+            && host.installation_version(&candidate) >= MINIMUM_INSTALLATION_VERSION
+        {
+            break candidate;
+        }
+    };
+
+    let program_folder = host.read_program_folder(&folder);
+    if folder == host.current_folder() {
+        return BrowseOutcome::AlreadyCurrent(folder);
+    }
+
+    host.set_last_row(&folder);
+    host.set_last_detail(&format!("{folder}{}{folder}", separators.folder));
+
+    if let Some((settings_dir, catalog_dir)) = host.read_registry_directories(&program_folder) {
+        let detail = host.last_detail();
+        host.set_last_detail(&format!(
+            "{detail}{0}{settings_dir}{0}{catalog_dir}",
+            separators.registry
+        ));
+    }
+
+    BrowseOutcome::Chosen(folder)
+}
+
+/// Implements Ghidra function `FUN_01c466d0` at `0x01C466D0`.
+///
+/// Keeps the accept button in step with the list selection.
+///
+/// Any listed installation enables it immediately. The browse row enables it
+/// only once its text is no longer the localized browse caption, which is how a
+/// folder the user has actually picked becomes acceptable while an untouched
+/// browse row stays rejected.
+#[must_use]
+pub fn installed_list_accept_enabled(
+    selected_index: usize,
+    row_count: usize,
+    last_row_text: &str,
+    browse_caption: &str,
+) -> bool {
+    if row_count == 0 {
+        return false;
+    }
+    if selected_index + 1 < row_count {
+        return true;
+    }
+    last_row_text != browse_caption
+}
+
+pub trait InstalledListHintHost {
+    /// The list row under the cursor.
+    fn row_at_cursor(&mut self) -> Option<usize>;
+
+    fn row_count(&mut self) -> usize;
+
+    /// The detail line stored for one row.
+    fn detail_line(&mut self, index: usize) -> String;
+}
+
+/// One hint request the installed list answers.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InstalledListHint {
+    pub text: String,
+    pub timing: u32,
+    pub show: bool,
+}
+
+/// Implements Ghidra function `FUN_01c46880` at `0x01C46880`.
+///
+/// Shows the stored detail line of the installation under the cursor, cut off
+/// at the recovered terminator so only its visible part appears.
+///
+/// The browse row and empty space show no hint at all, which is why hovering
+/// the last row never displays a stale detail line from a previous pick.
+pub fn resolve_installed_list_hint(
+    separators: DetailSeparators,
+    host: &mut impl InstalledListHintHost,
+) -> InstalledListHint {
+    let hidden = InstalledListHint {
+        text: String::new(),
+        timing: 0,
+        show: false,
+    };
+
+    let Some(index) = host.row_at_cursor() else {
+        return hidden;
+    };
+    let row_count = host.row_count();
+    if row_count == 0 || index + 1 >= row_count {
+        return hidden;
+    }
+
+    let detail = host.detail_line(index);
+    let text = detail
+        .split(separators.hint_terminator)
+        .next()
+        .unwrap_or_default()
+        .to_owned();
+    InstalledListHint {
+        text,
+        timing: INSTALLED_LIST_HINT_TIMING,
+        show: true,
+    }
+}
+
+#[cfg(test)]
+mod installed_list_tests {
+    use super::*;
+
+    const SEPARATORS: DetailSeparators = DetailSeparators {
+        folder: '|',
+        registry: ';',
+        hint_terminator: '|',
+    };
+
+    #[derive(Debug, Default)]
+    struct TeardownHost {
+        released: usize,
+    }
+
+    impl InstalledListTeardownHost for TeardownHost {
+        fn release_detail_list(&mut self) {
+            self.released += 1;
+        }
+    }
+
+    #[test]
+    fn destroy_releases_only_the_detail_list() {
+        let mut host = TeardownHost::default();
+
+        destroy_installed_list(&mut host);
+
+        assert_eq!(host.released, 1);
+    }
+
+    #[derive(Debug, Default)]
+    struct BrowseHost {
+        picks: Vec<String>,
+        valid: Vec<String>,
+        versions: Vec<(String, i32)>,
+        current: String,
+        registry: Option<(String, String)>,
+        last_row: Option<String>,
+        detail: String,
+        details: Vec<String>,
+    }
+
+    impl TinaFolderBrowseHost for BrowseHost {
+        fn choose_folder(&mut self) -> Option<String> {
+            if self.picks.is_empty() {
+                None
+            } else {
+                Some(self.picks.remove(0))
+            }
+        }
+
+        fn has_tina_executable(&mut self, folder: &str) -> bool {
+            self.valid.iter().any(|known| known == folder)
+        }
+
+        fn installation_version(&mut self, folder: &str) -> i32 {
+            self.versions
+                .iter()
+                .find(|(known, _)| known == folder)
+                .map_or(0, |(_, version)| *version)
+        }
+
+        fn read_program_folder(&mut self, _folder: &str) -> String {
+            "TINA 16".to_owned()
+        }
+
+        fn current_folder(&mut self) -> String {
+            self.current.clone()
+        }
+
+        fn set_last_row(&mut self, folder: &str) {
+            self.last_row = Some(folder.to_owned());
+        }
+
+        fn last_detail(&mut self) -> String {
+            self.detail.clone()
+        }
+
+        fn set_last_detail(&mut self, detail: &str) {
+            self.detail = detail.to_owned();
+            self.details.push(detail.to_owned());
+        }
+
+        fn read_registry_directories(&mut self, _program_folder: &str) -> Option<(String, String)> {
+            self.registry.clone()
+        }
+    }
+
+    #[test]
+    fn only_the_browse_row_opens_the_picker() {
+        let mut host = BrowseHost::default();
+
+        assert_eq!(
+            browse_for_installation(false, SEPARATORS, &mut host),
+            BrowseOutcome::NotBrowseRow
+        );
+        assert!(host.last_row.is_none());
+    }
+
+    #[test]
+    fn an_unsuitable_folder_silently_reopens_the_picker() {
+        let mut host = BrowseHost {
+            picks: vec![
+                r"C:\NoTina".to_owned(),
+                r"C:\OldTina".to_owned(),
+                r"C:\Tina16".to_owned(),
+            ],
+            valid: vec![r"C:\OldTina".to_owned(), r"C:\Tina16".to_owned()],
+            versions: vec![(r"C:\OldTina".to_owned(), 7), (r"C:\Tina16".to_owned(), 16)],
+            current: r"C:\Running".to_owned(),
+            ..BrowseHost::default()
+        };
+
+        assert_eq!(
+            browse_for_installation(true, SEPARATORS, &mut host),
+            BrowseOutcome::Chosen(r"C:\Tina16".to_owned())
+        );
+        assert_eq!(host.last_row.as_deref(), Some(r"C:\Tina16"));
+        assert_eq!(host.details, [r"C:\Tina16|C:\Tina16".to_owned()]);
+    }
+
+    #[test]
+    fn the_registry_directories_are_appended_when_the_key_opens() {
+        let mut host = BrowseHost {
+            picks: vec![r"C:\Tina16".to_owned()],
+            valid: vec![r"C:\Tina16".to_owned()],
+            versions: vec![(r"C:\Tina16".to_owned(), 16)],
+            current: r"C:\Running".to_owned(),
+            registry: Some((r"C:\Settings".to_owned(), r"C:\Catalog".to_owned())),
+            ..BrowseHost::default()
+        };
+
+        drop(browse_for_installation(true, SEPARATORS, &mut host));
+
+        assert_eq!(
+            host.details.last().map(String::as_str),
+            Some(r"C:\Tina16|C:\Tina16;C:\Settings;C:\Catalog")
+        );
+    }
+
+    #[test]
+    fn the_running_folder_is_not_added_to_the_list() {
+        let mut host = BrowseHost {
+            picks: vec![r"C:\Running".to_owned()],
+            valid: vec![r"C:\Running".to_owned()],
+            versions: vec![(r"C:\Running".to_owned(), 16)],
+            current: r"C:\Running".to_owned(),
+            ..BrowseHost::default()
+        };
+
+        assert_eq!(
+            browse_for_installation(true, SEPARATORS, &mut host),
+            BrowseOutcome::AlreadyCurrent(r"C:\Running".to_owned())
+        );
+        assert!(host.last_row.is_none());
+        assert!(host.details.is_empty());
+    }
+
+    #[test]
+    fn cancelling_the_picker_changes_nothing() {
+        let mut host = BrowseHost::default();
+
+        assert_eq!(
+            browse_for_installation(true, SEPARATORS, &mut host),
+            BrowseOutcome::Cancelled
+        );
+        assert!(host.last_row.is_none());
+    }
+
+    #[test]
+    fn a_listed_installation_always_enables_accept_but_an_untouched_browse_row_does_not() {
+        assert!(installed_list_accept_enabled(
+            0,
+            3,
+            "Browse...",
+            "Browse..."
+        ));
+        assert!(!installed_list_accept_enabled(
+            2,
+            3,
+            "Browse...",
+            "Browse..."
+        ));
+        assert!(installed_list_accept_enabled(
+            2,
+            3,
+            r"C:\Tina16",
+            "Browse..."
+        ));
+        assert!(!installed_list_accept_enabled(0, 0, "", "Browse..."));
+    }
+
+    #[derive(Debug, Default)]
+    struct HintHost {
+        row: Option<usize>,
+        rows: usize,
+        details: Vec<String>,
+    }
+
+    impl InstalledListHintHost for HintHost {
+        fn row_at_cursor(&mut self) -> Option<usize> {
+            self.row
+        }
+
+        fn row_count(&mut self) -> usize {
+            self.rows
+        }
+
+        fn detail_line(&mut self, index: usize) -> String {
+            self.details.get(index).cloned().unwrap_or_default()
+        }
+    }
+
+    #[test]
+    fn hovering_an_installation_shows_its_detail_line_up_to_the_terminator() {
+        let mut host = HintHost {
+            row: Some(1),
+            rows: 3,
+            details: vec![
+                "first".to_owned(),
+                r"C:\Tina16|C:\Tina16;C:\Settings".to_owned(),
+            ],
+        };
+
+        let hint = resolve_installed_list_hint(SEPARATORS, &mut host);
+
+        assert!(hint.show);
+        assert_eq!(hint.text, r"C:\Tina16");
+        assert_eq!(hint.timing, INSTALLED_LIST_HINT_TIMING);
+    }
+
+    #[test]
+    fn the_browse_row_and_empty_space_show_no_hint() {
+        let mut browse_row = HintHost {
+            row: Some(2),
+            rows: 3,
+            details: vec![String::new(), String::new(), "stale".to_owned()],
+        };
+        assert!(!resolve_installed_list_hint(SEPARATORS, &mut browse_row).show);
+
+        let mut empty = HintHost {
+            rows: 3,
+            ..HintHost::default()
+        };
+        assert!(!resolve_installed_list_hint(SEPARATORS, &mut empty).show);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::{HashMap, HashSet};

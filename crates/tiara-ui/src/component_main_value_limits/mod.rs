@@ -337,6 +337,370 @@ fn limit_row(grid_row: &LimitGridRow, row_index: usize) -> Element<'_, Message> 
     .into()
 }
 
+/// The grid column the floating component combo edits.
+pub const COMPONENT_COLUMN: usize = 0;
+
+/// The recovered grid option bit that lets the grid edit its own cells.
+pub const GRID_SELF_EDIT_OPTION: u32 = 0x400;
+
+/// A cell rectangle the grid reports for its floating editor.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CellRect {
+    pub left: i32,
+    pub top: i32,
+    pub width: i32,
+    pub height: i32,
+}
+
+pub trait LimitsGridHost {
+    /// The combo's selected entry, or `None` when it has no selection.
+    fn combo_selection(&mut self) -> Option<String>;
+
+    /// Writes one cell of the component column.
+    fn set_component_cell(&mut self, row: usize, text: &str);
+
+    /// Reads one cell of the component column.
+    fn component_cell(&mut self, row: usize) -> String;
+
+    /// The combo index whose text matches, or `None`.
+    fn combo_index_of(&mut self, text: &str) -> Option<usize>;
+
+    fn set_combo_index(&mut self, index: Option<usize>);
+
+    fn set_combo_visible(&mut self, visible: bool);
+
+    /// Places the combo over one cell.
+    fn place_combo(&mut self, rect: CellRect);
+
+    /// The rectangle of one component-column cell, in grid coordinates.
+    fn component_cell_rect(&mut self, row: usize) -> CellRect;
+
+    /// Turns the grid's own cell editing on or off.
+    fn set_grid_self_editing(&mut self, enabled: bool);
+}
+
+/// Implements Ghidra function `FUN_01c488d0` at `0x01C488D0`.
+///
+/// Writes the combo's chosen component into the row the combo is covering.
+///
+/// The recovered guard needs both a combo selection and a covered row past the
+/// header, so a combo that has never been used and a combo parked on the header
+/// row both write nothing. The handler touches no other column.
+pub fn commit_component_choice(covered_row: usize, host: &mut impl LimitsGridHost) -> bool {
+    if covered_row == 0 {
+        return false;
+    }
+    let Some(text) = host.combo_selection() else {
+        return false;
+    };
+    host.set_component_cell(covered_row, &text);
+    true
+}
+
+/// Implements Ghidra function `FUN_01c48d90` at `0x01C48D90`.
+///
+/// Hides the floating combo as soon as the grid scrolls, because the cell it
+/// was covering has moved. The recovered handler neither commits the combo nor
+/// clears its selection, so the value it held is still written when the
+/// selection next moves.
+pub fn hide_combo_on_scroll(host: &mut impl LimitsGridHost) {
+    host.set_combo_visible(false);
+}
+
+/// Implements Ghidra function `FUN_01c48a60` at `0x01C48A60`.
+///
+/// Moves the floating component combo as the grid selection moves.
+///
+/// The previously covered row is committed first, so leaving a cell always
+/// stores what the combo held. A target that is not a data row of the component
+/// column hides the combo, hands editing back to the grid, and clears the combo
+/// selection; a component-column data row instead selects the entry matching
+/// that cell, takes editing away from the grid, positions the combo over the
+/// cell, and shows it.
+///
+/// The covered row is remembered afterwards either way, which is what makes the
+/// next move commit to the right row.
+pub fn move_component_combo(
+    covered_row: usize,
+    column: usize,
+    row: usize,
+    fixed_rows: usize,
+    host: &mut impl LimitsGridHost,
+) -> bool {
+    let _ = commit_component_choice(covered_row, host);
+
+    let is_component_cell = row >= fixed_rows && column == COMPONENT_COLUMN;
+    if is_component_cell {
+        let text = host.component_cell(row);
+        let index = host.combo_index_of(&text);
+        host.set_combo_index(index);
+        host.set_grid_self_editing(false);
+        let rect = host.component_cell_rect(row);
+        host.place_combo(CellRect {
+            left: rect.left,
+            top: rect.top,
+            width: rect.width + 1,
+            height: rect.height + 1,
+        });
+        host.set_combo_visible(true);
+    } else {
+        host.set_combo_visible(false);
+        host.set_grid_self_editing(true);
+        host.set_combo_index(None);
+    }
+
+    is_component_cell
+}
+
+pub trait LimitsEditHost {
+    /// Remembers the text the grid is about to edit.
+    fn remember_edit_text(&mut self, text: &str);
+
+    /// Normalizes the text the user typed into a limit cell.
+    fn normalize_limit_text(&mut self, text: &str) -> String;
+}
+
+/// Reports whether one cell is an editable limit cell.
+#[must_use]
+pub const fn is_limit_cell(column: usize, row: usize, fixed_rows: usize) -> bool {
+    row >= fixed_rows && column > COMPONENT_COLUMN
+}
+
+/// Implements Ghidra function `FUN_01c48a20` at `0x01C48A20`.
+///
+/// Remembers a limit cell's current text when the grid starts editing it, so a
+/// later rejection can restore it. Header rows and the component column are
+/// skipped, because the component column is edited by the floating combo
+/// instead.
+pub fn remember_limit_edit(
+    column: usize,
+    row: usize,
+    fixed_rows: usize,
+    text: &str,
+    host: &mut impl LimitsEditHost,
+) -> bool {
+    if !is_limit_cell(column, row, fixed_rows) {
+        return false;
+    }
+    host.remember_edit_text(text);
+    true
+}
+
+/// Implements Ghidra function `FUN_01c48d00` at `0x01C48D00`.
+///
+/// Normalizes what the user typed into a limit cell through the shared numeric
+/// handler, and leaves header rows and the component column untouched for the
+/// same reason as the edit-start handler.
+pub fn normalize_limit_edit(
+    column: usize,
+    row: usize,
+    fixed_rows: usize,
+    text: &str,
+    host: &mut impl LimitsEditHost,
+) -> Option<String> {
+    if !is_limit_cell(column, row, fixed_rows) {
+        return None;
+    }
+    Some(host.normalize_limit_text(text))
+}
+
+#[cfg(test)]
+mod grid_editor_tests {
+    use super::*;
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    enum GridStep {
+        Write(usize, String),
+        ComboIndex(Option<usize>),
+        Visible(bool),
+        Place(CellRect),
+        SelfEditing(bool),
+    }
+
+    #[derive(Debug, Default)]
+    struct GridHost {
+        selection: Option<String>,
+        cells: Vec<String>,
+        entries: Vec<String>,
+        steps: Vec<GridStep>,
+    }
+
+    impl LimitsGridHost for GridHost {
+        fn combo_selection(&mut self) -> Option<String> {
+            self.selection.clone()
+        }
+
+        fn set_component_cell(&mut self, row: usize, text: &str) {
+            self.steps.push(GridStep::Write(row, text.to_owned()));
+        }
+
+        fn component_cell(&mut self, row: usize) -> String {
+            self.cells.get(row).cloned().unwrap_or_default()
+        }
+
+        fn combo_index_of(&mut self, text: &str) -> Option<usize> {
+            self.entries.iter().position(|entry| entry == text)
+        }
+
+        fn set_combo_index(&mut self, index: Option<usize>) {
+            self.steps.push(GridStep::ComboIndex(index));
+        }
+
+        fn set_combo_visible(&mut self, visible: bool) {
+            self.steps.push(GridStep::Visible(visible));
+        }
+
+        fn place_combo(&mut self, rect: CellRect) {
+            self.steps.push(GridStep::Place(rect));
+        }
+
+        fn component_cell_rect(&mut self, _row: usize) -> CellRect {
+            CellRect {
+                left: 10,
+                top: 20,
+                width: 80,
+                height: 18,
+            }
+        }
+
+        fn set_grid_self_editing(&mut self, enabled: bool) {
+            self.steps.push(GridStep::SelfEditing(enabled));
+        }
+    }
+
+    #[test]
+    fn a_choice_is_written_only_with_a_selection_and_a_data_row() {
+        let mut ready = GridHost {
+            selection: Some("R1".to_owned()),
+            ..GridHost::default()
+        };
+        assert!(commit_component_choice(2, &mut ready));
+        assert_eq!(ready.steps, [GridStep::Write(2, "R1".to_owned())]);
+
+        let mut header = GridHost {
+            selection: Some("R1".to_owned()),
+            ..GridHost::default()
+        };
+        assert!(!commit_component_choice(0, &mut header));
+        assert!(header.steps.is_empty());
+
+        let mut unused = GridHost::default();
+        assert!(!commit_component_choice(2, &mut unused));
+        assert!(unused.steps.is_empty());
+    }
+
+    #[test]
+    fn scrolling_only_hides_the_combo() {
+        let mut host = GridHost::default();
+
+        hide_combo_on_scroll(&mut host);
+
+        assert_eq!(host.steps, [GridStep::Visible(false)]);
+    }
+
+    #[test]
+    fn moving_onto_a_component_cell_commits_then_positions_the_combo() {
+        let mut host = GridHost {
+            selection: Some("R1".to_owned()),
+            cells: vec![String::new(), "C2".to_owned(), "R3".to_owned()],
+            entries: vec!["R1".to_owned(), "C2".to_owned(), "R3".to_owned()],
+            steps: Vec::new(),
+        };
+
+        assert!(move_component_combo(1, COMPONENT_COLUMN, 2, 1, &mut host));
+
+        assert_eq!(
+            host.steps,
+            [
+                GridStep::Write(1, "R1".to_owned()),
+                GridStep::ComboIndex(Some(2)),
+                GridStep::SelfEditing(false),
+                GridStep::Place(CellRect {
+                    left: 10,
+                    top: 20,
+                    width: 81,
+                    height: 19,
+                }),
+                GridStep::Visible(true),
+            ]
+        );
+    }
+
+    #[test]
+    fn moving_off_the_component_column_hands_editing_back_to_the_grid() {
+        let mut host = GridHost {
+            selection: Some("R1".to_owned()),
+            steps: Vec::new(),
+            ..GridHost::default()
+        };
+
+        assert!(!move_component_combo(1, 2, 3, 1, &mut host));
+
+        assert_eq!(
+            host.steps,
+            [
+                GridStep::Write(1, "R1".to_owned()),
+                GridStep::Visible(false),
+                GridStep::SelfEditing(true),
+                GridStep::ComboIndex(None),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_header_row_of_the_component_column_also_hands_editing_back() {
+        let mut host = GridHost::default();
+
+        assert!(!move_component_combo(0, COMPONENT_COLUMN, 0, 1, &mut host));
+
+        assert!(host.steps.contains(&GridStep::SelfEditing(true)));
+    }
+
+    #[derive(Debug, Default)]
+    struct EditHost {
+        remembered: Vec<String>,
+        normalized: Vec<String>,
+    }
+
+    impl LimitsEditHost for EditHost {
+        fn remember_edit_text(&mut self, text: &str) {
+            self.remembered.push(text.to_owned());
+        }
+
+        fn normalize_limit_text(&mut self, text: &str) -> String {
+            self.normalized.push(text.to_owned());
+            format!("[{text}]")
+        }
+    }
+
+    #[test]
+    fn only_limit_cells_are_remembered_and_normalized() {
+        let mut host = EditHost::default();
+
+        assert!(remember_limit_edit(1, 2, 1, "10k", &mut host));
+        assert!(!remember_limit_edit(
+            COMPONENT_COLUMN,
+            2,
+            1,
+            "R1",
+            &mut host
+        ));
+        assert!(!remember_limit_edit(1, 0, 1, "Min", &mut host));
+
+        assert_eq!(
+            normalize_limit_edit(1, 2, 1, "22k", &mut host),
+            Some("[22k]".to_owned())
+        );
+        assert_eq!(
+            normalize_limit_edit(COMPONENT_COLUMN, 2, 1, "R1", &mut host),
+            None
+        );
+
+        assert_eq!(host.remembered, ["10k".to_owned()]);
+        assert_eq!(host.normalized, ["22k".to_owned()]);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

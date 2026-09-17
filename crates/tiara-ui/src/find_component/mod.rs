@@ -371,6 +371,225 @@ fn build_catalogue_inventory(source: &impl CatalogueInventorySource) -> String {
     text
 }
 
+pub const HELP_CONTEXT: u32 = 0x0468;
+
+/// The recovered separator the private result list stores.
+pub const RESULT_LIST_SEPARATOR: char = '|';
+
+/// How long the incremental search keeps typed characters before it starts
+/// over.
+pub const INCREMENTAL_SEARCH_TIMEOUT_MS: i32 = 2000;
+
+/// The longest prefix the incremental search accumulates.
+pub const INCREMENTAL_SEARCH_MAX_LENGTH: usize = 0x32;
+
+/// The caption and status the double-click search window shows.
+pub const SEARCH_WINDOW_TITLE: &str = "Searching...";
+pub const SEARCH_WINDOW_STATUS: &str = "Searching in the library...";
+
+pub trait ComponentFinderCreateHost {
+    /// Saves the tree's current notification handler and installs the dialog's.
+    fn install_tree_handler(&mut self);
+
+    /// Blends the three designed form colours.
+    fn blend_form_colors(&mut self);
+
+    /// Attaches the shared image list to the parts list.
+    fn attach_shared_images(&mut self);
+
+    /// Creates the private result list with its separator.
+    fn create_result_list(&mut self, separator: char);
+
+    /// The file name the open dialog currently shows.
+    fn current_dialog_file_name(&mut self) -> String;
+
+    /// Writes the rebuilt file name back to the open dialog.
+    fn set_dialog_file_name(&mut self, name: &str);
+
+    fn set_help_context(&mut self, context: u32);
+
+    /// Creates the catalog reader the search uses.
+    fn create_catalog_reader(&mut self);
+}
+
+/// Implements Ghidra function `FUN_01BACC80` at `0x01BACC80`.
+///
+/// Prepares one Find Component session: it takes over the tree's notification
+/// handler after saving the previous one, blends the three designed form
+/// colours, attaches the shared image list to the parts list, creates the
+/// private result list with its recovered separator, rebuilds the open dialog's
+/// file name against the settings directory, assigns the help context, and
+/// creates the catalog reader.
+///
+/// The handler searches nothing and reads no catalog; the first search happens
+/// only when the user asks for one.
+pub fn create_component_finder(host: &mut impl ComponentFinderCreateHost) -> String {
+    host.install_tree_handler();
+    host.blend_form_colors();
+    host.attach_shared_images();
+    host.create_result_list(RESULT_LIST_SEPARATOR);
+
+    let name = host.current_dialog_file_name();
+    host.set_dialog_file_name(&name);
+    host.set_help_context(HELP_CONTEXT);
+    host.create_catalog_reader();
+    name
+}
+
+pub trait ComponentFinderTeardownHost {
+    /// Releases every result object and then the private list itself.
+    fn release_result_list(&mut self);
+
+    /// Clears the shared image list and reattaches it from the parts list.
+    fn reset_shared_images(&mut self);
+
+    /// Puts the saved tree notification handler back.
+    fn restore_tree_handler(&mut self);
+}
+
+/// Implements Ghidra function `FUN_01BACE90` at `0x01BACE90`.
+///
+/// Tears the session down in the reverse of the create order: the private
+/// result list and everything in it is released, the shared image list is
+/// cleared and reattached from the parts list, and the tree's original
+/// notification handler is restored.
+///
+/// Restoring the handler last matters, because the other two steps still run
+/// through the dialog's own handler. Nothing is saved.
+pub fn destroy_component_finder(host: &mut impl ComponentFinderTeardownHost) {
+    host.release_result_list();
+    host.reset_shared_images();
+    host.restore_tree_handler();
+}
+
+/// One row of the parts list and the record its info tip reads.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct PartsListRow {
+    pub name: String,
+    /// The description stored on the row's own record.
+    pub description: String,
+}
+
+/// Implements Ghidra function `FUN_01BAD040` at `0x01BAD040`.
+///
+/// Answers the parts list's info-tip request with the description stored on the
+/// hovered row's own record. The recovered handler formats nothing, truncates
+/// nothing, and consults no catalog, so a row without a description shows an
+/// empty tip.
+#[must_use]
+pub fn parts_info_tip(row: &PartsListRow) -> String {
+    row.description.clone()
+}
+
+/// The incremental type-ahead search of the parts list.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct IncrementalSearch {
+    prefix: String,
+    last_keystroke_ms: i32,
+}
+
+/// What one key does to the incremental search.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum IncrementalSearchOutcome {
+    /// The key is not handled and reaches the list unchanged.
+    Ignored,
+    /// The prefix was discarded; the key still reaches the list.
+    Cleared,
+    /// Select the first entry starting with this prefix and swallow the key.
+    Search(String),
+}
+
+impl IncrementalSearch {
+    #[must_use]
+    pub fn prefix(&self) -> &str {
+        &self.prefix
+    }
+
+    /// Implements Ghidra function `FUN_01BAD060` at `0x01BAD060`.
+    ///
+    /// Accumulates typed characters into a search prefix and reports what the
+    /// parts list should do.
+    ///
+    /// Backspace and Escape discard the prefix but are still passed on, so the
+    /// list keeps its own handling of them. A printable character starts a new
+    /// prefix when more than the recovered timeout has passed since the last
+    /// keystroke, is appended only while the prefix is shorter than the
+    /// recovered limit, and is always swallowed so the list never sees it. Once
+    /// the limit is reached further characters are dropped but the search still
+    /// runs on the prefix collected so far.
+    pub fn apply_key(&mut self, key: char, now_ms: i32) -> IncrementalSearchOutcome {
+        if key == '\u{8}' || key == '\u{1b}' {
+            self.prefix.clear();
+            return IncrementalSearchOutcome::Cleared;
+        }
+
+        if !(' '..='\u{ff}').contains(&key) {
+            return IncrementalSearchOutcome::Ignored;
+        }
+
+        if now_ms.wrapping_sub(self.last_keystroke_ms) > INCREMENTAL_SEARCH_TIMEOUT_MS {
+            self.prefix.clear();
+        }
+        self.last_keystroke_ms = now_ms;
+
+        if self.prefix.chars().count() < INCREMENTAL_SEARCH_MAX_LENGTH {
+            self.prefix.push(key);
+        }
+        IncrementalSearchOutcome::Search(self.prefix.clone())
+    }
+}
+
+pub trait LibrarySearchHost {
+    /// The file the open dialog has selected. `None` is the recovered
+    /// no-selection branch.
+    fn selected_library_file(&mut self) -> Option<String>;
+
+    /// Shows the modal progress window with its recovered caption and status.
+    fn show_search_window(&mut self, title: &str, status: &str);
+
+    /// Lets the application process pending messages so the window paints.
+    fn process_application_messages(&mut self);
+
+    /// Runs the catalog search for one library file.
+    fn search_library(&mut self, file: &str);
+
+    fn close_search_window(&mut self);
+}
+
+/// Implements Ghidra function `FUN_01BAD590` at `0x01BAD590`.
+///
+/// Searches the selected library when the dialog is double-clicked.
+///
+/// With nothing selected the handler does nothing at all: no window appears and
+/// no search runs. Otherwise the progress window is shown with its recovered
+/// caption and status, the application is given a chance to paint it, the
+/// search runs, and the window is destroyed afterwards.
+///
+/// The recovered handler has no local error handler around the search, so a
+/// failure there leaves the progress window destroyed only by the normal path.
+pub fn search_selected_library(host: &mut impl LibrarySearchHost) -> bool {
+    let Some(file) = host.selected_library_file() else {
+        return false;
+    };
+
+    host.show_search_window(SEARCH_WINDOW_TITLE, SEARCH_WINDOW_STATUS);
+    host.process_application_messages();
+    host.search_library(&file);
+    host.close_search_window();
+    true
+}
+
+impl Window {
+    /// Implements Ghidra function `FUN_01BAD1D0` at `0x01BAD1D0`.
+    ///
+    /// The catalogue combo's change handler delegates straight to the shared
+    /// result refresh. It reads no combo text of its own and starts no search,
+    /// so switching catalogues only repaints what is already known.
+    pub fn catalogue_selection_changed(&mut self) {
+        self.invalidate_visible_results();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::cell::Cell;
@@ -555,5 +774,291 @@ mod tests {
         assert!(output.contains("%SPICE Subcircuits\r\nMacro B"));
         assert!(output.ends_with("#Total number of components: 2\r\n"));
         Ok(())
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    enum CreateStep {
+        TreeHandler,
+        Colors,
+        Images,
+        ResultList(char),
+        ReadName,
+        WriteName(String),
+        Help(u32),
+        CatalogReader,
+    }
+
+    #[derive(Debug, Default)]
+    struct CreateHost {
+        name: String,
+        steps: Vec<CreateStep>,
+    }
+
+    impl ComponentFinderCreateHost for CreateHost {
+        fn install_tree_handler(&mut self) {
+            self.steps.push(CreateStep::TreeHandler);
+        }
+
+        fn blend_form_colors(&mut self) {
+            self.steps.push(CreateStep::Colors);
+        }
+
+        fn attach_shared_images(&mut self) {
+            self.steps.push(CreateStep::Images);
+        }
+
+        fn create_result_list(&mut self, separator: char) {
+            self.steps.push(CreateStep::ResultList(separator));
+        }
+
+        fn current_dialog_file_name(&mut self) -> String {
+            self.steps.push(CreateStep::ReadName);
+            self.name.clone()
+        }
+
+        fn set_dialog_file_name(&mut self, name: &str) {
+            self.steps.push(CreateStep::WriteName(name.to_owned()));
+        }
+
+        fn set_help_context(&mut self, context: u32) {
+            self.steps.push(CreateStep::Help(context));
+        }
+
+        fn create_catalog_reader(&mut self) {
+            self.steps.push(CreateStep::CatalogReader);
+        }
+    }
+
+    #[test]
+    fn create_prepares_the_session_in_the_recovered_order() {
+        let mut host = CreateHost {
+            name: "parts.tcp".to_owned(),
+            steps: Vec::new(),
+        };
+
+        assert_eq!(create_component_finder(&mut host), "parts.tcp");
+
+        assert_eq!(
+            host.steps,
+            [
+                CreateStep::TreeHandler,
+                CreateStep::Colors,
+                CreateStep::Images,
+                CreateStep::ResultList(RESULT_LIST_SEPARATOR),
+                CreateStep::ReadName,
+                CreateStep::WriteName("parts.tcp".to_owned()),
+                CreateStep::Help(HELP_CONTEXT),
+                CreateStep::CatalogReader,
+            ]
+        );
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    enum TeardownStep {
+        ResultList,
+        Images,
+        TreeHandler,
+    }
+
+    #[derive(Debug, Default)]
+    struct TeardownHost {
+        steps: Vec<TeardownStep>,
+    }
+
+    impl ComponentFinderTeardownHost for TeardownHost {
+        fn release_result_list(&mut self) {
+            self.steps.push(TeardownStep::ResultList);
+        }
+
+        fn reset_shared_images(&mut self) {
+            self.steps.push(TeardownStep::Images);
+        }
+
+        fn restore_tree_handler(&mut self) {
+            self.steps.push(TeardownStep::TreeHandler);
+        }
+    }
+
+    #[test]
+    fn destroy_restores_the_tree_handler_last() {
+        let mut host = TeardownHost::default();
+
+        destroy_component_finder(&mut host);
+
+        assert_eq!(
+            host.steps,
+            [
+                TeardownStep::ResultList,
+                TeardownStep::Images,
+                TeardownStep::TreeHandler,
+            ]
+        );
+    }
+
+    #[test]
+    fn the_info_tip_shows_only_the_rows_own_description() {
+        assert_eq!(
+            parts_info_tip(&PartsListRow {
+                name: "R1".to_owned(),
+                description: "Resistor".to_owned(),
+            }),
+            "Resistor"
+        );
+        assert_eq!(parts_info_tip(&PartsListRow::default()), "");
+    }
+
+    #[test]
+    fn backspace_and_escape_discard_the_prefix_but_reach_the_list() {
+        let mut search = IncrementalSearch::default();
+        assert_eq!(
+            search.apply_key('r', 0),
+            IncrementalSearchOutcome::Search("r".to_owned())
+        );
+
+        assert_eq!(
+            search.apply_key('\u{8}', 10),
+            IncrementalSearchOutcome::Cleared
+        );
+        assert_eq!(search.prefix(), "");
+
+        assert_eq!(
+            search.apply_key('x', 20),
+            IncrementalSearchOutcome::Search("x".to_owned())
+        );
+        assert_eq!(
+            search.apply_key('\u{1b}', 30),
+            IncrementalSearchOutcome::Cleared
+        );
+        assert_eq!(search.prefix(), "");
+    }
+
+    #[test]
+    fn typing_accumulates_a_prefix_until_the_recovered_timeout_elapses() {
+        let mut search = IncrementalSearch::default();
+
+        assert_eq!(
+            search.apply_key('r', 1_000),
+            IncrementalSearchOutcome::Search("r".to_owned())
+        );
+        assert_eq!(
+            search.apply_key('e', 1_500),
+            IncrementalSearchOutcome::Search("re".to_owned())
+        );
+        assert_eq!(
+            search.apply_key('s', 1_500 + INCREMENTAL_SEARCH_TIMEOUT_MS + 1),
+            IncrementalSearchOutcome::Search("s".to_owned())
+        );
+    }
+
+    #[test]
+    fn the_prefix_stops_growing_at_the_recovered_limit_but_still_searches() {
+        let mut search = IncrementalSearch::default();
+        for index in 0..INCREMENTAL_SEARCH_MAX_LENGTH {
+            let outcome = search.apply_key('a', i32::try_from(index).unwrap_or(0));
+            assert!(matches!(outcome, IncrementalSearchOutcome::Search(_)));
+        }
+        assert_eq!(search.prefix().len(), INCREMENTAL_SEARCH_MAX_LENGTH);
+
+        let outcome = search.apply_key('b', 60);
+
+        assert_eq!(search.prefix().len(), INCREMENTAL_SEARCH_MAX_LENGTH);
+        assert_eq!(
+            outcome,
+            IncrementalSearchOutcome::Search(search.prefix().to_owned())
+        );
+    }
+
+    #[test]
+    fn control_characters_outside_the_recovered_range_are_ignored() {
+        let mut search = IncrementalSearch::default();
+
+        assert_eq!(search.apply_key('\t', 0), IncrementalSearchOutcome::Ignored);
+        assert_eq!(search.apply_key('\r', 0), IncrementalSearchOutcome::Ignored);
+        assert_eq!(search.prefix(), "");
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    enum SearchStep {
+        Window(String, String),
+        Pump,
+        Search(String),
+        Close,
+    }
+
+    #[derive(Debug, Default)]
+    struct SearchHost {
+        selected: Option<String>,
+        steps: Vec<SearchStep>,
+    }
+
+    impl LibrarySearchHost for SearchHost {
+        fn selected_library_file(&mut self) -> Option<String> {
+            self.selected.clone()
+        }
+
+        fn show_search_window(&mut self, title: &str, status: &str) {
+            self.steps
+                .push(SearchStep::Window(title.to_owned(), status.to_owned()));
+        }
+
+        fn process_application_messages(&mut self) {
+            self.steps.push(SearchStep::Pump);
+        }
+
+        fn search_library(&mut self, file: &str) {
+            self.steps.push(SearchStep::Search(file.to_owned()));
+        }
+
+        fn close_search_window(&mut self) {
+            self.steps.push(SearchStep::Close);
+        }
+    }
+
+    #[test]
+    fn a_double_click_with_a_selection_shows_the_window_then_searches() {
+        let mut host = SearchHost {
+            selected: Some("lib.tlb".to_owned()),
+            steps: Vec::new(),
+        };
+
+        assert!(search_selected_library(&mut host));
+
+        assert_eq!(
+            host.steps,
+            [
+                SearchStep::Window(
+                    SEARCH_WINDOW_TITLE.to_owned(),
+                    SEARCH_WINDOW_STATUS.to_owned()
+                ),
+                SearchStep::Pump,
+                SearchStep::Search("lib.tlb".to_owned()),
+                SearchStep::Close,
+            ]
+        );
+    }
+
+    #[test]
+    fn a_double_click_without_a_selection_shows_no_window_at_all() {
+        let mut host = SearchHost::default();
+
+        assert!(!search_selected_library(&mut host));
+
+        assert!(host.steps.is_empty());
+    }
+
+    #[test]
+    fn the_catalogue_combo_only_invalidates_the_visible_results() {
+        let mut window = Window::new(catalogue());
+        window.update(Message::MatchPositionChanged(MatchPosition::Start));
+        window.update(Message::QueryChanged("opamp".to_owned()));
+        window.search_catalogues();
+        assert!(!window.visible_results.is_empty());
+
+        window.catalogue_selection_changed();
+
+        assert!(window.visible_results.is_empty());
+        assert_eq!(window.selected_result, None);
+        assert!(!window.insert_enabled);
+        assert!(!window.backing_results.is_empty());
     }
 }

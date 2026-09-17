@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use iced::widget::{button, column, container, row, scrollable, text, text_input};
@@ -8,6 +9,48 @@ use crate::shared::window_shell;
 pub const TITLE: &str = "Menu shortcut editor";
 pub const FORM_RESOURCE: &str = "HotkeyEditor";
 pub const HOTKEYS_FILE: &str = "hotkeys.ini";
+
+/// The recovered fixed list of menu roots that the shortcut editor never
+/// offers.
+///
+/// The recovered create path qualifies each name with the target menu, exactly
+/// like an INI section name, before it tests a root against this list. The
+/// order below is the recovered insertion order; the lookup itself is sorted,
+/// so the order does not change which roots are accepted.
+pub const EXCLUDED_MENU_ROOTS: [&str; 32] = [
+    "mnInteractive",
+    "mnTM",
+    "mnTIUtilities",
+    "Help",
+    "ORCADPCB1",
+    "PCADPCB1",
+    "PROTELPCB1",
+    "REDACPCB1",
+    "TANGOPCB1",
+    "EDSPCB1",
+    "TINAPCB1",
+    "ORCAD1",
+    "PCAD1",
+    "PROTEL1",
+    "REDAC1",
+    "TANGO1",
+    "EDS1",
+    "TINA1",
+    "ImportXML",
+    "ImportUserLibs",
+    "ImportTINA",
+    "ImportPalmtopCircuit",
+    "ImportPSpice",
+    "ImportEDIF",
+    "ImportDigit",
+    "mnNative",
+    "mn3DView",
+    "mn2DView",
+    "mnTransientStatistics",
+    "mnNewton",
+    "mnAutoTest",
+    "mnThreadTest",
+];
 
 pub trait HotkeyIni {
     type Error;
@@ -168,6 +211,7 @@ pub struct Window {
     target: MenuTarget,
     tabs: Vec<MenuTab>,
     mappings: Vec<ShortcutMapping>,
+    excluded_roots: BTreeSet<String>,
     active_editor: Option<ActiveEditor>,
     duplicate_warning: Option<DuplicateShortcut>,
     pending_action: Option<ExternalAction>,
@@ -186,15 +230,39 @@ impl Window {
             target,
             tabs,
             mappings,
+            excluded_roots: BTreeSet::new(),
             active_editor: None,
             duplicate_warning: None,
             pending_action: None,
         }
     }
 
+    /// Implements Ghidra function `FUN_01b77240` at `0x01B77240`.
+    ///
+    /// Builds the dialog from the owner-supplied menu target and the base
+    /// directory that locates `hotkeys.ini`. The recovered constructor stores
+    /// only those two inputs: it enumerates no commands, builds no tab or grid
+    /// row, reads no mapping, detects no conflict, shows nothing, and writes no
+    /// file. Tab and row construction belongs to the create handler, and
+    /// persistence to the OK handler.
+    #[must_use]
+    pub const fn create(base_directory: PathBuf, target: MenuTarget) -> Self {
+        Self::new(base_directory, target, Vec::new(), Vec::new())
+    }
+
     #[must_use]
     pub const fn target(&self) -> &MenuTarget {
         &self.target
+    }
+
+    #[must_use]
+    pub const fn excluded_roots(&self) -> &BTreeSet<String> {
+        &self.excluded_roots
+    }
+
+    #[must_use]
+    pub const fn base_directory(&self) -> &PathBuf {
+        &self.base_directory
     }
 
     #[must_use]
@@ -214,6 +282,54 @@ impl Window {
 
     pub fn set_active_editor(&mut self, editor: Option<ActiveEditor>) {
         self.active_editor = editor;
+    }
+
+    /// Implements Ghidra function `FUN_01b778f0` at `0x01B778F0`.
+    ///
+    /// Starts the staged shortcut mapping empty, builds the sorted excluded
+    /// lookup from [`EXCLUDED_MENU_ROOTS`] qualified with the target menu name,
+    /// and adds one tab per target menu root that the lookup does not exclude.
+    /// Root order follows the target menu. The handler reads no INI file, adds
+    /// no grid row, assigns no shortcut, and changes no live menu item; row
+    /// construction runs per accepted root afterwards.
+    ///
+    /// [`BTreeSet`] supplies the recovered sorted-lookup list, so no external
+    /// container crate is required.
+    pub fn create_menu_tabs(&mut self, sections: &impl SectionNames) {
+        self.mappings.clear();
+        self.excluded_roots = EXCLUDED_MENU_ROOTS
+            .iter()
+            .map(|name| sections.current(&self.target.stable_name, name))
+            .collect();
+        self.tabs = self
+            .target
+            .roots
+            .iter()
+            .filter(|root| {
+                !self
+                    .excluded_roots
+                    .contains(&sections.current(&self.target.stable_name, &root.stable_name))
+            })
+            .map(|root| MenuTab {
+                root_name: root.stable_name.clone(),
+                rows: Vec::new(),
+            })
+            .collect();
+    }
+
+    /// Implements Ghidra function `FUN_01b78960` at `0x01B78960`.
+    ///
+    /// Releases the private excluded-root lookup and the staged shortcut
+    /// mapping when the dialog closes. The recovered handler frees both lists
+    /// and does nothing else: it writes no file, applies no shortcut, and
+    /// leaves the target menu untouched. Cancel therefore discards every staged
+    /// change, and an already accepted OK stays committed.
+    pub fn discard_staged_state(&mut self) {
+        self.excluded_roots.clear();
+        self.mappings.clear();
+        self.tabs.clear();
+        self.active_editor = None;
+        self.duplicate_warning = None;
     }
 
     pub fn update(&mut self, message: Message) {
@@ -370,6 +486,38 @@ impl Window {
         .into();
         window_shell::frame(TITLE, menu, toolbar, body, "Shortcut configuration")
     }
+}
+
+/// The recovered modal outcome of the shortcut editor.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ModalResult {
+    Ok,
+    Cancel,
+}
+
+pub trait HotkeyEditorModalHost {
+    /// Shows the shortcut editor and reports how the user closed it.
+    fn show_hotkey_editor(&mut self, dialog: &mut Window) -> ModalResult;
+}
+
+/// Implements Ghidra function `FUN_01b7c5a0` at `0x01B7C5A0`.
+///
+/// Builds one shortcut editor for the Editor Options target menu and the
+/// application base directory, shows it modally, and discards its modal result.
+/// The launcher has no running-state, null-target, or re-entry guard, so every
+/// click opens a new dialog.
+///
+/// Editor Options copies nothing back: the shortcut editor owns its own commit
+/// boundary. Accepting it writes `hotkeys.ini` and updates the live menu even
+/// when Editor Options is cancelled afterwards, and cancelling it stages
+/// nothing that a later Editor Options accept could save.
+pub fn show_hotkey_editor_modally(
+    base_directory: PathBuf,
+    target: MenuTarget,
+    host: &mut impl HotkeyEditorModalHost,
+) {
+    let mut dialog = Window::create(base_directory, target);
+    let _ = host.show_hotkey_editor(&mut dialog);
 }
 
 /// Rejects an exact duplicate non-empty shortcut. This ports Ghidra function
@@ -721,5 +869,130 @@ mod tests {
         assert_eq!(window.take_action(), Some(ExternalAction::Reset));
         window.update(Message::OkRequested);
         assert_eq!(window.take_action(), Some(ExternalAction::Commit));
+    }
+
+    #[derive(Default)]
+    struct ModalHost {
+        seen: Vec<(PathBuf, String, usize)>,
+        result: Option<ModalResult>,
+    }
+
+    impl HotkeyEditorModalHost for ModalHost {
+        fn show_hotkey_editor(&mut self, dialog: &mut Window) -> ModalResult {
+            self.seen.push((
+                dialog.base_directory().clone(),
+                dialog.target().stable_name.clone(),
+                dialog.tabs().len(),
+            ));
+            self.result.take().unwrap_or(ModalResult::Cancel)
+        }
+    }
+
+    #[test]
+    fn the_constructor_stores_only_the_target_and_base_directory() {
+        let window = Window::create(PathBuf::from(r"C:\TINA"), target());
+
+        assert_eq!(window.base_directory(), &PathBuf::from(r"C:\TINA"));
+        assert_eq!(window.target().stable_name, "MainForm");
+        assert!(window.tabs().is_empty());
+        assert!(window.mappings().is_empty());
+        assert!(window.excluded_roots().is_empty());
+        assert!(window.duplicate_warning().is_none());
+    }
+
+    #[test]
+    fn create_adds_one_tab_per_accepted_root_and_skips_excluded_roots() {
+        let mut window = Window::create(
+            PathBuf::from(r"C:\TINA"),
+            MenuTarget {
+                stable_name: "MainForm".to_owned(),
+                roots: vec![
+                    item("File", "", Vec::new()),
+                    item("Help", "", Vec::new()),
+                    item("mn3DView", "", Vec::new()),
+                    item("View", "", Vec::new()),
+                ],
+            },
+        );
+
+        window.create_menu_tabs(&sections());
+
+        let roots: Vec<&str> = window
+            .tabs()
+            .iter()
+            .map(|tab| tab.root_name.as_str())
+            .collect();
+        assert_eq!(roots, ["File", "View"]);
+        assert!(window.tabs().iter().all(|tab| tab.rows.is_empty()));
+        assert!(window.mappings().is_empty());
+    }
+
+    #[test]
+    fn create_qualifies_every_excluded_root_with_the_target_menu_name() {
+        let mut window = Window::create(PathBuf::from(r"C:\TINA"), target());
+
+        window.create_menu_tabs(&sections());
+
+        assert_eq!(window.excluded_roots().len(), EXCLUDED_MENU_ROOTS.len());
+        assert!(window.excluded_roots().contains("MainForm/mnThreadTest"));
+        assert!(!window.excluded_roots().contains("mnThreadTest"));
+    }
+
+    #[test]
+    fn create_replaces_previously_staged_tabs_and_mappings() {
+        let mut window = editor();
+
+        window.create_menu_tabs(&sections());
+
+        assert_eq!(window.tabs().len(), 1);
+        assert!(window.tabs()[0].rows.is_empty());
+        assert!(window.mappings().is_empty());
+    }
+
+    #[test]
+    fn destroy_discards_staged_state_without_writing_or_applying_anything() {
+        let mut window = editor();
+        let ini = Ini::default();
+        window.set_active_editor(Some(ActiveEditor {
+            visible: true,
+            tab_index: 0,
+            grid_row: 1,
+            original_shortcut: "Ctrl+O".to_owned(),
+            shortcut: "Ctrl+S".to_owned(),
+        }));
+        assert_eq!(
+            window.flush_active_editor(),
+            FlushOutcome::RejectedDuplicate
+        );
+        assert!(window.duplicate_warning().is_some());
+
+        window.discard_staged_state();
+
+        assert!(window.tabs().is_empty());
+        assert!(window.mappings().is_empty());
+        assert!(window.excluded_roots().is_empty());
+        assert!(window.duplicate_warning().is_none());
+        assert!(ini.writes.is_empty());
+        assert_eq!(window.target().roots[0].children[0].shortcut, "OldOpen");
+        assert!(ini.reads.is_empty());
+    }
+
+    #[test]
+    fn the_launcher_opens_an_unstaged_dialog_modally_and_ignores_the_result() {
+        let mut host = ModalHost {
+            result: Some(ModalResult::Ok),
+            ..ModalHost::default()
+        };
+
+        show_hotkey_editor_modally(PathBuf::from(r"C:\TINA"), target(), &mut host);
+        show_hotkey_editor_modally(PathBuf::from(r"C:\TINA"), target(), &mut host);
+
+        assert_eq!(
+            host.seen,
+            [
+                (PathBuf::from(r"C:\TINA"), "MainForm".to_owned(), 0),
+                (PathBuf::from(r"C:\TINA"), "MainForm".to_owned(), 0),
+            ]
+        );
     }
 }

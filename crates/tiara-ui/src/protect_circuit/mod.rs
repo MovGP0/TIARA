@@ -50,6 +50,7 @@ impl Window {
     }
     /// Builds the controls associated with `SCREENSHOT` and `FORM_RESOURCE`.
     /// `ORIGINAL_FUNCTION` preserves the recovered function connection when available.
+    #[must_use]
     pub fn view(&self) -> Element<'_, Message> {
         let menu = window_shell::empty_menu();
         let toolbar = window_shell::toolbar(TOOLBAR, Message::NoOp);
@@ -82,5 +83,62 @@ impl Window {
         .into();
 
         window_shell::frame(TITLE, menu, toolbar, body, STATUS)
+    }
+}
+
+/// The help context the recovered Protect Circuit create handler assigns.
+pub const PROTECT_HELP_CONTEXT: u32 = 0x046e;
+
+/// The help context the recovered Unprotect Circuit create handler assigns.
+pub const UNPROTECT_HELP_CONTEXT: u32 = 0x046f;
+
+pub trait CircuitProtectionHelpHost {
+    fn set_help_context(&mut self, context: u32);
+}
+
+/// Implements Ghidra function `FUN_01baeeb0` at `0x01BAEEB0`.
+///
+/// The Protect Circuit dialog's create handler assigns its help context and
+/// does nothing else: it seeds no control, reads no circuit, and validates no
+/// password, so the dialog opens exactly as designed.
+pub fn create_protect_circuit_dialog(host: &mut impl CircuitProtectionHelpHost) {
+    host.set_help_context(PROTECT_HELP_CONTEXT);
+}
+
+/// Implements Ghidra function `FUN_01baf4a0` at `0x01BAF4A0`.
+///
+/// The Unprotect Circuit dialog's create handler is the same single step with
+/// its own help context. The two dialogs therefore differ only in the topic
+/// they open, not in what their create handlers do.
+pub fn create_unprotect_circuit_dialog(host: &mut impl CircuitProtectionHelpHost) {
+    host.set_help_context(UNPROTECT_HELP_CONTEXT);
+}
+
+#[cfg(test)]
+mod protection_help_tests {
+    use super::*;
+
+    #[derive(Debug, Default)]
+    struct HelpHost {
+        contexts: Vec<u32>,
+    }
+
+    impl CircuitProtectionHelpHost for HelpHost {
+        fn set_help_context(&mut self, context: u32) {
+            self.contexts.push(context);
+        }
+    }
+
+    #[test]
+    fn the_two_create_handlers_differ_only_in_their_help_topic() {
+        let mut host = HelpHost::default();
+
+        create_protect_circuit_dialog(&mut host);
+        create_unprotect_circuit_dialog(&mut host);
+
+        assert_eq!(
+            host.contexts,
+            [PROTECT_HELP_CONTEXT, UNPROTECT_HELP_CONTEXT]
+        );
     }
 }

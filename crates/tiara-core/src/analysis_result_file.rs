@@ -97,6 +97,83 @@ pub fn write_analysis_result_file(
     output.flush()
 }
 
+/// What the container calls itself.
+///
+/// Part of Ghidra function `FUN_0130d680` at `0x0130D680`.
+pub const CONTAINER_NAME: &str = "Analysis result";
+
+/// Which version of the container format this is.
+///
+/// Part of Ghidra function `FUN_0130d680` at `0x0130D680`.
+pub const FORMAT_VERSION: &str = "V1.00";
+
+/// When the format was settled.
+///
+/// Part of Ghidra function `FUN_0130d680` at `0x0130D680`.
+///
+/// Compiled in rather than taken from the clock, so every file ever written by
+/// this build carries the same one: it dates the format, not the file.
+pub const FORMAT_TIMESTAMP: &str = "08/08/01 17:00 CET";
+
+/// What the application's own version is written after.
+///
+/// Part of Ghidra function `FUN_0130d680` at `0x0130D680`.
+pub const APPLICATION_PREFIX: &str = "TINA ";
+
+/// The notice every container carries.
+///
+/// Part of Ghidra function `FUN_0130d680` at `0x0130D680`.
+///
+/// The line ending inside it is a newline followed by a carriage return —
+/// the two the other way round from the convention the rest of the platform
+/// uses. Kept as it is, because a reader that splits on the usual pair finds
+/// nothing to split on and one that splits on either finds an empty line
+/// between the two sentences, and both of those are what the original
+/// produces.
+pub const COPYRIGHT_NOTICE: &str =
+    "(c) Copyright 1993,94,95,96 DesignSoft Inc.\n\rAll rights reserved.";
+
+/// How large the section holding the context is declared to be.
+///
+/// Part of Ghidra function `FUN_0130d680` at `0x0130D680`.
+///
+/// Sixteen bytes, which is what the context takes: eight for the owner and
+/// four each for the two numbers after it.
+pub const CONTEXT_SECTION_SIZE: u32 = 0x10;
+
+/// How the file underneath is opened.
+///
+/// Part of Ghidra function `FUN_0130d680` at `0x0130D680`.
+pub const STREAM_MODE: u32 = 0xff00;
+
+/// Implements part of Ghidra function `FUN_0130d680` at `0x0130D680`.
+///
+/// What goes in the application field.
+#[must_use]
+pub fn application_field(application_version: &str) -> String {
+    format!("{APPLICATION_PREFIX}{application_version}")
+}
+
+/// Implements part of Ghidra function `FUN_0130d680` at `0x0130D680`.
+///
+/// The metadata every analysis-result container is written with.
+///
+/// Five of the six fields are the same in every file this build writes; only
+/// the application's own version comes from anywhere else. The container's
+/// name and its description are the same words — the field that might have
+/// said what the file holds says again what kind of file it is.
+#[must_use]
+pub const fn recovered_metadata(application_field: &str) -> AnalysisResultMetadata<'_> {
+    AnalysisResultMetadata {
+        container_name: CONTAINER_NAME,
+        format_version: FORMAT_VERSION,
+        format_timestamp: FORMAT_TIMESTAMP,
+        description: CONTAINER_NAME,
+        application_version: application_field,
+        copyright_notice: COPYRIGHT_NOTICE,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::fs;
@@ -219,5 +296,74 @@ mod tests {
             "tiara-analysis-result-{}-{id}.bin",
             std::process::id()
         ))
+    }
+}
+
+#[cfg(test)]
+mod metadata_tests {
+    use super::*;
+
+    #[test]
+    fn the_container_names_itself_after_what_it_holds() {
+        assert_eq!(CONTAINER_NAME, "Analysis result");
+    }
+
+    #[test]
+    fn the_description_says_the_same_thing_as_the_name() {
+        let metadata = recovered_metadata("16");
+
+        assert_eq!(metadata.description, metadata.container_name);
+    }
+
+    #[test]
+    fn the_application_field_is_the_product_and_its_version() {
+        assert_eq!(application_field("16"), "TINA 16");
+        assert_eq!(application_field(""), "TINA ");
+    }
+
+    #[test]
+    fn only_the_application_field_varies_between_files() {
+        let first = recovered_metadata("16");
+        let second = recovered_metadata("17");
+
+        assert_eq!(first.container_name, second.container_name);
+        assert_eq!(first.format_version, second.format_version);
+        assert_eq!(first.format_timestamp, second.format_timestamp);
+        assert_eq!(first.copyright_notice, second.copyright_notice);
+        assert_ne!(first.application_version, second.application_version);
+    }
+
+    #[test]
+    fn the_format_timestamp_dates_the_format_rather_than_the_file() {
+        // Compiled in, so two files written years apart carry the same one.
+        assert_eq!(FORMAT_TIMESTAMP, "08/08/01 17:00 CET");
+        assert_eq!(
+            recovered_metadata("16").format_timestamp,
+            recovered_metadata("99").format_timestamp
+        );
+    }
+
+    #[test]
+    fn the_notice_ends_its_first_line_the_wrong_way_round() {
+        assert!(COPYRIGHT_NOTICE.contains("\n\r"));
+        assert!(!COPYRIGHT_NOTICE.contains("\r\n"));
+    }
+
+    #[test]
+    fn a_reader_splitting_on_the_usual_pair_finds_one_line() {
+        assert_eq!(COPYRIGHT_NOTICE.split("\r\n").count(), 1);
+    }
+
+    #[test]
+    fn the_notice_names_the_years_and_reserves_the_rest() {
+        assert!(COPYRIGHT_NOTICE.contains("1993,94,95,96"));
+        assert!(COPYRIGHT_NOTICE.ends_with("All rights reserved."));
+    }
+
+    #[test]
+    fn the_context_section_is_as_large_as_the_context() {
+        let context = std::mem::size_of::<u64>() + 2 * std::mem::size_of::<u32>();
+
+        assert_eq!(CONTEXT_SECTION_SIZE as usize, context);
     }
 }

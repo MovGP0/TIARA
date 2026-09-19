@@ -820,3 +820,277 @@ mod tests {
         assert_eq!(decision.text, None);
     }
 }
+
+pub trait PartGridPointerHost {
+    /// Re-reads the rack for the component set that is showing.
+    fn refresh_rack(&mut self);
+
+    /// The column the rack is scrolled to.
+    fn left_column(&mut self) -> i32;
+
+    /// The number of columns the rack has.
+    fn column_count(&mut self) -> i32;
+
+    /// The number of columns that fit on screen.
+    fn visible_columns(&mut self) -> i32;
+
+    /// Scrolls the rack so this column is leftmost.
+    fn scroll_to_column(&mut self, column: i32);
+}
+
+/// Implements Ghidra function `FUN_01c9cb10` at `0x01C9CB10`.
+///
+/// Handles `ComponentPanel.PartGrid.OnMouseDown`.
+///
+/// Refreshes the rack on a press, and nudges it back one column when it had
+/// been scrolled all the way to the right.
+///
+/// The refresh can shorten the rack under a scroll position that was valid a
+/// moment ago; stepping back one column is what stops the last press leaving an
+/// empty strip on screen.
+///
+/// Returns whether the rack was scrolled back.
+pub fn part_grid_pressed(host: &mut impl PartGridPointerHost) -> bool {
+    host.refresh_rack();
+
+    let visible = host.visible_columns();
+    if visible <= 0 || host.left_column() != host.column_count() - visible {
+        return false;
+    }
+
+    host.scroll_to_column(visible - 1);
+    true
+}
+
+pub trait PartGridHoverHost {
+    /// The column the pointer was last over, or `None` if none was.
+    fn hot_column(&mut self) -> Option<i32>;
+
+    /// The width of one rack column.
+    fn column_width(&mut self) -> i32;
+
+    /// The height of the rack's only row.
+    fn row_height(&mut self) -> i32;
+
+    /// Redraws one cell over the given bounds with the given draw state.
+    fn redraw_cell(&mut self, column: i32, state: u8, bounds: Rect);
+}
+
+/// The draw state the recovered handler redraws the left cell with.
+pub const LEAVE_REDRAW_STATE: u8 = 1;
+
+/// Implements Ghidra function `FUN_01c9cb60` at `0x01C9CB60`.
+///
+/// Handles `ComponentPanel.PartGrid.OnMouseLeave`.
+///
+/// Redraws the cell the pointer just left so its hot-track highlight goes away.
+///
+/// Only that one cell is redrawn rather than the whole rack, and it is redrawn
+/// with the *selected* draw state rather than an idle one — which is why a cell
+/// that was both selected and hovered keeps its fill when the pointer leaves.
+///
+/// Returns whether a cell was redrawn.
+pub fn part_grid_left(host: &mut impl PartGridHoverHost) -> bool {
+    let Some(column) = host.hot_column() else {
+        return false;
+    };
+
+    let width = host.column_width();
+    let bounds = Rect {
+        left: column * width,
+        top: 0,
+        right: (column + 1) * width,
+        bottom: host.row_height(),
+    };
+
+    host.redraw_cell(column, LEAVE_REDRAW_STATE, bounds);
+    true
+}
+
+pub trait PartGridClickHost {
+    /// Reports whether the running command is the rack's own class and armed.
+    fn command_armed(&mut self) -> bool;
+
+    /// Latches the click on the running command.
+    fn latch_click(&mut self);
+}
+
+/// Implements Ghidra function `FUN_01c9ce90` at `0x01C9CE90`.
+///
+/// Handles `ComponentPanel.PartGrid.OnClick`.
+///
+/// Latches a rack click on the running command.
+///
+/// Like the canvas click, this only sets a flag on a command that armed itself
+/// first, and only for one command class — the rack never arms one. That is why
+/// clicking the rack with no command running selects a part without starting
+/// anything.
+///
+/// Returns whether the click was latched.
+pub fn part_grid_clicked(host: &mut impl PartGridClickHost) -> bool {
+    if !host.command_armed() {
+        return false;
+    }
+    host.latch_click();
+    true
+}
+
+#[cfg(test)]
+mod pointer_tests {
+    use super::*;
+
+    #[derive(Debug, Default)]
+    struct Pointer {
+        refreshes: usize,
+        left: i32,
+        columns: i32,
+        visible: i32,
+        scrolled: Vec<i32>,
+    }
+
+    impl PartGridPointerHost for Pointer {
+        fn refresh_rack(&mut self) {
+            self.refreshes += 1;
+        }
+
+        fn left_column(&mut self) -> i32 {
+            self.left
+        }
+
+        fn column_count(&mut self) -> i32 {
+            self.columns
+        }
+
+        fn visible_columns(&mut self) -> i32 {
+            self.visible
+        }
+
+        fn scroll_to_column(&mut self, column: i32) {
+            self.scrolled.push(column);
+        }
+    }
+
+    #[test]
+    fn a_rack_scrolled_to_the_end_steps_back_one_column() {
+        let mut host = Pointer {
+            left: 6,
+            columns: 10,
+            visible: 4,
+            ..Pointer::default()
+        };
+
+        assert!(part_grid_pressed(&mut host));
+
+        assert_eq!(host.refreshes, 1);
+        assert_eq!(host.scrolled, [3]);
+    }
+
+    #[test]
+    fn a_rack_that_is_not_at_the_end_only_refreshes() {
+        let mut host = Pointer {
+            left: 2,
+            columns: 10,
+            visible: 4,
+            ..Pointer::default()
+        };
+
+        assert!(!part_grid_pressed(&mut host));
+
+        assert_eq!(host.refreshes, 1);
+        assert!(host.scrolled.is_empty());
+    }
+
+    #[test]
+    fn an_empty_rack_never_scrolls() {
+        let mut host = Pointer::default();
+
+        assert!(!part_grid_pressed(&mut host));
+        assert!(host.scrolled.is_empty());
+    }
+
+    #[derive(Debug, Default)]
+    struct Hover {
+        hot: Option<i32>,
+        redrawn: Vec<(i32, u8, Rect)>,
+    }
+
+    impl PartGridHoverHost for Hover {
+        fn hot_column(&mut self) -> Option<i32> {
+            self.hot
+        }
+
+        fn column_width(&mut self) -> i32 {
+            32
+        }
+
+        fn row_height(&mut self) -> i32 {
+            30
+        }
+
+        fn redraw_cell(&mut self, column: i32, state: u8, bounds: Rect) {
+            self.redrawn.push((column, state, bounds));
+        }
+    }
+
+    #[test]
+    fn leaving_redraws_only_the_cell_the_pointer_was_over() {
+        let mut host = Hover {
+            hot: Some(3),
+            ..Hover::default()
+        };
+
+        assert!(part_grid_left(&mut host));
+
+        assert_eq!(
+            host.redrawn,
+            [(
+                3,
+                LEAVE_REDRAW_STATE,
+                Rect {
+                    left: 96,
+                    top: 0,
+                    right: 128,
+                    bottom: 30,
+                }
+            )]
+        );
+    }
+
+    #[test]
+    fn leaving_a_rack_with_no_hot_cell_redraws_nothing() {
+        let mut host = Hover::default();
+
+        assert!(!part_grid_left(&mut host));
+        assert!(host.redrawn.is_empty());
+    }
+
+    #[derive(Debug, Default)]
+    struct Click {
+        armed: bool,
+        latches: usize,
+    }
+
+    impl PartGridClickHost for Click {
+        fn command_armed(&mut self) -> bool {
+            self.armed
+        }
+
+        fn latch_click(&mut self) {
+            self.latches += 1;
+        }
+    }
+
+    #[test]
+    fn a_rack_click_latches_only_an_armed_command() {
+        let mut armed = Click {
+            armed: true,
+            ..Click::default()
+        };
+        assert!(part_grid_clicked(&mut armed));
+        assert_eq!(armed.latches, 1);
+
+        let mut idle = Click::default();
+        assert!(!part_grid_clicked(&mut idle));
+        assert_eq!(idle.latches, 0);
+    }
+}

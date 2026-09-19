@@ -43,8 +43,11 @@ pub struct PanelRect {
 /// The two recovered per-session flags the browser form keeps.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct BrowserFlags {
-    /// The recovered first flag, cleared when the form is created.
-    pub first: bool,
+    /// Set before a transfer runs and cleared by the next navigation. It is
+    /// the only thing keeping a transfer alive: its progress callback gives
+    /// up the moment the mark is gone, so starting a navigation is how a
+    /// transfer already running gets cancelled.
+    pub transfer_wanted: bool,
     /// Set by Stop and consumed by the navigation and transfer callbacks.
     pub stop_requested: bool,
 }
@@ -617,7 +620,7 @@ mod tests {
         request_stop(&mut flags);
 
         assert!(flags.stop_requested);
-        assert!(!flags.first);
+        assert!(!flags.transfer_wanted);
     }
 
     #[derive(Debug, Default)]
@@ -810,5 +813,724 @@ mod tests {
 
         assert_eq!(host.back, [true]);
         assert_eq!(host.forward, [false]);
+    }
+}
+
+/// What the status bar says while a transfer runs, before the file's name.
+pub const DOWNLOADING_PREFIX: &str = "Downloading ";
+
+/// The localized prompt shown before a content link is fetched.
+pub const OPEN_CONTENT_PROMPT_KEY: &str = "BrowserWin.OpenContentTxt";
+
+/// The answer that means the user agreed to fetch it.
+pub const PROMPT_YES: i32 = 6;
+
+/// The value written back to cancel a navigation.
+///
+/// The control takes a word rather than a boolean, and this is the value the
+/// recovered handler writes for every one of its three reasons to cancel.
+pub const CANCEL_NAVIGATION: u16 = 0xffff;
+
+/// The result that means a fetched file was opened.
+pub const OPEN_SUCCEEDED: i32 = 1;
+
+/// Whether a navigation goes ahead.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NavigationDecision {
+    /// Let the browser navigate.
+    Proceed,
+    /// Stop it, because Stop was pressed.
+    CancelStopped,
+    /// Stop it, because the address is one the application handles itself.
+    CancelHandled,
+    /// Stop it, because the address named content — whether or not the user
+    /// agreed to fetch it.
+    CancelContent {
+        /// Whether the user agreed, and the file was therefore fetched.
+        fetched: bool,
+        /// Whether opening the fetched file succeeded.
+        opened: bool,
+    },
+}
+
+impl NavigationDecision {
+    /// Whether the browser is allowed to navigate.
+    #[must_use]
+    pub const fn proceeds(self) -> bool {
+        matches!(self, Self::Proceed)
+    }
+}
+
+/// What intercepting a navigation needs from the browser.
+pub trait NavigationHost {
+    /// The form's two flags.
+    fn flags(&mut self) -> BrowserFlags;
+
+    /// Clears the flag that says a transfer is wanted.
+    fn clear_transfer_wanted(&mut self);
+
+    /// Consumes the stop request, so it cancels one navigation and not the
+    /// next.
+    fn consume_stop_request(&mut self);
+
+    /// Puts a message in the status bar.
+    fn set_status(&mut self, text: &str);
+
+    /// Whether the application handles this address itself rather than
+    /// browsing to it.
+    fn handled_internally(&mut self, url: &str) -> bool;
+
+    /// The content this address names, when it names any.
+    fn content_for(&mut self, url: &str) -> Option<String>;
+
+    /// Asks the user whether to fetch the content, returning the answer code.
+    fn ask_to_fetch(&mut self, prompt_key: &str, content: &str) -> i32;
+
+    /// Fetches the content, showing progress under this caption.
+    fn fetch(&mut self, caption: &str, content: &str);
+
+    /// Opens what was fetched, returning the recovered result code.
+    fn open_fetched(&mut self, content: &str) -> i32;
+
+    /// Records that a fetched file opened.
+    fn note_opened(&mut self);
+}
+
+/// Implements Ghidra function `FUN_01c20280` at `0x01C20280`.
+///
+/// Handles `BrowserFrm.MainBrowser.OnBeforeNavigate2`.
+///
+/// Decides what to do with a link before the browser follows it.
+///
+/// The browser is not only a browser: some of the addresses it shows name
+/// circuits and macros rather than pages, and following them would put a file
+/// in the browser instead of in the application. So every navigation is
+/// looked at first, and three quite different things can stop it — a pressed
+/// Stop, an address the application handles itself, or an address naming
+/// content, which is offered to the user as a download instead.
+///
+/// The content case cancels the navigation whether or not the user agrees, so
+/// declining leaves the page where it was rather than following the link
+/// anyway.
+///
+/// Stop is a latch that cancels exactly one navigation: it is consumed here,
+/// so pressing Stop does not leave the browser unable to go anywhere.
+pub fn before_navigate(host: &mut impl NavigationHost, url: &str) -> NavigationDecision {
+    if host.flags().stop_requested {
+        host.consume_stop_request();
+        return NavigationDecision::CancelStopped;
+    }
+
+    host.clear_transfer_wanted();
+    host.set_status(&format!("{DOWNLOADING_PREFIX}{url}"));
+
+    if host.handled_internally(url) {
+        return NavigationDecision::CancelHandled;
+    }
+
+    let Some(content) = host.content_for(url) else {
+        return NavigationDecision::Proceed;
+    };
+
+    if host.ask_to_fetch(OPEN_CONTENT_PROMPT_KEY, &content) != PROMPT_YES {
+        return NavigationDecision::CancelContent {
+            fetched: false,
+            opened: false,
+        };
+    }
+
+    host.fetch(url, &content);
+    let opened = host.open_fetched(&content) == OPEN_SUCCEEDED;
+    if opened {
+        host.note_opened();
+    }
+
+    NavigationDecision::CancelContent {
+        fetched: true,
+        opened,
+    }
+}
+
+/// What a transfer's progress report leads to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TransferProgress {
+    /// Keep going, with the bar set to these bounds.
+    Continue {
+        /// How much there is in total.
+        total: i64,
+        /// How much has arrived.
+        position: i64,
+    },
+    /// Everything has arrived; the bar goes back to empty.
+    Finished,
+    /// Give up, because Stop was pressed.
+    CancelStopped,
+    /// Give up, because nothing is waiting for this transfer any more.
+    CancelUnwanted,
+}
+
+impl TransferProgress {
+    /// Whether the transfer is told to stop.
+    #[must_use]
+    pub const fn cancels(self) -> bool {
+        matches!(self, Self::CancelStopped | Self::CancelUnwanted)
+    }
+}
+
+/// Implements Ghidra function `FUN_01c20ac0` at `0x01C20AC0`.
+///
+/// Decides what one transfer progress report means.
+///
+/// A transfer is cancelled by either flag going the wrong way, and the second
+/// of those is what makes a new navigation cancel a transfer already running:
+/// [`before_navigate`] clears the wanted flag, so the next progress report
+/// from the old transfer finds nothing waiting for it and gives up. Nothing
+/// has to find the transfer and stop it.
+///
+/// The two cancels differ in one way that matters. A stop request is
+/// *consumed* — it cancels this transfer and not the next — while an unwanted
+/// transfer stays unwanted, so every later report cancels too.
+#[must_use]
+pub const fn transfer_progress(flags: BrowserFlags, position: i64, total: i64) -> TransferProgress {
+    if flags.stop_requested {
+        return TransferProgress::CancelStopped;
+    }
+    if position == total {
+        return TransferProgress::Finished;
+    }
+    if !flags.transfer_wanted {
+        return TransferProgress::CancelUnwanted;
+    }
+    TransferProgress::Continue { total, position }
+}
+
+/// What fetching one file needs from the browser.
+pub trait TransferHost {
+    /// Names the transfer for the progress display.
+    fn set_caption(&mut self, caption: &str);
+
+    /// The address the relative path is resolved against.
+    fn base_address(&mut self) -> String;
+
+    /// Points the transfer at one address.
+    fn set_address(&mut self, address: &str);
+
+    /// Marks a transfer as wanted, which is what lets its progress reports
+    /// keep it alive.
+    fn mark_transfer_wanted(&mut self);
+
+    /// Runs the transfer to completion.
+    fn run(&mut self);
+}
+
+/// Implements Ghidra function `FUN_01c1f390` at `0x01C1F390`.
+///
+/// Fetches one file, showing its progress.
+///
+/// The transfer is marked as wanted before it starts, which is the only thing
+/// keeping it alive — its progress callback gives up the moment that mark is
+/// gone, and a new navigation is what takes it away. So a transfer is
+/// cancelled by starting something else rather than by being found and
+/// stopped.
+///
+/// Returns the address it fetched.
+pub fn fetch_content(host: &mut impl TransferHost, caption: &str, relative: &str) -> String {
+    host.set_caption(caption);
+
+    let address = format!("{}{relative}", host.base_address());
+    host.set_address(&address);
+
+    host.mark_transfer_wanted();
+    host.run();
+    address
+}
+
+/// What opening a typed address needs from the browser.
+pub trait OpenAddressHost {
+    /// What the user typed.
+    fn typed_address(&mut self) -> String;
+
+    /// Reduces a typed address to the part that names the content.
+    fn content_of(&mut self, typed: &str) -> String;
+
+    /// Fetches it, showing progress.
+    fn fetch(&mut self, caption: &str, content: &str);
+
+    /// The address the content is resolved against.
+    fn base_address(&mut self) -> String;
+
+    /// Opens what was fetched, returning the recovered result code.
+    fn open_fetched(&mut self, address: &str) -> i32;
+
+    /// Records that a fetched file opened.
+    fn note_opened(&mut self);
+}
+
+/// Implements Ghidra function `FUN_01c20c60` at `0x01C20C60`.
+///
+/// Handles `BrowserFrm.TopPL.OpenBtn.OnClick`.
+///
+/// Fetches and opens whatever the user typed in the address bar.
+///
+/// Open does not browse to the address: it takes the same path a content link
+/// takes, so typing an address and following a link to it end up in the same
+/// place. The typed text is kept as the transfer's caption while only the
+/// content part of it is fetched, which is why the progress display shows
+/// what the user typed rather than the resolved address.
+///
+/// Returns whether the fetched file opened.
+pub fn open_typed_address(host: &mut impl OpenAddressHost) -> bool {
+    let typed = host.typed_address();
+    let content = host.content_of(&typed);
+
+    host.fetch(&typed, &content);
+
+    let address = format!("{}{content}", host.base_address());
+    let opened = host.open_fetched(&address) == OPEN_SUCCEEDED;
+    if opened {
+        host.note_opened();
+    }
+    opened
+}
+
+#[cfg(test)]
+mod browser_navigation_tests {
+    use super::*;
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    enum Step {
+        ClearWanted,
+        ConsumeStop,
+        Status(String),
+        Ask(String),
+        Fetch(String, String),
+        Open(String),
+        NoteOpened,
+    }
+
+    #[derive(Debug, Default)]
+    struct Browser {
+        flags: BrowserFlags,
+        handled: bool,
+        content: Option<String>,
+        answer: i32,
+        open_result: i32,
+        steps: Vec<Step>,
+    }
+
+    impl NavigationHost for Browser {
+        fn flags(&mut self) -> BrowserFlags {
+            self.flags
+        }
+
+        fn clear_transfer_wanted(&mut self) {
+            self.flags.transfer_wanted = false;
+            self.steps.push(Step::ClearWanted);
+        }
+
+        fn consume_stop_request(&mut self) {
+            self.flags.stop_requested = false;
+            self.steps.push(Step::ConsumeStop);
+        }
+
+        fn set_status(&mut self, text: &str) {
+            self.steps.push(Step::Status(text.to_owned()));
+        }
+
+        fn handled_internally(&mut self, _url: &str) -> bool {
+            self.handled
+        }
+
+        fn content_for(&mut self, _url: &str) -> Option<String> {
+            self.content.clone()
+        }
+
+        fn ask_to_fetch(&mut self, _prompt_key: &str, content: &str) -> i32 {
+            self.steps.push(Step::Ask(content.to_owned()));
+            self.answer
+        }
+
+        fn fetch(&mut self, caption: &str, content: &str) {
+            self.steps
+                .push(Step::Fetch(caption.to_owned(), content.to_owned()));
+        }
+
+        fn open_fetched(&mut self, content: &str) -> i32 {
+            self.steps.push(Step::Open(content.to_owned()));
+            self.open_result
+        }
+
+        fn note_opened(&mut self) {
+            self.steps.push(Step::NoteOpened);
+        }
+    }
+
+    #[test]
+    fn an_ordinary_address_is_followed() {
+        let mut host = Browser::default();
+
+        assert_eq!(
+            before_navigate(&mut host, "http://example.com/page"),
+            NavigationDecision::Proceed
+        );
+        assert!(NavigationDecision::Proceed.proceeds());
+    }
+
+    #[test]
+    fn a_pending_stop_cancels_one_navigation_and_is_then_gone() {
+        let mut host = Browser {
+            flags: BrowserFlags {
+                stop_requested: true,
+                ..BrowserFlags::default()
+            },
+            ..Browser::default()
+        };
+
+        assert_eq!(
+            before_navigate(&mut host, "http://example.com/"),
+            NavigationDecision::CancelStopped
+        );
+        assert!(!host.flags.stop_requested);
+
+        assert_eq!(
+            before_navigate(&mut host, "http://example.com/"),
+            NavigationDecision::Proceed
+        );
+    }
+
+    #[test]
+    fn a_stopped_navigation_never_reaches_the_status_bar() {
+        let mut host = Browser {
+            flags: BrowserFlags {
+                stop_requested: true,
+                ..BrowserFlags::default()
+            },
+            ..Browser::default()
+        };
+        before_navigate(&mut host, "http://example.com/");
+
+        assert_eq!(host.steps, [Step::ConsumeStop]);
+    }
+
+    #[test]
+    fn an_address_the_application_handles_is_not_browsed_to() {
+        let mut host = Browser {
+            handled: true,
+            ..Browser::default()
+        };
+
+        assert_eq!(
+            before_navigate(&mut host, "tina://open"),
+            NavigationDecision::CancelHandled
+        );
+        assert!(!host.steps.iter().any(|s| matches!(s, Step::Ask(_))));
+    }
+
+    #[test]
+    fn content_is_offered_as_a_download_and_the_link_is_never_followed() {
+        let mut host = Browser {
+            content: Some("amp.tsc".to_owned()),
+            answer: PROMPT_YES,
+            open_result: OPEN_SUCCEEDED,
+            ..Browser::default()
+        };
+
+        assert_eq!(
+            before_navigate(&mut host, "http://example.com/amp.tsc"),
+            NavigationDecision::CancelContent {
+                fetched: true,
+                opened: true,
+            }
+        );
+        assert!(host.steps.contains(&Step::Fetch(
+            "http://example.com/amp.tsc".to_owned(),
+            "amp.tsc".to_owned()
+        )));
+        assert!(host.steps.contains(&Step::NoteOpened));
+    }
+
+    #[test]
+    fn declining_the_download_still_leaves_the_page_where_it_was() {
+        let mut host = Browser {
+            content: Some("amp.tsc".to_owned()),
+            answer: 7,
+            ..Browser::default()
+        };
+
+        assert_eq!(
+            before_navigate(&mut host, "http://example.com/amp.tsc"),
+            NavigationDecision::CancelContent {
+                fetched: false,
+                opened: false,
+            }
+        );
+        assert!(!host.steps.iter().any(|s| matches!(s, Step::Fetch(..))));
+    }
+
+    #[test]
+    fn a_fetch_that_does_not_open_is_reported_as_such() {
+        let mut host = Browser {
+            content: Some("amp.tsc".to_owned()),
+            answer: PROMPT_YES,
+            open_result: 0,
+            ..Browser::default()
+        };
+
+        assert_eq!(
+            before_navigate(&mut host, "http://example.com/amp.tsc"),
+            NavigationDecision::CancelContent {
+                fetched: true,
+                opened: false,
+            }
+        );
+        assert!(!host.steps.contains(&Step::NoteOpened));
+    }
+
+    #[test]
+    fn every_navigation_that_is_looked_at_clears_the_transfer_mark_first() {
+        let mut host = Browser {
+            flags: BrowserFlags {
+                transfer_wanted: true,
+                stop_requested: false,
+            },
+            ..Browser::default()
+        };
+
+        before_navigate(&mut host, "http://example.com/");
+
+        assert!(!host.flags.transfer_wanted);
+        assert_eq!(host.steps.first(), Some(&Step::ClearWanted));
+    }
+
+    #[test]
+    fn the_status_bar_names_the_address_being_fetched() {
+        let mut host = Browser::default();
+        before_navigate(&mut host, "http://example.com/amp.tsc");
+
+        assert!(host.steps.contains(&Step::Status(
+            "Downloading http://example.com/amp.tsc".to_owned()
+        )));
+    }
+}
+
+#[cfg(test)]
+mod browser_transfer_tests {
+    use super::*;
+
+    const fn running() -> BrowserFlags {
+        BrowserFlags {
+            transfer_wanted: true,
+            stop_requested: false,
+        }
+    }
+
+    #[test]
+    fn a_running_transfer_reports_its_bounds() {
+        assert_eq!(
+            transfer_progress(running(), 512, 2048),
+            TransferProgress::Continue {
+                total: 2048,
+                position: 512,
+            }
+        );
+    }
+
+    #[test]
+    fn a_complete_transfer_empties_the_bar() {
+        assert_eq!(
+            transfer_progress(running(), 2048, 2048),
+            TransferProgress::Finished
+        );
+        assert!(!TransferProgress::Finished.cancels());
+    }
+
+    #[test]
+    fn a_transfer_nothing_is_waiting_for_gives_up() {
+        let unwanted = BrowserFlags {
+            transfer_wanted: false,
+            stop_requested: false,
+        };
+
+        assert_eq!(
+            transfer_progress(unwanted, 512, 2048),
+            TransferProgress::CancelUnwanted
+        );
+        assert!(TransferProgress::CancelUnwanted.cancels());
+    }
+
+    #[test]
+    fn stop_beats_everything_including_completion() {
+        let stopped = BrowserFlags {
+            transfer_wanted: true,
+            stop_requested: true,
+        };
+
+        assert_eq!(
+            transfer_progress(stopped, 2048, 2048),
+            TransferProgress::CancelStopped
+        );
+    }
+
+    #[test]
+    fn a_completed_transfer_is_reported_complete_even_when_unwanted() {
+        let unwanted = BrowserFlags {
+            transfer_wanted: false,
+            stop_requested: false,
+        };
+
+        // The completion test comes first, so the last report of a transfer
+        // that has been abandoned still tidies the bar rather than cancelling.
+        assert_eq!(
+            transfer_progress(unwanted, 2048, 2048),
+            TransferProgress::Finished
+        );
+    }
+
+    #[test]
+    fn an_empty_transfer_is_complete_from_its_first_report() {
+        assert_eq!(
+            transfer_progress(running(), 0, 0),
+            TransferProgress::Finished
+        );
+    }
+
+    #[derive(Debug, Default)]
+    struct Transfer {
+        caption: Option<String>,
+        address: Option<String>,
+        wanted_before_run: Option<bool>,
+        wanted: bool,
+        ran: bool,
+    }
+
+    impl TransferHost for Transfer {
+        fn set_caption(&mut self, caption: &str) {
+            self.caption = Some(caption.to_owned());
+        }
+
+        fn base_address(&mut self) -> String {
+            "http://example.com/".to_owned()
+        }
+
+        fn set_address(&mut self, address: &str) {
+            self.address = Some(address.to_owned());
+        }
+
+        fn mark_transfer_wanted(&mut self) {
+            self.wanted = true;
+        }
+
+        fn run(&mut self) {
+            self.wanted_before_run = Some(self.wanted);
+            self.ran = true;
+        }
+    }
+
+    #[test]
+    fn a_fetch_resolves_its_address_against_the_base() {
+        let mut host = Transfer::default();
+
+        assert_eq!(
+            fetch_content(&mut host, "Example circuit", "amp.tsc"),
+            "http://example.com/amp.tsc"
+        );
+        assert_eq!(host.caption.as_deref(), Some("Example circuit"));
+    }
+
+    #[test]
+    fn the_transfer_is_marked_wanted_before_it_runs() {
+        let mut host = Transfer::default();
+        fetch_content(&mut host, "c", "amp.tsc");
+
+        assert_eq!(host.wanted_before_run, Some(true));
+        assert!(host.ran);
+    }
+}
+
+#[cfg(test)]
+mod browser_open_tests {
+    use super::*;
+
+    #[derive(Debug, Default)]
+    #[allow(clippy::struct_field_names)]
+    struct Address {
+        typed: String,
+        open_result: i32,
+        fetched: Option<(String, String)>,
+        opened_address: Option<String>,
+        noted: bool,
+    }
+
+    impl OpenAddressHost for Address {
+        fn typed_address(&mut self) -> String {
+            self.typed.clone()
+        }
+
+        fn content_of(&mut self, typed: &str) -> String {
+            typed.rsplit('/').next().unwrap_or(typed).to_owned()
+        }
+
+        fn fetch(&mut self, caption: &str, content: &str) {
+            self.fetched = Some((caption.to_owned(), content.to_owned()));
+        }
+
+        fn base_address(&mut self) -> String {
+            "http://example.com/".to_owned()
+        }
+
+        fn open_fetched(&mut self, address: &str) -> i32 {
+            self.opened_address = Some(address.to_owned());
+            self.open_result
+        }
+
+        fn note_opened(&mut self) {
+            self.noted = true;
+        }
+    }
+
+    #[test]
+    fn open_fetches_the_content_under_the_text_the_user_typed() {
+        let mut host = Address {
+            typed: "http://example.com/lib/amp.tsc".to_owned(),
+            open_result: OPEN_SUCCEEDED,
+            ..Address::default()
+        };
+
+        assert!(open_typed_address(&mut host));
+        assert_eq!(
+            host.fetched,
+            Some((
+                "http://example.com/lib/amp.tsc".to_owned(),
+                "amp.tsc".to_owned()
+            ))
+        );
+        assert!(host.noted);
+    }
+
+    #[test]
+    fn open_resolves_the_content_against_the_base_rather_than_using_the_typed_text() {
+        let mut host = Address {
+            typed: "http://elsewhere.invalid/lib/amp.tsc".to_owned(),
+            open_result: OPEN_SUCCEEDED,
+            ..Address::default()
+        };
+        open_typed_address(&mut host);
+
+        assert_eq!(
+            host.opened_address.as_deref(),
+            Some("http://example.com/amp.tsc")
+        );
+    }
+
+    #[test]
+    fn a_file_that_does_not_open_is_not_noted() {
+        let mut host = Address {
+            typed: "amp.tsc".to_owned(),
+            open_result: 0,
+            ..Address::default()
+        };
+
+        assert!(!open_typed_address(&mut host));
+        assert!(!host.noted);
     }
 }

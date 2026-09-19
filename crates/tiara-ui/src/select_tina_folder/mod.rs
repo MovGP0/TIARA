@@ -1498,3 +1498,357 @@ mod tests {
         assert!(!window.is_awaiting_open_log_answer());
     }
 }
+
+/// The registry key the installed-programs list lives under.
+///
+/// The `Wow6432Node` in the path is the 32-bit view, which is where a 32-bit
+/// installer records itself on a 64-bit machine — so this finds the other
+/// installations whatever the running build is.
+pub const UNINSTALL_KEY: &str = r"SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall";
+
+/// The value naming the product an uninstall entry belongs to.
+pub const PRODUCT_GUID_VALUE: &str = "ProductGuid";
+/// The value holding an entry's display name.
+pub const DISPLAY_NAME_VALUE: &str = "DisplayName";
+/// The value holding where it was installed.
+pub const INSTALL_LOCATION_VALUE: &str = "InstallLocation";
+/// The read access the registry is opened with.
+pub const REGISTRY_READ_ACCESS: u32 = 0x0002_0019;
+
+/// The product identifiers this build recognises as its own family.
+///
+/// Part of Ghidra function `FUN_01c44300` at `0x01C44300`.
+///
+/// Each release registers a different one, so the list is what decides which
+/// versions can be imported from; an installation of a version newer than
+/// this build is simply not seen.
+pub const PRODUCT_GUIDS: [&str; 7] = [
+    "{3D7D43D0-A5EE-4972-92DB-CD32A40A4976}",
+    "{C9AF7B6C-A0FA-46D8-85CB-A0B418773659}",
+    "{43FA4B8E-8906-43CC-95C7-1D3F7CE27F9E}",
+    "{06E2580F-7A30-4FF6-9ACF-A9876F10D3F8}",
+    "{96EECE06-DFF8-40BF-9EE3-99F445EB3D0A}",
+    "{8BCACB8B-E2DA-4870-AEEC-300A52E50C65}",
+    "{B1EC34D8-D2D6-4846-A58D-ED9F451527B4}",
+];
+
+/// Whether one uninstall entry belongs to this product family.
+///
+/// Part of Ghidra function `FUN_01c44300` at `0x01C44300`.
+#[must_use]
+pub fn is_known_product(guid: &str) -> bool {
+    PRODUCT_GUIDS.contains(&guid)
+}
+
+/// One installation the dialog found.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Installation {
+    /// The name shown in the list.
+    pub display_name: String,
+    /// Where it was installed.
+    pub install_location: String,
+    /// Its own registry folder, read out of its `setup.ini`.
+    pub program_folder: String,
+    /// Where it keeps its settings, when the per-user key says.
+    pub settings_dir: Option<String>,
+    /// Where it keeps its catalogs.
+    pub catalog_dir: Option<String>,
+}
+
+/// What discovering installations needs from the machine.
+pub trait InstallationScanHost {
+    /// The uninstall entries to look at.
+    fn uninstall_entries(&mut self) -> Vec<String>;
+
+    /// One value of one uninstall entry.
+    fn uninstall_value(&mut self, entry: &str, value: &str) -> Option<String>;
+
+    /// The program folder an installation records in its own `setup.ini`.
+    fn program_folder(&mut self, install_location: &str) -> String;
+
+    /// Where this build is installed, which is the one not offered.
+    fn current_install_location(&mut self) -> String;
+
+    /// One per-user value for one program folder, or `None` when the key is
+    /// not there.
+    fn user_value(&mut self, program_folder: &str, value: &str) -> Option<String>;
+}
+
+/// Implements Ghidra function `FUN_01c44300` at `0x01C44300`.
+///
+/// Handles `frmSelectTinaFolder.OnCreate`.
+///
+/// Finds the other installations of this product on the machine.
+///
+/// The dialog exists to import settings from a previous version, so the
+/// installation that is *running* is deliberately left out — offering it
+/// would mean importing a copy of what the user already has. Everything else
+/// that registered one of the known product identifiers is offered.
+///
+/// Each installation is found in two places. The machine-wide uninstall entry
+/// gives its name and where it lives; its own `setup.ini` then names the
+/// registry folder under which the *user's* copy of that installation records
+/// where it keeps settings and catalogs. So a per-machine install and a
+/// per-user configuration are stitched together, which is why the folders
+/// cannot simply be derived from the install path.
+///
+/// The recovered handler carries one defect this port keeps: the flag saying
+/// an installation was accepted is not cleared between entries, so an
+/// unrecognised entry following an accepted one re-runs the per-user lookup
+/// with the previous entry's folder and appends its directories to the
+/// previous installation a second time. [`Installation::settings_dir`] is
+/// therefore written from whichever entry last ran that lookup.
+#[must_use]
+pub fn discover_installations(host: &mut impl InstallationScanHost) -> Vec<Installation> {
+    let current = host.current_install_location();
+    let mut found: Vec<Installation> = Vec::new();
+    let mut accepted = false;
+    let mut program_folder = String::new();
+
+    for entry in host.uninstall_entries() {
+        let recognised = host
+            .uninstall_value(&entry, PRODUCT_GUID_VALUE)
+            .is_some_and(|guid| is_known_product(&guid));
+
+        if recognised {
+            let display_name = host
+                .uninstall_value(&entry, DISPLAY_NAME_VALUE)
+                .unwrap_or_default();
+            let install_location = host
+                .uninstall_value(&entry, INSTALL_LOCATION_VALUE)
+                .unwrap_or_default();
+            program_folder = host.program_folder(&install_location);
+
+            accepted = install_location != current;
+            if accepted {
+                found.push(Installation {
+                    display_name,
+                    install_location,
+                    program_folder: program_folder.clone(),
+                    settings_dir: None,
+                    catalog_dir: None,
+                });
+            }
+        }
+
+        // The flag is not reset for an unrecognised entry, so this runs again
+        // for the one after an accepted installation.
+        if accepted {
+            let settings = host.user_value(&program_folder, SETTINGS_DIR_VALUE);
+            let catalogs = host.user_value(&program_folder, CATALOG_DIR_VALUE);
+            if let (Some(settings), Some(catalogs)) = (settings, catalogs) {
+                if let Some(last) = found.last_mut() {
+                    last.settings_dir = Some(settings);
+                    last.catalog_dir = Some(catalogs);
+                }
+            }
+        }
+    }
+
+    found
+}
+
+#[cfg(test)]
+mod installation_scan_tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    #[test]
+    fn the_recognised_products_are_the_seven_recovered_identifiers() {
+        assert_eq!(PRODUCT_GUIDS.len(), 7);
+        assert!(is_known_product("{3D7D43D0-A5EE-4972-92DB-CD32A40A4976}"));
+        assert!(is_known_product("{B1EC34D8-D2D6-4846-A58D-ED9F451527B4}"));
+        assert!(!is_known_product("{00000000-0000-0000-0000-000000000000}"));
+        assert!(!is_known_product(""));
+    }
+
+    #[test]
+    fn every_recognised_identifier_is_distinct() {
+        let mut seen = PRODUCT_GUIDS.to_vec();
+        seen.sort_unstable();
+        seen.dedup();
+        assert_eq!(seen.len(), PRODUCT_GUIDS.len());
+    }
+
+    #[test]
+    fn the_uninstall_key_reads_the_thirty_two_bit_view() {
+        assert!(UNINSTALL_KEY.contains("Wow6432Node"));
+    }
+
+    #[derive(Debug, Default)]
+    struct Machine {
+        entries: Vec<String>,
+        values: HashMap<(String, String), String>,
+        folders: HashMap<String, String>,
+        user: HashMap<(String, String), String>,
+        current: String,
+    }
+
+    impl Machine {
+        fn with(mut self, entry: &str, guid: &str, name: &str, location: &str) -> Self {
+            self.entries.push(entry.to_owned());
+            self.values.insert(
+                (entry.to_owned(), PRODUCT_GUID_VALUE.to_owned()),
+                guid.to_owned(),
+            );
+            self.values.insert(
+                (entry.to_owned(), DISPLAY_NAME_VALUE.to_owned()),
+                name.to_owned(),
+            );
+            self.values.insert(
+                (entry.to_owned(), INSTALL_LOCATION_VALUE.to_owned()),
+                location.to_owned(),
+            );
+            self.folders
+                .insert(location.to_owned(), format!("Folder{name}"));
+            self
+        }
+
+        fn with_user_dirs(mut self, folder: &str, settings: &str, catalogs: &str) -> Self {
+            self.user.insert(
+                (folder.to_owned(), SETTINGS_DIR_VALUE.to_owned()),
+                settings.to_owned(),
+            );
+            self.user.insert(
+                (folder.to_owned(), CATALOG_DIR_VALUE.to_owned()),
+                catalogs.to_owned(),
+            );
+            self
+        }
+    }
+
+    impl InstallationScanHost for Machine {
+        fn uninstall_entries(&mut self) -> Vec<String> {
+            self.entries.clone()
+        }
+
+        fn uninstall_value(&mut self, entry: &str, value: &str) -> Option<String> {
+            self.values
+                .get(&(entry.to_owned(), value.to_owned()))
+                .cloned()
+        }
+
+        fn program_folder(&mut self, install_location: &str) -> String {
+            self.folders
+                .get(install_location)
+                .cloned()
+                .unwrap_or_default()
+        }
+
+        fn current_install_location(&mut self) -> String {
+            self.current.clone()
+        }
+
+        fn user_value(&mut self, program_folder: &str, value: &str) -> Option<String> {
+            self.user
+                .get(&(program_folder.to_owned(), value.to_owned()))
+                .cloned()
+        }
+    }
+
+    #[test]
+    fn a_recognised_installation_is_offered_with_its_folders() {
+        let mut host = Machine::default()
+            .with("e1", PRODUCT_GUIDS[0], "TINA 12", r"C:\TINA12")
+            .with_user_dirs("FolderTINA 12", r"C:\S12", r"C:\C12");
+
+        let found = discover_installations(&mut host);
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].display_name, "TINA 12");
+        assert_eq!(found[0].install_location, r"C:\TINA12");
+        assert_eq!(found[0].settings_dir.as_deref(), Some(r"C:\S12"));
+        assert_eq!(found[0].catalog_dir.as_deref(), Some(r"C:\C12"));
+    }
+
+    #[test]
+    fn the_running_installation_is_never_offered() {
+        let mut host = Machine::default()
+            .with("e1", PRODUCT_GUIDS[0], "TINA 16", r"C:\TINA16")
+            .with("e2", PRODUCT_GUIDS[1], "TINA 12", r"C:\TINA12");
+        host.current = r"C:\TINA16".to_owned();
+
+        let found = discover_installations(&mut host);
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].display_name, "TINA 12");
+    }
+
+    #[test]
+    fn an_entry_with_an_unrecognised_product_is_passed_over() {
+        let mut host = Machine::default().with(
+            "e1",
+            "{00000000-0000-0000-0000-000000000000}",
+            "Something Else",
+            r"C:\Other",
+        );
+
+        assert!(discover_installations(&mut host).is_empty());
+    }
+
+    #[test]
+    fn an_entry_with_no_product_value_at_all_is_passed_over() {
+        let mut host = Machine {
+            entries: vec!["e1".to_owned()],
+            ..Machine::default()
+        };
+
+        assert!(discover_installations(&mut host).is_empty());
+    }
+
+    #[test]
+    fn an_installation_without_a_per_user_key_still_appears() {
+        let mut host = Machine::default().with("e1", PRODUCT_GUIDS[2], "TINA 10", r"C:\TINA10");
+
+        let found = discover_installations(&mut host);
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].settings_dir, None);
+        assert_eq!(found[0].catalog_dir, None);
+    }
+
+    #[test]
+    fn several_installations_are_all_offered_in_registry_order() {
+        let mut host = Machine::default()
+            .with("e1", PRODUCT_GUIDS[0], "TINA 12", r"C:\TINA12")
+            .with("e2", PRODUCT_GUIDS[3], "TINA 14", r"C:\TINA14");
+
+        let found = discover_installations(&mut host);
+
+        assert_eq!(
+            found
+                .iter()
+                .map(|entry| entry.display_name.as_str())
+                .collect::<Vec<_>>(),
+            ["TINA 12", "TINA 14"]
+        );
+    }
+
+    #[test]
+    fn the_accepted_flag_is_not_reset_so_a_later_entry_re_runs_the_user_lookup() {
+        // The recovered defect: an unrecognised entry after an accepted one
+        // still runs the per-user lookup with the previous folder.
+        let mut host = Machine::default()
+            .with("e1", PRODUCT_GUIDS[0], "TINA 12", r"C:\TINA12")
+            .with(
+                "e2",
+                "{00000000-0000-0000-0000-000000000000}",
+                "Other",
+                r"C:\Other",
+            )
+            .with_user_dirs("FolderTINA 12", r"C:\S12", r"C:\C12");
+
+        let found = discover_installations(&mut host);
+
+        // The stray lookup writes the same values back onto the same entry,
+        // so the result is unchanged — but only because they are the same.
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].settings_dir.as_deref(), Some(r"C:\S12"));
+    }
+
+    #[test]
+    fn nothing_installed_offers_nothing() {
+        let mut host = Machine::default();
+        assert!(discover_installations(&mut host).is_empty());
+    }
+}

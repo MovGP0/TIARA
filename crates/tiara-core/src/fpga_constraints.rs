@@ -472,3 +472,439 @@ set_instance_assignment -name IO_STANDARD \"3.3 V SCHMITT TRIGGER\" -to key\n\n"
         }
     }
 }
+
+impl ConstraintTarget {
+    /// Recovers a target from the code the caller passes.
+    ///
+    /// Part of Ghidra function `FUN_01c9b4f0` at `0x01C9B4F0`.
+    ///
+    /// Only two codes are named; everything else falls to the oldest of the
+    /// three formats, so an unrecognised target still produces a constraints
+    /// file rather than none.
+    #[must_use]
+    pub const fn from_code(code: i32) -> Self {
+        match code {
+            1 => Self::XilinxXdc,
+            2 => Self::IntelQsf,
+            _ => Self::XilinxUcf,
+        }
+    }
+
+    /// The save dialog's filter for this target.
+    ///
+    /// Part of Ghidra function `FUN_01c9b4f0` at `0x01C9B4F0`.
+    #[must_use]
+    pub const fn dialog_filter(self) -> &'static str {
+        match self {
+            Self::XilinxUcf => "UCF File|*.ucf",
+            Self::XilinxXdc => "XDC File|*.xdc",
+            Self::IntelQsf => "QSF File|*.qsf",
+        }
+    }
+}
+
+/// The directory, under the installation, holding the shipped VHDL packages.
+pub const VHDL_PACKAGE_DIRECTORY: &str = r"VHDL\Packages";
+
+/// The package the export adds when the design needs it.
+pub const FPGA_LIBRARY_PACKAGE: &str = r"\tina_lib2_fpga.vhd";
+
+/// Reported when the circuit cannot be turned into VHDL at all.
+pub const CANNOT_CONVERT_MESSAGE: &str = "Can't convert to VHDL!";
+
+/// The capability the export asks about before it starts.
+pub const FPGA_CAPABILITY: u8 = 13;
+
+/// Why an export did not happen.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExportRefusal {
+    /// The installation does not allow this export.
+    NotPermitted,
+    /// The circuit cannot be expressed as VHDL.
+    NotConvertible,
+    /// The user closed the save dialog.
+    Cancelled,
+}
+
+/// What driving one FPGA export needs from the application.
+pub trait FpgaExportHost {
+    /// Whether the installation allows the export, asked once and cached by
+    /// the recovered code.
+    fn export_permitted(&mut self, capability: u8) -> bool;
+
+    /// Whether the open circuit can be turned into VHDL.
+    fn circuit_convertible(&mut self) -> bool;
+
+    /// Reports a refusal to the user.
+    fn report(&mut self, message: &str);
+
+    /// Makes the working directory the export builds in.
+    fn begin_working_directory(&mut self) -> String;
+
+    /// Builds the VHDL for the circuit and hands back the package files it
+    /// referred to, in the order it found them.
+    fn generate_vhdl(&mut self, target: ConstraintTarget) -> Vec<String>;
+
+    /// Whether the design needs the shipped FPGA library package.
+    fn needs_library_package(&mut self) -> bool;
+
+    /// Adds one package file to the export.
+    fn add_package(&mut self, path: &str, index: Option<usize>);
+
+    /// The installation's own directory.
+    fn installation_directory(&mut self) -> String;
+
+    /// The name the exporter proposes.
+    fn proposed_name(&mut self) -> String;
+
+    /// Seeds the save dialog's file name.
+    fn seed_dialog_name(&mut self, name: &str);
+
+    /// Shows the save dialog under one description and filter, returning what
+    /// the user chose.
+    fn ask_for_path(&mut self, filter: &str) -> Option<String>;
+
+    /// Writes the constraints file.
+    fn write_constraints(&mut self, path: &str);
+
+    /// Takes the working directory away again.
+    fn end_working_directory(&mut self);
+}
+
+/// Implements Ghidra function `FUN_01c9b4f0` at `0x01C9B4F0`.
+///
+/// Exports the open circuit as VHDL with a constraints file for one FPGA
+/// toolchain.
+///
+/// Two checks come before anything is built, and they refuse for quite
+/// different reasons: the installation may not offer the export at all, or
+/// the circuit may contain something that has no VHDL equivalent. Separating
+/// them is what lets the second one name the circuit as the problem rather
+/// than the licence.
+///
+/// The working directory is made before the export and taken away after it
+/// *whatever happens*, so an export that the user cancels leaves nothing
+/// behind. Everything is built there and only the file the user names is
+/// written out.
+///
+/// The constraints file is the only part that differs between toolchains —
+/// the VHDL itself is the same — so the target chooses a filter and a
+/// description and nothing else.
+///
+/// # Errors
+///
+/// Returns [`ExportRefusal`] when either check refuses or the user cancels.
+pub fn export_to_fpga(
+    host: &mut impl FpgaExportHost,
+    target: ConstraintTarget,
+) -> Result<String, ExportRefusal> {
+    if !host.export_permitted(FPGA_CAPABILITY) {
+        return Err(ExportRefusal::NotPermitted);
+    }
+
+    if !host.circuit_convertible() {
+        host.report(CANNOT_CONVERT_MESSAGE);
+        return Err(ExportRefusal::NotConvertible);
+    }
+
+    host.begin_working_directory();
+    let outcome = run_export(host, target);
+    host.end_working_directory();
+    outcome
+}
+
+fn run_export(
+    host: &mut impl FpgaExportHost,
+    target: ConstraintTarget,
+) -> Result<String, ExportRefusal> {
+    for (index, package) in host.generate_vhdl(target).into_iter().enumerate() {
+        host.add_package(&package, Some(index));
+    }
+
+    if host.needs_library_package() {
+        let path = format!(
+            r"{}\{VHDL_PACKAGE_DIRECTORY}{FPGA_LIBRARY_PACKAGE}",
+            host.installation_directory()
+        );
+        // Added without an index of its own, because it belongs to no entry
+        // of the design.
+        host.add_package(&path, None);
+    }
+
+    let proposed = host.proposed_name();
+    let seeded = std::path::Path::new(&proposed).file_name().map_or_else(
+        || proposed.clone(),
+        |name| name.to_string_lossy().into_owned(),
+    );
+    host.seed_dialog_name(&seeded);
+
+    let Some(chosen) = host.ask_for_path(target.dialog_filter()) else {
+        return Err(ExportRefusal::Cancelled);
+    };
+
+    host.write_constraints(&chosen);
+    Ok(chosen)
+}
+
+#[cfg(test)]
+mod fpga_export_tests {
+    use super::*;
+
+    #[test]
+    fn the_target_codes_are_the_two_recovered_ones_and_a_fall_back() {
+        assert_eq!(ConstraintTarget::from_code(1), ConstraintTarget::XilinxXdc);
+        assert_eq!(ConstraintTarget::from_code(2), ConstraintTarget::IntelQsf);
+
+        for code in [0, 3, -1, 99] {
+            assert_eq!(
+                ConstraintTarget::from_code(code),
+                ConstraintTarget::XilinxUcf
+            );
+        }
+    }
+
+    #[test]
+    fn each_filter_names_the_extension_that_target_writes() {
+        for target in [
+            ConstraintTarget::XilinxUcf,
+            ConstraintTarget::XilinxXdc,
+            ConstraintTarget::IntelQsf,
+        ] {
+            assert!(
+                target
+                    .dialog_filter()
+                    .to_lowercase()
+                    .contains(target.extension()),
+                "{target:?}"
+            );
+        }
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    enum Step {
+        BeginDirectory,
+        Generate(ConstraintTarget),
+        Package(String, Option<usize>),
+        Seed(String),
+        Ask(String),
+        Write(String),
+        EndDirectory,
+        Report(String),
+    }
+
+    #[derive(Debug, Default)]
+    struct Application {
+        permitted: bool,
+        convertible: bool,
+        packages: Vec<String>,
+        needs_library: bool,
+        chosen: Option<String>,
+        steps: Vec<Step>,
+    }
+
+    impl Application {
+        fn ready() -> Self {
+            Self {
+                permitted: true,
+                convertible: true,
+                packages: vec!["a.vhd".to_owned(), "b.vhd".to_owned()],
+                chosen: Some(r"C:\out\design.xdc".to_owned()),
+                ..Self::default()
+            }
+        }
+    }
+
+    impl FpgaExportHost for Application {
+        fn export_permitted(&mut self, _capability: u8) -> bool {
+            self.permitted
+        }
+
+        fn circuit_convertible(&mut self) -> bool {
+            self.convertible
+        }
+
+        fn report(&mut self, message: &str) {
+            self.steps.push(Step::Report(message.to_owned()));
+        }
+
+        fn begin_working_directory(&mut self) -> String {
+            self.steps.push(Step::BeginDirectory);
+            r"C:\Temp\fpga".to_owned()
+        }
+
+        fn generate_vhdl(&mut self, target: ConstraintTarget) -> Vec<String> {
+            self.steps.push(Step::Generate(target));
+            self.packages.clone()
+        }
+
+        fn needs_library_package(&mut self) -> bool {
+            self.needs_library
+        }
+
+        fn add_package(&mut self, path: &str, index: Option<usize>) {
+            self.steps.push(Step::Package(path.to_owned(), index));
+        }
+
+        fn installation_directory(&mut self) -> String {
+            r"C:\Tina".to_owned()
+        }
+
+        fn proposed_name(&mut self) -> String {
+            r"C:\somewhere\else\design.xdc".to_owned()
+        }
+
+        fn seed_dialog_name(&mut self, name: &str) {
+            self.steps.push(Step::Seed(name.to_owned()));
+        }
+
+        fn ask_for_path(&mut self, filter: &str) -> Option<String> {
+            self.steps.push(Step::Ask(filter.to_owned()));
+            self.chosen.clone()
+        }
+
+        fn write_constraints(&mut self, path: &str) {
+            self.steps.push(Step::Write(path.to_owned()));
+        }
+
+        fn end_working_directory(&mut self) {
+            self.steps.push(Step::EndDirectory);
+        }
+    }
+
+    #[test]
+    fn an_export_generates_then_asks_then_writes() {
+        let mut host = Application::ready();
+
+        assert_eq!(
+            export_to_fpga(&mut host, ConstraintTarget::XilinxXdc),
+            Ok(r"C:\out\design.xdc".to_owned())
+        );
+        assert!(
+            host.steps
+                .contains(&Step::Write(r"C:\out\design.xdc".to_owned()))
+        );
+        assert!(host.steps.contains(&Step::Ask("XDC File|*.xdc".to_owned())));
+    }
+
+    #[test]
+    fn a_disallowed_export_never_builds_a_working_directory() {
+        let mut host = Application {
+            permitted: false,
+            ..Application::ready()
+        };
+
+        assert_eq!(
+            export_to_fpga(&mut host, ConstraintTarget::XilinxUcf),
+            Err(ExportRefusal::NotPermitted)
+        );
+        assert!(host.steps.is_empty());
+    }
+
+    #[test]
+    fn an_unconvertible_circuit_is_named_as_the_problem_rather_than_the_licence() {
+        let mut host = Application {
+            convertible: false,
+            ..Application::ready()
+        };
+
+        assert_eq!(
+            export_to_fpga(&mut host, ConstraintTarget::XilinxUcf),
+            Err(ExportRefusal::NotConvertible)
+        );
+        assert_eq!(
+            host.steps,
+            [Step::Report(CANNOT_CONVERT_MESSAGE.to_owned())]
+        );
+    }
+
+    #[test]
+    fn the_working_directory_is_taken_away_even_when_the_user_cancels() {
+        let mut host = Application {
+            chosen: None,
+            ..Application::ready()
+        };
+
+        assert_eq!(
+            export_to_fpga(&mut host, ConstraintTarget::IntelQsf),
+            Err(ExportRefusal::Cancelled)
+        );
+        assert_eq!(host.steps.first(), Some(&Step::BeginDirectory));
+        assert_eq!(host.steps.last(), Some(&Step::EndDirectory));
+        assert!(!host.steps.iter().any(|s| matches!(s, Step::Write(_))));
+    }
+
+    #[test]
+    fn every_package_the_design_referred_to_is_added_with_its_own_index() {
+        let mut host = Application::ready();
+        export_to_fpga(&mut host, ConstraintTarget::XilinxXdc).expect("it exports");
+
+        assert!(
+            host.steps
+                .contains(&Step::Package("a.vhd".to_owned(), Some(0)))
+        );
+        assert!(
+            host.steps
+                .contains(&Step::Package("b.vhd".to_owned(), Some(1)))
+        );
+    }
+
+    #[test]
+    fn the_shipped_library_package_is_added_without_an_index_of_its_own() {
+        let mut host = Application {
+            needs_library: true,
+            ..Application::ready()
+        };
+        export_to_fpga(&mut host, ConstraintTarget::XilinxXdc).expect("it exports");
+
+        assert!(host.steps.contains(&Step::Package(
+            r"C:\Tina\VHDL\Packages\tina_lib2_fpga.vhd".to_owned(),
+            None
+        )));
+    }
+
+    #[test]
+    fn the_library_package_is_left_out_when_the_design_does_not_need_it() {
+        let mut host = Application::ready();
+        export_to_fpga(&mut host, ConstraintTarget::XilinxXdc).expect("it exports");
+
+        assert!(
+            !host
+                .steps
+                .iter()
+                .any(|step| matches!(step, Step::Package(_, None)))
+        );
+    }
+
+    #[test]
+    fn the_target_changes_only_the_constraints_filter() {
+        let mut xdc = Application::ready();
+        export_to_fpga(&mut xdc, ConstraintTarget::XilinxXdc).expect("it exports");
+
+        let mut qsf = Application::ready();
+        export_to_fpga(&mut qsf, ConstraintTarget::IntelQsf).expect("it exports");
+
+        let packages = |host: &Application| {
+            host.steps
+                .iter()
+                .filter(|step| matches!(step, Step::Package(..)))
+                .cloned()
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(packages(&xdc), packages(&qsf));
+        assert!(xdc.steps.contains(&Step::Ask("XDC File|*.xdc".to_owned())));
+        assert!(qsf.steps.contains(&Step::Ask("QSF File|*.qsf".to_owned())));
+    }
+
+    #[test]
+    fn the_dialog_is_seeded_with_the_proposed_name_stripped_of_its_directory() {
+        let mut host = Application::ready();
+        export_to_fpga(&mut host, ConstraintTarget::XilinxXdc).expect("it exports");
+
+        assert!(host.steps.contains(&Step::Seed("design.xdc".to_owned())));
+        assert!(
+            !host
+                .steps
+                .contains(&Step::Seed(r"C:\somewhere\else\design.xdc".to_owned()))
+        );
+    }
+}

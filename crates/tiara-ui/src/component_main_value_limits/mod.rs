@@ -859,3 +859,251 @@ mod tests {
         Ok(())
     }
 }
+/// The resource string the limits grid's first heading comes from.
+pub const LIMITS_NAME_HEADING_RESOURCE: u32 = 0x0429;
+
+/// The localization keys the other two headings come from.
+pub const LIMITS_MINIMUM_HEADING_KEY: &str = "frmCompMainValueLimits.Txt_Min";
+/// The key for the maximum column's heading.
+pub const LIMITS_MAXIMUM_HEADING_KEY: &str = "frmCompMainValueLimits.Txt_Max";
+
+/// How many fields a saved limits line must have to be used.
+///
+/// Part of Ghidra function `FUN_01c48160` at `0x01C48160`.
+///
+/// A line that splits into anything else is passed over rather than
+/// half-filled into the grid, so a truncated settings file loses whole rows
+/// rather than producing rows with missing columns.
+pub const LIMITS_FIELDS: usize = 3;
+
+/// One row of the limits grid.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LimitsRow {
+    /// The component's name.
+    pub name: String,
+    /// Its smallest allowed value.
+    pub minimum: String,
+    /// Its largest.
+    pub maximum: String,
+}
+
+/// Turns the saved lines into grid rows, dropping any that do not have all
+/// three fields.
+///
+/// Part of Ghidra function `FUN_01c48160` at `0x01C48160`.
+#[must_use]
+pub fn limits_rows(lines: &[String], delimiter: char) -> Vec<LimitsRow> {
+    lines
+        .iter()
+        .filter_map(|line| {
+            let fields: Vec<&str> = line.split(delimiter).collect();
+            if fields.len() != LIMITS_FIELDS {
+                return None;
+            }
+            Some(LimitsRow {
+                name: fields[0].to_owned(),
+                minimum: fields[1].to_owned(),
+                maximum: fields[2].to_owned(),
+            })
+        })
+        .collect()
+}
+
+/// How many data rows the grid is given.
+///
+/// Part of Ghidra function `FUN_01c48160` at `0x01C48160`.
+///
+/// The count comes from the saved lines rather than from the rows that
+/// survived the split, and it never drops below one — a grid with no data
+/// rows would have nowhere to type, so an empty settings file still leaves
+/// one blank row.
+#[must_use]
+pub const fn limits_row_count(saved_lines: usize) -> usize {
+    if saved_lines < 2 { 1 } else { saved_lines }
+}
+
+/// What building the limits dialog needs from the application.
+pub trait ValueLimitsCreateHost {
+    /// One heading from the resource strings.
+    fn resource_string(&mut self, id: u32) -> String;
+
+    /// One heading from the localization table, with its compiled-in
+    /// fallback.
+    fn localized(&mut self, key: &str) -> String;
+
+    /// Writes the three headings.
+    fn set_headings(&mut self, headings: [String; 3]);
+
+    /// The saved limit lines, and the character they are split at.
+    fn saved_limits(&mut self) -> (Vec<String>, char);
+
+    /// Writes one row.
+    fn set_row(&mut self, index: usize, row: &LimitsRow);
+
+    /// Sizes the grid.
+    fn set_row_count(&mut self, rows: usize);
+}
+
+/// Implements Ghidra function `FUN_01c48160` at `0x01C48160`.
+///
+/// Handles `frmSetCompMainValueLimits.OnCreate`.
+///
+/// Fills the limits grid from the saved settings.
+///
+/// The three headings come from two different places — the first from the
+/// resource strings and the other two from the localization table with
+/// compiled-in fallbacks — which is what lets the column that names a
+/// component share its heading with other grids while the two value columns
+/// are named for this dialog alone.
+///
+/// A saved line is used only when it splits into exactly three fields.
+/// Anything else is passed over rather than half-filled, so a damaged
+/// settings file loses whole rows instead of producing rows with missing
+/// columns — and because the grid is still sized from the saved line count,
+/// a dropped line leaves a blank row where it was rather than shifting the
+/// rows below it up.
+///
+/// Returns the rows that were written.
+pub fn create_value_limits(host: &mut impl ValueLimitsCreateHost) -> Vec<LimitsRow> {
+    let headings = [
+        host.resource_string(LIMITS_NAME_HEADING_RESOURCE),
+        host.localized(LIMITS_MINIMUM_HEADING_KEY),
+        host.localized(LIMITS_MAXIMUM_HEADING_KEY),
+    ];
+    host.set_headings(headings);
+
+    let (lines, delimiter) = host.saved_limits();
+    let rows = limits_rows(&lines, delimiter);
+    for (index, row) in rows.iter().enumerate() {
+        host.set_row(index, row);
+    }
+
+    host.set_row_count(limits_row_count(lines.len()));
+    rows
+}
+
+#[cfg(test)]
+mod value_limits_create_tests {
+    use super::*;
+
+    #[derive(Debug, Default)]
+    struct Dialog {
+        lines: Vec<String>,
+        headings: Option<[String; 3]>,
+        rows: Vec<(usize, LimitsRow)>,
+        row_count: Option<usize>,
+    }
+
+    impl ValueLimitsCreateHost for Dialog {
+        fn resource_string(&mut self, id: u32) -> String {
+            format!("res{id:#06x}")
+        }
+
+        fn localized(&mut self, key: &str) -> String {
+            key.rsplit('_').next().unwrap_or(key).to_owned()
+        }
+
+        fn set_headings(&mut self, headings: [String; 3]) {
+            self.headings = Some(headings);
+        }
+
+        fn saved_limits(&mut self) -> (Vec<String>, char) {
+            (self.lines.clone(), '\u{ff}')
+        }
+
+        fn set_row(&mut self, index: usize, row: &LimitsRow) {
+            self.rows.push((index, row.clone()));
+        }
+
+        fn set_row_count(&mut self, rows: usize) {
+            self.row_count = Some(rows);
+        }
+    }
+
+    fn line(name: &str, minimum: &str, maximum: &str) -> String {
+        format!("{name}\u{ff}{minimum}\u{ff}{maximum}")
+    }
+
+    #[test]
+    fn the_headings_come_from_two_different_places() {
+        let mut host = Dialog::default();
+        create_value_limits(&mut host);
+
+        assert_eq!(
+            host.headings,
+            Some(["res0x0429".to_owned(), "Min".to_owned(), "Max".to_owned(),])
+        );
+    }
+
+    #[test]
+    fn a_three_field_line_becomes_a_row() {
+        let mut host = Dialog {
+            lines: vec![line("R", "1", "1M")],
+            ..Dialog::default()
+        };
+
+        let rows = create_value_limits(&mut host);
+
+        assert_eq!(
+            rows,
+            [LimitsRow {
+                name: "R".to_owned(),
+                minimum: "1".to_owned(),
+                maximum: "1M".to_owned(),
+            }]
+        );
+    }
+
+    #[test]
+    fn a_line_with_the_wrong_number_of_fields_is_passed_over_whole() {
+        let mut host = Dialog {
+            lines: vec![
+                line("R", "1", "1M"),
+                "C\u{ff}1p".to_owned(),
+                "L\u{ff}1n\u{ff}1m\u{ff}extra".to_owned(),
+                line("D", "0", "5"),
+            ],
+            ..Dialog::default()
+        };
+
+        let rows = create_value_limits(&mut host);
+
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].name, "R");
+        assert_eq!(rows[1].name, "D");
+    }
+
+    #[test]
+    fn the_grid_is_still_sized_from_the_saved_lines_not_the_surviving_rows() {
+        let mut host = Dialog {
+            lines: vec![
+                line("R", "1", "1M"),
+                "broken".to_owned(),
+                line("D", "0", "5"),
+            ],
+            ..Dialog::default()
+        };
+
+        create_value_limits(&mut host);
+
+        assert_eq!(host.row_count, Some(3));
+        assert_eq!(host.rows.len(), 2);
+    }
+
+    #[test]
+    fn an_empty_settings_file_still_leaves_one_row_to_type_in() {
+        let mut host = Dialog::default();
+        create_value_limits(&mut host);
+
+        assert_eq!(host.row_count, Some(1));
+        assert!(host.rows.is_empty());
+    }
+
+    #[test]
+    fn a_single_saved_line_also_gives_one_row() {
+        assert_eq!(limits_row_count(0), 1);
+        assert_eq!(limits_row_count(1), 1);
+        assert_eq!(limits_row_count(2), 2);
+        assert_eq!(limits_row_count(9), 9);
+    }
+}

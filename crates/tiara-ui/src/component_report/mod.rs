@@ -632,3 +632,423 @@ mod tests {
         assert_eq!(host.steps, [TeardownStep::List, TeardownStep::Instance]);
     }
 }
+
+/// The catalogue section a row's pick list is filled from.
+///
+/// Part of Ghidra function `FUN_01bb67d0` at `0x01BB67D0`.
+///
+/// The section names are compiled into the filler at `0x00ED0470`; four of
+/// the six are literals and two are read from data, so those two are named
+/// here by their position rather than by a guess at what they hold.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ModelCategory {
+    /// Section `Spice`, chosen for a component the report knows carries a
+    /// SPICE model.
+    Spice,
+    /// The second section. Its name is read from data rather than compiled
+    /// in, so it is not recovered.
+    SecondSection,
+    /// The third section. Its name is likewise not recovered.
+    ThirdSection,
+    /// Section `Diode`.
+    Diode,
+    /// Section `Mixed`, which is what a row falls back to when none of the
+    /// other tests match.
+    Mixed,
+    /// Section `OtherSC`.
+    OtherSemiconductor,
+}
+
+impl ModelCategory {
+    /// The number the recovered code passes the filler.
+    #[must_use]
+    pub const fn kind(self) -> u8 {
+        match self {
+            Self::Spice => 0,
+            Self::SecondSection => 1,
+            Self::ThirdSection => 2,
+            Self::Diode => 3,
+            Self::Mixed => 4,
+            Self::OtherSemiconductor => 5,
+        }
+    }
+
+    /// The section name, where it is compiled in as a literal.
+    #[must_use]
+    pub const fn section_name(self) -> Option<&'static str> {
+        match self {
+            Self::Spice => Some("Spice"),
+            Self::Diode => Some("Diode"),
+            Self::Mixed => Some("Mixed"),
+            Self::OtherSemiconductor => Some("OtherSC"),
+            Self::SecondSection | Self::ThirdSection => None,
+        }
+    }
+}
+
+/// The library a part name belongs to when it names none.
+///
+/// Part of Ghidra function `FUN_01bb67d0` at `0x01BB67D0`.
+pub const DEFAULT_LIBRARY: &str = "TINA";
+
+/// Where a row's pick list comes from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PicklistSource {
+    /// One section of the model catalogue.
+    Catalogue(ModelCategory),
+    /// The general list, which is not divided into sections.
+    General,
+}
+
+/// What the classification asks about one row's object.
+///
+/// Each field stands for one recovered predicate. The predicates' own
+/// meanings are not recovered — the symbols name none of them — so they are
+/// described here by what they decide rather than by what they test.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[allow(clippy::struct_excessive_bools)]
+pub struct RowKind {
+    /// The object itself answers to the first test, which sends the row
+    /// straight to the general list.
+    pub general_object: bool,
+    /// Either of the two type-level tests that also send it there.
+    pub general_type: bool,
+    /// The object carries a model, and that model's sub-kind is the second
+    /// one.
+    pub spice_model: bool,
+    /// The type answers to the diode test.
+    pub diode: bool,
+    /// The type answers to the second-section test.
+    pub second_section: bool,
+    /// The type answers to the third-section test.
+    pub third_section: bool,
+    /// The type answers to the other-semiconductor test.
+    pub other_semiconductor: bool,
+}
+
+/// Implements part of Ghidra function `FUN_01bb67d0` at `0x01BB67D0`.
+///
+/// Decides which list a row's pick list is filled from.
+///
+/// The three general tests come first and short-circuit everything below
+/// them, so a row that answers to one of those never reaches the catalogue at
+/// all — the sections are only consulted for rows the general list does not
+/// already cover.
+///
+/// Every remaining row gets a section, because the chain ends in a fall-back
+/// rather than in nothing: a type none of the tests recognises is offered the
+/// mixed section.
+#[must_use]
+pub const fn picklist_source(row: RowKind) -> PicklistSource {
+    if row.general_object || row.general_type {
+        return PicklistSource::General;
+    }
+
+    PicklistSource::Catalogue(if row.spice_model {
+        ModelCategory::Spice
+    } else if row.diode {
+        ModelCategory::Diode
+    } else if row.second_section {
+        ModelCategory::SecondSection
+    } else if row.third_section {
+        ModelCategory::ThirdSection
+    } else if row.other_semiconductor {
+        ModelCategory::OtherSemiconductor
+    } else {
+        ModelCategory::Mixed
+    })
+}
+
+/// Splits a part name into the library it names and the part within it.
+///
+/// Part of Ghidra function `FUN_01bb67d0` at `0x01BB67D0`.
+///
+/// A name with no separator belongs to the shipped library, which is why an
+/// ordinary part name needs no prefix. The separator character is read from
+/// data rather than compiled in, so the caller supplies it.
+#[must_use]
+pub fn split_library(name: &str, separator: char) -> (String, String) {
+    name.find(separator).map_or_else(
+        || (DEFAULT_LIBRARY.to_owned(), name.to_owned()),
+        |index| {
+            (
+                name[..index].to_owned(),
+                name[index + separator.len_utf8()..].to_owned(),
+            )
+        },
+    )
+}
+
+/// What one pick-list drop-down needs from the report around it.
+pub trait PicklistHost {
+    /// The row's stored text, or `None` when the grid has no data for it.
+    fn row_text(&mut self, row: usize) -> Option<String>;
+
+    /// The classification of the row's object.
+    fn row_kind(&mut self, row: usize) -> RowKind;
+
+    /// Cuts the component's own name out of the row's text.
+    fn component_name(&mut self, text: &str) -> String;
+
+    /// Fills the pick list from one catalogue section.
+    fn fill_from_catalogue(&mut self, category: ModelCategory, name: &str);
+
+    /// Fills the pick list from the general list.
+    fn fill_from_general(&mut self, name: &str);
+
+    /// Reports that the grid has no data for the row.
+    fn report_missing_row(&mut self);
+}
+
+/// Implements Ghidra function `FUN_01bb67d0` at `0x01BB67D0`.
+///
+/// Handles `frmComponentReport.sgComps.OnPicklistDropdown`.
+///
+/// Fills a grid cell's pick list with the parts the row's component could be
+/// changed to.
+///
+/// What a row can be changed to depends on what it already is, so the list is
+/// built when the user opens it rather than held for every row — a report of
+/// any size would otherwise carry one catalogue query per line.
+///
+/// A row the grid has no data for reports that and fills nothing, which is
+/// what keeps an empty pick list from looking like a component with no
+/// alternatives.
+///
+/// Returns where the list was filled from, or `None` for a row with no data.
+pub fn picklist_dropdown(host: &mut impl PicklistHost, row: usize) -> Option<PicklistSource> {
+    let Some(text) = host.row_text(row) else {
+        host.report_missing_row();
+        return None;
+    };
+
+    let name = host.component_name(&text);
+    let source = picklist_source(host.row_kind(row));
+
+    match source {
+        PicklistSource::Catalogue(category) => host.fill_from_catalogue(category, &name),
+        PicklistSource::General => host.fill_from_general(&name),
+    }
+
+    Some(source)
+}
+
+#[cfg(test)]
+mod picklist_tests {
+    use super::*;
+
+    #[test]
+    fn each_category_keeps_the_number_the_filler_expects() {
+        assert_eq!(ModelCategory::Spice.kind(), 0);
+        assert_eq!(ModelCategory::SecondSection.kind(), 1);
+        assert_eq!(ModelCategory::ThirdSection.kind(), 2);
+        assert_eq!(ModelCategory::Diode.kind(), 3);
+        assert_eq!(ModelCategory::Mixed.kind(), 4);
+        assert_eq!(ModelCategory::OtherSemiconductor.kind(), 5);
+    }
+
+    #[test]
+    fn four_of_the_six_section_names_are_compiled_in() {
+        assert_eq!(ModelCategory::Spice.section_name(), Some("Spice"));
+        assert_eq!(ModelCategory::Diode.section_name(), Some("Diode"));
+        assert_eq!(ModelCategory::Mixed.section_name(), Some("Mixed"));
+        assert_eq!(
+            ModelCategory::OtherSemiconductor.section_name(),
+            Some("OtherSC")
+        );
+        assert_eq!(ModelCategory::SecondSection.section_name(), None);
+        assert_eq!(ModelCategory::ThirdSection.section_name(), None);
+    }
+
+    #[test]
+    fn the_general_tests_short_circuit_every_section_below_them() {
+        for row in [
+            RowKind {
+                general_object: true,
+                ..RowKind::default()
+            },
+            RowKind {
+                general_type: true,
+                ..RowKind::default()
+            },
+        ] {
+            // Even with every section test also answering yes.
+            let row = RowKind {
+                spice_model: true,
+                diode: true,
+                second_section: true,
+                third_section: true,
+                other_semiconductor: true,
+                ..row
+            };
+            assert_eq!(picklist_source(row), PicklistSource::General);
+        }
+    }
+
+    #[test]
+    fn each_section_test_picks_its_own_section() {
+        for (row, expected) in [
+            (
+                RowKind {
+                    spice_model: true,
+                    ..RowKind::default()
+                },
+                ModelCategory::Spice,
+            ),
+            (
+                RowKind {
+                    diode: true,
+                    ..RowKind::default()
+                },
+                ModelCategory::Diode,
+            ),
+            (
+                RowKind {
+                    second_section: true,
+                    ..RowKind::default()
+                },
+                ModelCategory::SecondSection,
+            ),
+            (
+                RowKind {
+                    third_section: true,
+                    ..RowKind::default()
+                },
+                ModelCategory::ThirdSection,
+            ),
+            (
+                RowKind {
+                    other_semiconductor: true,
+                    ..RowKind::default()
+                },
+                ModelCategory::OtherSemiconductor,
+            ),
+        ] {
+            assert_eq!(picklist_source(row), PicklistSource::Catalogue(expected));
+        }
+    }
+
+    #[test]
+    fn a_row_none_of_the_tests_recognise_falls_back_to_the_mixed_section() {
+        assert_eq!(
+            picklist_source(RowKind::default()),
+            PicklistSource::Catalogue(ModelCategory::Mixed)
+        );
+    }
+
+    #[test]
+    fn the_spice_test_wins_over_every_other_section() {
+        let row = RowKind {
+            spice_model: true,
+            diode: true,
+            second_section: true,
+            third_section: true,
+            other_semiconductor: true,
+            ..RowKind::default()
+        };
+
+        assert_eq!(
+            picklist_source(row),
+            PicklistSource::Catalogue(ModelCategory::Spice)
+        );
+    }
+
+    #[test]
+    fn a_name_without_a_separator_belongs_to_the_shipped_library() {
+        assert_eq!(
+            split_library("BC547", ':'),
+            ("TINA".to_owned(), "BC547".to_owned())
+        );
+    }
+
+    #[test]
+    fn a_name_with_a_separator_names_its_own_library() {
+        assert_eq!(
+            split_library("MyLib:BC547", ':'),
+            ("MyLib".to_owned(), "BC547".to_owned())
+        );
+    }
+
+    #[derive(Debug, Default)]
+    struct Report {
+        text: Option<String>,
+        kind: RowKind,
+        filled: Option<(Option<ModelCategory>, String)>,
+        reported_missing: bool,
+    }
+
+    impl PicklistHost for Report {
+        fn row_text(&mut self, _row: usize) -> Option<String> {
+            self.text.clone()
+        }
+
+        fn row_kind(&mut self, _row: usize) -> RowKind {
+            self.kind
+        }
+
+        fn component_name(&mut self, text: &str) -> String {
+            text.trim_matches(|c| c == '<' || c == '>').to_owned()
+        }
+
+        fn fill_from_catalogue(&mut self, category: ModelCategory, name: &str) {
+            self.filled = Some((Some(category), name.to_owned()));
+        }
+
+        fn fill_from_general(&mut self, name: &str) {
+            self.filled = Some((None, name.to_owned()));
+        }
+
+        fn report_missing_row(&mut self) {
+            self.reported_missing = true;
+        }
+    }
+
+    #[test]
+    fn a_row_with_no_data_reports_it_and_fills_nothing() {
+        let mut host = Report::default();
+
+        assert_eq!(picklist_dropdown(&mut host, 3), None);
+        assert!(host.reported_missing);
+        assert!(host.filled.is_none());
+    }
+
+    #[test]
+    fn a_catalogue_row_is_filled_from_its_section_under_the_cut_out_name() {
+        let mut host = Report {
+            text: Some("<BC547>".to_owned()),
+            kind: RowKind {
+                diode: true,
+                ..RowKind::default()
+            },
+            ..Report::default()
+        };
+
+        assert_eq!(
+            picklist_dropdown(&mut host, 1),
+            Some(PicklistSource::Catalogue(ModelCategory::Diode))
+        );
+        assert_eq!(
+            host.filled,
+            Some((Some(ModelCategory::Diode), "BC547".to_owned()))
+        );
+        assert!(!host.reported_missing);
+    }
+
+    #[test]
+    fn a_general_row_never_reaches_the_catalogue() {
+        let mut host = Report {
+            text: Some("<R1>".to_owned()),
+            kind: RowKind {
+                general_object: true,
+                ..RowKind::default()
+            },
+            ..Report::default()
+        };
+
+        assert_eq!(
+            picklist_dropdown(&mut host, 0),
+            Some(PicklistSource::General)
+        );
+        assert_eq!(host.filled, Some((None, "R1".to_owned())));
+    }
+}

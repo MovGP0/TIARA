@@ -27,6 +27,23 @@ pub enum InertCommand {
     ImportPalmtopCircuit,
     ImportPSpice,
     ImportEdif,
+    /// `MainMenu.mnFile.Save` and `TopToolBar.GeneralTools.DFSaveBtn`.
+    Save,
+    /// `MainMenu.mnFile.SaveAs`.
+    SaveAs,
+    /// `MainMenu.mnTM.mnOpenTestcard`.
+    OpenTestcard,
+    /// `MainMenu.mnAnalysis` itself, which opens the submenu and nothing else.
+    AnalysisMenu,
+    /// `SchematicEditorEvents.OnActivate`.
+    EditorActivated,
+    /// `MainMenu.mnFile.Import.ImportDigit` ("Logic Converter (*.TLC)...").
+    ImportLogicConverter,
+    /// `MainMenu.Help.CheckforUpdates` ("Check for Updates...").
+    CheckForUpdates,
+    /// `TopToolBar.EditorTools.sbAIAssistant` and
+    /// `MainMenu.mnTools.mnAIAssistant` ("AI Assistant").
+    AiAssistant,
 }
 
 /// Runs one of the menu commands the recovered build leaves empty.
@@ -34,12 +51,24 @@ pub enum InertCommand {
 /// Implements Ghidra functions `FUN_01c81320` at `0x01C81320`, `FUN_01c81330`
 /// at `0x01C81330`, `FUN_01c87b20` at `0x01C87B20`, `FUN_01c806a0` at
 /// `0x01C806A0`, `FUN_01c83490` at `0x01C83490`, `FUN_01c834a0` at
-/// `0x01C834A0`, `FUN_01c834b0` at `0x01C834B0`, and `FUN_01c834c0` at
-/// `0x01C834C0`.
+/// `0x01C834A0`, `FUN_01c834b0` at `0x01C834B0`, `FUN_01c834c0` at
+/// `0x01C834C0`, `FUN_01c77390` at `0x01C77390`, `FUN_01c76b40` at
+/// `0x01C76B40`, `FUN_01c77340` at `0x01C77340`, and `FUN_01c805b0` at
+/// `0x01C805B0`, `FUN_01c8e9f0` at `0x01C8E9F0`, and `FUN_01c92b60` at
+/// `0x01C92B60`, `FUN_01c9c210` at `0x01C9C210`, and `FUN_01ca4da0` at
+/// `0x01CA4DA0`.
 ///
 /// Every one of these menu commands is inert in the recovered build: print,
-/// print setup, print preview, the SPICE editor, and four of the import
-/// commands all return without doing anything.
+/// print setup, print preview, the SPICE editor, four of the import commands,
+/// both save commands, the test-card entry, and the Analysis menu's own click
+/// all return without doing anything.
+///
+/// Save being empty is worth noticing rather than assuming a mistake: this is
+/// the demo build, and the two save entries are present but do nothing.
+///
+/// The update check and the AI assistant are empty in a slightly different way:
+/// each allocates and finalizes one unused local string, which has the same
+/// observable effect as returning.
 ///
 /// Keeping them as one explicit no-op records that the recovered handlers were
 /// read and found empty, rather than leaving eight menu items unaccounted for.
@@ -255,6 +284,14 @@ mod tests {
             InertCommand::ImportPalmtopCircuit,
             InertCommand::ImportPSpice,
             InertCommand::ImportEdif,
+            InertCommand::Save,
+            InertCommand::SaveAs,
+            InertCommand::OpenTestcard,
+            InertCommand::AnalysisMenu,
+            InertCommand::EditorActivated,
+            InertCommand::ImportLogicConverter,
+            InertCommand::CheckForUpdates,
+            InertCommand::AiAssistant,
         ] {
             run_inert_command(command);
         }

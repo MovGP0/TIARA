@@ -480,6 +480,7 @@ impl Window {
 
     /// Builds the controls associated with `SCREENSHOT` and `FORM_RESOURCE`.
     /// `ORIGINAL_FUNCTION` preserves the recovered function connection when available.
+    #[must_use]
     pub fn view(&self) -> Element<'_, Message> {
         let menu = window_shell::empty_menu();
         let toolbar = converter_toolbar();
@@ -876,5 +877,150 @@ mod tests {
             output_current: String::new(),
             frequency: String::new(),
         }
+    }
+}
+
+#[cfg(test)]
+mod teardown_tests {
+    use super::*;
+
+    #[derive(Debug, Default)]
+    struct Teardown {
+        frees: usize,
+    }
+
+    impl ConvertersTeardownHost for Teardown {
+        fn free_catalog(&mut self) {
+            self.frees += 1;
+        }
+    }
+
+    #[test]
+    fn closing_the_dialog_frees_its_catalog_once() {
+        let mut host = Teardown::default();
+
+        destroy_converters_dialog(&mut host);
+
+        assert_eq!(host.frees, 1);
+    }
+}
+
+pub trait ConvertersTeardownHost {
+    /// Frees the catalogue the dialog loaded.
+    fn free_catalog(&mut self);
+}
+
+/// Implements Ghidra function `FUN_01c4a740` at `0x01C4A740`.
+///
+/// Handles `ConvertersDlg.OnDestroy`.
+///
+/// Frees the catalogue the dialog owns. The recovered call is the nil-safe
+/// free, so closing a dialog that never managed to load its catalogue is not an
+/// error.
+pub fn destroy_converters_dialog(host: &mut impl ConvertersTeardownHost) {
+    host.free_catalog();
+}
+
+/// The row both of the dialog's lists start on.
+pub const INITIAL_ROW: usize = 0;
+
+/// What building the converters dialog needs from the form.
+pub trait ConvertersCreateHost {
+    /// Clears the check the dialog starts unticked.
+    fn clear_check(&mut self);
+
+    /// Puts the input list on one row.
+    fn select_input_row(&mut self, row: usize);
+
+    /// Puts the output list on one row.
+    fn select_output_row(&mut self, row: usize);
+
+    /// Builds the list the dialog collects its results in.
+    fn create_result_list(&mut self);
+
+    /// Fills the dialog from the current selection.
+    fn refresh(&mut self);
+}
+
+/// Implements Ghidra function `FUN_01c4a6d0` at `0x01C4A6D0`.
+///
+/// Handles `ConvertersDlg.OnCreate`.
+///
+/// Puts the converters dialog into its starting state.
+///
+/// Both lists are put on their first row before anything is filled in, so the
+/// refresh that follows always has a selection to work from — the dialog
+/// never opens showing nothing chosen.
+pub fn create_converters(host: &mut impl ConvertersCreateHost) {
+    host.clear_check();
+    host.select_input_row(INITIAL_ROW);
+    host.select_output_row(INITIAL_ROW);
+    host.create_result_list();
+    host.refresh();
+}
+
+#[cfg(test)]
+mod converters_create_tests {
+    use super::*;
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum Step {
+        ClearCheck,
+        Input(usize),
+        Output(usize),
+        ResultList,
+        Refresh,
+    }
+
+    #[derive(Debug, Default)]
+    struct Dialog {
+        steps: Vec<Step>,
+    }
+
+    impl ConvertersCreateHost for Dialog {
+        fn clear_check(&mut self) {
+            self.steps.push(Step::ClearCheck);
+        }
+
+        fn select_input_row(&mut self, row: usize) {
+            self.steps.push(Step::Input(row));
+        }
+
+        fn select_output_row(&mut self, row: usize) {
+            self.steps.push(Step::Output(row));
+        }
+
+        fn create_result_list(&mut self) {
+            self.steps.push(Step::ResultList);
+        }
+
+        fn refresh(&mut self) {
+            self.steps.push(Step::Refresh);
+        }
+    }
+
+    #[test]
+    fn both_lists_are_put_on_their_first_row_before_the_refresh() {
+        let mut host = Dialog::default();
+        create_converters(&mut host);
+
+        assert_eq!(
+            host.steps,
+            [
+                Step::ClearCheck,
+                Step::Input(0),
+                Step::Output(0),
+                Step::ResultList,
+                Step::Refresh,
+            ]
+        );
+    }
+
+    #[test]
+    fn the_refresh_is_the_last_thing_that_happens() {
+        let mut host = Dialog::default();
+        create_converters(&mut host);
+
+        assert_eq!(host.steps.last(), Some(&Step::Refresh));
     }
 }

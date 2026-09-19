@@ -124,6 +124,8 @@ pub struct IbisImportDialog {
     model_row: usize,
     model_type: String,
     staged_model: String,
+    staged_signal: String,
+    message: String,
 }
 
 impl IbisImportDialog {
@@ -570,5 +572,270 @@ mod tests {
         dialog.destroy();
 
         assert_eq!(dialog.components().len(), 2);
+    }
+}
+
+/// The message the accept path reports when no signal has been chosen.
+pub const NO_SIGNAL_MESSAGE: &str = "You have to select a signal!";
+
+/// What the accept path appends to the signal's name when its model is one of
+/// the three the import refuses.
+///
+/// The stray comma before the bracket is in the recovered string; this port
+/// keeps it rather than tidying it, because the message is what the user sees
+/// and matching it is how the port can be checked against the original.
+pub const SPECIAL_MODEL_MESSAGE: &str =
+    ": cannot import , (POWER, GND, NC are special models, you cannot import them!)";
+
+/// The row of the signal list that stands for no choice at all.
+///
+/// The recovered handler treats row zero as nothing chosen rather than as the
+/// first signal, so the list's first row is a placeholder and not a signal the
+/// user can import.
+pub const SIGNAL_PLACEHOLDER_ROW: usize = 0;
+
+/// How the accept path judged the dialog.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AcceptOutcome {
+    /// The choice is good; the corner index was taken from its list.
+    Accepted {
+        /// The Typ/Min/Max corner the dialog settled on.
+        corner_index: i32,
+    },
+    /// The choice was refused, with the message the dialog shows.
+    Refused(String),
+}
+
+impl IbisImportDialog {
+    /// The name of the signal the accept path last looked at.
+    #[must_use]
+    pub fn staged_signal(&self) -> &str {
+        &self.staged_signal
+    }
+
+    /// The message the accept path last reported, if it refused.
+    #[must_use]
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    /// Implements Ghidra function `FUN_01bc1460` at `0x01BC1460`.
+    ///
+    /// Handles the accept path of the IBIS import dialog.
+    ///
+    /// Two things can be wrong and the handler looks at both rather than
+    /// stopping at the first, so a dialog that fails each check reports only
+    /// the second — the messages share one field and the later one overwrites
+    /// the earlier. This port keeps that: the refusal it hands back is the
+    /// last one reached, not the first.
+    ///
+    /// The second check is the interesting one. Three model names — the two
+    /// supply rails and the no-connect — describe a pin that is not a buffer
+    /// at all, so there is nothing to import even though the file names them
+    /// exactly as it names real models. The refusal is by the *model* the
+    /// signal refers to, not by the signal's own name, so a signal called
+    /// anything at all is refused when it resolves to one of the three.
+    ///
+    /// The corner choice is read only once both checks have passed, which is
+    /// why a refused dialog leaves the corner it had.
+    pub fn accept(&mut self, file: &IbisFile, corner_row: i32) -> AcceptOutcome {
+        let mut refusal =
+            (self.signal_row == SIGNAL_PLACEHOLDER_ROW).then(|| NO_SIGNAL_MESSAGE.to_owned());
+
+        let component = self.current_component();
+        let signal = self.current_signal();
+        self.staged_signal.clone_from(&signal);
+
+        let model = file
+            .signal(&component, &signal)
+            .map(|signal| signal.model_reference.as_str())
+            .unwrap_or_default();
+
+        if REJECTED_SIGNAL_NAMES.contains(&model) {
+            refusal = Some(format!("{signal}{SPECIAL_MODEL_MESSAGE}"));
+        }
+
+        if let Some(message) = refusal {
+            self.close_veto = true;
+            self.message.clone_from(&message);
+            return AcceptOutcome::Refused(message);
+        }
+
+        self.corner_index = corner_row;
+        AcceptOutcome::Accepted {
+            corner_index: corner_row,
+        }
+    }
+}
+
+#[cfg(test)]
+mod accept_tests {
+    use super::*;
+
+    fn file() -> IbisFile {
+        IbisFile {
+            components: vec![IbisComponent {
+                name: "PART".to_owned(),
+                signals: vec![
+                    IbisSignal {
+                        name: "(none)".to_owned(),
+                        model_reference: "OUT".to_owned(),
+                    },
+                    IbisSignal {
+                        name: "A1".to_owned(),
+                        model_reference: "OUT".to_owned(),
+                    },
+                    IbisSignal {
+                        name: "VCC".to_owned(),
+                        model_reference: "POWER".to_owned(),
+                    },
+                    IbisSignal {
+                        name: "VSS".to_owned(),
+                        model_reference: "GND".to_owned(),
+                    },
+                    IbisSignal {
+                        name: "SPARE".to_owned(),
+                        model_reference: "NC".to_owned(),
+                    },
+                ],
+            }],
+            ..IbisFile::default()
+        }
+    }
+
+    fn dialog() -> IbisImportDialog {
+        IbisImportDialog {
+            components: vec!["PART".to_owned()],
+            signals: vec![
+                "(none)".to_owned(),
+                "A1".to_owned(),
+                "VCC".to_owned(),
+                "VSS".to_owned(),
+                "SPARE".to_owned(),
+            ],
+            ..IbisImportDialog::default()
+        }
+    }
+
+    #[test]
+    fn a_good_choice_is_accepted_and_takes_the_corner() {
+        let mut dialog = dialog();
+        dialog.select_signal_row(1);
+
+        assert_eq!(
+            dialog.accept(&file(), 2),
+            AcceptOutcome::Accepted { corner_index: 2 }
+        );
+        assert_eq!(dialog.corner_index(), 2);
+        assert!(!dialog.close_veto());
+    }
+
+    #[test]
+    fn the_first_row_stands_for_no_signal_at_all() {
+        let mut dialog = dialog();
+        dialog.select_signal_row(SIGNAL_PLACEHOLDER_ROW);
+
+        assert_eq!(
+            dialog.accept(&file(), 2),
+            AcceptOutcome::Refused(NO_SIGNAL_MESSAGE.to_owned())
+        );
+        assert!(dialog.close_veto());
+    }
+
+    #[test]
+    fn a_refused_dialog_keeps_the_corner_it_had() {
+        let mut dialog = dialog();
+        dialog.select_signal_row(1);
+        dialog.accept(&file(), 1);
+
+        dialog.select_signal_row(2);
+        dialog.accept(&file(), 2);
+
+        assert_eq!(dialog.corner_index(), 1);
+    }
+
+    #[test]
+    fn each_of_the_three_special_models_is_refused() {
+        for (row, signal) in [(2, "VCC"), (3, "VSS"), (4, "SPARE")] {
+            let mut dialog = dialog();
+            dialog.select_signal_row(row);
+
+            assert_eq!(
+                dialog.accept(&file(), 0),
+                AcceptOutcome::Refused(format!("{signal}{SPECIAL_MODEL_MESSAGE}"))
+            );
+            assert!(dialog.close_veto());
+        }
+    }
+
+    #[test]
+    fn the_refusal_is_by_the_model_not_by_the_signals_own_name() {
+        let mut file = file();
+        // A signal named like an ordinary one that resolves to a supply.
+        file.components[0].signals[1].model_reference = "GND".to_owned();
+
+        let mut dialog = dialog();
+        dialog.select_signal_row(1);
+
+        assert_eq!(
+            dialog.accept(&file, 0),
+            AcceptOutcome::Refused(format!("A1{SPECIAL_MODEL_MESSAGE}"))
+        );
+    }
+
+    #[test]
+    fn a_signal_merely_named_after_a_supply_is_still_importable() {
+        let mut file = file();
+        file.components[0].signals[2].model_reference = "OUT".to_owned();
+
+        let mut dialog = dialog();
+        dialog.select_signal_row(2);
+
+        assert_eq!(
+            dialog.accept(&file, 0),
+            AcceptOutcome::Accepted { corner_index: 0 }
+        );
+    }
+
+    #[test]
+    fn both_checks_run_and_the_later_message_wins() {
+        // Row zero is both the placeholder and, here, a special model, so both
+        // checks fail on the same accept.
+        let mut file = file();
+        file.components[0].signals[0].model_reference = "NC".to_owned();
+
+        let mut dialog = dialog();
+        dialog.select_signal_row(SIGNAL_PLACEHOLDER_ROW);
+
+        assert_eq!(
+            dialog.accept(&file, 0),
+            AcceptOutcome::Refused(format!("(none){SPECIAL_MODEL_MESSAGE}"))
+        );
+    }
+
+    #[test]
+    fn the_signal_is_staged_even_when_the_choice_is_refused() {
+        let mut dialog = dialog();
+        dialog.select_signal_row(2);
+        dialog.accept(&file(), 0);
+
+        assert_eq!(dialog.staged_signal(), "VCC");
+        assert_eq!(
+            dialog.message(),
+            format!("VCC{SPECIAL_MODEL_MESSAGE}").as_str()
+        );
+    }
+
+    #[test]
+    fn a_signal_the_file_does_not_know_is_accepted() {
+        // The lookup yields no model, and no model is not one of the three.
+        let mut dialog = dialog();
+        dialog.signals.push("UNKNOWN".to_owned());
+        dialog.select_signal_row(5);
+
+        assert_eq!(
+            dialog.accept(&file(), 0),
+            AcceptOutcome::Accepted { corner_index: 0 }
+        );
     }
 }

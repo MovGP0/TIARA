@@ -82,8 +82,8 @@ pub trait ActivateComponentsHost {
     /// Opens an undo record covering the activation.
     fn begin_undo_record(&mut self) -> Option<UndoRecord>;
 
-    /// Activates every component in the document.
-    fn activate_components(&mut self);
+    /// Activates or deactivates every component in the document.
+    fn set_components_active(&mut self, active: bool);
 
     /// Reports whether any component ended up activated.
     fn any_component_activated(&mut self) -> bool;
@@ -113,12 +113,31 @@ pub trait ActivateComponentsHost {
 ///
 /// Returns whether anything was activated.
 pub fn activate_components(host: &mut impl ActivateComponentsHost) -> bool {
+    set_components_active(true, host)
+}
+
+/// Implements Ghidra function `FUN_01c8eb40` at `0x01C8EB40`.
+///
+/// Handles `SchPopup.pmDeactivateComps.OnClick` ("Deactivate components").
+///
+/// Deactivates the interactive components.
+///
+/// This is byte-for-byte the activate command with one flag flipped, including
+/// the undo record that is thrown away when nothing turned out to be
+/// deactivatable.
+///
+/// Returns whether anything was deactivated.
+pub fn deactivate_components(host: &mut impl ActivateComponentsHost) -> bool {
+    set_components_active(false, host)
+}
+
+fn set_components_active(active: bool, host: &mut impl ActivateComponentsHost) -> bool {
     if host.editing_blocked() {
         return false;
     }
 
     let record = host.begin_undo_record();
-    host.activate_components();
+    host.set_components_active(active);
 
     if !host.any_component_activated() {
         if let Some(record) = record {
@@ -263,7 +282,7 @@ mod tests {
             Some(UndoRecord(1))
         }
 
-        fn activate_components(&mut self) {
+        fn set_components_active(&mut self, _active: bool) {
             self.steps.push(ActivateStep::Activate);
         }
 
@@ -321,6 +340,27 @@ mod tests {
                 ActivateStep::Begin,
                 ActivateStep::Activate,
                 ActivateStep::Discard,
+            ]
+        );
+    }
+
+    #[test]
+    fn deactivating_takes_the_same_path_as_activating() {
+        let mut host = ActivateHost {
+            activated: true,
+            ..ActivateHost::default()
+        };
+
+        assert!(deactivate_components(&mut host));
+
+        assert_eq!(
+            host.steps,
+            [
+                ActivateStep::Begin,
+                ActivateStep::Activate,
+                ActivateStep::Changed,
+                ActivateStep::Commit,
+                ActivateStep::Invalidate,
             ]
         );
     }

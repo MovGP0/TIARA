@@ -1482,3 +1482,413 @@ mod menu_and_transform_tests {
         assert!(host.steps.is_empty());
     }
 }
+
+pub trait BusToolHost: ToolActivationHost {
+    /// Constructs the bus variant of the wire command.
+    ///
+    /// The recovered build reaches the same wire class with a different
+    /// constructor argument, which is what makes a bus a wire that carries
+    /// several signals.
+    fn construct_bus_command(&mut self) -> CommandHandle;
+}
+
+/// Implements Ghidra function `FUN_01c92b00` at `0x01C92B00`.
+///
+/// Handles `MainMenu.Insert.mnBus.OnClick` ("&Bus").
+///
+/// Arms the bus tool.
+///
+/// The bus is the wire command built with its other flag, and it presses the
+/// *wire* tool button — the tool bar has no bus button, so an armed bus looks
+/// exactly like an armed wire.
+///
+/// A blocked editor or a running script makes the click a no-op.
+pub fn arm_bus_tool(host: &mut impl BusToolHost) -> bool {
+    if host.editing_blocked() || host.scripting_active() {
+        return false;
+    }
+
+    let command = host.construct_bus_command();
+    install_command(Some(command), host);
+    host.press_tool_button(EditorTool::Wire);
+    true
+}
+
+pub trait OutputCommandHost: EditorCommandHost {
+    /// The shared guard that blocks editing in some editor states.
+    fn editing_blocked(&mut self) -> bool;
+
+    /// Reports whether the application is running a script.
+    fn scripting_active(&mut self) -> bool;
+
+    /// Constructs the output-placement command.
+    ///
+    /// Returns `None` when the command built itself into an unusable state —
+    /// the recovered check is a negative index on the new object.
+    fn construct_output_command(&mut self) -> Option<CommandHandle>;
+}
+
+/// Implements Ghidra function `FUN_01c77410` at `0x01C77410`.
+///
+/// Handles `MainMenu.Insert.mnOutput.OnClick` ("&Output").
+///
+/// Arms the output-placement command, unless the command cannot be used.
+///
+/// This is the only tool that inspects what it just built: a command that comes
+/// back with a negative index is dropped on the floor rather than installed, so
+/// choosing Output on a circuit with nothing to attach to leaves the editor
+/// exactly as it was.
+///
+/// Note that the rejected command is not destroyed either — the recovered
+/// handler simply stops, which leaks it. That is preserved here as a `None`
+/// that installs nothing.
+pub fn arm_output_command(host: &mut impl OutputCommandHost) -> bool {
+    if host.editing_blocked() || host.scripting_active() {
+        return false;
+    }
+
+    let Some(command) = host.construct_output_command() else {
+        return false;
+    };
+
+    install_command(Some(command), host);
+    true
+}
+
+#[cfg(test)]
+mod bus_and_output_tests {
+    use super::*;
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    enum Step {
+        Destroy,
+        Store(Option<CommandHandle>),
+        Press(EditorTool),
+        ConstructBus,
+        ConstructOutput,
+    }
+
+    #[derive(Debug, Default)]
+    struct Host {
+        active: Option<CommandHandle>,
+        blocked: bool,
+        scripting: bool,
+        output_ok: bool,
+        steps: Vec<Step>,
+    }
+
+    impl EditorCommandHost for Host {
+        fn has_active_command(&mut self) -> bool {
+            self.active.is_some()
+        }
+
+        fn destroy_active_command(&mut self) {
+            self.active = None;
+            self.steps.push(Step::Destroy);
+        }
+
+        fn store_active_command(&mut self, command: Option<CommandHandle>) {
+            self.active = command;
+            self.steps.push(Step::Store(command));
+        }
+
+        fn press_tool_button(&mut self, tool: EditorTool) {
+            self.steps.push(Step::Press(tool));
+        }
+    }
+
+    impl ToolActivationHost for Host {
+        fn editing_blocked(&mut self) -> bool {
+            self.blocked
+        }
+
+        fn scripting_active(&mut self) -> bool {
+            self.scripting
+        }
+
+        fn insert_last_component(&mut self) {
+            unreachable!("neither tool inserts the last component");
+        }
+
+        fn construct_command(&mut self, _tool: EditorTool) -> CommandHandle {
+            unreachable!("both tools use their own constructor");
+        }
+    }
+
+    impl BusToolHost for Host {
+        fn construct_bus_command(&mut self) -> CommandHandle {
+            self.steps.push(Step::ConstructBus);
+            CommandHandle(5)
+        }
+    }
+
+    impl OutputCommandHost for Host {
+        fn editing_blocked(&mut self) -> bool {
+            self.blocked
+        }
+
+        fn scripting_active(&mut self) -> bool {
+            self.scripting
+        }
+
+        fn construct_output_command(&mut self) -> Option<CommandHandle> {
+            self.steps.push(Step::ConstructOutput);
+            self.output_ok.then_some(CommandHandle(6))
+        }
+    }
+
+    #[test]
+    fn the_bus_tool_presses_the_wire_button() {
+        let mut host = Host::default();
+
+        assert!(arm_bus_tool(&mut host));
+
+        assert_eq!(
+            host.steps,
+            [
+                Step::ConstructBus,
+                Step::Store(Some(CommandHandle(5))),
+                Step::Press(EditorTool::Wire),
+            ]
+        );
+    }
+
+    #[test]
+    fn the_output_command_presses_no_button() {
+        let mut host = Host {
+            output_ok: true,
+            ..Host::default()
+        };
+
+        assert!(arm_output_command(&mut host));
+
+        assert_eq!(
+            host.steps,
+            [Step::ConstructOutput, Step::Store(Some(CommandHandle(6)))]
+        );
+    }
+
+    #[test]
+    fn an_unusable_output_command_is_never_installed() {
+        let mut host = Host::default();
+
+        assert!(!arm_output_command(&mut host));
+
+        assert_eq!(host.steps, [Step::ConstructOutput]);
+        assert!(host.active.is_none());
+    }
+
+    #[test]
+    fn a_blocked_editor_arms_neither_tool() {
+        for (blocked, scripting) in [(true, false), (false, true)] {
+            let mut host = Host {
+                blocked,
+                scripting,
+                output_ok: true,
+                ..Host::default()
+            };
+
+            assert!(!arm_bus_tool(&mut host));
+            assert!(!arm_output_command(&mut host));
+            assert!(host.steps.is_empty());
+        }
+    }
+}
+
+/// The drawing shapes the Insert menu arms a placement tool for.
+///
+/// The recovered handler matches the clicked entry against eight fields and
+/// reaches four command classes between them, so the shapes group as the
+/// classes group rather than as the menu lists them.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InsertShape {
+    /// `Insert.mnShape.mnLine` ("&Line"): the line class with flag `0`.
+    Line,
+    /// `Insert.mnShape.mnArrow.mnArrowLinear` ("&Linear"): the same line class
+    /// with flag `1` — an arrow is a line that draws a head.
+    ArrowLinear,
+    /// `Insert.mnShape.mnArrow.mnArrowRoundedCorner` ("&Rounded corner"): the
+    /// curved-arrow class with flag `0`.
+    ArrowRoundedCorner,
+    /// `Insert.mnShape.mnArrow.mnArrowCircular` ("&Circular"): the same curved
+    /// class with flag `1`.
+    ArrowCircular,
+    /// `Insert.mnShape.mnPolygon` ("&Polygon"): its own class, with no flag.
+    Polygon,
+    /// `Insert.mnShape.mnRectangle` ("&Rectangle"): the closed-shape class with
+    /// code `0`.
+    Rectangle,
+    /// `Insert.mnShape.mnEllipse` ("&Ellipse"): the same class with code `1`.
+    Ellipse,
+    /// `Insert.mnShape.mnArc` ("&Arc"): the same class with code `2`.
+    Arc,
+}
+
+pub trait ShapeToolHost: EditorCommandHost {
+    /// The shared guard that blocks editing in some editor states.
+    fn editing_blocked(&mut self) -> bool;
+
+    /// Reports whether the application is running a script.
+    fn scripting_active(&mut self) -> bool;
+
+    /// Reports whether the clicked control is a menu entry at all.
+    ///
+    /// The recovered handler tests its `Sender` before comparing it against the
+    /// eight fields, so anything else reaching this handler is ignored.
+    fn sender_is_menu_entry(&mut self) -> bool;
+
+    /// Constructs the placement command for one shape.
+    fn construct_shape_command(&mut self, shape: InsertShape) -> CommandHandle;
+}
+
+/// Implements Ghidra function `FUN_01c97500` at `0x01C97500`.
+///
+/// Handles the eight `MainMenu.Insert.mnShape` entries.
+///
+/// Arms the placement tool for one drawing shape.
+///
+/// All eight press the *wire* tool button afterwards — the tool bar has no
+/// shape buttons, so an armed shape looks exactly like an armed wire, the same
+/// way the bus does.
+///
+/// The button is pressed even when the clicked entry matched none of the eight
+/// fields, so a shape entry the handler does not recognize still moves the tool
+/// bar without arming anything.
+///
+/// A blocked editor or a running script makes the click a no-op.
+///
+/// Returns whether a command was armed.
+pub fn arm_shape_tool(shape: Option<InsertShape>, host: &mut impl ShapeToolHost) -> bool {
+    if host.editing_blocked() || host.scripting_active() || !host.sender_is_menu_entry() {
+        return false;
+    }
+
+    let armed = shape.is_some_and(|shape| {
+        let command = host.construct_shape_command(shape);
+        install_command(Some(command), host);
+        true
+    });
+
+    host.press_tool_button(EditorTool::Wire);
+    armed
+}
+
+#[cfg(test)]
+mod shape_tests {
+    use super::*;
+
+    const ALL_SHAPES: [InsertShape; 8] = [
+        InsertShape::Line,
+        InsertShape::ArrowLinear,
+        InsertShape::ArrowRoundedCorner,
+        InsertShape::ArrowCircular,
+        InsertShape::Polygon,
+        InsertShape::Rectangle,
+        InsertShape::Ellipse,
+        InsertShape::Arc,
+    ];
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    enum Step {
+        Store(Option<CommandHandle>),
+        Press(EditorTool),
+        Construct(InsertShape),
+    }
+
+    #[derive(Debug, Default)]
+    struct Host {
+        blocked: bool,
+        scripting: bool,
+        not_a_menu_entry: bool,
+        steps: Vec<Step>,
+    }
+
+    impl EditorCommandHost for Host {
+        fn has_active_command(&mut self) -> bool {
+            false
+        }
+
+        fn destroy_active_command(&mut self) {
+            unreachable!("the shape tools never cancel first");
+        }
+
+        fn store_active_command(&mut self, command: Option<CommandHandle>) {
+            self.steps.push(Step::Store(command));
+        }
+
+        fn press_tool_button(&mut self, tool: EditorTool) {
+            self.steps.push(Step::Press(tool));
+        }
+    }
+
+    impl ShapeToolHost for Host {
+        fn editing_blocked(&mut self) -> bool {
+            self.blocked
+        }
+
+        fn scripting_active(&mut self) -> bool {
+            self.scripting
+        }
+
+        fn sender_is_menu_entry(&mut self) -> bool {
+            !self.not_a_menu_entry
+        }
+
+        fn construct_shape_command(&mut self, shape: InsertShape) -> CommandHandle {
+            self.steps.push(Step::Construct(shape));
+            CommandHandle(7)
+        }
+    }
+
+    #[test]
+    fn every_shape_arms_its_own_command_and_presses_the_wire_button() {
+        for shape in ALL_SHAPES {
+            let mut host = Host::default();
+
+            assert!(arm_shape_tool(Some(shape), &mut host));
+
+            assert_eq!(
+                host.steps,
+                [
+                    Step::Construct(shape),
+                    Step::Store(Some(CommandHandle(7))),
+                    Step::Press(EditorTool::Wire),
+                ]
+            );
+        }
+    }
+
+    #[test]
+    fn an_unrecognized_entry_still_moves_the_tool_bar() {
+        let mut host = Host::default();
+
+        assert!(!arm_shape_tool(None, &mut host));
+
+        assert_eq!(host.steps, [Step::Press(EditorTool::Wire)]);
+    }
+
+    #[test]
+    fn a_sender_that_is_not_a_menu_entry_is_ignored_entirely() {
+        let mut host = Host {
+            not_a_menu_entry: true,
+            ..Host::default()
+        };
+
+        assert!(!arm_shape_tool(Some(InsertShape::Arc), &mut host));
+        assert!(host.steps.is_empty());
+    }
+
+    #[test]
+    fn a_blocked_editor_or_a_running_script_arms_no_shape() {
+        for (blocked, scripting) in [(true, false), (false, true)] {
+            let mut host = Host {
+                blocked,
+                scripting,
+                ..Host::default()
+            };
+
+            assert!(!arm_shape_tool(Some(InsertShape::Line), &mut host));
+            assert!(host.steps.is_empty());
+        }
+    }
+}

@@ -649,3 +649,193 @@ mod tests {
         );
     }
 }
+
+use crate::analysis_options::ErcMatrix;
+
+/// How the built-in rule matrix is written down in the binary.
+///
+/// Part of Ghidra function `FUN_01d43940` at `0x01D43940`.
+///
+/// One string per column, each nine characters long, read as the rule between
+/// that column's pin type and each of the nine row types in turn. The leading
+/// dots are the entries the earlier columns already set from the other side,
+/// so the strings together describe a triangle rather than a square — the
+/// matrix is symmetric and only half of it is written out.
+pub const BUILT_IN_MATRIX_COLUMNS: [&str; 9] = [
+    "--------W",
+    ".EWE-EEE-",
+    "..WW-----",
+    "...--EEE-",
+    "....-----",
+    ".....----",
+    "......-W-",
+    ".......W-",
+    "........-",
+];
+
+/// The character meaning an entry is left to the symmetric one.
+pub const MATRIX_SKIP: char = '.';
+
+/// Reads one character of the built-in matrix.
+///
+/// Implements Ghidra function `FUN_01d43840` at `0x01D43840`.
+///
+/// The recovered decoder tests each letter in both cases against a bit mask,
+/// so the table could be written in either; only two letters mean anything
+/// and everything else — the dash included — is the permitted rule. That is
+/// what makes a dash readable as "nothing to say" rather than as a code of
+/// its own.
+#[must_use]
+pub const fn matrix_rule_for(character: char) -> ErcRule {
+    match character {
+        'W' | 'w' => ErcRule::Warning,
+        'E' | 'e' => ErcRule::Error,
+        _ => ErcRule::Blank,
+    }
+}
+
+/// Reads one column of the built-in matrix into a matrix.
+///
+/// Implements Ghidra function `FUN_01d438e0` at `0x01D438E0`.
+///
+/// Every character but the skip marker is written, and each write sets both
+/// halves of the matrix — so a column need only carry the entries no earlier
+/// column has already supplied.
+pub fn load_matrix_column(matrix: &mut ErcMatrix, column: usize, encoded: &str) {
+    for (row, character) in encoded.chars().enumerate() {
+        if character == MATRIX_SKIP {
+            continue;
+        }
+        matrix.set_symmetric(row, column, matrix_rule_for(character));
+    }
+}
+
+/// Implements Ghidra function `FUN_01d43940` at `0x01D43940`.
+///
+/// Builds the rule matrix the application ships with.
+///
+/// The matrix starts entirely permissive and every column is then read over
+/// it, so a pin-type pair the table says nothing about is allowed rather than
+/// unset — there is no third state for "not decided".
+#[must_use]
+pub fn load_built_in_matrix() -> ErcMatrix {
+    let mut matrix = ErcMatrix::default();
+    for (column, encoded) in BUILT_IN_MATRIX_COLUMNS.iter().enumerate() {
+        load_matrix_column(&mut matrix, column, encoded);
+    }
+    matrix
+}
+
+#[cfg(test)]
+mod built_in_matrix_tests {
+    use super::*;
+
+    #[test]
+    fn only_two_letters_mean_anything_and_both_cases_are_read() {
+        assert_eq!(matrix_rule_for('W'), ErcRule::Warning);
+        assert_eq!(matrix_rule_for('w'), ErcRule::Warning);
+        assert_eq!(matrix_rule_for('E'), ErcRule::Error);
+        assert_eq!(matrix_rule_for('e'), ErcRule::Error);
+
+        for character in ['-', 'X', '0', ' '] {
+            assert_eq!(matrix_rule_for(character), ErcRule::Blank);
+        }
+    }
+
+    #[test]
+    fn the_table_is_a_triangle_with_one_more_skip_in_each_column() {
+        for (column, encoded) in BUILT_IN_MATRIX_COLUMNS.iter().enumerate() {
+            assert_eq!(encoded.chars().count(), 9, "column {column}");
+            assert_eq!(
+                encoded.chars().take_while(|c| *c == MATRIX_SKIP).count(),
+                column,
+                "column {column}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_encoded_table_reproduces_the_built_in_defaults_exactly() {
+        // The defaults were recovered from the checker that reads the matrix;
+        // this table is the loader that writes it. They are independent
+        // recoveries of the same data and must agree.
+        let loaded = load_built_in_matrix();
+        let expected = ErcMatrix::built_in_defaults();
+
+        for row in 0..9 {
+            for column in 0..9 {
+                assert_eq!(
+                    loaded.rule(row, column),
+                    expected.rule(row, column),
+                    "at ({row}, {column})"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn every_entry_the_table_writes_is_set_on_both_sides() {
+        let matrix = load_built_in_matrix();
+
+        for row in 0..9 {
+            for column in 0..9 {
+                assert_eq!(matrix.rule(row, column), matrix.rule(column, row));
+            }
+        }
+    }
+
+    #[test]
+    fn a_pair_the_table_says_nothing_about_is_permitted_rather_than_unset() {
+        let matrix = load_built_in_matrix();
+
+        // Passive against passive: the table leaves it blank.
+        assert_eq!(
+            matrix.rule(
+                PinElectricalType::Passive.matrix_index(),
+                PinElectricalType::Passive.matrix_index()
+            ),
+            Some(ErcRule::Blank)
+        );
+    }
+
+    #[test]
+    fn two_outputs_on_one_node_are_an_error() {
+        let matrix = load_built_in_matrix();
+        let output = PinElectricalType::Output.matrix_index();
+
+        assert_eq!(matrix.rule(output, output), Some(ErcRule::Error));
+    }
+
+    #[test]
+    fn an_unconnected_pin_against_an_input_is_only_a_warning() {
+        let matrix = load_built_in_matrix();
+
+        assert_eq!(
+            matrix.rule(
+                PinElectricalType::Unconnected.matrix_index(),
+                PinElectricalType::Input.matrix_index()
+            ),
+            Some(ErcRule::Warning)
+        );
+    }
+
+    #[test]
+    fn a_column_loads_over_whatever_was_there_before() {
+        let mut matrix = ErcMatrix::default();
+        load_matrix_column(&mut matrix, 0, "EEEEEEEEE");
+        assert_eq!(matrix.rule(0, 0), Some(ErcRule::Error));
+
+        load_matrix_column(&mut matrix, 0, "---------");
+        assert_eq!(matrix.rule(0, 0), Some(ErcRule::Blank));
+    }
+
+    #[test]
+    fn the_skip_marker_leaves_an_entry_untouched() {
+        let mut matrix = ErcMatrix::default();
+        load_matrix_column(&mut matrix, 1, "E--------");
+        assert_eq!(matrix.rule(0, 1), Some(ErcRule::Error));
+
+        load_matrix_column(&mut matrix, 1, ".--------");
+        assert_eq!(matrix.rule(0, 1), Some(ErcRule::Error));
+    }
+}

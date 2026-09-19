@@ -891,3 +891,442 @@ mod tests {
         Ok(())
     }
 }
+
+impl Window {
+    /// Implements Ghidra function `FUN_01bc3a40` at `0x01BC3A40`.
+    ///
+    /// Handles `PCBOnlyCompWizardEvents.OnIdle`.
+    ///
+    /// Decides whether the accept button is enabled, which the wizard
+    /// re-decides on every idle turn rather than when a field changes.
+    ///
+    /// The two modes ask different questions of the group. Choosing an
+    /// existing group only requires that there be one to choose — the
+    /// selection itself is never checked, because a non-empty list always has
+    /// one. Naming a new group instead requires the name to be one the list
+    /// does not already hold, so the button goes grey the moment the user
+    /// types a name that already exists rather than letting them find out on
+    /// save.
+    ///
+    /// Two fields are required in both modes: the component's name and the
+    /// shape's displayed value. The shape's identity is *not* among them, so
+    /// the button can be enabled for a shape that has a display value and no
+    /// identity behind it — [`Self::save_macro`] is what refuses that, with
+    /// [`WizardError::InvalidInput`]. The two gates therefore disagree by
+    /// design, and this one is the button's.
+    #[must_use]
+    pub fn accept_enabled(&self) -> bool {
+        if self.component_name.is_empty() || self.shape_display.is_empty() {
+            return false;
+        }
+
+        match self.group_mode {
+            GroupMode::Existing => !self.groups.is_empty(),
+            GroupMode::New => !self.new_group.is_empty() && !self.groups.contains(&self.new_group),
+        }
+    }
+}
+
+#[cfg(test)]
+mod accept_enabled_tests {
+    use super::*;
+
+    fn filled(groups: &[&str]) -> Window {
+        let mut window = Window::new(groups.iter().map(|group| (*group).to_owned()).collect());
+        window.update(Message::ComponentNameChanged("R0805".to_owned()));
+        window.shape_display = "RES0805".to_owned();
+        window.shape_identity = "shape-1".to_owned();
+        window
+    }
+
+    #[test]
+    fn an_existing_group_only_needs_the_list_to_have_one() {
+        let window = filled(&["Passives"]);
+
+        assert!(window.accept_enabled());
+    }
+
+    #[test]
+    fn an_empty_group_list_leaves_the_existing_mode_with_nothing_to_choose() {
+        let window = filled(&[]);
+
+        assert!(!window.accept_enabled());
+    }
+
+    #[test]
+    fn the_chosen_group_itself_is_never_checked() {
+        let mut window = filled(&["Passives"]);
+        window.selected_group = None;
+
+        assert!(window.accept_enabled());
+    }
+
+    #[test]
+    fn a_new_group_needs_a_name() {
+        let mut window = filled(&["Passives"]);
+        window.select_new_group_mode();
+
+        assert!(!window.accept_enabled());
+
+        window.update(Message::NewGroupChanged("Resistors".to_owned()));
+        assert!(window.accept_enabled());
+    }
+
+    #[test]
+    fn a_new_group_that_already_exists_greys_the_button() {
+        let mut window = filled(&["Passives"]);
+        window.select_new_group_mode();
+        window.update(Message::NewGroupChanged("Passives".to_owned()));
+
+        assert!(!window.accept_enabled());
+    }
+
+    #[test]
+    fn a_new_group_needs_no_list_at_all() {
+        let mut window = filled(&[]);
+        window.select_new_group_mode();
+        window.update(Message::NewGroupChanged("Resistors".to_owned()));
+
+        assert!(window.accept_enabled());
+    }
+
+    #[test]
+    fn both_modes_need_the_component_name_and_the_shape() {
+        for mode in [GroupMode::Existing, GroupMode::New] {
+            let mut window = filled(&["Passives"]);
+            if mode == GroupMode::New {
+                window.select_new_group_mode();
+                window.update(Message::NewGroupChanged("Resistors".to_owned()));
+            }
+            assert!(window.accept_enabled());
+
+            let name = std::mem::take(&mut window.component_name);
+            assert!(!window.accept_enabled());
+            window.component_name = name;
+
+            window.shape_display = String::new();
+            assert!(!window.accept_enabled());
+        }
+    }
+
+    #[test]
+    fn the_button_ignores_the_shape_identity_that_saving_insists_on() {
+        let mut window = filled(&["Passives"]);
+        window.shape_identity = String::new();
+
+        assert!(window.accept_enabled());
+        assert!(!window.can_accept());
+    }
+}
+
+/// The name the recovered form gives its save dialog.
+pub const SAVE_DIALOG_NAME: &str = "SaveTSMDlg";
+
+/// The save dialog's caption.
+pub const SAVE_DIALOG_TITLE: &str = "Save Macro";
+
+/// The single filter the save dialog offers.
+pub const SAVE_DIALOG_FILTER: &str = "Schematics Macro (*.TSM)|*.TSM";
+
+/// The directory, under each macro root, that holds the macro library.
+///
+/// Spelled as the recovered literal spells it, which differs in case from the
+/// name used elsewhere in this module; Windows does not distinguish them.
+pub const MACRO_LIBRARY_DIRECTORY: &str = r"\Macrolib";
+
+/// The label the user's own macro directory appears under in the dialog's
+/// shortcut bar.
+pub const USER_MACROS_LABEL: &str = "User Macros|";
+
+/// The label the shipped macro directory appears under.
+pub const TINA_MACROS_LABEL: &str = "Tina Macros|";
+
+/// The help topic the form registers for itself.
+pub const HELP_CONTEXT: u32 = 0x0492;
+
+/// The save dialog's option word, as the recovered handler writes it.
+pub const SAVE_DIALOG_OPTIONS: u32 = 0x0008_0116;
+
+/// The options the recovered word turns on.
+///
+/// Part of Ghidra function `FUN_01bc2800` at `0x01BC2800`.
+///
+/// Read out of the word, the choices are deliberate: the dialog warns before
+/// replacing a file, hides the read-only box, offers help, refuses a path
+/// that does not exist, and can be resized. Nothing asks the file itself to
+/// exist, which is what makes it a save dialog rather than an open one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[allow(clippy::struct_excessive_bools)]
+pub struct SaveDialogOptions {
+    /// Warn before overwriting an existing file.
+    pub overwrite_prompt: bool,
+    /// Hide the read-only checkbox.
+    pub hide_read_only: bool,
+    /// Show the help button.
+    pub show_help: bool,
+    /// Refuse a directory that does not exist.
+    pub path_must_exist: bool,
+    /// Let the user resize the dialog.
+    pub enable_sizing: bool,
+}
+
+impl SaveDialogOptions {
+    /// The bit each option sits at in the recovered word.
+    const OVERWRITE_PROMPT: u32 = 1 << 1;
+    const HIDE_READ_ONLY: u32 = 1 << 2;
+    const SHOW_HELP: u32 = 1 << 4;
+    const PATH_MUST_EXIST: u32 = 1 << 8;
+    const ENABLE_SIZING: u32 = 1 << 19;
+
+    /// Reads the options out of the word the recovered handler writes.
+    #[must_use]
+    pub const fn from_word(word: u32) -> Self {
+        Self {
+            overwrite_prompt: word & Self::OVERWRITE_PROMPT != 0,
+            hide_read_only: word & Self::HIDE_READ_ONLY != 0,
+            show_help: word & Self::SHOW_HELP != 0,
+            path_must_exist: word & Self::PATH_MUST_EXIST != 0,
+            enable_sizing: word & Self::ENABLE_SIZING != 0,
+        }
+    }
+
+    /// The word these options make.
+    #[must_use]
+    pub const fn to_word(self) -> u32 {
+        let mut word = 0;
+        if self.overwrite_prompt {
+            word |= Self::OVERWRITE_PROMPT;
+        }
+        if self.hide_read_only {
+            word |= Self::HIDE_READ_ONLY;
+        }
+        if self.show_help {
+            word |= Self::SHOW_HELP;
+        }
+        if self.path_must_exist {
+            word |= Self::PATH_MUST_EXIST;
+        }
+        if self.enable_sizing {
+            word |= Self::ENABLE_SIZING;
+        }
+        word
+    }
+}
+
+/// How the recovered form sets its save dialog up.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SaveDialogSetup {
+    /// The dialog's own name.
+    pub name: String,
+    /// Its caption.
+    pub title: String,
+    /// Its filter.
+    pub filter: String,
+    /// Its options.
+    pub options: SaveDialogOptions,
+    /// The directory it opens in.
+    pub initial_directory: PathBuf,
+    /// The two labelled shortcuts it offers, in the recovered order.
+    pub shortcuts: [String; 2],
+}
+
+/// Implements part of Ghidra function `FUN_01bc2800` at `0x01BC2800`.
+///
+/// Describes the save dialog the form builds when it is created.
+///
+/// Both macro roots get a labelled shortcut — the user's own first and the
+/// shipped one second — but only the user's is opened into, because that is
+/// the only one a macro can be saved to.
+#[must_use]
+pub fn save_dialog_setup(user_macro_root: &Path, shipped_macro_root: &Path) -> SaveDialogSetup {
+    let user_library = macro_library(user_macro_root);
+
+    SaveDialogSetup {
+        name: SAVE_DIALOG_NAME.to_owned(),
+        title: SAVE_DIALOG_TITLE.to_owned(),
+        filter: SAVE_DIALOG_FILTER.to_owned(),
+        options: SaveDialogOptions::from_word(SAVE_DIALOG_OPTIONS),
+        initial_directory: user_library.clone(),
+        shortcuts: [
+            format!("{USER_MACROS_LABEL}{}", user_library.display()),
+            format!(
+                "{TINA_MACROS_LABEL}{}",
+                macro_library(shipped_macro_root).display()
+            ),
+        ],
+    }
+}
+
+fn macro_library(root: &Path) -> PathBuf {
+    PathBuf::from(format!("{}{MACRO_LIBRARY_DIRECTORY}", root.display()))
+}
+
+/// Implements part of Ghidra function `FUN_01bc2800` at `0x01BC2800`.
+///
+/// Turns the macro library's file names into the group names the wizard
+/// offers.
+///
+/// Each file becomes one group named after it with its directory and
+/// extension taken off, so the groups are the library's files and nothing
+/// records them separately.
+#[must_use]
+pub fn group_names(macro_files: &[String]) -> Vec<String> {
+    macro_files
+        .iter()
+        .map(|file| {
+            Path::new(file)
+                .file_stem()
+                .map_or_else(String::new, |stem| stem.to_string_lossy().into_owned())
+        })
+        .collect()
+}
+
+impl Window {
+    /// Implements Ghidra function `FUN_01bc2800` at `0x01BC2800`.
+    ///
+    /// Handles `frmPCBOnlyCompWizard.OnCreate`.
+    ///
+    /// Builds the wizard from the two lists it offers and sets its save
+    /// dialog up.
+    ///
+    /// The group list is the macro library's own files, so adding a file to
+    /// that directory adds a group without anything else being told. Both
+    /// lists select their first row, and the group list does so only when it
+    /// has one — an empty library leaves the wizard with nothing selected
+    /// rather than an out-of-range row, which is why
+    /// [`Self::accept_enabled`] can ask whether the list is empty at all.
+    ///
+    /// Returns the save dialog's description for the caller to apply.
+    #[must_use]
+    pub fn create(
+        macro_files: &[String],
+        user_macro_root: &Path,
+        shipped_macro_root: &Path,
+    ) -> (Self, SaveDialogSetup) {
+        let mut window = Self::new(group_names(macro_files));
+        window.select_existing_group_mode();
+
+        (
+            window,
+            save_dialog_setup(user_macro_root, shipped_macro_root),
+        )
+    }
+
+    /// The help topic the form registers for itself.
+    #[must_use]
+    pub const fn help_context() -> u32 {
+        HELP_CONTEXT
+    }
+}
+
+#[cfg(test)]
+mod create_tests {
+    use super::*;
+
+    #[test]
+    fn the_recovered_option_word_reads_back_as_the_five_choices() {
+        let options = SaveDialogOptions::from_word(SAVE_DIALOG_OPTIONS);
+
+        assert!(options.overwrite_prompt);
+        assert!(options.hide_read_only);
+        assert!(options.show_help);
+        assert!(options.path_must_exist);
+        assert!(options.enable_sizing);
+    }
+
+    #[test]
+    fn the_options_make_the_word_back_again() {
+        assert_eq!(
+            SaveDialogOptions::from_word(SAVE_DIALOG_OPTIONS).to_word(),
+            SAVE_DIALOG_OPTIONS
+        );
+        assert_eq!(SaveDialogOptions::default().to_word(), 0);
+    }
+
+    #[test]
+    fn nothing_in_the_word_asks_the_file_to_already_exist() {
+        // A save dialog that insisted on an existing file could never create
+        // one; the recovered word only insists on the directory.
+        let options = SaveDialogOptions::from_word(SAVE_DIALOG_OPTIONS);
+        assert!(options.path_must_exist);
+    }
+
+    #[test]
+    fn both_macro_roots_get_a_labelled_shortcut() {
+        let setup = save_dialog_setup(Path::new(r"C:\Users\Me\Tina"), Path::new(r"C:\Tina"));
+
+        assert_eq!(
+            setup.shortcuts,
+            [
+                r"User Macros|C:\Users\Me\Tina\Macrolib".to_owned(),
+                r"Tina Macros|C:\Tina\Macrolib".to_owned(),
+            ]
+        );
+    }
+
+    #[test]
+    fn only_the_users_own_library_is_opened_into() {
+        let setup = save_dialog_setup(Path::new(r"C:\Users\Me\Tina"), Path::new(r"C:\Tina"));
+
+        assert_eq!(
+            setup.initial_directory,
+            PathBuf::from(r"C:\Users\Me\Tina\Macrolib")
+        );
+    }
+
+    #[test]
+    fn the_dialog_carries_the_recovered_name_title_and_filter() {
+        let setup = save_dialog_setup(Path::new("u"), Path::new("t"));
+
+        assert_eq!(setup.name, "SaveTSMDlg");
+        assert_eq!(setup.title, "Save Macro");
+        assert_eq!(setup.filter, "Schematics Macro (*.TSM)|*.TSM");
+    }
+
+    #[test]
+    fn a_group_is_a_library_file_with_its_path_and_extension_taken_off() {
+        assert_eq!(
+            group_names(&[
+                r"C:\Tina\Macrolib\Passives.tsm".to_owned(),
+                "Actives.TSM".to_owned(),
+            ]),
+            ["Passives", "Actives"]
+        );
+    }
+
+    #[test]
+    fn an_empty_library_offers_no_groups() {
+        assert!(group_names(&[]).is_empty());
+    }
+
+    #[test]
+    fn the_wizard_starts_on_the_existing_group_mode_with_the_first_group() {
+        let (window, _) = Window::create(
+            &["Passives.tsm".to_owned(), "Actives.tsm".to_owned()],
+            Path::new("u"),
+            Path::new("t"),
+        );
+
+        assert_eq!(
+            window.group_controls(),
+            GroupControlState {
+                existing_group_enabled: true,
+                new_group_enabled: false,
+            }
+        );
+        assert_eq!(window.selected_group.as_deref(), Some("Passives"));
+    }
+
+    #[test]
+    fn an_empty_library_leaves_nothing_selected_rather_than_a_bad_row() {
+        let (window, _) = Window::create(&[], Path::new("u"), Path::new("t"));
+
+        assert_eq!(window.selected_group, None);
+        assert!(!window.accept_enabled());
+    }
+
+    #[test]
+    fn the_form_registers_its_own_help_topic() {
+        assert_eq!(Window::help_context(), 0x0492);
+    }
+}

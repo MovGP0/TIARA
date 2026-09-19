@@ -665,3 +665,296 @@ mod tests {
         );
     }
 }
+
+/// The window class of a combo box's drop-down list.
+///
+/// The hint only appears over the list, and this class name is how the
+/// recovered handler tells that the pointer is over one rather than over
+/// anything else on screen.
+pub const DROP_DOWN_LIST_CLASS: &str = "ComboLBox";
+
+/// How much narrower than the combo an entry must be to count as fitting.
+///
+/// The recovered comparison is `text width > combo width - 5`, so an entry
+/// that exactly fills the combo still gets a hint.
+pub const FIT_MARGIN: i32 = 5;
+
+/// How far below and right of the pointer the hint is placed.
+pub const HINT_OFFSET: i32 = 0x10;
+
+/// The background colour the hint is painted in.
+///
+/// The high byte marks it as a system colour rather than a literal one, and
+/// the index is the one Windows reserves for tooltips, so the hint follows
+/// the user's theme rather than being a fixed yellow.
+pub const HINT_COLOR: u32 = 0xff00_0018;
+
+/// What the hint pass decided to do.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum HintAction {
+    /// Show the hint carrying this text.
+    Show(String),
+    /// Take the hint down.
+    Hide,
+    /// Leave the hint exactly as it is.
+    Leave,
+}
+
+/// Whether an entry is too wide for the combo to show it.
+///
+/// Part of Ghidra function `FUN_01bb3810` at `0x01BB3810`.
+#[must_use]
+pub const fn entry_overflows(text_width: i32, combo_width: i32) -> bool {
+    text_width > combo_width - FIT_MARGIN
+}
+
+/// What the hint pass needs to know about the drop-down under the pointer.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct DropDownProbe {
+    /// The class name of the window under the pointer.
+    pub window_class: String,
+    /// The entry under the pointer, when the list reports one.
+    pub entry: Option<String>,
+    /// How wide that entry would be drawn.
+    pub entry_width: i32,
+}
+
+pub trait DropDownHintHost {
+    /// Whether the combo's list is open at all.
+    fn drop_down_open(&mut self) -> bool;
+
+    /// Looks at whatever window is under the pointer.
+    fn probe(&mut self) -> DropDownProbe;
+
+    /// How wide the combo itself is.
+    fn combo_width(&mut self) -> i32;
+
+    /// The text the hint is currently showing, if any.
+    fn shown_text(&mut self) -> Option<String>;
+
+    /// Takes the hint down and forgets the text it was showing.
+    fn hide_hint(&mut self);
+
+    /// Puts the hint up next to the pointer, in the recovered colour.
+    fn show_hint(&mut self, text: &str, color: u32, offset: i32);
+}
+
+/// Implements Ghidra function `FUN_01bb3810` at `0x01BB3810`.
+///
+/// Handles `PCBWizardEvents.OnIdle`.
+///
+/// Shows the full text of a drop-down entry the combo is too narrow to
+/// display, next to the pointer.
+///
+/// A combo box clips its entries and gives the user no way to read one that
+/// does not fit, so this pass reads the entry under the pointer directly out
+/// of the drop-down list window and puts a hint beside it. Doing that on idle
+/// is what makes it work at all: the list is a window of its own that the
+/// form never receives mouse messages from, so there is no event to hang it
+/// off.
+///
+/// Three things have to hold before a hint appears — the list must be open,
+/// the pointer must be over the list rather than over anything else on
+/// screen, and the entry must actually overflow. An entry that fits takes the
+/// hint back down rather than leaving a stale one up.
+///
+/// The text last shown is remembered, so moving the pointer within one entry
+/// leaves the hint alone instead of rebuilding it on every idle turn.
+pub fn refresh_drop_down_hint(host: &mut impl DropDownHintHost) -> HintAction {
+    if !host.drop_down_open() {
+        host.hide_hint();
+        return HintAction::Hide;
+    }
+
+    let probe = host.probe();
+    if probe.window_class != DROP_DOWN_LIST_CLASS {
+        return HintAction::Leave;
+    }
+
+    let Some(entry) = probe.entry else {
+        return HintAction::Leave;
+    };
+
+    let combo_width = host.combo_width();
+    if !entry_overflows(probe.entry_width, combo_width) {
+        host.hide_hint();
+        return HintAction::Hide;
+    }
+
+    if host.shown_text().as_deref() == Some(entry.as_str()) {
+        return HintAction::Leave;
+    }
+
+    host.show_hint(&entry, HINT_COLOR, HINT_OFFSET);
+    HintAction::Show(entry)
+}
+
+#[cfg(test)]
+mod drop_down_hint_tests {
+    use super::*;
+
+    #[derive(Debug, Default)]
+    struct Combo {
+        open: bool,
+        probe: DropDownProbe,
+        width: i32,
+        shown: Option<String>,
+        hides: usize,
+        shows: Vec<(String, u32, i32)>,
+    }
+
+    impl Combo {
+        fn over_a_long_entry() -> Self {
+            Self {
+                open: true,
+                probe: DropDownProbe {
+                    window_class: DROP_DOWN_LIST_CLASS.to_owned(),
+                    entry: Some("A very long footprint name".to_owned()),
+                    entry_width: 400,
+                },
+                width: 120,
+                ..Self::default()
+            }
+        }
+    }
+
+    impl DropDownHintHost for Combo {
+        fn drop_down_open(&mut self) -> bool {
+            self.open
+        }
+
+        fn probe(&mut self) -> DropDownProbe {
+            self.probe.clone()
+        }
+
+        fn combo_width(&mut self) -> i32 {
+            self.width
+        }
+
+        fn shown_text(&mut self) -> Option<String> {
+            self.shown.clone()
+        }
+
+        fn hide_hint(&mut self) {
+            self.hides += 1;
+            self.shown = None;
+        }
+
+        fn show_hint(&mut self, text: &str, color: u32, offset: i32) {
+            self.shows.push((text.to_owned(), color, offset));
+            self.shown = Some(text.to_owned());
+        }
+    }
+
+    #[test]
+    fn an_entry_that_exactly_fills_the_combo_still_gets_a_hint() {
+        assert!(entry_overflows(120, 120));
+        assert!(entry_overflows(116, 120));
+        assert!(!entry_overflows(115, 120));
+        assert!(!entry_overflows(10, 120));
+    }
+
+    #[test]
+    fn a_closed_list_takes_the_hint_down() {
+        let mut host = Combo::default();
+
+        assert_eq!(refresh_drop_down_hint(&mut host), HintAction::Hide);
+        assert_eq!(host.hides, 1);
+    }
+
+    #[test]
+    fn a_long_entry_under_the_pointer_raises_the_hint() {
+        let mut host = Combo::over_a_long_entry();
+
+        assert_eq!(
+            refresh_drop_down_hint(&mut host),
+            HintAction::Show("A very long footprint name".to_owned())
+        );
+        assert_eq!(
+            host.shows,
+            [(
+                "A very long footprint name".to_owned(),
+                HINT_COLOR,
+                HINT_OFFSET
+            )]
+        );
+    }
+
+    #[test]
+    fn the_same_entry_twice_leaves_the_hint_alone() {
+        let mut host = Combo::over_a_long_entry();
+        refresh_drop_down_hint(&mut host);
+
+        assert_eq!(refresh_drop_down_hint(&mut host), HintAction::Leave);
+        assert_eq!(host.shows.len(), 1);
+    }
+
+    #[test]
+    fn moving_to_another_long_entry_replaces_the_hint() {
+        let mut host = Combo::over_a_long_entry();
+        refresh_drop_down_hint(&mut host);
+
+        host.probe.entry = Some("Another long footprint name".to_owned());
+        assert_eq!(
+            refresh_drop_down_hint(&mut host),
+            HintAction::Show("Another long footprint name".to_owned())
+        );
+        assert_eq!(host.shows.len(), 2);
+    }
+
+    #[test]
+    fn an_entry_that_fits_takes_a_stale_hint_down() {
+        let mut host = Combo::over_a_long_entry();
+        refresh_drop_down_hint(&mut host);
+
+        host.probe.entry_width = 10;
+        assert_eq!(refresh_drop_down_hint(&mut host), HintAction::Hide);
+        assert_eq!(host.hides, 1);
+        assert_eq!(host.shown, None);
+    }
+
+    #[test]
+    fn a_pointer_somewhere_else_on_screen_changes_nothing() {
+        let mut host = Combo::over_a_long_entry();
+        refresh_drop_down_hint(&mut host);
+        host.probe.window_class = "Edit".to_owned();
+
+        assert_eq!(refresh_drop_down_hint(&mut host), HintAction::Leave);
+        assert_eq!(host.hides, 0);
+        assert_eq!(host.shows.len(), 1);
+    }
+
+    #[test]
+    fn a_pointer_over_the_list_but_on_no_entry_changes_nothing() {
+        let mut host = Combo::over_a_long_entry();
+        host.probe.entry = None;
+
+        assert_eq!(refresh_drop_down_hint(&mut host), HintAction::Leave);
+        assert_eq!(host.hides, 0);
+        assert!(host.shows.is_empty());
+    }
+
+    #[test]
+    fn closing_the_list_forgets_the_entry_the_hint_was_showing() {
+        let mut host = Combo::over_a_long_entry();
+        refresh_drop_down_hint(&mut host);
+
+        host.open = false;
+        refresh_drop_down_hint(&mut host);
+        host.open = true;
+
+        // The same entry raises the hint again rather than being taken for a
+        // duplicate.
+        assert_eq!(
+            refresh_drop_down_hint(&mut host),
+            HintAction::Show("A very long footprint name".to_owned())
+        );
+    }
+
+    #[test]
+    fn the_hint_follows_the_users_theme_rather_than_a_fixed_colour() {
+        // The high byte marks a system colour index, not a literal RGB.
+        assert_eq!(HINT_COLOR & 0xff00_0000, 0xff00_0000);
+        assert_eq!(HINT_COLOR & 0x00ff_ffff, 0x18);
+    }
+}

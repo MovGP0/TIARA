@@ -710,3 +710,788 @@ mod tests {
         assert!(host.steps.is_empty());
     }
 }
+
+/// `MK_RBUTTON`.
+pub const RIGHT_BUTTON: u16 = 0x0002;
+
+/// `MK_CONTROL`.
+pub const CONTROL_HELD: u16 = 0x0008;
+
+/// `MK_MBUTTON`.
+pub const MIDDLE_BUTTON: u16 = 0x0010;
+
+/// The recovered flag bit that suppresses the whole handler.
+///
+/// The symbols do not name it; the handler simply does nothing when it is set.
+pub const SUPPRESS_PRESS: u16 = 0x0040;
+
+/// The recovered object kind whose press toggles its own state.
+pub const TOGGLING_OBJECT_KIND: u8 = 5;
+
+/// The recovered object kind that can consume a press itself.
+pub const PROBE_OBJECT_KIND: u8 = 8;
+
+/// What the press turned out to be.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PressOutcome {
+    /// Nothing happened — the command declined it, the editor was busy, or the
+    /// guard refused.
+    Ignored,
+    /// A middle-button pan started.
+    PanStarted,
+    /// The press armed the wire command at a pin.
+    WireArmed,
+    /// The press began a rubber-band selection.
+    RubberBand,
+    /// The press selected an object and began dragging it.
+    DragStarted,
+    /// The press toggled an object's own state instead of selecting it.
+    ObjectToggled,
+    /// A nested handler inside the object consumed the press.
+    ConsumedByObject,
+    /// The press opened the canvas popup's target.
+    PopupTarget,
+}
+
+pub trait PointerPressHost {
+    /// Hides the floating value overlay.
+    fn hide_overlay(&mut self);
+
+    /// Reports whether the view has suspended its own scroll bookkeeping.
+    fn bookkeeping_suspended(&mut self) -> bool;
+
+    /// Records where a pan started and the scroll positions it started from.
+    fn begin_pan(&mut self, x: i32, y: i32);
+
+    /// Reports whether a document view with a drawing surface is open.
+    fn view_ready(&mut self) -> bool;
+
+    /// Asks the running command whether the press may proceed.
+    ///
+    /// `None` means no command is installed, which lets it proceed.
+    fn command_allows_press(&mut self, x: i32, y: i32) -> Option<bool>;
+
+    /// Reports whether an analysis or modal state is in progress.
+    fn editor_busy(&mut self) -> bool;
+
+    /// The shared guard that blocks editing in some editor states.
+    fn editing_blocked(&mut self) -> bool;
+
+    /// Reports whether interactive mode is on.
+    fn interactive_active(&mut self) -> bool;
+
+    /// Deselects every object.
+    fn deselect_all(&mut self);
+
+    /// Converts a client point to the document's own coordinates.
+    fn to_document_point(&mut self, x: i32, y: i32) -> DocumentPoint;
+
+    /// Hit-tests for a pin on the exact point, then on the snapped one.
+    ///
+    /// Returns the pin index when the snapped test found one.
+    fn pin_at(&mut self, at: DocumentPoint) -> Option<i32>;
+
+    /// Reports whether the application is running a script.
+    fn scripting_active(&mut self) -> bool;
+
+    /// Reports whether wiring from a pin is switched on.
+    fn pin_wiring_enabled(&mut self) -> bool;
+
+    /// Arms the wire command at one pin and presses its tool button.
+    fn arm_wire_at_pin(&mut self, pin: i32);
+
+    fn object_at(&mut self, at: DocumentPoint) -> Option<ObjectHandle>;
+
+    /// Reports whether the object takes part in selection and dragging at all.
+    fn object_is_selectable(&mut self, object: Option<ObjectHandle>) -> bool;
+
+    fn object_kind(&mut self, object: ObjectHandle) -> u8;
+
+    /// Reports whether the object is already selected.
+    fn object_selected(&mut self, object: ObjectHandle) -> bool;
+
+    /// Makes this object the only selected one.
+    fn select_only(&mut self, object: ObjectHandle);
+
+    /// Adds this object to the selection.
+    fn add_to_selection(&mut self, object: ObjectHandle);
+
+    /// Removes this object from the selection.
+    fn remove_from_selection(&mut self, object: ObjectHandle);
+
+    /// Writes the object's `SelectPart(...)` script line.
+    fn record_selection_script(&mut self, object: ObjectHandle);
+
+    /// Toggles the object's own state, for the kind that has one.
+    fn toggle_object_state(&mut self, object: ObjectHandle, on: bool);
+
+    /// Reports whether the object carries a nested handler that wants the
+    /// press.
+    fn object_takes_press(&mut self, object: ObjectHandle, at: DocumentPoint) -> bool;
+
+    /// Lets that handler consume the press, and begin its own drag when not
+    /// scripting.
+    fn consume_press(&mut self, object: ObjectHandle);
+
+    /// Lets a probe object consume the press.
+    fn probe_takes_press(&mut self, object: ObjectHandle, at: DocumentPoint) -> bool;
+
+    /// Opens an undo record covering the drag that is about to start.
+    fn begin_drag_undo_record(&mut self);
+
+    /// Begins dragging the selection from one point.
+    fn begin_drag(&mut self, at: DocumentPoint);
+
+    /// Begins a rubber-band selection from one point.
+    fn begin_rubber_band(&mut self, at: DocumentPoint);
+
+    /// Clears the popup menu's target.
+    fn clear_popup_target(&mut self);
+
+    /// Records the popup menu's target.
+    fn set_popup_target(&mut self, object: ObjectHandle);
+}
+
+/// Implements Ghidra function `FUN_01c70d20` at `0x01C70D20`.
+///
+/// Handles `EditorPanel.SchEditBox.OnMouseDown`.
+///
+/// Decides what a press on the canvas begins.
+///
+/// The value overlay is dismissed first, whatever the press turns out to be.
+///
+/// Ctrl with the middle button starts a pan and takes the whole event — that is
+/// the only path that runs before the command is consulted, so a pan can be
+/// started even mid-gesture.
+///
+/// Otherwise the running command gets first refusal, a busy editor drops the
+/// press, and the edit guard drops it too — deselecting everything on the way
+/// out when interactive mode is on, which is what clears a selection before a
+/// measurement.
+///
+/// A pin under the pointer arms the wire command outright, unless Shift is
+/// held: Shift is what lets the user grab the object a pin sits on instead of
+/// wiring from it.
+///
+/// Beyond that, Shift extends the selection and Ctrl toggles it, an object that
+/// is not selectable at all is dragged without being selected, and one of the
+/// two special kinds either toggles its own state or consumes the press itself.
+/// Every path that ends in a drag opens one undo record first.
+///
+/// The right button takes an entirely separate path: it selects whatever is
+/// under the pointer and records it as the popup's target, without ever
+/// dragging.
+pub fn pointer_pressed(
+    right_button: bool,
+    buttons: u16,
+    x: i32,
+    y: i32,
+    host: &mut impl PointerPressHost,
+) -> PressOutcome {
+    host.hide_overlay();
+
+    if buttons & MIDDLE_BUTTON != 0 && buttons & CONTROL_HELD != 0 && !host.bookkeeping_suspended()
+    {
+        host.begin_pan(x, y);
+        return PressOutcome::PanStarted;
+    }
+
+    if buttons & SUPPRESS_PRESS != 0 || !host.view_ready() {
+        return PressOutcome::Ignored;
+    }
+
+    if right_button {
+        return right_press(buttons, x, y, host);
+    }
+
+    if host.command_allows_press(x, y) == Some(false) || host.editor_busy() {
+        return PressOutcome::Ignored;
+    }
+
+    if host.editing_blocked() {
+        if host.interactive_active() {
+            host.deselect_all();
+        }
+        return PressOutcome::Ignored;
+    }
+
+    let at = host.to_document_point(x, y);
+    let shift = buttons & SHIFT_HELD != 0;
+    let control = buttons & CONTROL_HELD != 0;
+
+    let pin = host.pin_at(at);
+    if let Some(pin) = pin {
+        if host.pin_wiring_enabled() && !shift {
+            host.arm_wire_at_pin(pin);
+            return PressOutcome::WireArmed;
+        }
+    }
+
+    let object = host.object_at(at);
+
+    if !host.object_is_selectable(object) {
+        let Some(object) = object else {
+            host.deselect_all();
+            return PressOutcome::Ignored;
+        };
+
+        if !host.object_selected(object) {
+            host.select_only(object);
+        }
+        host.begin_drag_undo_record();
+        host.begin_drag(at);
+        return PressOutcome::DragStarted;
+    }
+
+    let Some(object) = object else {
+        if !control {
+            host.deselect_all();
+        }
+        host.begin_rubber_band(at);
+        return PressOutcome::RubberBand;
+    };
+
+    if host.object_kind(object) == TOGGLING_OBJECT_KIND && shift {
+        let on = !host.object_selected(object);
+        host.toggle_object_state(object, on);
+        return PressOutcome::ObjectToggled;
+    }
+
+    if shift && pin.is_none() {
+        if !control {
+            host.deselect_all();
+        }
+        host.begin_rubber_band(at);
+        return PressOutcome::RubberBand;
+    }
+
+    if control {
+        if host.object_selected(object) {
+            host.remove_from_selection(object);
+            host.record_selection_script(object);
+            return PressOutcome::Ignored;
+        }
+
+        host.add_to_selection(object);
+        host.record_selection_script(object);
+        host.begin_drag_undo_record();
+        host.begin_drag(at);
+        return PressOutcome::DragStarted;
+    }
+
+    if host.object_takes_press(object, at) {
+        host.consume_press(object);
+        return PressOutcome::ConsumedByObject;
+    }
+
+    if host.object_kind(object) == PROBE_OBJECT_KIND && host.probe_takes_press(object, at) {
+        return PressOutcome::ConsumedByObject;
+    }
+
+    if !host.object_selected(object) {
+        host.select_only(object);
+        host.record_selection_script(object);
+    }
+
+    host.begin_drag_undo_record();
+    host.begin_drag(at);
+    PressOutcome::DragStarted
+}
+
+fn right_press(buttons: u16, x: i32, y: i32, host: &mut impl PointerPressHost) -> PressOutcome {
+    host.clear_popup_target();
+
+    if host.command_allows_press(x, y).is_some() || host.editor_busy() {
+        return PressOutcome::Ignored;
+    }
+
+    let at = host.to_document_point(x, y);
+    let Some(object) = host.object_at(at) else {
+        return PressOutcome::Ignored;
+    };
+
+    if host.object_selected(object) {
+        if buttons & SHIFT_HELD != 0 {
+            host.remove_from_selection(object);
+        }
+    } else if buttons & SHIFT_HELD == 0 {
+        host.select_only(object);
+    } else {
+        host.add_to_selection(object);
+    }
+
+    host.set_popup_target(object);
+    PressOutcome::PopupTarget
+}
+
+#[cfg(test)]
+mod press_tests {
+    use super::*;
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum Step {
+        Overlay,
+        Pan,
+        Deselect,
+        Wire(i32),
+        SelectOnly,
+        Add,
+        Remove,
+        Script,
+        Toggle(bool),
+        Consume,
+        UndoRecord,
+        Drag,
+        RubberBand,
+        ClearPopup,
+        PopupTarget,
+    }
+
+    #[derive(Debug)]
+    #[allow(clippy::struct_excessive_bools, clippy::struct_field_names)]
+    struct Press {
+        suspended: bool,
+        view: bool,
+        command: Option<bool>,
+        busy: bool,
+        blocked: bool,
+        interactive: bool,
+        pin: Option<i32>,
+        pin_wiring: bool,
+        object: Option<ObjectHandle>,
+        selectable: bool,
+        kind: u8,
+        selected: bool,
+        takes_press: bool,
+        probe_takes: bool,
+        steps: Vec<Step>,
+    }
+
+    impl Default for Press {
+        fn default() -> Self {
+            Self {
+                suspended: false,
+                view: true,
+                command: None,
+                busy: false,
+                blocked: false,
+                interactive: false,
+                pin: None,
+                pin_wiring: true,
+                object: Some(ObjectHandle(1)),
+                selectable: true,
+                kind: 1,
+                selected: false,
+                takes_press: false,
+                probe_takes: false,
+                steps: Vec::new(),
+            }
+        }
+    }
+
+    impl PointerPressHost for Press {
+        fn hide_overlay(&mut self) {
+            self.steps.push(Step::Overlay);
+        }
+
+        fn bookkeeping_suspended(&mut self) -> bool {
+            self.suspended
+        }
+
+        fn begin_pan(&mut self, _x: i32, _y: i32) {
+            self.steps.push(Step::Pan);
+        }
+
+        fn view_ready(&mut self) -> bool {
+            self.view
+        }
+
+        fn command_allows_press(&mut self, _x: i32, _y: i32) -> Option<bool> {
+            self.command
+        }
+
+        fn editor_busy(&mut self) -> bool {
+            self.busy
+        }
+
+        fn editing_blocked(&mut self) -> bool {
+            self.blocked
+        }
+
+        fn interactive_active(&mut self) -> bool {
+            self.interactive
+        }
+
+        fn deselect_all(&mut self) {
+            self.steps.push(Step::Deselect);
+        }
+
+        fn to_document_point(&mut self, x: i32, y: i32) -> DocumentPoint {
+            DocumentPoint { x, y }
+        }
+
+        fn pin_at(&mut self, _at: DocumentPoint) -> Option<i32> {
+            self.pin
+        }
+
+        fn scripting_active(&mut self) -> bool {
+            false
+        }
+
+        fn pin_wiring_enabled(&mut self) -> bool {
+            self.pin_wiring
+        }
+
+        fn arm_wire_at_pin(&mut self, pin: i32) {
+            self.steps.push(Step::Wire(pin));
+        }
+
+        fn object_at(&mut self, _at: DocumentPoint) -> Option<ObjectHandle> {
+            self.object
+        }
+
+        fn object_is_selectable(&mut self, _object: Option<ObjectHandle>) -> bool {
+            self.selectable
+        }
+
+        fn object_kind(&mut self, _object: ObjectHandle) -> u8 {
+            self.kind
+        }
+
+        fn object_selected(&mut self, _object: ObjectHandle) -> bool {
+            self.selected
+        }
+
+        fn select_only(&mut self, _object: ObjectHandle) {
+            self.steps.push(Step::SelectOnly);
+        }
+
+        fn add_to_selection(&mut self, _object: ObjectHandle) {
+            self.steps.push(Step::Add);
+        }
+
+        fn remove_from_selection(&mut self, _object: ObjectHandle) {
+            self.steps.push(Step::Remove);
+        }
+
+        fn record_selection_script(&mut self, _object: ObjectHandle) {
+            self.steps.push(Step::Script);
+        }
+
+        fn toggle_object_state(&mut self, _object: ObjectHandle, on: bool) {
+            self.steps.push(Step::Toggle(on));
+        }
+
+        fn object_takes_press(&mut self, _object: ObjectHandle, _at: DocumentPoint) -> bool {
+            self.takes_press
+        }
+
+        fn consume_press(&mut self, _object: ObjectHandle) {
+            self.steps.push(Step::Consume);
+        }
+
+        fn probe_takes_press(&mut self, _object: ObjectHandle, _at: DocumentPoint) -> bool {
+            self.probe_takes
+        }
+
+        fn begin_drag_undo_record(&mut self) {
+            self.steps.push(Step::UndoRecord);
+        }
+
+        fn begin_drag(&mut self, _at: DocumentPoint) {
+            self.steps.push(Step::Drag);
+        }
+
+        fn begin_rubber_band(&mut self, _at: DocumentPoint) {
+            self.steps.push(Step::RubberBand);
+        }
+
+        fn clear_popup_target(&mut self) {
+            self.steps.push(Step::ClearPopup);
+        }
+
+        fn set_popup_target(&mut self, _object: ObjectHandle) {
+            self.steps.push(Step::PopupTarget);
+        }
+    }
+
+    #[test]
+    fn ctrl_with_the_middle_button_starts_a_pan_before_anything_else() {
+        let mut host = Press {
+            command: Some(false),
+            busy: true,
+            ..Press::default()
+        };
+
+        assert_eq!(
+            pointer_pressed(false, MIDDLE_BUTTON | CONTROL_HELD, 1, 2, &mut host),
+            PressOutcome::PanStarted
+        );
+
+        assert_eq!(host.steps, [Step::Overlay, Step::Pan]);
+    }
+
+    #[test]
+    fn a_pin_arms_the_wire_command_outright() {
+        let mut host = Press {
+            pin: Some(4),
+            ..Press::default()
+        };
+
+        assert_eq!(
+            pointer_pressed(false, 0, 1, 2, &mut host),
+            PressOutcome::WireArmed
+        );
+
+        assert!(host.steps.contains(&Step::Wire(4)));
+    }
+
+    #[test]
+    fn shift_grabs_the_object_a_pin_sits_on_instead_of_wiring() {
+        let mut host = Press {
+            pin: Some(4),
+            ..Press::default()
+        };
+
+        assert_eq!(
+            pointer_pressed(false, SHIFT_HELD, 1, 2, &mut host),
+            PressOutcome::DragStarted
+        );
+
+        assert!(!host.steps.iter().any(|step| matches!(step, Step::Wire(_))));
+    }
+
+    #[test]
+    fn an_empty_canvas_begins_a_rubber_band() {
+        let mut host = Press {
+            object: None,
+            ..Press::default()
+        };
+
+        assert_eq!(
+            pointer_pressed(false, 0, 1, 2, &mut host),
+            PressOutcome::RubberBand
+        );
+
+        assert_eq!(
+            host.steps,
+            [Step::Overlay, Step::Deselect, Step::RubberBand]
+        );
+    }
+
+    #[test]
+    fn ctrl_keeps_the_rest_of_the_selection_when_the_canvas_is_empty() {
+        let mut host = Press {
+            object: None,
+            ..Press::default()
+        };
+
+        assert_eq!(
+            pointer_pressed(false, CONTROL_HELD, 1, 2, &mut host),
+            PressOutcome::RubberBand
+        );
+
+        assert!(!host.steps.contains(&Step::Deselect));
+    }
+
+    #[test]
+    fn a_plain_press_selects_and_begins_one_undo_step() {
+        let mut host = Press::default();
+
+        assert_eq!(
+            pointer_pressed(false, 0, 1, 2, &mut host),
+            PressOutcome::DragStarted
+        );
+
+        assert_eq!(
+            host.steps,
+            [
+                Step::Overlay,
+                Step::SelectOnly,
+                Step::Script,
+                Step::UndoRecord,
+                Step::Drag,
+            ]
+        );
+    }
+
+    #[test]
+    fn an_already_selected_object_is_dragged_without_reselecting() {
+        let mut host = Press {
+            selected: true,
+            ..Press::default()
+        };
+
+        assert_eq!(
+            pointer_pressed(false, 0, 1, 2, &mut host),
+            PressOutcome::DragStarted
+        );
+
+        assert!(!host.steps.contains(&Step::SelectOnly));
+    }
+
+    #[test]
+    fn ctrl_toggles_an_object_in_and_out_of_the_selection() {
+        let mut adding = Press::default();
+        assert_eq!(
+            pointer_pressed(false, CONTROL_HELD, 1, 2, &mut adding),
+            PressOutcome::DragStarted
+        );
+        assert!(adding.steps.contains(&Step::Add));
+
+        let mut removing = Press {
+            selected: true,
+            ..Press::default()
+        };
+        assert_eq!(
+            pointer_pressed(false, CONTROL_HELD, 1, 2, &mut removing),
+            PressOutcome::Ignored
+        );
+        assert!(removing.steps.contains(&Step::Remove));
+        assert!(!removing.steps.contains(&Step::Drag));
+    }
+
+    #[test]
+    fn the_toggling_kind_flips_its_own_state_on_shift() {
+        let mut host = Press {
+            kind: TOGGLING_OBJECT_KIND,
+            ..Press::default()
+        };
+
+        assert_eq!(
+            pointer_pressed(false, SHIFT_HELD, 1, 2, &mut host),
+            PressOutcome::ObjectToggled
+        );
+
+        assert!(host.steps.contains(&Step::Toggle(true)));
+    }
+
+    #[test]
+    fn an_object_with_a_nested_handler_can_consume_the_press() {
+        let mut host = Press {
+            takes_press: true,
+            ..Press::default()
+        };
+
+        assert_eq!(
+            pointer_pressed(false, 0, 1, 2, &mut host),
+            PressOutcome::ConsumedByObject
+        );
+
+        assert!(!host.steps.contains(&Step::Drag));
+    }
+
+    #[test]
+    fn a_probe_object_can_consume_it_too() {
+        let mut host = Press {
+            kind: PROBE_OBJECT_KIND,
+            probe_takes: true,
+            ..Press::default()
+        };
+
+        assert_eq!(
+            pointer_pressed(false, 0, 1, 2, &mut host),
+            PressOutcome::ConsumedByObject
+        );
+    }
+
+    #[test]
+    fn an_unselectable_object_is_dragged_without_a_rubber_band() {
+        let mut host = Press {
+            selectable: false,
+            ..Press::default()
+        };
+
+        assert_eq!(
+            pointer_pressed(false, 0, 1, 2, &mut host),
+            PressOutcome::DragStarted
+        );
+
+        assert!(host.steps.contains(&Step::SelectOnly));
+        assert!(!host.steps.contains(&Step::RubberBand));
+    }
+
+    #[test]
+    fn a_blocked_editor_clears_the_selection_only_in_interactive_mode() {
+        let mut plain = Press {
+            blocked: true,
+            ..Press::default()
+        };
+        assert_eq!(
+            pointer_pressed(false, 0, 1, 2, &mut plain),
+            PressOutcome::Ignored
+        );
+        assert!(!plain.steps.contains(&Step::Deselect));
+
+        let mut interactive = Press {
+            blocked: true,
+            interactive: true,
+            ..Press::default()
+        };
+        assert_eq!(
+            pointer_pressed(false, 0, 1, 2, &mut interactive),
+            PressOutcome::Ignored
+        );
+        assert!(interactive.steps.contains(&Step::Deselect));
+    }
+
+    #[test]
+    fn a_running_command_that_declines_drops_the_press() {
+        let mut host = Press {
+            command: Some(false),
+            ..Press::default()
+        };
+
+        assert_eq!(
+            pointer_pressed(false, 0, 1, 2, &mut host),
+            PressOutcome::Ignored
+        );
+        assert_eq!(host.steps, [Step::Overlay]);
+    }
+
+    #[test]
+    fn the_right_button_records_a_popup_target_without_dragging() {
+        let mut host = Press::default();
+
+        assert_eq!(
+            pointer_pressed(true, RIGHT_BUTTON, 1, 2, &mut host),
+            PressOutcome::PopupTarget
+        );
+
+        assert_eq!(
+            host.steps,
+            [
+                Step::Overlay,
+                Step::ClearPopup,
+                Step::SelectOnly,
+                Step::PopupTarget,
+            ]
+        );
+    }
+
+    #[test]
+    fn a_right_press_while_a_command_runs_only_clears_the_target() {
+        let mut host = Press {
+            command: Some(true),
+            ..Press::default()
+        };
+
+        assert_eq!(
+            pointer_pressed(true, RIGHT_BUTTON, 1, 2, &mut host),
+            PressOutcome::Ignored
+        );
+
+        assert_eq!(host.steps, [Step::Overlay, Step::ClearPopup]);
+    }
+
+    #[test]
+    fn the_suppression_flag_drops_the_press_entirely() {
+        let mut host = Press::default();
+
+        assert_eq!(
+            pointer_pressed(false, SUPPRESS_PRESS, 1, 2, &mut host),
+            PressOutcome::Ignored
+        );
+        assert_eq!(host.steps, [Step::Overlay]);
+    }
+}

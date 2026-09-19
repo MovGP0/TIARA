@@ -1242,3 +1242,383 @@ mod tests {
         assert_eq!(Path::new("network.s7p").extension(), Some("s7p".as_ref()));
     }
 }
+
+/// The catalogue identifiers of the eight symbols the wizard's palette
+/// offers, in the order the recovered handler builds them.
+///
+/// Part of Ghidra function `FUN_01ba67e0` at `0x01BA67E0`.
+///
+/// The order is the palette's, not the catalogue's — the first two run
+/// backwards — and the identifiers come from three separate runs, so the
+/// palette is a chosen selection rather than a slice of the catalogue.
+pub const PALETTE_SYMBOL_IDS: [u16; 8] = [0xAF, 0xAE, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xC2];
+
+/// One entry of the wizard's symbol palette.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PaletteEntry {
+    /// The catalogue identifier the entry was built from.
+    pub symbol_id: u16,
+    /// The name resolved for it, which the entry then carries as its own.
+    pub name: String,
+}
+
+/// Everything `OnCreate` settles.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct BlockWizardCreation {
+    /// The eight palette entries, in the recovered order.
+    pub palette: Vec<PaletteEntry>,
+    /// The libraries the wizard offers.
+    pub libraries: Vec<String>,
+    /// The port name the form starts with, read back out of its own field.
+    pub port_name: String,
+    /// The caption the form starts with.
+    pub caption: String,
+    /// The width the preview takes from the template control.
+    pub preview_width: i32,
+}
+
+/// What building the wizard needs from the application around it.
+pub trait BlockWizardCreateHost {
+    /// Resolves one palette symbol's name from the shape store.
+    fn resolve_symbol_name(&mut self, symbol_id: u16) -> String;
+
+    /// The libraries the wizard offers.
+    fn library_names(&mut self) -> Vec<String>;
+
+    /// The width of the template control the preview is sized from.
+    fn template_width(&mut self) -> i32;
+
+    /// Takes the template control out of sight.
+    fn hide_template(&mut self);
+
+    /// The port name field's starting text.
+    fn port_name_field(&mut self) -> String;
+
+    /// The caption the form starts with.
+    fn block_caption(&mut self) -> String;
+}
+
+/// Implements Ghidra function `FUN_01ba67e0` at `0x01BA67E0`.
+///
+/// Handles `frmSBlockWizard.OnCreate`.
+///
+/// Builds the wizard's symbol palette and reads its starting state.
+///
+/// Each palette entry is constructed from a catalogue identifier and then
+/// asked to resolve its own name, which it keeps — so the palette carries
+/// names the catalogue owns rather than captions of its own, and renaming a
+/// symbol in the catalogue renames it here.
+///
+/// One control on the form exists only to be measured: the preview takes its
+/// width and the control is then hidden, which is how the designer's layout
+/// sets a size the code cannot otherwise know.
+///
+/// The port name and caption are read back out of the form's own fields
+/// rather than being set, so whatever the designer put there is the starting
+/// value.
+pub fn create_block_wizard(host: &mut impl BlockWizardCreateHost) -> BlockWizardCreation {
+    let palette = PALETTE_SYMBOL_IDS
+        .iter()
+        .map(|symbol_id| PaletteEntry {
+            symbol_id: *symbol_id,
+            name: host.resolve_symbol_name(*symbol_id),
+        })
+        .collect();
+
+    let libraries = host.library_names();
+    let preview_width = host.template_width();
+    host.hide_template();
+
+    BlockWizardCreation {
+        palette,
+        libraries,
+        port_name: host.port_name_field(),
+        caption: host.block_caption(),
+        preview_width,
+    }
+}
+
+/// How far in from the item's left edge the device name is drawn.
+pub const DEVICE_TEXT_INDENT: i32 = 2;
+
+/// One item's rectangle, as the owner-draw handler receives it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct ItemRect {
+    /// The left edge.
+    pub left: i32,
+    /// The top edge.
+    pub top: i32,
+}
+
+/// What the owner-draw handler decided to paint.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DeviceItemDraw {
+    /// Only the background was filled — the item is left blank.
+    BackgroundOnly,
+    /// The background, then the name and the symbol.
+    Painted {
+        /// The name drawn.
+        text: String,
+        /// Where the name starts.
+        text_at: ItemRect,
+        /// Where the symbol is drawn, raised so it lines up with the name.
+        symbol_at: ItemRect,
+    },
+}
+
+/// What drawing one device item needs from the combo around it.
+pub trait DeviceItemHost {
+    /// Fills the item's background. Always the first thing done, so an item
+    /// that paints nothing else still clears whatever was there.
+    fn fill_background(&mut self, rect: ItemRect);
+
+    /// Whether the device list has a selection at all.
+    fn device_selected(&mut self) -> bool;
+
+    /// The text of one item.
+    fn item_text(&mut self, index: usize) -> String;
+
+    /// The line height the symbol is raised by.
+    fn line_height(&mut self) -> i32;
+
+    /// Draws the name.
+    fn draw_text(&mut self, at: ItemRect, text: &str);
+
+    /// Draws the item's symbol.
+    fn draw_symbol(&mut self, at: ItemRect, index: usize);
+}
+
+/// Implements Ghidra function `FUN_01ba85c0` at `0x01BA85C0`.
+///
+/// Handles `frmSBlockWizard.pnlMain.cbDevices.OnDrawItem`.
+///
+/// Draws one device entry as its name beside its schematic symbol.
+///
+/// The list is owner-drawn because a device is only recognisable by its
+/// symbol; a name on its own would make the user match part numbers to
+/// shapes in their head.
+///
+/// The background is filled before anything is decided, so an item that goes
+/// on to paint nothing still clears what was under it. Nothing else is drawn
+/// while the device list has no selection — which is why the entries come up
+/// blank until one is made, rather than showing symbols for a device that has
+/// not been chosen.
+///
+/// The symbol is drawn from a point raised by one line height, so it lines up
+/// with the name rather than sitting on the item's own top edge.
+pub fn draw_device_item(
+    host: &mut impl DeviceItemHost,
+    rect: ItemRect,
+    index: usize,
+) -> DeviceItemDraw {
+    host.fill_background(rect);
+
+    if !host.device_selected() {
+        return DeviceItemDraw::BackgroundOnly;
+    }
+
+    let text = host.item_text(index);
+    let text_at = ItemRect {
+        left: rect.left + DEVICE_TEXT_INDENT,
+        top: rect.top,
+    };
+    host.draw_text(text_at, &text);
+
+    let symbol_at = ItemRect {
+        left: rect.left,
+        top: rect.top - host.line_height(),
+    };
+    host.draw_symbol(symbol_at, index);
+
+    DeviceItemDraw::Painted {
+        text,
+        text_at,
+        symbol_at,
+    }
+}
+
+#[cfg(test)]
+mod create_and_draw_tests {
+    use super::*;
+
+    #[derive(Debug, Default)]
+    struct Wizard {
+        hidden: bool,
+        width_read_before_hiding: Option<bool>,
+    }
+
+    impl BlockWizardCreateHost for Wizard {
+        fn resolve_symbol_name(&mut self, symbol_id: u16) -> String {
+            format!("SYM{symbol_id:03X}")
+        }
+
+        fn library_names(&mut self) -> Vec<String> {
+            vec!["All".to_owned(), "Digital".to_owned()]
+        }
+
+        fn template_width(&mut self) -> i32 {
+            self.width_read_before_hiding = Some(!self.hidden);
+            240
+        }
+
+        fn hide_template(&mut self) {
+            self.hidden = true;
+        }
+
+        fn port_name_field(&mut self) -> String {
+            "IN1".to_owned()
+        }
+
+        fn block_caption(&mut self) -> String {
+            "Block1".to_owned()
+        }
+    }
+
+    #[test]
+    fn the_palette_keeps_the_recovered_order_rather_than_sorting() {
+        assert_eq!(
+            PALETTE_SYMBOL_IDS,
+            [0xAF, 0xAE, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xC2]
+        );
+        // The first two run backwards, so the order is the palette's own.
+        assert!(PALETTE_SYMBOL_IDS[0] > PALETTE_SYMBOL_IDS[1]);
+    }
+
+    #[test]
+    fn every_palette_entry_takes_its_name_from_the_catalogue() {
+        let mut host = Wizard::default();
+        let created = create_block_wizard(&mut host);
+
+        assert_eq!(created.palette.len(), PALETTE_SYMBOL_IDS.len());
+        assert_eq!(created.palette[0].symbol_id, 0xAF);
+        assert_eq!(created.palette[0].name, "SYM0AF");
+        assert_eq!(created.palette[7].name, "SYM0C2");
+    }
+
+    #[test]
+    fn the_template_is_measured_before_it_is_hidden() {
+        let mut host = Wizard::default();
+        let created = create_block_wizard(&mut host);
+
+        assert_eq!(created.preview_width, 240);
+        assert_eq!(host.width_read_before_hiding, Some(true));
+        assert!(host.hidden);
+    }
+
+    #[test]
+    fn the_starting_values_are_read_out_of_the_form_rather_than_set() {
+        let mut host = Wizard::default();
+        let created = create_block_wizard(&mut host);
+
+        assert_eq!(created.port_name, "IN1");
+        assert_eq!(created.caption, "Block1");
+        assert_eq!(created.libraries, ["All", "Digital"]);
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    enum Paint {
+        Background(ItemRect),
+        Text(ItemRect, String),
+        Symbol(ItemRect, usize),
+    }
+
+    #[derive(Debug, Default)]
+    struct Combo {
+        selected: bool,
+        items: Vec<String>,
+        line_height: i32,
+        paints: Vec<Paint>,
+    }
+
+    impl DeviceItemHost for Combo {
+        fn fill_background(&mut self, rect: ItemRect) {
+            self.paints.push(Paint::Background(rect));
+        }
+
+        fn device_selected(&mut self) -> bool {
+            self.selected
+        }
+
+        fn item_text(&mut self, index: usize) -> String {
+            self.items.get(index).cloned().unwrap_or_default()
+        }
+
+        fn line_height(&mut self) -> i32 {
+            self.line_height
+        }
+
+        fn draw_text(&mut self, at: ItemRect, text: &str) {
+            self.paints.push(Paint::Text(at, text.to_owned()));
+        }
+
+        fn draw_symbol(&mut self, at: ItemRect, index: usize) {
+            self.paints.push(Paint::Symbol(at, index));
+        }
+    }
+
+    fn combo() -> Combo {
+        Combo {
+            selected: true,
+            items: vec!["7400".to_owned(), "7402".to_owned()],
+            line_height: 14,
+            paints: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn an_item_draws_its_name_indented_and_its_symbol_raised() {
+        let mut host = combo();
+        let rect = ItemRect { left: 4, top: 20 };
+
+        assert_eq!(
+            draw_device_item(&mut host, rect, 1),
+            DeviceItemDraw::Painted {
+                text: "7402".to_owned(),
+                text_at: ItemRect { left: 6, top: 20 },
+                symbol_at: ItemRect { left: 4, top: 6 },
+            }
+        );
+    }
+
+    #[test]
+    fn the_background_is_filled_before_anything_is_decided() {
+        let mut host = Combo {
+            selected: false,
+            ..combo()
+        };
+        let rect = ItemRect { left: 4, top: 20 };
+
+        assert_eq!(
+            draw_device_item(&mut host, rect, 0),
+            DeviceItemDraw::BackgroundOnly
+        );
+        assert_eq!(host.paints, [Paint::Background(rect)]);
+    }
+
+    #[test]
+    fn an_unselected_list_leaves_every_entry_blank() {
+        let mut host = Combo {
+            selected: false,
+            ..combo()
+        };
+
+        draw_device_item(&mut host, ItemRect::default(), 0);
+
+        assert!(
+            !host
+                .paints
+                .iter()
+                .any(|paint| matches!(paint, Paint::Text(..) | Paint::Symbol(..)))
+        );
+    }
+
+    #[test]
+    fn the_background_comes_first_when_the_item_is_painted_too() {
+        let mut host = combo();
+
+        draw_device_item(&mut host, ItemRect { left: 0, top: 0 }, 0);
+
+        assert!(matches!(host.paints.first(), Some(Paint::Background(_))));
+        assert_eq!(host.paints.len(), 3);
+    }
+}

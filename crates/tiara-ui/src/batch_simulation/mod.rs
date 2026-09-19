@@ -571,3 +571,219 @@ mod tests {
         );
     }
 }
+
+/// The help topic the batch simulation dialog registers for itself.
+pub const BATCH_HELP_CONTEXT: u32 = 0x04b1;
+
+/// The four saved options the dialog restores its check boxes from.
+///
+/// Part of Ghidra function `FUN_01c49730` at `0x01C49730`.
+///
+/// They sit at four consecutive bytes of the settings block, which is why
+/// they are restored together rather than each being looked up by name.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[allow(clippy::struct_excessive_bools)]
+pub struct BatchOptions {
+    /// The first saved option.
+    pub first: bool,
+    /// The second.
+    pub second: bool,
+    /// The third.
+    pub third: bool,
+    /// The fourth.
+    pub fourth: bool,
+}
+
+impl BatchOptions {
+    /// The four options in the recovered order.
+    #[must_use]
+    pub const fn as_array(self) -> [bool; 4] {
+        [self.first, self.second, self.third, self.fourth]
+    }
+
+    /// Reads them back from four consecutive saved bytes.
+    #[must_use]
+    pub const fn from_array(saved: [bool; 4]) -> Self {
+        Self {
+            first: saved[0],
+            second: saved[1],
+            third: saved[2],
+            fourth: saved[3],
+        }
+    }
+}
+
+/// What building the batch simulation dialog needs from the application.
+pub trait BatchSimulationCreateHost {
+    /// The circuit the dialog runs against.
+    fn current_circuit(&mut self) -> CircuitHandle;
+
+    /// Binds the file list to one circuit.
+    fn bind_file_list(&mut self, circuit: CircuitHandle);
+
+    /// Binds the results list to the same circuit.
+    fn bind_results_list(&mut self, circuit: CircuitHandle);
+
+    /// Restores the analysis settings from the saved block.
+    fn restore_analysis_settings(&mut self);
+
+    /// Clears the progress display.
+    fn clear_progress(&mut self);
+
+    /// The four saved option bytes.
+    fn saved_options(&mut self) -> [bool; 4];
+
+    /// Applies the four options to their check boxes.
+    fn apply_options(&mut self, options: BatchOptions);
+
+    /// Hides the sub-control of the settings panel that this dialog does not
+    /// offer.
+    fn hide_unavailable_control(&mut self);
+
+    /// Registers the form's help topic.
+    fn set_help_context(&mut self, context: u32);
+}
+
+/// A circuit the dialog binds its lists to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct CircuitHandle(pub usize);
+
+/// Implements Ghidra function `FUN_01c49730` at `0x01C49730`.
+///
+/// Handles `BatchSimulationDlg.OnCreate`.
+///
+/// Builds the batch simulation dialog from the current circuit and the saved
+/// settings.
+///
+/// Both lists are bound to the *same* circuit, read twice rather than once —
+/// the dialog runs a batch against whatever is open when it is built, and
+/// nothing rebinds them afterwards.
+///
+/// The four check boxes come from four consecutive bytes of the settings
+/// block rather than from four named keys, which is why they are restored in
+/// one pass; and one control of the settings panel is hidden outright,
+/// because the panel is shared with a dialog that offers more than this one
+/// does.
+///
+/// Returns the options it restored.
+pub fn create_batch_simulation(host: &mut impl BatchSimulationCreateHost) -> BatchOptions {
+    let circuit = host.current_circuit();
+    host.bind_file_list(circuit);
+    host.restore_analysis_settings();
+
+    let circuit = host.current_circuit();
+    host.bind_results_list(circuit);
+    host.clear_progress();
+
+    let options = BatchOptions::from_array(host.saved_options());
+    host.apply_options(options);
+
+    host.hide_unavailable_control();
+    host.set_help_context(BATCH_HELP_CONTEXT);
+    options
+}
+
+#[cfg(test)]
+mod batch_create_tests {
+    use super::*;
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum Step {
+        BindFiles(CircuitHandle),
+        RestoreSettings,
+        BindResults(CircuitHandle),
+        ClearProgress,
+        Options(BatchOptions),
+        HideUnavailable,
+        Help(u32),
+    }
+
+    #[derive(Debug, Default)]
+    struct Dialog {
+        circuit: CircuitHandle,
+        circuit_reads: usize,
+        saved: [bool; 4],
+        steps: Vec<Step>,
+    }
+
+    impl BatchSimulationCreateHost for Dialog {
+        fn current_circuit(&mut self) -> CircuitHandle {
+            self.circuit_reads += 1;
+            self.circuit
+        }
+
+        fn bind_file_list(&mut self, circuit: CircuitHandle) {
+            self.steps.push(Step::BindFiles(circuit));
+        }
+
+        fn bind_results_list(&mut self, circuit: CircuitHandle) {
+            self.steps.push(Step::BindResults(circuit));
+        }
+
+        fn restore_analysis_settings(&mut self) {
+            self.steps.push(Step::RestoreSettings);
+        }
+
+        fn clear_progress(&mut self) {
+            self.steps.push(Step::ClearProgress);
+        }
+
+        fn saved_options(&mut self) -> [bool; 4] {
+            self.saved
+        }
+
+        fn apply_options(&mut self, options: BatchOptions) {
+            self.steps.push(Step::Options(options));
+        }
+
+        fn hide_unavailable_control(&mut self) {
+            self.steps.push(Step::HideUnavailable);
+        }
+
+        fn set_help_context(&mut self, context: u32) {
+            self.steps.push(Step::Help(context));
+        }
+    }
+
+    #[test]
+    fn both_lists_bind_to_the_same_circuit_read_twice() {
+        let mut host = Dialog {
+            circuit: CircuitHandle(7),
+            ..Dialog::default()
+        };
+
+        create_batch_simulation(&mut host);
+
+        assert_eq!(host.circuit_reads, 2);
+        assert!(host.steps.contains(&Step::BindFiles(CircuitHandle(7))));
+        assert!(host.steps.contains(&Step::BindResults(CircuitHandle(7))));
+    }
+
+    #[test]
+    fn the_four_options_are_restored_in_the_saved_order() {
+        let mut host = Dialog {
+            saved: [true, false, true, true],
+            ..Dialog::default()
+        };
+
+        let options = create_batch_simulation(&mut host);
+
+        assert_eq!(options.as_array(), [true, false, true, true]);
+        assert!(host.steps.contains(&Step::Options(options)));
+    }
+
+    #[test]
+    fn the_options_survive_a_round_trip_through_the_saved_bytes() {
+        let options = BatchOptions::from_array([false, true, true, false]);
+        assert_eq!(BatchOptions::from_array(options.as_array()), options);
+    }
+
+    #[test]
+    fn the_dialog_hides_its_unavailable_control_and_registers_its_help_topic() {
+        let mut host = Dialog::default();
+        create_batch_simulation(&mut host);
+
+        assert!(host.steps.contains(&Step::HideUnavailable));
+        assert_eq!(host.steps.last(), Some(&Step::Help(0x04b1)));
+    }
+}

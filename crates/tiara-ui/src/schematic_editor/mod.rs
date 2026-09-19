@@ -1,6 +1,7 @@
 mod chrome;
 mod inventory;
 mod menu;
+pub mod menu_tree;
 
 use std::fmt;
 
@@ -35,11 +36,16 @@ impl fmt::Display for NodeReference {
     }
 }
 
-/// Presentation-only messages. None of these messages calls application code.
+/// Messages raised by the editor chrome.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Message {
     SelectComponentCategory(usize),
     SelectNodeReference(NodeReference),
+    /// A menu command was chosen, named as the original resource names it.
+    ///
+    /// The name rather than the caption, because captions repeat between menus
+    /// and names do not.
+    MenuCommand(&'static str),
     NoOp,
 }
 
@@ -54,6 +60,8 @@ pub enum Message {
 pub struct SchematicEditor {
     selected_category: usize,
     node_reference: NodeReference,
+    /// The menu command chosen most recently, if any.
+    invoked: Option<&'static menu_tree::MenuEntry>,
 }
 
 impl SchematicEditor {
@@ -61,7 +69,7 @@ impl SchematicEditor {
     ///
     /// Original Delphi handlers are deliberately not translated in this UI
     /// shell. Later feature beads can connect application messages.
-    pub(crate) const fn update(&mut self, message: Message) {
+    pub(crate) fn update(&mut self, message: Message) {
         match message {
             Message::SelectComponentCategory(index) => {
                 self.selected_category = index;
@@ -69,8 +77,23 @@ impl SchematicEditor {
             Message::SelectNodeReference(reference) => {
                 self.node_reference = reference;
             }
+            Message::MenuCommand(name) => {
+                // A submenu parent is a place to go, not a command to run, so
+                // choosing one leaves the last command alone.
+                if let Some(entry) = menu_tree::find(name)
+                    && !entry.opens_a_submenu()
+                {
+                    self.invoked = Some(entry);
+                }
+            }
             Message::NoOp => {}
         }
+    }
+
+    /// The command chosen most recently, for the status bar to report.
+    #[must_use]
+    pub fn invoked(&self) -> Option<&'static menu_tree::MenuEntry> {
+        self.invoked
     }
 
     /// Builds the window hierarchy recovered from the Schematic Editor DFM.
@@ -96,7 +119,7 @@ impl SchematicEditor {
             self.category_tabs(tokens),
             Self::schematic_canvas(tokens, canvas),
             Self::document_tabs(tokens),
-            Self::status_bar(tokens),
+            self.status_bar(tokens),
         ]
         .width(Length::Fill)
         .height(Length::Fill);
@@ -253,15 +276,26 @@ impl SchematicEditor {
         .into()
     }
 
-    fn status_bar(tokens: ThemeTokens) -> Element<'static, Message> {
+    fn status_bar(&self, tokens: ThemeTokens) -> Element<'_, Message> {
+        // The original shows the hint of whatever was last used here. Until the
+        // commands are connected, reporting which one was chosen is what the
+        // status bar can honestly say.
+        let chosen = self.invoked.map_or_else(String::new, |entry| {
+            entry.handler.map_or_else(
+                || format!("{}: no handler in the original", entry.caption),
+                |address| format!("{} \u{2014} original handler {address:#010X}", entry.caption),
+            )
+        });
+
         container(
             row![
                 button(text("Exit"))
                     .padding([3, 12])
-                    .on_press(Message::NoOp)
+                    .on_press(Message::MenuCommand("mnExit"))
                     .style(move |theme, status| {
                         chrome::toolbar_button_style(tokens, theme, status)
                     }),
+                text(chosen),
                 horizontal_space(),
                 text("X: 0.0000"),
                 text("Y: 0.0000"),

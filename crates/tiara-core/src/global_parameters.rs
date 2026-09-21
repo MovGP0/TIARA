@@ -1,6 +1,8 @@
 use std::collections::HashSet;
 use std::fmt;
 
+use crate::expression;
+
 pub const CONFIGURATION_BEGIN: &str = "@ Configuration begin";
 pub const CONFIGURATION_END: &str = ".@ Configuration end";
 
@@ -360,6 +362,67 @@ fn trim_parameter_text(value: &str) -> &str {
     value.trim_matches(|character| character < '!')
 }
 
+/// Works out the global parameters' expressions.
+///
+/// A parameter may be written in terms of another - `Vbias` as `Vcc/2` - so a
+/// name that has no value yet is worked out from its own expression first,
+/// and one that turns out to be written in terms of itself is refused rather
+/// than followed round for ever.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Evaluator;
+
+impl Evaluator {
+    /// What a name comes to, following the expressions it is written in
+    /// terms of.
+    ///
+    /// `being_worked_out` holds the names further up the chain, which is how
+    /// a circle is caught.
+    fn value_of(
+        name: &str,
+        context: &[ExpressionRecord],
+        being_worked_out: &mut Vec<String>,
+    ) -> Option<f64> {
+        let lowered = name.to_lowercase();
+        if being_worked_out.contains(&lowered) {
+            return None;
+        }
+        let record = context
+            .iter()
+            .find(|record| record.name.eq_ignore_ascii_case(name))?;
+        if let Some(value) = record.result {
+            return Some(value);
+        }
+
+        being_worked_out.push(lowered);
+        let value = Self::work_out(&record.expression, context, being_worked_out).ok();
+        being_worked_out.pop();
+        value
+    }
+
+    /// One expression, with every name it mentions worked out first.
+    fn work_out(
+        expression: &str,
+        context: &[ExpressionRecord],
+        being_worked_out: &mut Vec<String>,
+    ) -> Result<f64, expression::Error> {
+        let mut names = expression::Names::new();
+        for record in context {
+            if let Some(value) = Self::value_of(&record.name, context, being_worked_out) {
+                names.insert(record.name.clone(), value);
+            }
+        }
+        expression::evaluate_with(expression, &names)
+    }
+}
+
+impl ExpressionEvaluator for Evaluator {
+    fn evaluate(&self, expression: &str, context: &[ExpressionRecord]) -> Result<f64, String> {
+        let mut being_worked_out = Vec::new();
+        Self::work_out(expression, context, &mut being_worked_out)
+            .map_err(|error| error.to_string())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -504,5 +567,90 @@ mod tests {
         let mut minimum = RuntimeParameterState::default();
         transfer_runtime_parameter_objects(&mut minimum, &mut minimum_working, true);
         assert!((minimum.derived_aggregate - 2.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn the_evaluator_works_out_a_plain_expression() {
+        let evaluator = Evaluator;
+        assert_eq!(evaluator.evaluate("2*3+1", &[]), Ok(7.0));
+        assert_eq!(evaluator.evaluate("4k7", &[]), Ok(4000.0));
+        assert!(evaluator.evaluate("nonsense", &[]).is_err());
+    }
+
+    #[test]
+    fn a_parameter_may_be_written_in_terms_of_another() {
+        let context = vec![
+            ExpressionRecord {
+                name: "Vcc".to_owned(),
+                expression: "12".to_owned(),
+                result: Some(12.0),
+            },
+            ExpressionRecord {
+                name: "Vbias".to_owned(),
+                expression: "Vcc/2".to_owned(),
+                result: None,
+            },
+        ];
+        let evaluator = Evaluator;
+
+        assert_eq!(evaluator.evaluate("Vbias", &context), Ok(6.0));
+        assert_eq!(evaluator.evaluate("Vbias + Vcc", &context), Ok(18.0));
+    }
+
+    #[test]
+    fn a_chain_of_parameters_is_followed_to_the_end() {
+        let context = vec![
+            ExpressionRecord {
+                name: "a".to_owned(),
+                expression: "2".to_owned(),
+                result: None,
+            },
+            ExpressionRecord {
+                name: "b".to_owned(),
+                expression: "a*3".to_owned(),
+                result: None,
+            },
+            ExpressionRecord {
+                name: "c".to_owned(),
+                expression: "b+1".to_owned(),
+                result: None,
+            },
+        ];
+
+        assert_eq!(Evaluator.evaluate("c", &context), Ok(7.0));
+    }
+
+    #[test]
+    fn a_parameter_written_in_terms_of_itself_is_refused_rather_than_followed() {
+        let context = vec![
+            ExpressionRecord {
+                name: "a".to_owned(),
+                expression: "b+1".to_owned(),
+                result: None,
+            },
+            ExpressionRecord {
+                name: "b".to_owned(),
+                expression: "a+1".to_owned(),
+                result: None,
+            },
+        ];
+
+        // Neither can be worked out, and the attempt ends rather than
+        // running round for ever.
+        assert!(Evaluator.evaluate("a", &context).is_err());
+        assert!(Evaluator.evaluate("b", &context).is_err());
+    }
+
+    #[test]
+    fn a_result_already_worked_out_is_used_rather_than_worked_out_again() {
+        // The expression says one thing and the result another; the result
+        // is what the editor last computed, and that is what counts.
+        let context = vec![ExpressionRecord {
+            name: "Vcc".to_owned(),
+            expression: "this would not parse".to_owned(),
+            result: Some(9.0),
+        }];
+
+        assert_eq!(Evaluator.evaluate("Vcc*2", &context), Ok(18.0));
     }
 }

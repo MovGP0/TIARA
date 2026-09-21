@@ -1,5 +1,9 @@
 //! Iced state for the recovered macro wizard.
 
+use iced::widget::{
+    button, checkbox, column, container, horizontal_space, radio, row, scrollable, text, text_input,
+};
+use iced::{Element, Length};
 use std::path::{Path, PathBuf};
 
 pub const FORM_RESOURCE: &str = "fMacroWiz";
@@ -761,6 +765,528 @@ pub trait DeviceSelectionHost {
 pub fn device_selection_changed(host: &mut impl DeviceSelectionHost) {
     host.update_control_states();
     host.notify_device_combo();
+}
+
+/// What the window is called and where it came from.
+pub const TITLE: &str = "New Macro Wizard";
+pub const SCREENSHOT: &str = "screenshots/New_Macro_Wizard.png";
+
+/// `TfMacroWiz.FormCreate`, which is what the original runs when the window
+/// is made.
+pub const ORIGINAL_FUNCTION: Option<&str> = Some("01c37190");
+
+/// The pages the wizard walks through, in the order it walks them.
+///
+/// The form has six tab sheets and the recovered page-change handler names
+/// five of them; the sixth, the one that says the macro is ready, is the end
+/// of the walk.
+pub const PAGES: [(&str, WizardPage); 6] = [
+    ("Source", WizardPage::Source),
+    ("Subcircuit", WizardPage::SubCircuit),
+    ("Shape", WizardPage::Shape),
+    ("Pins", WizardPage::Pair),
+    ("Names", WizardPage::Rename),
+    ("Finished", WizardPage::Other),
+];
+
+/// Where the macro comes from, as the first page's radio buttons put it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum MacroSource {
+    /// Start with nothing on the sheet.
+    #[default]
+    EmptyCircuit,
+    /// Take what is on the sheet now.
+    CurrentCircuit,
+    /// Read a file.
+    FromFile,
+    /// Fetch one.
+    FromWeb,
+}
+
+impl MacroSource {
+    /// What this page shows for each choice.
+    ///
+    /// The recovered handler works in terms of two radio buttons and a code;
+    /// `From file` is the one with a field of its own, and `From the Web` is
+    /// the one that has to resolve a name before the wizard can go on.
+    #[must_use]
+    pub const fn kind(self) -> SourceKind {
+        match self {
+            Self::FromFile => SourceKind::First,
+            Self::CurrentCircuit => SourceKind::Second,
+            Self::FromWeb => SourceKind::Third,
+            Self::EmptyCircuit => SourceKind::Other,
+        }
+    }
+
+    /// The states the controls on the source page take, by the recovered
+    /// rule.
+    #[must_use]
+    pub const fn control_states(self) -> SourceControlStates {
+        source_control_states(
+            matches!(self, Self::FromFile),
+            matches!(self, Self::CurrentCircuit),
+        )
+    }
+}
+
+/// Where the shape comes from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ShapeSource {
+    /// Draw one from the macro's pins.
+    #[default]
+    Generated,
+    /// Take one out of a library.
+    FromLibrary,
+}
+
+/// What was pressed or typed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Message {
+    /// The wizard's own buttons.
+    Back,
+    Next,
+    Cancel,
+    Help,
+    /// A page was chosen outright, which the page control allows.
+    PageChosen(usize),
+    /// The first page.
+    NameChanged(String),
+    SourceChosen(MacroSource),
+    SourceFileChanged(String),
+    DefaultLabelChanged(String),
+    DefaultParametersChanged(String),
+    GenerateHdlToggled(bool),
+    /// The subcircuit page.
+    SubcircuitChosen(String),
+    /// The shape page.
+    ShapeSourceChosen(ShapeSource),
+    ShapeLibraryChosen(usize),
+    ShapeSearchChanged(String),
+    SuggestedOnlyToggled(bool),
+    /// The last page.
+    EmbedToggled(bool),
+}
+
+/// The New Macro Wizard.
+///
+/// Six pages, walked with Back and Next. What each page offers, and when the
+/// wizard will let the walk go on, follow the rules recovered into this
+/// module rather than rules made up here.
+#[derive(Debug, Clone, Default)]
+pub struct Window {
+    /// Which page is showing.
+    page: usize,
+    /// The first page.
+    name: String,
+    source: MacroSource,
+    source_file: String,
+    default_label: String,
+    default_parameters: String,
+    generate_hdl: bool,
+    /// The subcircuit page, which only has anything to offer when a source
+    /// holds more than one subcircuit.
+    subcircuits: Vec<String>,
+    chosen_subcircuit: Option<String>,
+    /// The shape page.
+    shape_source: ShapeSource,
+    shape_libraries: Vec<String>,
+    chosen_library: usize,
+    shape_search: String,
+    suggested_only: bool,
+    /// The last page.
+    embed: bool,
+    /// Whether the wizard was given up on or seen through.
+    finished: Option<bool>,
+}
+
+impl Window {
+    /// A wizard offering the subcircuits and shape libraries given.
+    #[must_use]
+    pub fn offering(subcircuits: Vec<String>, shape_libraries: Vec<String>) -> Self {
+        Self {
+            subcircuits,
+            shape_libraries,
+            ..Self::default()
+        }
+    }
+
+    /// Which page is showing.
+    #[must_use]
+    pub const fn page(&self) -> usize {
+        self.page
+    }
+
+    /// What that page is, as the recovered layout names it.
+    #[must_use]
+    pub fn wizard_page(&self) -> WizardPage {
+        PAGES
+            .get(self.page)
+            .map_or(WizardPage::Other, |(_, page)| *page)
+    }
+
+    /// How the form is laid out for the page showing, by the recovered rule.
+    #[must_use]
+    pub const fn layout(&self) -> PageLayout {
+        page_layout(self.wizard_page_const())
+    }
+
+    /// The page showing, without looking the name up.
+    const fn wizard_page_const(&self) -> WizardPage {
+        match self.page {
+            0 => WizardPage::Source,
+            1 => WizardPage::SubCircuit,
+            2 => WizardPage::Shape,
+            3 => WizardPage::Pair,
+            4 => WizardPage::Rename,
+            _ => WizardPage::Other,
+        }
+    }
+
+    /// Whether the wizard was seen through, given up on, or is still going.
+    #[must_use]
+    pub const fn finished(&self) -> Option<bool> {
+        self.finished
+    }
+
+    /// What the macro will be called.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Whether the walk can go on from the page showing.
+    ///
+    /// The first page needs a name and a source that has been settled - the
+    /// recovered `accept` state is what says a source has been chosen at
+    /// all, and a source read from a file needs the file as well. The
+    /// subcircuit page needs one chosen where there is a choice. The rest
+    /// have nothing to insist on.
+    #[must_use]
+    pub fn can_go_on(&self) -> bool {
+        match self.page {
+            0 => {
+                if self.name.trim().is_empty() {
+                    return false;
+                }
+                match self.source {
+                    MacroSource::FromFile => !self.source_file.trim().is_empty(),
+                    MacroSource::EmptyCircuit | MacroSource::CurrentCircuit => true,
+                    // The one the recovered code has to resolve a name for
+                    // before it can go on, and the port cannot fetch yet.
+                    MacroSource::FromWeb => false,
+                }
+            }
+            1 => self.subcircuits.is_empty() || self.chosen_subcircuit.is_some(),
+            _ => true,
+        }
+    }
+
+    /// Whether there is a page before this one.
+    #[must_use]
+    pub const fn can_go_back(&self) -> bool {
+        self.page > 0
+    }
+
+    /// Whether the page showing is the last.
+    #[must_use]
+    pub const fn on_the_last_page(&self) -> bool {
+        self.page + 1 == PAGES.len()
+    }
+
+    /// The states the source page's controls take.
+    #[must_use]
+    pub const fn source_controls(&self) -> SourceControlStates {
+        self.source.control_states()
+    }
+
+    /// The states the shape page's controls take, by the recovered rule.
+    #[must_use]
+    pub const fn shape_controls(&self) -> ShapeControlStates {
+        shape_mode_control_states(matches!(self.shape_source, ShapeSource::FromLibrary))
+    }
+
+    /// Answers a message.
+    pub fn update(&mut self, message: Message) {
+        match message {
+            Message::Back => {
+                if self.can_go_back() {
+                    self.page -= 1;
+                }
+            }
+            Message::Next => {
+                if !self.can_go_on() {
+                    return;
+                }
+                if self.on_the_last_page() {
+                    self.finished = Some(true);
+                } else {
+                    self.page += 1;
+                }
+            }
+            Message::Cancel => self.finished = Some(false),
+            Message::Help => {}
+            Message::PageChosen(page) => {
+                if page < PAGES.len() {
+                    self.page = page;
+                }
+            }
+            Message::NameChanged(value) => self.name = value,
+            Message::SourceChosen(source) => self.source = source,
+            Message::SourceFileChanged(value) => self.source_file = value,
+            Message::DefaultLabelChanged(value) => self.default_label = value,
+            Message::DefaultParametersChanged(value) => self.default_parameters = value,
+            Message::GenerateHdlToggled(on) => self.generate_hdl = on,
+            Message::SubcircuitChosen(value) => self.chosen_subcircuit = Some(value),
+            Message::ShapeSourceChosen(source) => self.shape_source = source,
+            Message::ShapeLibraryChosen(index) => {
+                if index < self.shape_libraries.len() {
+                    self.chosen_library = index;
+                }
+            }
+            Message::ShapeSearchChanged(value) => self.shape_search = value,
+            Message::SuggestedOnlyToggled(on) => self.suggested_only = on,
+            Message::EmbedToggled(on) => self.embed = on,
+        }
+    }
+}
+
+impl Window {
+    /// The wizard as the form lays it out: the page above, the four buttons
+    /// below.
+    #[must_use]
+    pub fn view(&self) -> Element<'_, Message> {
+        let mut tabs = row![].spacing(2);
+        for (index, (caption, _)) in PAGES.iter().enumerate() {
+            let here = index == self.page;
+            let face = if here {
+                format!("[{caption}]")
+            } else {
+                (*caption).to_owned()
+            };
+            tabs = tabs.push(
+                button(text(face).size(11))
+                    .padding([2, 8])
+                    .on_press(Message::PageChosen(index)),
+            );
+        }
+
+        let back = button(text("< Back").size(12));
+        let back = if self.can_go_back() {
+            back.on_press(Message::Back)
+        } else {
+            back
+        };
+        let onward = button(
+            text(if self.on_the_last_page() {
+                "Finish"
+            } else {
+                "Next >"
+            })
+            .size(12),
+        );
+        let onward = if self.can_go_on() {
+            onward.on_press(Message::Next)
+        } else {
+            onward
+        };
+
+        let buttons = row![
+            horizontal_space(),
+            back,
+            onward,
+            button(text("Help").size(12)).on_press(Message::Help),
+            button(text("Cancel").size(12)).on_press(Message::Cancel),
+        ]
+        .spacing(6);
+
+        container(
+            column![tabs, self.page_body(), buttons]
+                .spacing(10)
+                .padding(8),
+        )
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
+    }
+
+    /// Whichever page is showing.
+    fn page_body(&self) -> Element<'_, Message> {
+        let body: Element<'_, Message> = match self.page {
+            0 => self.source_page(),
+            1 => self.subcircuit_page(),
+            2 => self.shape_page(),
+            3 => text("Connect the spice pins to the shape pins.")
+                .size(12)
+                .into(),
+            4 => text("Name the macro's pins and put them in order.")
+                .size(12)
+                .into(),
+            _ => column![
+                text("The macro file is ready for use.").size(12),
+                checkbox("Embed macro in circuit", self.embed).on_toggle(Message::EmbedToggled),
+            ]
+            .spacing(8)
+            .into(),
+        };
+
+        container(body).height(Length::Fill).into()
+    }
+
+    /// The first page: what the macro is called and where it comes from.
+    fn source_page(&self) -> Element<'_, Message> {
+        let states = self.source_controls();
+
+        let mut chooser = column![text("Select the source of the macro").size(12)].spacing(4);
+        for (caption, source) in [
+            ("Empty circuit", MacroSource::EmptyCircuit),
+            ("Current circuit", MacroSource::CurrentCircuit),
+            ("From file", MacroSource::FromFile),
+            ("From the Web", MacroSource::FromWeb),
+        ] {
+            chooser = chooser.push(radio(
+                caption,
+                source,
+                Some(self.source),
+                Message::SourceChosen,
+            ));
+        }
+
+        // The field beside `From file` follows that radio button, which is
+        // what the recovered control states say.
+        let file = text_input("", &self.source_file).size(12).padding(4);
+        let file = if states.first_field {
+            file.on_input(Message::SourceFileChanged)
+        } else {
+            file
+        };
+
+        column![
+            row![
+                text("Macro Name").size(11).width(Length::Fixed(90.0)),
+                text_input("", &self.name)
+                    .on_input(Message::NameChanged)
+                    .size(12)
+                    .padding(4),
+            ]
+            .spacing(6),
+            chooser,
+            row![text("File").size(11).width(Length::Fixed(90.0)), file].spacing(6),
+            text("Defaults").size(12),
+            row![
+                text("Label:").size(11).width(Length::Fixed(90.0)),
+                text_input("", &self.default_label)
+                    .on_input(Message::DefaultLabelChanged)
+                    .size(12)
+                    .padding(4),
+            ]
+            .spacing(6),
+            row![
+                text("Parameters:").size(11).width(Length::Fixed(90.0)),
+                text_input("", &self.default_parameters)
+                    .on_input(Message::DefaultParametersChanged)
+                    .size(12)
+                    .padding(4),
+            ]
+            .spacing(6),
+            checkbox("Generate HDL component", self.generate_hdl)
+                .on_toggle(Message::GenerateHdlToggled),
+        ]
+        .spacing(8)
+        .into()
+    }
+
+    /// The second page, which only has something to say when the source
+    /// holds more than one subcircuit.
+    fn subcircuit_page(&self) -> Element<'_, Message> {
+        if self.subcircuits.is_empty() {
+            return text("The source holds one subcircuit, so there is nothing to choose.")
+                .size(12)
+                .into();
+        }
+
+        let mut list = column![].spacing(2);
+        for name in &self.subcircuits {
+            let chosen = self.chosen_subcircuit.as_deref() == Some(name.as_str());
+            let face = if chosen {
+                format!("> {name}")
+            } else {
+                name.clone()
+            };
+            list = list.push(
+                button(text(face).size(12))
+                    .padding([2, 6])
+                    .width(Length::Fill)
+                    .on_press(Message::SubcircuitChosen(name.clone()))
+                    .style(button::text),
+            );
+        }
+
+        column![
+            text("More than one subcircuit was found. Choose one.").size(12),
+            scrollable(list).height(Length::Fill),
+        ]
+        .spacing(8)
+        .into()
+    }
+
+    /// The third page: where the macro's shape comes from.
+    ///
+    /// The recovered handler works in seven control states and which state
+    /// belongs to which control is not recorded, so what is offered here
+    /// follows the choice itself: a shape taken from a library needs the
+    /// library and the filter, and a generated one does not.
+    /// [`Window::shape_controls`] still gives the seven, for whoever works
+    /// out the order.
+    fn shape_page(&self) -> Element<'_, Message> {
+        let from_library = matches!(self.shape_source, ShapeSource::FromLibrary);
+
+        let mut libraries = row![].spacing(2);
+        for (index, library) in self.shape_libraries.iter().enumerate() {
+            let here = index == self.chosen_library;
+            let face = if here {
+                format!("[{library}]")
+            } else {
+                library.clone()
+            };
+            let pick = button(text(face).size(11)).padding([2, 8]);
+            let pick = if from_library {
+                pick.on_press(Message::ShapeLibraryChosen(index))
+            } else {
+                pick
+            };
+            libraries = libraries.push(pick);
+        }
+
+        let search = text_input("", &self.shape_search).size(12).padding(4);
+        let search = if from_library {
+            search.on_input(Message::ShapeSearchChanged)
+        } else {
+            search
+        };
+
+        column![
+            text("Select the shape you want to attach to the macro.").size(12),
+            radio(
+                "Auto generate shape",
+                ShapeSource::Generated,
+                Some(self.shape_source),
+                Message::ShapeSourceChosen
+            ),
+            radio(
+                "Load shape from library",
+                ShapeSource::FromLibrary,
+                Some(self.shape_source),
+                Message::ShapeSourceChosen
+            ),
+            libraries,
+            row![text("Search:").size(11).width(Length::Fixed(90.0)), search].spacing(6),
+            checkbox("Show suggested shapes only.", self.suggested_only)
+                .on_toggle(Message::SuggestedOnlyToggled),
+        ]
+        .spacing(8)
+        .into()
+    }
 }
 
 #[cfg(test)]
@@ -3538,5 +4064,160 @@ mod macro_wizard_forward_tests {
 
         assert_eq!(step_forward(&mut host), WizardPage::Other);
         assert_eq!(host.steps, [Step::Finish]);
+    }
+
+    #[test]
+    fn the_wizard_opens_on_the_first_page_with_nowhere_to_go_back_to() {
+        let window = Window::default();
+        assert_eq!(window.page(), 0);
+        assert_eq!(window.wizard_page(), WizardPage::Source);
+        assert!(!window.can_go_back());
+        assert!(!window.on_the_last_page());
+        assert_eq!(window.finished(), None);
+    }
+
+    #[test]
+    fn the_first_page_waits_for_a_name() {
+        let mut window = Window::default();
+        assert!(!window.can_go_on());
+
+        window.update(Message::NameChanged("  ".to_owned()));
+        assert!(!window.can_go_on(), "a name of spaces is no name");
+
+        window.update(Message::NameChanged("Divider".to_owned()));
+        assert!(window.can_go_on());
+    }
+
+    #[test]
+    fn a_macro_read_from_a_file_waits_for_the_file() {
+        let mut window = Window::default();
+        window.update(Message::NameChanged("Divider".to_owned()));
+        window.update(Message::SourceChosen(MacroSource::FromFile));
+        assert!(!window.can_go_on());
+
+        window.update(Message::SourceFileChanged("divider.tsc".to_owned()));
+        assert!(window.can_go_on());
+    }
+
+    #[test]
+    fn the_source_from_the_web_cannot_go_on_because_nothing_fetches_it_yet() {
+        let mut window = Window::default();
+        window.update(Message::NameChanged("Divider".to_owned()));
+        window.update(Message::SourceChosen(MacroSource::FromWeb));
+
+        assert!(!window.can_go_on());
+        // And the recovered kinds say which one this is.
+        assert_eq!(MacroSource::FromWeb.kind(), SourceKind::Third);
+        assert!(SourceKind::Third.resolves_name());
+    }
+
+    #[test]
+    fn the_control_states_on_the_first_page_are_the_recovered_ones() {
+        let mut window = Window::default();
+        // Nothing chosen that the recovered rule counts, so nothing accepts.
+        assert!(!window.source_controls().accept);
+
+        window.update(Message::SourceChosen(MacroSource::FromFile));
+        let states = window.source_controls();
+        assert!(states.first_field);
+        assert!(states.first_field_option);
+        assert!(!states.second_field);
+        assert!(states.accept);
+
+        window.update(Message::SourceChosen(MacroSource::CurrentCircuit));
+        let states = window.source_controls();
+        assert!(!states.first_field);
+        assert!(states.second_field);
+        assert!(states.accept);
+    }
+
+    #[test]
+    fn walking_forward_and_back_stays_inside_the_pages() {
+        let mut window = Window::default();
+        window.update(Message::NameChanged("Divider".to_owned()));
+
+        // One Next per step between pages lands on the last one.
+        for _ in 0..PAGES.len() - 1 {
+            window.update(Message::Next);
+        }
+        assert!(window.on_the_last_page());
+        assert_eq!(window.finished(), None);
+
+        // One more sees it through.
+        window.update(Message::Next);
+        assert_eq!(window.finished(), Some(true));
+
+        for _ in 0..PAGES.len() + 2 {
+            window.update(Message::Back);
+        }
+        assert_eq!(window.page(), 0);
+    }
+
+    #[test]
+    fn a_page_the_walk_cannot_leave_does_not_move() {
+        let mut window = Window::default();
+        window.update(Message::Next);
+        assert_eq!(window.page(), 0, "no name, so nowhere to go");
+    }
+
+    #[test]
+    fn the_subcircuit_page_waits_for_one_where_there_is_a_choice() {
+        let mut window =
+            Window::offering(vec!["First".to_owned(), "Second".to_owned()], Vec::new());
+        window.update(Message::NameChanged("Divider".to_owned()));
+        window.update(Message::Next);
+        assert_eq!(window.page(), 1);
+        assert!(!window.can_go_on());
+
+        window.update(Message::SubcircuitChosen("Second".to_owned()));
+        assert!(window.can_go_on());
+    }
+
+    #[test]
+    fn a_source_with_one_subcircuit_passes_that_page_straight_through() {
+        let mut window = Window::default();
+        window.update(Message::NameChanged("Divider".to_owned()));
+        window.update(Message::Next);
+
+        assert_eq!(window.page(), 1);
+        assert!(window.can_go_on());
+    }
+
+    #[test]
+    fn each_page_lays_the_form_out_the_recovered_way() {
+        let mut window = Window::default();
+        assert_eq!(window.layout(), page_layout(WizardPage::Source));
+
+        window.update(Message::PageChosen(2));
+        assert_eq!(window.wizard_page(), WizardPage::Shape);
+        assert_eq!(window.layout(), page_layout(WizardPage::Shape));
+
+        // A page that is not there is ignored.
+        window.update(Message::PageChosen(9));
+        assert_eq!(window.page(), 2);
+    }
+
+    #[test]
+    fn the_shape_controls_follow_the_recovered_rule() {
+        let mut window = Window::default();
+        assert_eq!(
+            window.shape_controls(),
+            shape_mode_control_states(false),
+            "a generated shape"
+        );
+
+        window.update(Message::ShapeSourceChosen(ShapeSource::FromLibrary));
+        assert_eq!(
+            window.shape_controls(),
+            shape_mode_control_states(true),
+            "one taken from a library"
+        );
+    }
+
+    #[test]
+    fn giving_up_ends_the_wizard_without_seeing_it_through() {
+        let mut window = Window::default();
+        window.update(Message::Cancel);
+        assert_eq!(window.finished(), Some(false));
     }
 }

@@ -1,6 +1,17 @@
 use std::cmp::Ordering;
 
-use iced::{Point, Rectangle, Task};
+use iced::widget::{button, column, container, scrollable, text, text_input};
+use iced::{Element, Length, Point, Rectangle, Task};
+
+/// What the window is called and where it came from.
+pub const TITLE: &str = "Component Explorer";
+pub const SCREENSHOT: &str = "screenshots/Component_Explorer.png";
+pub const FORM_RESOURCE: &str = "frmComponentExplorer";
+
+/// The form has no `OnCreate`; what the window is built around is the
+/// routine that answers a click on the tree, which is what this module
+/// implements.
+pub const ORIGINAL_FUNCTION: Option<&str> = Some("013ab400");
 
 const VIEWPORT_MARGIN: f32 = 50.0;
 const TREE_HIT_ON_BUTTON: u16 = 0x10;
@@ -708,6 +719,106 @@ impl Window {
 fn rectangle_contains(outer: Rectangle, inner: Rectangle) -> bool {
     let bottom_right = Point::new(inner.x + inner.width, inner.y + inner.height);
     outer.contains(inner.position()) && outer.contains(bottom_right)
+}
+
+/// How far one step into the tree moves a line across.
+const INDENT: usize = 14;
+
+/// One line of the tree, as the shell hands it over.
+///
+/// The explorer does not hold the circuit - the editor does - so what to
+/// draw comes in from outside. That keeps the window free of the sheet and
+/// lets the tree be checked without one.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Row {
+    /// What the line stands for.
+    pub node: TreeNode,
+    /// What it says.
+    pub label: String,
+    /// How far in it sits: a circuit is at nothing, a part in it at one.
+    pub depth: usize,
+}
+
+impl Row {
+    /// A line for a circuit, which has no object of its own.
+    #[must_use]
+    pub fn circuit(id: TreeNodeId, label: impl Into<String>) -> Self {
+        Self {
+            node: TreeNode::root(id),
+            label: label.into(),
+            depth: 0,
+        }
+    }
+
+    /// A line for something on a circuit.
+    #[must_use]
+    pub fn part(
+        id: TreeNodeId,
+        parent: TreeNodeId,
+        object: CircuitObject,
+        label: impl Into<String>,
+    ) -> Self {
+        Self {
+            node: TreeNode::child(id, parent, Some(object)),
+            label: label.into(),
+            depth: 1,
+        }
+    }
+}
+
+impl Window {
+    /// Whether a line is the one picked out.
+    #[must_use]
+    pub fn is_selected(&self, row: &Row) -> bool {
+        self.selected_node
+            .is_some_and(|selected| selected.id == row.node.id)
+    }
+
+    /// The search box over the tree, which is what the form has.
+    ///
+    /// Clicking a line picks it out and then asks the sheet to show it,
+    /// which is the two messages the recovered routine expects in that
+    /// order.
+    #[must_use]
+    pub fn view(&self, rows: &[Row]) -> Element<'_, Message> {
+        let search = text_input(SEARCH_PLACEHOLDER, self.search_text())
+            .on_input(Message::SearchChanged)
+            .on_submit(Message::SearchEntered)
+            .size(12)
+            .padding(4);
+
+        let mut tree = column![].spacing(1);
+        for row in rows {
+            #[allow(
+                clippy::cast_precision_loss,
+                reason = "the tree is two deep, so this is 0 or 14"
+            )]
+            let indent = (row.depth * INDENT) as f32;
+            let face = if self.is_selected(row) {
+                format!("> {}", row.label)
+            } else {
+                row.label.clone()
+            };
+            tree = tree.push(
+                button(text(face).size(12))
+                    .padding(iced::Padding {
+                        top: 2.0,
+                        right: 6.0,
+                        bottom: 2.0,
+                        left: 6.0 + indent,
+                    })
+                    .width(Length::Fill)
+                    .on_press(Message::TreeSelectionChanged(Some(row.node)))
+                    .style(button::text),
+            );
+        }
+
+        container(column![search, scrollable(tree).height(Length::Fill)].spacing(6))
+            .padding(6)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
+    }
 }
 
 #[cfg(test)]

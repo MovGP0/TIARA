@@ -10,9 +10,13 @@
 //! that has changed is asked about, once per circuit, and a `Cancel` anywhere
 //! stops what was being done - closing, closing everything, or leaving.
 
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 use rfd::{FileDialog, MessageButtons, MessageDialog, MessageDialogResult, MessageLevel};
+use tiara_core::back_annotation::{self, BackAnnotation};
+use tiara_core::macro_file::{self, Macro};
+use tiara_core::schematic_document::{Document, Sheet};
 use tiara_core::schematic_file;
 use tiara_core::schematic_workspace::Saved;
 
@@ -23,6 +27,12 @@ const EXAMPLES_VARIABLE: &str = "TIARA_EXAMPLES";
 
 /// What that folder is called where it sits beside the program.
 const EXAMPLES_FOLDER: &str = "Examples";
+
+/// What a back-annotation file is called.
+const BACK_ANNOTATION_EXTENSION: &str = "ban";
+
+/// What the file picker calls that kind.
+const BACK_ANNOTATION_FILTER: &str = "Back-annotation file";
 
 /// What someone said when asked about work that has not been saved.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -60,10 +70,10 @@ impl SchematicEditor {
         self.closing
     }
 
-    /// What went wrong the last time a file was read or written, if anything.
+    /// What the status bar has to say, if anything.
     #[must_use]
-    pub(crate) fn trouble(&self) -> Option<&str> {
-        self.trouble.as_deref()
+    pub(crate) fn said(&self) -> Option<&str> {
+        self.said.as_deref()
     }
 
     /// `File > Open...`, and `File > Open Examples...` with a folder to start
@@ -86,11 +96,129 @@ impl SchematicEditor {
         };
         match self.workspace.open(path) {
             Ok(()) => {
-                self.trouble = None;
+                self.said = None;
                 self.take_up(Tool::Select);
             }
             Err(error) => {
-                self.trouble = Some(format!("{}: {error}", path.display()));
+                self.said = Some(format!("{}: {error}", path.display()));
+            }
+        }
+    }
+
+    /// Opens a circuit that came from somewhere else.
+    ///
+    /// It opens beside whatever is already open rather than over it: an
+    /// import is a new circuit, not a change to the one being worked on, and
+    /// it has no file of its own until it is saved.
+    pub(crate) fn open_imported(&mut self, document: Document) {
+        self.workspace.start_a_new_one();
+        *self.workspace.active_mut().sheet_mut() = Sheet::holding(document);
+        self.said = None;
+        self.take_up(Tool::Select);
+    }
+
+    /// `Tools > PCB Tools > Backannotate...`.
+    pub(crate) fn back_annotate_click(&mut self) {
+        let chosen = FileDialog::new()
+            .add_filter(BACK_ANNOTATION_FILTER, &[BACK_ANNOTATION_EXTENSION])
+            .pick_file();
+        self.back_annotate_from(chosen.as_deref());
+    }
+
+    /// Brings back what a board layout changed.
+    ///
+    /// A part the board renamed is renamed here. A footprint, a pin swap or
+    /// a gate swap is read and counted but not applied: a part on the sheet
+    /// carries a label and not yet a footprint or a pin map, and saying so
+    /// is better than dropping them quietly.
+    pub(crate) fn back_annotate_from(&mut self, path: Option<&Path>) {
+        let Some(path) = path else {
+            return;
+        };
+        let read = match back_annotation::read(path) {
+            Ok(read) => read,
+            Err(error) => {
+                self.said = Some(format!("{}: {error}", path.display()));
+                return;
+            }
+        };
+        self.said = Some(self.apply_back_annotation(&read));
+    }
+
+    /// Applies what was read, and says what came of it.
+    fn apply_back_annotation(&mut self, read: &BackAnnotation) -> String {
+        let mut renamed = 0_usize;
+        let mut missing = 0_usize;
+        let mut waiting = 0_usize;
+
+        for change in &read.changes {
+            if change.waits_for_more() {
+                waiting += 1;
+            }
+            let Some(reference) = change.reference.as_deref() else {
+                continue;
+            };
+            match self.sheet().part_called(&change.part) {
+                Some(id) => {
+                    self.sheet_mut().rename(id, reference);
+                    renamed += 1;
+                }
+                None => missing += 1,
+            }
+        }
+
+        let mut said = format!("{} renamed from {}", renamed, read.circuit);
+        if missing > 0 {
+            let _ = write!(said, ", {missing} not on this sheet");
+        }
+        if waiting > 0 {
+            let _ = write!(
+                said,
+                ", {waiting} carrying a package or a swap the sheet cannot hold yet"
+            );
+        }
+        said
+    }
+
+    /// `Tools > Export Macro...`.
+    ///
+    /// Only offered inside a macro, which is where there is a macro to
+    /// export: the sheet being edited is the macro's own circuit.
+    pub(crate) fn export_macro_click(&mut self) {
+        let chosen = FileDialog::new()
+            .add_filter(macro_file::FILTER_NAME, &[macro_file::EXTENSION])
+            .set_file_name(self.document_name())
+            .save_file();
+        self.export_macro_to(chosen.as_deref());
+    }
+
+    /// Writes the macro being edited to the name the dialog came back with.
+    ///
+    /// Nothing means the dialog was cancelled, and nothing is written.
+    pub(crate) fn export_macro_to(&mut self, path: Option<&Path>) -> bool {
+        let Some(path) = path else {
+            return false;
+        };
+        let path = macro_file::with_extension(path);
+        let what = Macro {
+            name: self.document_name().to_owned(),
+            // What a macro's instances are labelled with, and what
+            // parameters it takes, are the macro properties dialog's to
+            // hold; until it keeps them for the sheet being edited, a
+            // macro is written out with the circuit and its name.
+            label: String::new(),
+            parameters: String::new(),
+            circuit: self.sheet().document().clone(),
+        };
+
+        match macro_file::write(&path, &what) {
+            Ok(()) => {
+                self.said = Some(format!("{}", path.display()));
+                true
+            }
+            Err(error) => {
+                self.said = Some(format!("{}: {error}", path.display()));
+                false
             }
         }
     }
@@ -99,8 +227,8 @@ impl SchematicEditor {
     pub(crate) fn save_click(&mut self) {
         match self.workspace.save() {
             Ok(Saved::NeedsAName) => self.save_as_click(),
-            Ok(_) => self.trouble = None,
-            Err(error) => self.trouble = Some(error.to_string()),
+            Ok(_) => self.said = None,
+            Err(error) => self.said = Some(error.to_string()),
         }
     }
 
@@ -124,11 +252,11 @@ impl SchematicEditor {
         };
         match self.workspace.save_as(path) {
             Ok(()) => {
-                self.trouble = None;
+                self.said = None;
                 true
             }
             Err(error) => {
-                self.trouble = Some(format!("{}: {error}", path.display()));
+                self.said = Some(format!("{}: {error}", path.display()));
                 false
             }
         }
@@ -313,7 +441,7 @@ mod tests {
         assert_eq!(editor.sheet().document().parts().len(), 1);
         assert_eq!(editor.document_name(), "round-trip");
         assert!(!editor.state().is_modified);
-        assert_eq!(editor.trouble(), None);
+        assert_eq!(editor.said(), None);
 
         let _ = std::fs::remove_file(&path);
     }
@@ -327,7 +455,7 @@ mod tests {
         assert_eq!(editor.workspace.count(), 1);
         assert_eq!(editor.sheet().document().parts().len(), 1);
         assert!(editor.state().is_modified);
-        assert_eq!(editor.trouble(), None);
+        assert_eq!(editor.said(), None);
     }
 
     #[test]
@@ -338,7 +466,7 @@ mod tests {
         let mut editor = drawn_on();
         editor.open_from(Some(&path));
 
-        let trouble = editor.trouble().expect("it should say what went wrong");
+        let trouble = editor.said().expect("it should say what went wrong");
         assert!(trouble.contains("unreadable"));
         assert_eq!(editor.workspace.count(), 1);
         assert_eq!(editor.sheet().document().parts().len(), 1);
@@ -348,7 +476,7 @@ mod tests {
         let _ = std::fs::remove_file(&good);
         let _written = saved_at(&good);
         editor.open_from(Some(&good));
-        assert_eq!(editor.trouble(), None);
+        assert_eq!(editor.said(), None);
 
         let _ = std::fs::remove_file(&path);
         let _ = std::fs::remove_file(&good);
@@ -478,5 +606,143 @@ mod tests {
         if let Some(folder) = examples_folder() {
             assert!(folder.is_dir());
         }
+    }
+
+    #[test]
+    fn a_circuit_from_somewhere_else_opens_beside_what_is_already_open() {
+        let mut editor = drawn_on();
+        let mut brought = tiara_core::schematic_document::Sheet::default();
+        brought.place("R", Point::new(4, 4));
+        brought.place("C", Point::new(8, 4));
+
+        editor.open_imported(brought.document().clone());
+
+        assert_eq!(editor.workspace.count(), 2);
+        assert_eq!(editor.sheet().document().parts().len(), 2);
+        // The one that was being worked on is untouched.
+        editor.update(Message::SelectDocument(0));
+        assert_eq!(editor.sheet().document().parts().len(), 1);
+    }
+
+    #[test]
+    fn a_macro_is_written_out_with_the_circuit_inside_it() {
+        let folder = std::env::temp_dir().join(format!("tiara-macro-out-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&folder);
+        let path = folder.join("divider.tsm");
+
+        let mut editor = drawn_on();
+        editor.sheet_mut().select_all();
+        editor.update(Message::MenuCommand("mnOpenMacro"));
+        assert!(editor.sheet().inside_macro(), "it should be inside a macro");
+
+        assert!(editor.export_macro_to(Some(&path)));
+
+        let read_back = tiara_core::macro_file::read(&path).unwrap();
+        assert_eq!(read_back.circuit.parts().len(), 1);
+        assert_eq!(read_back.name, editor.document_name());
+
+        let _ = std::fs::remove_dir_all(&folder);
+    }
+
+    #[test]
+    fn a_cancelled_export_writes_nothing() {
+        let mut editor = drawn_on();
+        assert!(!editor.export_macro_to(None));
+        assert_eq!(editor.said(), None);
+    }
+
+    #[test]
+    fn a_macro_written_where_it_cannot_go_says_so() {
+        let mut editor = drawn_on();
+        // A name no filesystem will take.
+        let refused = editor.export_macro_to(Some(std::path::Path::new("")));
+        assert!(!refused);
+        assert!(editor.said().is_some());
+    }
+
+    #[test]
+    fn a_board_that_renamed_a_part_renames_it_here() {
+        let folder = std::env::temp_dir().join(format!("tiara-ban-in-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&folder);
+        std::fs::create_dir_all(&folder).unwrap();
+        let path = folder.join("divider.ban");
+        std::fs::write(
+            &path,
+            "[Circuit]
+Name=Divider
+[Components]
+R1=
+[R1]
+Reference=R7
+",
+        )
+        .unwrap();
+
+        let mut editor = drawn_on();
+        assert_eq!(editor.sheet().document().parts()[0].label, "R1");
+
+        editor.back_annotate_from(Some(&path));
+        assert_eq!(editor.sheet().document().parts()[0].label, "R7");
+        assert!(
+            editor
+                .said()
+                .is_some_and(|said| said.starts_with("1 renamed"))
+        );
+
+        let _ = std::fs::remove_dir_all(&folder);
+    }
+
+    #[test]
+    fn what_the_sheet_cannot_hold_yet_is_counted_rather_than_dropped() {
+        let folder = std::env::temp_dir().join(format!("tiara-ban-wait-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&folder);
+        std::fs::create_dir_all(&folder).unwrap();
+        let path = folder.join("divider.ban");
+        std::fs::write(
+            &path,
+            "[Circuit]
+Name=Divider
+[Components]
+R1=
+Q9=
+             [R1]
+Package=R0805
+[Q9]
+Reference=Q1
+",
+        )
+        .unwrap();
+
+        let mut editor = drawn_on();
+        editor.back_annotate_from(Some(&path));
+
+        let said = editor.said().expect("it should say what came of it");
+        assert!(said.starts_with("0 renamed"), "{said}");
+        assert!(said.contains("1 not on this sheet"), "{said}");
+        assert!(said.contains("cannot hold yet"), "{said}");
+
+        let _ = std::fs::remove_dir_all(&folder);
+    }
+
+    #[test]
+    fn a_file_that_is_not_a_back_annotation_says_so_and_changes_nothing() {
+        let folder = std::env::temp_dir().join(format!("tiara-ban-bad-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&folder);
+        std::fs::create_dir_all(&folder).unwrap();
+        let path = folder.join("other.ban");
+        std::fs::write(&path, "something else entirely").unwrap();
+
+        let mut editor = drawn_on();
+        editor.back_annotate_from(Some(&path));
+
+        assert_eq!(editor.sheet().document().parts()[0].label, "R1");
+        assert!(editor.said().is_some());
+
+        // And a cancelled dialog says nothing at all.
+        let mut cancelled = drawn_on();
+        cancelled.back_annotate_from(None);
+        assert_eq!(cancelled.said(), None);
+
+        let _ = std::fs::remove_dir_all(&folder);
     }
 }

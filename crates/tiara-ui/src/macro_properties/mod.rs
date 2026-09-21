@@ -5,6 +5,15 @@ use crate::shared::window_shell;
 
 pub const TITLE: &str = "Macro Properties";
 pub const FORM_RESOURCE: &str = "MacroPropertiesForm";
+
+/// No photograph. `Tools > Edit Macro Properties` is greyed outside a macro,
+/// and the original was never driven into one, so there was never a window
+/// to photograph. It was built from the form instead.
+pub const SCREENSHOT: &str = "";
+
+/// `TMacroPropertiesForm.FormCreate`, which is what the original runs when
+/// the window is made.
+pub const ORIGINAL_FUNCTION: Option<&str> = Some("01b925f0");
 pub const LIBRARY_EVALUATION: &str = "iced 0.13 supplies the form controls and message/update state; Rust enums, Vec, Option, sorting, and integer geometry supply the staged transaction and auto-shape layout; text measurement and the modal shape catalog remain typed adapters because neither the standard library nor iced exposes the recovered application catalog contract";
 
 const STATUS: &str = "Edit macro properties";
@@ -331,6 +340,14 @@ pub struct Window {
     flags: u8,
     notification_resource: Option<u16>,
     pending_action: Option<Action>,
+}
+
+/// The window over a macro with nothing in it, which is what the shell holds
+/// until one is opened.
+impl Default for Window {
+    fn default() -> Self {
+        Self::new(MacroDefinition::default(), MacroInstance::default(), None)
+    }
 }
 
 impl Window {

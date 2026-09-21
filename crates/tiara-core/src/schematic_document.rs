@@ -90,6 +90,21 @@ impl Rotation {
         }
     }
 
+    /// The turn a number of degrees names, to the nearest quarter.
+    ///
+    /// Reading a sheet written by something else brings a turn as a number,
+    /// and anything that is not a quarter is rounded to one - this editor
+    /// turns parts in quarters and nothing else.
+    #[must_use]
+    pub const fn from_degrees(degrees: u32) -> Self {
+        match (degrees % 360) / 90 {
+            1 => Self::Quarter,
+            2 => Self::Half,
+            3 => Self::ThreeQuarters,
+            _ => Self::None,
+        }
+    }
+
     /// The turn in degrees, which is what a drawing needs.
     #[must_use]
     pub const fn degrees(self) -> u16 {
@@ -137,6 +152,87 @@ pub struct Part {
     /// The `Edit > Sharing` group locks parts so that someone else working on
     /// the same schematic cannot move or alter them.
     pub locked: bool,
+    /// Where a wire may be joined to it.
+    ///
+    /// Empty where the symbol is not known, and then the part joins a net at
+    /// its own place instead. See [`crate::netlist`].
+    #[serde(default)]
+    pub pins: Vec<Pin>,
+}
+
+impl Part {
+    /// Where each of this part's pins is on the sheet, turned as it sits.
+    #[must_use]
+    pub fn pin_places(&self) -> Vec<(&str, Point)> {
+        self.pins
+            .iter()
+            .map(|pin| {
+                (
+                    pin.name.as_str(),
+                    pin.at(self.at, self.rotation, self.mirrored),
+                )
+            })
+            .collect()
+    }
+
+    /// Everywhere a wire may join this part.
+    ///
+    /// Its pins where it has them, and otherwise its own place - which is
+    /// all that could be said before symbols carried pins.
+    #[must_use]
+    pub fn joins(&self) -> Vec<Point> {
+        if self.pins.is_empty() {
+            return vec![self.at];
+        }
+        self.pin_places().into_iter().map(|(_, at)| at).collect()
+    }
+}
+
+/// One place on a part that a wire can be joined to.
+///
+/// The offset is in whole grid squares from the part's own place, as the
+/// symbol draws it before it is turned or mirrored. Where the symbol comes
+/// from a device library it is [`crate::ddb_device::Place::in_squares`] of
+/// the pin's place; a part whose symbol is not known carries none, and then
+/// the part joins a net at its own place as it always did.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Pin {
+    /// What the pin is called on the symbol, such as `IN` or `GPMC_A0`.
+    pub name: String,
+    /// How far from the part's place it sits, unturned.
+    pub offset: Point,
+}
+
+impl Pin {
+    /// A pin at an offset.
+    pub fn new(name: impl Into<String>, offset: Point) -> Self {
+        Self {
+            name: name.into(),
+            offset,
+        }
+    }
+
+    /// Where this pin is on the sheet, for a part placed and turned so.
+    ///
+    /// Mirroring is across the upright, which is what `Edit > Mirror` does,
+    /// and it is applied before the turn - the same order the drawing uses,
+    /// so a pin lands where it is drawn.
+    #[must_use]
+    pub const fn at(&self, place: Point, rotation: Rotation, mirrored: bool) -> Point {
+        let x = if mirrored {
+            -self.offset.x
+        } else {
+            self.offset.x
+        };
+        let y = self.offset.y;
+        let (x, y) = match rotation {
+            Rotation::None => (x, y),
+            Rotation::Quarter => (-y, x),
+            Rotation::Half => (-x, -y),
+            Rotation::ThreeQuarters => (y, -x),
+        };
+        Point::new(place.x + x, place.y + y)
+    }
 }
 
 /// What a line between two places carries.
@@ -489,19 +585,53 @@ impl Sheet {
 
     /// Puts a part on the sheet, and selects it as the original does.
     pub fn place(&mut self, kind: impl Into<String>, at: Point) -> Id {
-        self.remember();
-        let id = self.document.take_id();
         let kind = kind.into();
         let label = self.next_label(&kind);
+        self.place_as(kind, at, Rotation::default(), false, label)
+    }
+
+    /// Puts a part down as it already is, rather than as a new one.
+    ///
+    /// Reading a sheet written by something else brings the part's own name
+    /// and the way round it sits, and neither should be thrown away and made
+    /// up again: a resistor that was `R7` stays `R7`.
+    pub fn place_as(
+        &mut self,
+        kind: impl Into<String>,
+        at: Point,
+        rotation: Rotation,
+        mirrored: bool,
+        label: impl Into<String>,
+    ) -> Id {
+        self.place_with_pins(kind, at, rotation, mirrored, label, Vec::new())
+    }
+
+    /// Puts a part down with the pins its symbol draws.
+    ///
+    /// This is what the palette uses once the library has been read: a part
+    /// that knows its pins joins a net at each of them rather than at its
+    /// own place. See [`crate::netlist`].
+    pub fn place_with_pins(
+        &mut self,
+        kind: impl Into<String>,
+        at: Point,
+        rotation: Rotation,
+        mirrored: bool,
+        label: impl Into<String>,
+        pins: Vec<Pin>,
+    ) -> Id {
+        self.remember();
+        let id = self.document.take_id();
         self.document.parts.push(Part {
             id,
-            kind,
+            kind: kind.into(),
             at,
-            rotation: Rotation::default(),
-            mirrored: false,
-            label,
+            rotation,
+            mirrored,
+            label: label.into(),
             hidden: false,
             locked: false,
+            pins,
         });
         self.document.selection.clear();
         self.document.selection.insert(id);
@@ -878,6 +1008,33 @@ impl Sheet {
             document,
             ..Self::default()
         }
+    }
+
+    /// Calls a part something else.
+    ///
+    /// Renaming is what a board layout sends back when it has moved parts
+    /// about, and what the editor does when a part is given a name by hand.
+    /// A part that is not there is not renamed, and nothing is remembered
+    /// for the undo in that case.
+    pub fn rename(&mut self, id: Id, label: impl Into<String>) -> bool {
+        if !self.document.parts.iter().any(|part| part.id == id) {
+            return false;
+        }
+        self.remember();
+        if let Some(part) = self.document.parts.iter_mut().find(|part| part.id == id) {
+            part.label = label.into();
+        }
+        true
+    }
+
+    /// The part with a label, if the sheet has one.
+    #[must_use]
+    pub fn part_called(&self, label: &str) -> Option<Id> {
+        self.document
+            .parts
+            .iter()
+            .find(|part| part.label == label)
+            .map(|part| part.id)
     }
 
     /// Says the sheet has been written out, so it is no longer modified.

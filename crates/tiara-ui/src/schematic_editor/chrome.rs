@@ -165,29 +165,30 @@ pub fn menu_item_button_style(
     }
 }
 
-pub fn menu_bar_style(tokens: ThemeTokens) -> iced_aw::style::menu_bar::Style {
-    iced_aw::style::menu_bar::Style {
-        bar_background: Background::Color(tokens.toolbar_bg.iced()),
-        bar_border: Border::default(),
-        bar_shadow: Shadow::default(),
-        bar_background_expand: 0.0.into(),
-        menu_background: Background::Color(tokens.paper.iced()),
-        menu_border: Border {
+/// The strip the editor's own menu roots sit on.
+pub fn menu_strip_style(tokens: ThemeTokens) -> container::Style {
+    container::Style {
+        background: Some(Background::Color(tokens.toolbar_bg.iced())),
+        text_color: Some(tokens.text.iced()),
+        ..container::Style::default()
+    }
+}
+
+/// One dropdown of the editor's own menu: the paper it is drawn on, its
+/// border and the shadow it casts over what is behind it.
+pub fn menu_panel_style(tokens: ThemeTokens, _theme: &Theme) -> container::Style {
+    container::Style {
+        background: Some(Background::Color(tokens.paper.iced())),
+        text_color: Some(tokens.text.iced()),
+        border: Border {
             color: tokens.border.iced(),
             width: 1.0,
             radius: 4.0.into(),
         },
-        menu_shadow: Shadow {
+        shadow: Shadow {
             color: Color::from_rgba(0.0, 0.0, 0.0, 0.5),
             offset: Vector::new(2.0, 4.0),
             blur_radius: 8.0,
-        },
-        menu_background_expand: 5.0.into(),
-        path: Background::Color(tokens.hover.iced()),
-        path_border: Border {
-            color: tokens.border.iced(),
-            width: 1.0,
-            radius: 2.0.into(),
         },
     }
 }

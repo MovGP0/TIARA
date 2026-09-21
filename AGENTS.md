@@ -47,6 +47,128 @@ cp -rf source dest          # NOT: cp -r source dest
 - `apt-get` - use `-y` flag
 - `brew` - use `HOMEBREW_NO_AUTO_UPDATE=1` env var
 
+## Project Dependencies
+
+TIARA is a Cargo workspace: the root package `tiara` is the application, and
+it is built from two library crates.
+
+```
+tiara            the binary; wires tiara-ui to a window
+  tiara-ui       every window, the menu, the schematic editor   (iced)
+    tiara-core   file formats, the document, the library reader (no UI)
+```
+
+`tiara-core` knows nothing about the user interface and must stay that way:
+it is where a format is read and a document is changed, so it can be tested
+without a screen. Everything that draws is in `tiara-ui`.
+
+Workspace-wide: **edition 2024, rust-version 1.85, MIT**. Versions are
+pinned once in the root `Cargo.toml` under `[workspace.dependencies]` and
+referred to as `foo.workspace = true`; add a version in one place only.
+
+### Crates
+
+| Crate | Used by | What for |
+| --- | --- | --- |
+| `iced` 0.13.1 | tiara-ui | The whole interface. Features `image`, `svg`, `tokio`. |
+| `iced_aw` 0.12.2 | tiara-ui | `MenuBar` only, and only in `shared/window_shell.rs`. The schematic editor's menu is the port's own (`schematic_editor/menu.rs`) because it needs greying, accelerators and keyboard navigation that the widget does not give. |
+| `rfd` 0.17.2 | tiara-ui | Native open/save dialogs. |
+| `csv` 1.4.0 | tiara-ui | The test-bench tables. |
+| `walkdir` 2.5.0 | tiara-ui | Walking a model folder. |
+| `xmltree` 0.12.0 | tiara-ui | The XML the converters and the filter designer read. |
+| `serde` + `serde_json` 1.0 | both | The port's own `.tsc` and `.tsm` files, which are JSON. |
+| `glob` 0.3.3 | tiara-core | Finding circuit files. |
+| `num-traits` 0.2.19 | tiara-core | Sample arithmetic in the WAV reader. |
+
+### Sub-repositories
+
+`external/RSpice` — [JaimeHW/RSpice](https://github.com/JaimeHW/RSpice), a
+circuit simulator in Rust, added as a git submodule for the analysis
+commands (`TIARA-hc4xzm1`). Clone it with the repository:
+
+```bash
+git clone --recurse-submodules <repo>
+git submodule update --init --recursive   # if already cloned
+```
+
+**It is not a normal dependency, and it must not become one.** Its licence
+is the RSpice Personal Use License: free for personal, educational and open
+academic use, but it forbids redistribution -- "You may not redistribute,
+re-host, sublicense, mirror, or otherwise make the source code or compiled
+binaries available to third parties" -- and forbids integrating it into
+commercial products. TIARA is MIT and is meant to be distributable, so a
+binary with RSpice linked into it could not be shipped.
+
+So it is wired in the same shape as everything else proprietary here: the
+port defines what it needs, and the proprietary thing is found at build or
+run time rather than embedded. `tiara-core` writes a SPICE netlist and
+declares the trait a simulation backend implements. **Do not add
+`rspice-core` to `tiara-core` or `tiara-ui`.**
+
+RSpice offers three ways in, and which one is chosen decides whether a
+build can be shipped:
+
+| Route | Crate | Shipping |
+| --- | --- | --- |
+| Rust API | `rspice-core` — `Netlist::parse`, `Engine` | Links it in, so the binary carries it. Not distributable. |
+| Separate process | `rspice-cli`, `rspice-automation-protocol` (a length-prefixed JSON transport) | TIARA writes a netlist and runs an RSpice the user installed. Nothing of RSpice is in TIARA's binary. |
+| Python | `rspice-python` (`import rspice`) | For driving RSpice from Python, not for driving it from Rust. |
+
+The separate-process route is the one that keeps TIARA distributable, and
+it is what the backend trait is shaped for: a netlist in, results out.
+
+### PyO3
+
+[PyO3](https://pyo3.rs/v0.29.2/) is **not** currently a dependency and is
+not needed to use RSpice. `rspice-python` is itself a PyO3 extension module
+so that Python can drive RSpice; a Rust caller uses `rspice-core` or the CLI
+and never touches it.
+
+TIARA would want PyO3 only to gain Python scripting **of its own** — an
+interpreter inside the application, which the original has in its macro and
+interpreter commands. If that is taken up, it belongs in a crate of its own
+rather than in `tiara-core`, which must stay free of a Python runtime.
+
+Note the name: only `rspice` is about circuits. `rsspice` and `rust-spice`
+are NASA's SPICE Toolkit for space geometry -- ephemerides and eclipses --
+and are a different thing entirely.
+
+### What is read from an installation and never committed
+
+The original's data files are proprietary and stay outside the repository
+and outside the crates. The application reads them from the install path at
+run time; tests that need them look for `TIARA_TINA_HOME` and skip quietly
+when it is unset, so a clean checkout still passes.
+
+```bash
+export TIARA_TINA_HOME="C:\Program Files\DesignSoft\Tina 16 - Demo"
+cargo test --workspace     # now the library-backed tests run too
+```
+
+| File | Read by | For |
+| --- | --- | --- |
+| `DEVICES.DDB` and the seven named `.DDB` files | `ddb_device.rs`, `obss.rs` | Device symbols and their pins. **Never commit or embed these.** |
+| `Spicelib/*.tld` | `device_catalogue.rs` | The part catalogue. |
+| `compregy.tcr`, `COMPREGE.BMP` | `component_registry.rs`, `icon_strip.rs` | The component bar and its icons. |
+| `TINA*.CHM` | `schematic_editor/help.rs` | Help, which is opened rather than replaced. |
+
+The same rule covers `DecompiledSources/`: Ghidra output is evidence, not
+source, and nothing under it is compiled into a crate.
+
+### Quality gates
+
+All four must pass after every change:
+
+```bash
+cargo fmt --all -- --check
+cargo check --workspace
+cargo test --workspace
+cargo clippy --workspace --all-targets -- -D warnings
+```
+
+Clippy runs with `pedantic`, `nursery`, `unwrap_used` and `expect_used`
+enabled workspace-wide, denied as errors.
+
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:46cd31e7 -->
 ## Beads Issue Tracker
 

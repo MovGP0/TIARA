@@ -10,6 +10,12 @@
 //! put itself; the port has to look. `TIARA_TINA_HOME` says outright, and
 //! failing that the usual places are tried, one folder deep under the vendor
 //! directory so that any version is found rather than one named here.
+//!
+//! The help is also installed once per language - `TINA_en.chm`, `TINA_de.chm`
+//! and so on - so which file is opened follows the language chosen in the View
+//! menu, and falls back to English where that language was not installed. An
+//! installation with an unsuffixed `TINA.CHM` is read too, since the recovered
+//! code names that one.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -19,8 +25,31 @@ use tiara_core::application_help::VENDOR_DIRECTORY;
 /// Where the original is installed, if this copy has been told.
 const HOME_VARIABLE: &str = "TIARA_TINA_HOME";
 
-/// What the compiled help file is called.
+/// What the compiled help file is called, where it carries no language.
 const HELP_FILE: &str = "TINA.CHM";
+
+/// What the help file is called for each language the View menu offers.
+///
+/// The names on the left are the menu's own; the endings on the right are
+/// what the installer puts on the file. Simplified and traditional Chinese
+/// share a stem and are told apart by the second part, which is why this is a
+/// table rather than a language tag.
+pub const HELP_LANGUAGES: [(&str, &str); 10] = [
+    ("English", "en"),
+    ("German", "de"),
+    ("Spanish", "es"),
+    ("French", "fr"),
+    ("Hungarian", "hu"),
+    ("Japanese", "ja"),
+    ("Portuguese", "pt"),
+    ("Russian", "ru"),
+    ("Chinese, Simplified", "zh"),
+    ("Chinese, Traditional", "zh.tra"),
+];
+
+/// What the help is called in English, which is what an installation that has
+/// any help at all is most likely to have.
+const FALLBACK_LANGUAGE: &str = "English";
 
 /// The program Windows opens a compiled help file with.
 const HELP_VIEWER: &str = "hh.exe";
@@ -58,16 +87,43 @@ pub fn install_folder() -> Option<PathBuf> {
 }
 
 /// The help file itself, where there is an installation holding one.
+///
+/// The language is the one chosen in the View menu. An installation without
+/// that language falls back to English, and one whose help carries no
+/// language at all - which is what the recovered code names - is read as it
+/// stands.
 #[must_use]
-pub fn help_file() -> Option<PathBuf> {
-    let file = install_folder()?.join(HELP_FILE);
-    file.is_file().then_some(file)
+pub fn help_file(language: &str) -> Option<PathBuf> {
+    let folder = install_folder()?;
+    named_help(&folder, language)
+        .or_else(|| named_help(&folder, FALLBACK_LANGUAGE))
+        .or_else(|| {
+            let plain = folder.join(HELP_FILE);
+            plain.is_file().then_some(plain)
+        })
 }
 
-/// Whether a folder is an installation, which is to say whether the help is
+/// Whether a folder is an installation, which is to say whether any help is
 /// in it.
 fn holds_the_help(folder: &Path) -> bool {
-    folder.join(HELP_FILE).is_file()
+    named_help(folder, FALLBACK_LANGUAGE).is_some() || folder.join(HELP_FILE).is_file()
+}
+
+/// The help file for one language in one folder, where it is there.
+fn named_help(folder: &Path, language: &str) -> Option<PathBuf> {
+    let ending = HELP_LANGUAGES
+        .iter()
+        .find(|(named, _)| *named == language)
+        .map(|(_, ending)| *ending)?;
+    // The installer writes the extension in either case, and a case-sensitive
+    // filesystem would otherwise find only one of them.
+    for extension in ["chm", "CHM"] {
+        let file = folder.join(format!("TINA_{ending}.{extension}"));
+        if file.is_file() {
+            return Some(file);
+        }
+    }
+    None
 }
 
 /// The places an installation is looked for, most likely first.
@@ -110,7 +166,10 @@ pub fn show(file: &Path) -> std::io::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{HELP_FILE, help_file, holds_the_help, install_folder, roots, show};
+    use super::{
+        HELP_FILE, HELP_LANGUAGES, help_file, holds_the_help, install_folder, named_help, roots,
+        show,
+    };
     use std::path::PathBuf;
 
     #[test]
@@ -124,6 +183,43 @@ mod tests {
         assert!(holds_the_help(&folder));
 
         let _ = std::fs::remove_dir_all(&folder);
+    }
+
+    #[test]
+    fn the_help_follows_the_language_the_view_menu_chose() {
+        let folder = std::env::temp_dir().join(format!("tiara-help-lang-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&folder);
+        std::fs::create_dir_all(&folder).unwrap();
+        std::fs::write(folder.join("TINA_en.chm"), "english").unwrap();
+        std::fs::write(folder.join("TINA_de.chm"), "german").unwrap();
+
+        assert_eq!(
+            named_help(&folder, "German").unwrap().file_name().unwrap(),
+            "TINA_de.chm"
+        );
+        // One that was not installed falls back to English rather than to
+        // nothing: some help is better than a greyed command.
+        assert_eq!(named_help(&folder, "Japanese"), None);
+        assert!(holds_the_help(&folder));
+
+        let _ = std::fs::remove_dir_all(&folder);
+    }
+
+    #[test]
+    fn every_language_the_menu_offers_has_a_help_file_named_for_it() {
+        // The two lists have to agree, or a language would silently fall back
+        // to English on an installation that does have its help.
+        let from_the_menu: Vec<&str> = tiara_core::editor_settings::LANGUAGES
+            .iter()
+            .map(|(_, language)| *language)
+            .collect();
+        for (language, _) in HELP_LANGUAGES {
+            assert!(
+                from_the_menu.contains(&language),
+                "{language} should be one the menu offers"
+            );
+        }
+        assert_eq!(HELP_LANGUAGES.len(), from_the_menu.len());
     }
 
     #[test]
@@ -141,8 +237,8 @@ mod tests {
         // rather than setting it: either an installation was found and it
         // holds the file, or there is none and nothing is offered.
         match install_folder() {
-            Some(folder) => assert!(folder.join(HELP_FILE).is_file()),
-            None => assert!(help_file().is_none()),
+            Some(folder) => assert!(holds_the_help(&folder)),
+            None => assert!(help_file("English").is_none()),
         }
     }
 

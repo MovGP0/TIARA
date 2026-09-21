@@ -1,6 +1,8 @@
 use iced::widget::{button, container, horizontal_space, pane_grid, row, text};
 use iced::{Alignment, Element, Length};
 
+use tiara_core::global_parameters::Evaluator;
+
 use crate::dock::{Dock, Group};
 use crate::schematic_editor::chrome;
 
@@ -27,6 +29,8 @@ pub enum Message {
     BatchSimulation(crate::batch_simulation::Message),
     BillOfMaterials(crate::bill_of_materials::Message),
     BlockWizard(crate::block_wizard::Message),
+    ComponentBarEditor(crate::component_bar_editor::Message),
+    ComponentExplorer(crate::component_explorer::Message),
     Converters(crate::converters::Message),
     DesignTool(crate::design_tool::Message),
     DigitalSignalGenerator(crate::digital_signal_generator::Message),
@@ -37,6 +41,7 @@ pub enum Message {
     FindComponent(crate::find_component::Message),
     FlowchartEditor(crate::flowchart_editor::Message),
     FootprintNameEditor(crate::footprint_name_editor::Message),
+    GlobalParameterEditor(crate::global_parameter_editor::Message),
     FourierSeries(crate::fourier_series::Message),
     FrequencySpectrum(crate::frequency_spectrum::Message),
     FunctionGenerator(crate::function_generator::Message),
@@ -45,8 +50,12 @@ pub enum Message {
     Interpreter(crate::interpreter::Message),
     LogicAnalyzer(crate::logic_analyzer::Message),
     LogicDesign(crate::logic_design::Message),
+    LtspiceImport(crate::ltspice_import::Message),
+    MacroProperties(crate::macro_properties::Message),
+    MacroWizard(crate::macro_wizard::Message),
     MapFaultToHardware(crate::map_fault_to_hardware::Message),
     Multimeter(crate::multimeter::Message),
+    NetlistEditor(crate::netlist_editor::Message),
     NetworkAnalyzer(crate::network_analyzer::Message),
     NumericalFormat(crate::numerical_format::Message),
     Oscilloscope(crate::oscilloscope::Message),
@@ -79,10 +88,18 @@ pub enum Message {
     XyRecorder(crate::xy_recorder::Message),
 }
 
-#[derive(Debug, Default)]
+/// No `Debug`: one of its windows holds a task the runtime has not run yet,
+/// and a task cannot be printed.
+#[derive(Default)]
 pub struct TiaraApplication {
     /// Where the windows sit, and which of them has the keyboard.
     dock: Dock,
+    /// Work a window asked for that the runtime has not run yet.
+    ///
+    /// A dialog that opens a file picker or reads a file hands back a task,
+    /// and only the runtime can run one - so it waits here until `update`
+    /// hands it over.
+    pending: Option<iced::Task<Message>>,
     theme: CustomThemeFile,
     schematic_editor: schematic_editor::SchematicEditor,
     about_box: crate::about_box::Window,
@@ -94,6 +111,8 @@ pub struct TiaraApplication {
     batch_simulation: crate::batch_simulation::Window,
     bill_of_materials: crate::bill_of_materials::Window,
     block_wizard: crate::block_wizard::Window,
+    component_bar_editor: crate::component_bar_editor::Window,
+    component_explorer: crate::component_explorer::Window,
     converters: crate::converters::Window,
     design_tool: crate::design_tool::Window,
     digital_signal_generator: crate::digital_signal_generator::Window,
@@ -104,6 +123,10 @@ pub struct TiaraApplication {
     find_component: crate::find_component::Window,
     flowchart_editor: crate::flowchart_editor::Window,
     footprint_name_editor: crate::footprint_name_editor::Window,
+    global_parameter_editor: crate::global_parameter_editor::Window,
+    /// What the Global Parameter Editor acts on, which the original keeps in
+    /// the document it was opened over.
+    parameter_environment: crate::global_parameter_editor::EditorEnvironment,
     fourier_series: crate::fourier_series::Window,
     frequency_spectrum: crate::frequency_spectrum::Window,
     function_generator: crate::function_generator::Window,
@@ -112,8 +135,12 @@ pub struct TiaraApplication {
     interpreter: crate::interpreter::Window,
     logic_analyzer: crate::logic_analyzer::Window,
     logic_design: crate::logic_design::Window,
+    ltspice_import: crate::ltspice_import::Window<crate::ltspice_import::shell::Services>,
+    macro_properties: crate::macro_properties::Window,
+    macro_wizard: crate::macro_wizard::Window,
     map_fault_to_hardware: crate::map_fault_to_hardware::Window,
     multimeter: crate::multimeter::Window,
+    netlist_editor: crate::netlist_editor::Window,
     network_analyzer: crate::network_analyzer::Window,
     numerical_format: crate::numerical_format::Window,
     oscilloscope: crate::oscilloscope::Window,
@@ -197,7 +224,7 @@ impl TiaraApplication {
         if self.schematic_editor.is_closing() {
             return iced::exit();
         }
-        iced::Task::none()
+        self.pending.take().unwrap_or_else(iced::Task::none)
     }
 
     #[allow(clippy::too_many_lines)]
@@ -216,6 +243,18 @@ impl TiaraApplication {
             }
             Message::DockResized(event) => self.dock.resize(event),
             Message::KeyPressed(key, modifiers) => {
+                // The menu gets the key first: Alt and an underlined letter
+                // opens one, and a letter inside an open menu chooses an
+                // entry. Anything it does not want falls through to the
+                // shortcuts below.
+                if self.schematic_editor.menu_is_open() || modifiers.alt() {
+                    if let Some(name) = self.schematic_editor.navigate_menu(&key, modifiers) {
+                        self.handle(Message::SchematicEditor(
+                            schematic_editor::Message::MenuCommand(name),
+                        ));
+                    }
+                    return;
+                }
                 // Every shortcut the menu shows is read back out of the menu
                 // itself, so the keys that work are the keys the menu
                 // advertises, and a greyed command's shortcut is as dead as
@@ -235,7 +274,7 @@ impl TiaraApplication {
                 if let schematic_editor::Message::MenuCommand(name) = message
                     && let Some(window) = schematic_editor::menu_targets::window_for(name)
                 {
-                    self.dock.show(window);
+                    self.handle(Message::ShowWindow(window));
                 }
                 self.schematic_editor.update(message);
             }
@@ -266,6 +305,28 @@ impl TiaraApplication {
             Message::BlockWizard(message) => {
                 self.block_wizard.update(message);
             }
+            Message::ComponentBarEditor(message) => {
+                self.component_bar_editor.update(message);
+            }
+            Message::ComponentExplorer(message) => {
+                // The explorer acts on the sheet through the editor, which
+                // answers the navigation the recovered routine asks for.
+                // Picking a line out is followed by showing it, which is the
+                // two steps that routine expects.
+                let reveal = matches!(
+                    message,
+                    crate::component_explorer::Message::TreeSelectionChanged(Some(_))
+                );
+                let _ = self
+                    .component_explorer
+                    .update(message, &mut self.schematic_editor);
+                if reveal {
+                    let _ = self.component_explorer.update(
+                        crate::component_explorer::Message::CircuitTreeClicked,
+                        &mut self.schematic_editor,
+                    );
+                }
+            }
             Message::Converters(message) => {
                 self.converters.update(message);
             }
@@ -293,6 +354,16 @@ impl TiaraApplication {
             Message::FlowchartEditor(message) => {
                 self.flowchart_editor.update(message);
             }
+            Message::GlobalParameterEditor(message) => {
+                // The editor works its expressions out with the port's own
+                // evaluator; the task it hands back is the dialog's own
+                // bookkeeping, which this shell has nowhere to run.
+                let _ = self.global_parameter_editor.update(
+                    message,
+                    &mut self.parameter_environment,
+                    &Evaluator,
+                );
+            }
             Message::FootprintNameEditor(message) => {
                 self.footprint_name_editor.update(message);
             }
@@ -317,11 +388,48 @@ impl TiaraApplication {
             Message::LogicAnalyzer(message) => {
                 self.logic_analyzer.update(message);
             }
+            Message::LtspiceImport(message) => {
+                // The dialog reads the file through its services, which
+                // leave the circuit in a box; the editor takes it from there,
+                // because the dialog cannot hold the editor and the editor
+                // cannot hold the dialog.
+                self.pending = Some(
+                    self.ltspice_import
+                        .update(message)
+                        .map(Message::LtspiceImport),
+                );
+                let services = self.ltspice_import.services();
+                let taken = services
+                    .lock()
+                    .ok()
+                    .and_then(|mut services| services.take_imported());
+                if let Some((document, _)) = taken {
+                    self.schematic_editor.open_imported(document);
+                    self.dock.show(WindowKind::SchematicEditor);
+                }
+            }
             Message::LogicDesign(message) => {
                 self.logic_design.update(message);
             }
+            Message::MacroProperties(message) => {
+                self.pending = Some(
+                    self.macro_properties
+                        .update(message)
+                        .map(Message::MacroProperties),
+                );
+            }
+            Message::MacroWizard(message) => {
+                self.macro_wizard.update(message);
+            }
             Message::MapFaultToHardware(message) => {
                 self.map_fault_to_hardware.update(message);
+            }
+            Message::NetlistEditor(message) => {
+                self.pending = Some(
+                    self.netlist_editor
+                        .update(message)
+                        .map(Message::NetlistEditor),
+                );
             }
             Message::Multimeter(message) => {
                 self.multimeter.update(message);
@@ -399,7 +507,8 @@ impl TiaraApplication {
         debug_assert!(WindowKind::ALL.contains(&self.active_window()));
 
         if let Some(trace) = self.active_window().trace() {
-            debug_assert!(!trace.screenshot.is_empty());
+            // Every window is built from a form; only a window the original
+            // will open has a photograph as well.
             debug_assert!(!trace.form_resource.is_empty());
             debug_assert!(
                 trace
@@ -466,6 +575,42 @@ impl TiaraApplication {
             .into()
     }
 
+    /// The circuits and their parts, as the Component Explorer shows them.
+    ///
+    /// One line per open circuit and one under it per part. The explorer
+    /// holds no circuit of its own - the editor does - so the tree is built
+    /// here and handed over.
+    fn circuit_tree(&self) -> Vec<crate::component_explorer::Row> {
+        use crate::component_explorer::{Row, TreeNodeId};
+        use crate::schematic_editor::navigation::object_of;
+
+        let mut rows = Vec::new();
+        let mut next = 0_u64;
+        for (page, circuit) in self.schematic_editor.circuits().iter().enumerate() {
+            let parent = TreeNodeId(next);
+            next += 1;
+            rows.push(Row::circuit(parent, circuit.name().to_owned()));
+
+            for part in circuit.sheet().document().parts() {
+                let id = TreeNodeId(next);
+                next += 1;
+                rows.push(Row::part(
+                    id,
+                    parent,
+                    object_of(page, part.id, part.at),
+                    format!("{} ({})", part.label, part.kind),
+                ));
+            }
+        }
+        rows
+    }
+
+    /// What one docked window draws.
+    ///
+    /// One arm per window, which is why it is long: there is nothing to
+    /// factor out of a table of fifty windows that would not just move the
+    /// table somewhere else.
+    #[allow(clippy::too_many_lines)]
     fn content_for(&self, kind: WindowKind) -> Element<'_, Message> {
         match kind {
             WindowKind::SchematicEditor => self
@@ -498,6 +643,14 @@ impl TiaraApplication {
                 self.bill_of_materials.view().map(Message::BillOfMaterials)
             }
             WindowKind::BlockWizard => self.block_wizard.view().map(Message::BlockWizard),
+            WindowKind::ComponentBarEditor => self
+                .component_bar_editor
+                .view()
+                .map(Message::ComponentBarEditor),
+            WindowKind::ComponentExplorer => self
+                .component_explorer
+                .view(&self.circuit_tree())
+                .map(Message::ComponentExplorer),
             WindowKind::Converters => self.converters.view().map(Message::Converters),
             WindowKind::DesignTool => self.design_tool.view().map(Message::DesignTool),
             WindowKind::DigitalSignalGenerator => self
@@ -519,6 +672,10 @@ impl TiaraApplication {
                 .footprint_name_editor
                 .view()
                 .map(Message::FootprintNameEditor),
+            WindowKind::GlobalParameterEditor => self
+                .global_parameter_editor
+                .view()
+                .map(Message::GlobalParameterEditor),
             WindowKind::FourierSeries => self.fourier_series.view().map(Message::FourierSeries),
             WindowKind::FrequencySpectrum => self
                 .frequency_spectrum
@@ -535,11 +692,17 @@ impl TiaraApplication {
             WindowKind::Interpreter => self.interpreter.view().map(Message::Interpreter),
             WindowKind::LogicAnalyzer => self.logic_analyzer.view().map(Message::LogicAnalyzer),
             WindowKind::LogicDesign => self.logic_design.view().map(Message::LogicDesign),
+            WindowKind::LtspiceImport => self.ltspice_import.view().map(Message::LtspiceImport),
+            WindowKind::MacroProperties => {
+                self.macro_properties.view().map(Message::MacroProperties)
+            }
+            WindowKind::MacroWizard => self.macro_wizard.view().map(Message::MacroWizard),
             WindowKind::MapFaultToHardware => self
                 .map_fault_to_hardware
                 .view()
                 .map(Message::MapFaultToHardware),
             WindowKind::Multimeter => self.multimeter.view().map(Message::Multimeter),
+            WindowKind::NetlistEditor => self.netlist_editor.view().map(Message::NetlistEditor),
             WindowKind::NetworkAnalyzer => {
                 self.network_analyzer.view().map(Message::NetworkAnalyzer)
             }
@@ -761,5 +924,236 @@ mod tests {
 
         application.handle(Message::ShowWindow(WindowKind::SchematicEditor));
         assert!(application.title().ends_with("Schematic Editor"));
+    }
+
+    #[test]
+    fn the_dock_draws_with_the_circuit_and_an_instrument_in_it() {
+        // Builds the whole widget tree, which is what catches a layout the
+        // pane grid will not take before anyone opens the window.
+        let mut application = TiaraApplication::default();
+        let _ = application.view();
+
+        application.handle(Message::ShowWindow(WindowKind::Oscilloscope));
+        application.handle(Message::ShowWindow(WindowKind::Multimeter));
+        let _ = application.view();
+    }
+
+    #[test]
+    fn the_global_parameter_editor_opens_from_its_menu_command() {
+        // It has had its logic ported for some time and could not be shown,
+        // because its update wanted an expression evaluator the shell did
+        // not have. It has one now.
+        let mut application = TiaraApplication::default();
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::MenuCommand("mnSetGlobalParameters"),
+        ));
+
+        assert_eq!(
+            application.active_window(),
+            WindowKind::GlobalParameterEditor
+        );
+        let _ = application.view();
+    }
+
+    #[test]
+    fn the_global_parameter_editor_works_its_expressions_out() {
+        let mut application = TiaraApplication::default();
+        application.handle(Message::GlobalParameterEditor(
+            crate::global_parameter_editor::Message::Shown,
+        ));
+        // Nothing to work out yet, and nothing broke trying.
+        let _ = application.view();
+    }
+
+    #[test]
+    fn the_ltspice_import_dialog_opens_from_its_menu_command() {
+        let mut application = TiaraApplication::default();
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::MenuCommand("mnLTSpiceImport"),
+        ));
+
+        assert_eq!(application.active_window(), WindowKind::LtspiceImport);
+        let _ = application.view();
+    }
+
+    #[test]
+    fn a_circuit_the_import_read_reaches_the_editor() {
+        let folder =
+            std::env::temp_dir().join(format!("tiara-shell-import-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&folder);
+        std::fs::create_dir_all(&folder).unwrap();
+        let source = folder.join("divider.asc");
+        std::fs::write(
+            &source,
+            "Version 4
+SYMBOL res 0 0 R0
+SYMATTR InstName R1
+",
+        )
+        .unwrap();
+
+        let mut application = TiaraApplication::default();
+        // What the dialog's own task does once the file has been read.
+        {
+            use crate::ltspice_import::LtspiceSchematicPort;
+            let services = application.ltspice_import.services();
+            let mut services = services.lock().unwrap();
+            services.create_new_schematic().unwrap();
+            services.import_ltspice_source(&source).unwrap();
+        }
+
+        // Any message from the dialog makes the shell look for what was read.
+        application.handle(Message::LtspiceImport(
+            crate::ltspice_import::Message::FileNameChanged(String::new()),
+        ));
+
+        assert_eq!(application.active_window(), WindowKind::SchematicEditor);
+        assert_eq!(
+            application
+                .schematic_editor
+                .sheet()
+                .document()
+                .parts()
+                .len(),
+            1
+        );
+
+        let _ = std::fs::remove_dir_all(&folder);
+    }
+
+    #[test]
+    fn the_two_windows_the_original_will_not_open_still_open_here() {
+        // Their commands are greyed in the original - one because its
+        // handler is a stub, one because the original was never driven into
+        // a macro - so neither was ever photographed. They were built from
+        // their forms, and they open.
+        let mut application = TiaraApplication::default();
+
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::MenuCommand("mnSPiceEditor"),
+        ));
+        assert_eq!(application.active_window(), WindowKind::NetlistEditor);
+        let _ = application.view();
+
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::MenuCommand("mnEditMacroProperties"),
+        ));
+        assert_eq!(application.active_window(), WindowKind::MacroProperties);
+        let _ = application.view();
+    }
+
+    #[test]
+    fn the_component_explorer_shows_the_circuits_and_their_parts() {
+        let mut application = TiaraApplication::default();
+        application
+            .schematic_editor
+            .sheet_mut()
+            .place("R", tiara_core::schematic_document::Point::new(2, 2));
+
+        let tree = application.circuit_tree();
+        assert_eq!(tree.len(), 2, "one circuit and one part in it");
+        assert_eq!(tree[0].depth, 0);
+        assert_eq!(tree[1].depth, 1);
+        assert!(tree[1].label.starts_with("R1 (R)"));
+        assert!(tree[0].node.circuit_object.is_none());
+        assert!(tree[1].node.circuit_object.is_some());
+    }
+
+    #[test]
+    fn choosing_a_part_in_the_explorer_picks_it_out_on_the_sheet() {
+        let mut application = TiaraApplication::default();
+        let id = application
+            .schematic_editor
+            .sheet_mut()
+            .place("R", tiara_core::schematic_document::Point::new(2, 2));
+        application.schematic_editor.sheet_mut().clear_selection();
+
+        let tree = application.circuit_tree();
+        application.handle(Message::ComponentExplorer(
+            crate::component_explorer::Message::TreeSelectionChanged(Some(tree[1].node)),
+        ));
+
+        assert!(
+            application
+                .schematic_editor
+                .sheet()
+                .document()
+                .is_selected(id)
+        );
+    }
+
+    #[test]
+    fn the_component_explorer_opens_from_its_menu_command() {
+        let mut application = TiaraApplication::default();
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::MenuCommand("mnComponentExplorer"),
+        ));
+
+        assert_eq!(application.active_window(), WindowKind::ComponentExplorer);
+        let _ = application.view();
+    }
+
+    #[test]
+    fn the_component_bar_editor_opens_from_its_menu_command() {
+        let mut application = TiaraApplication::default();
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::MenuCommand("mnComponentRackEditor"),
+        ));
+
+        assert_eq!(application.active_window(), WindowKind::ComponentBarEditor);
+        let _ = application.view();
+    }
+
+    #[test]
+    fn the_new_macro_wizard_opens_from_its_menu_command() {
+        let mut application = TiaraApplication::default();
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::MenuCommand("mnMacroManager"),
+        ));
+
+        assert_eq!(application.active_window(), WindowKind::MacroWizard);
+        let _ = application.view();
+    }
+
+    #[test]
+    fn alt_and_a_letter_opens_a_menu_from_the_shell() {
+        let mut application = TiaraApplication::default();
+        assert!(!application.schematic_editor.menu_is_open());
+
+        application.handle(Message::KeyPressed(
+            iced::keyboard::Key::Character("f".into()),
+            iced::keyboard::Modifiers::ALT,
+        ));
+        assert!(application.schematic_editor.menu_is_open());
+        let _ = application.view();
+    }
+
+    #[test]
+    fn a_letter_inside_an_open_menu_runs_its_command() {
+        let mut application = TiaraApplication::default();
+        application.handle(Message::KeyPressed(
+            iced::keyboard::Key::Character("f".into()),
+            iced::keyboard::Modifiers::ALT,
+        ));
+        // New, which starts a second circuit.
+        application.handle(Message::KeyPressed(
+            iced::keyboard::Key::Character("n".into()),
+            iced::keyboard::Modifiers::empty(),
+        ));
+
+        assert!(!application.schematic_editor.menu_is_open());
+        assert_eq!(application.schematic_editor.circuits().len(), 2);
+    }
+
+    #[test]
+    fn a_shortcut_still_works_while_no_menu_is_open() {
+        // The menu takes the key only when one is open or Alt is held, so
+        // the shortcuts the menu advertises are untouched.
+        let mut application = TiaraApplication::default();
+        application.handle(Message::KeyPressed(
+            iced::keyboard::Key::Character("n".into()),
+            iced::keyboard::Modifiers::CTRL,
+        ));
+        assert_eq!(application.schematic_editor.circuits().len(), 2);
     }
 }

@@ -22,7 +22,9 @@ use serde::{Deserialize, Serialize};
     clippy::struct_excessive_bools,
     reason = "each one is a separate switch on the original's menus"
 )]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// No `Eq`: the page's margins are measured, and two measurements are not
+/// the kind of thing that is exactly equal.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct EditorSettings {
     // What the sheet draws.
@@ -59,6 +61,11 @@ pub struct EditorSettings {
 
     /// The interface language, by the name the menu gives it.
     pub language: String,
+    /// The page a circuit is printed on.
+    ///
+    /// The original hands this to Windows' own page dialog and the port
+    /// keeps it, because it draws the page as well as printing it.
+    pub page: crate::page_setup::PageSetup,
     /// The PCB library in use, by the name the menu gives it.
     pub pcb_library: String,
 }
@@ -95,6 +102,7 @@ impl Default for EditorSettings {
             auto_wire: true,
 
             language: "English".to_owned(),
+            page: crate::page_setup::PageSetup::default(),
             pcb_library: "ALTIUM".to_owned(),
         }
     }

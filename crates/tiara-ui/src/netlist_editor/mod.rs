@@ -27,6 +27,15 @@ use crate::analysis_options::{AcceptedAnalysisOptions, Window as AnalysisOptions
 
 pub const TITLE: &str = "Netlist Editor";
 pub const FORM_RESOURCE: &str = "NetlistEditor";
+
+/// No photograph, and there cannot be one: the command that opens this in
+/// the original is greyed, because that build ships its handler as a stub.
+/// It was built from the form instead. See TIARA-rfa0uy5.
+pub const SCREENSHOT: &str = "";
+
+/// `TNetlistEditor.FormCreate`, which is what the original runs when the
+/// window is made.
+pub const ORIGINAL_FUNCTION: Option<&str> = Some("01530ee0");
 pub const LIBRARY_EVALUATION: &str = "iced supplies the editor, tasks, messages, widgets, and clipboard; rfd supplies maintained file dialogs; std supplies files, paths, ranges, text search, and recent-file state. tiara_core::netlist_viewer supplies shared grouped editing and search without changing its API. AnalysisResultManager publishes recovered transient and DC-transfer results. Existing analysis_options and related analysis-dialog modules remain dialog owners behind typed requests. Compiler, ERC, printer, solver, symbolic-engine, result-form, mode-dialog, parameter-dialog, help, and source-navigation services stay typed TINA host ports.";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

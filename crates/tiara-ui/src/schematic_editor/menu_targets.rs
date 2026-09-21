@@ -88,6 +88,17 @@ pub fn window_for(name: &str) -> Option<WindowKind> {
         "About" => WindowKind::AboutTina,
 
         "Mode" => WindowKind::AnalysisModeSelection,
+        "mnSetGlobalParameters" => WindowKind::GlobalParameterEditor,
+        "mnLTSpiceImport" => WindowKind::LtspiceImport,
+        "mnSPiceEditor" => WindowKind::NetlistEditor,
+        "mnEditMacroProperties" => WindowKind::MacroProperties,
+        // `Edit > Symbol...` opens the symbol editor on what is selected.
+        // It is the only command that names that window, and the window is
+        // already here.
+        "mnEditSymbol" => WindowKind::SchematicSymbolEditor,
+        "mnComponentExplorer" => WindowKind::ComponentExplorer,
+        "mnComponentRackEditor" => WindowKind::ComponentBarEditor,
+        "mnMacroManager" => WindowKind::MacroWizard,
 
         "Transient" => WindowKind::TransientAnalysis,
 

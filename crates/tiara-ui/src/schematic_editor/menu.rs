@@ -1,6 +1,7 @@
-use iced::widget::{button, column, container, horizontal_space, rich_text, row, span, text};
+use iced::widget::{
+    button, column, container, horizontal_space, mouse_area, rich_text, row, span, text,
+};
 use iced::{Alignment, Element, Length, Theme};
-use iced_aw::menu::{DrawPath, Item, Menu, MenuBar};
 
 use super::Message;
 use super::chrome;
@@ -23,59 +24,6 @@ const SUBMENU_MARK: &str = "\u{203A}";
 
 /// The mark drawn beside a command whose setting is on.
 const TICK: &str = "\u{2713}";
-
-/// Builds the menu that originates at `SchematicEditor.MainMenu`.
-///
-/// The original form setup is recovered at Ghidra address `01c69770`, and the
-/// entries come from the recovered resource in [`super::menu_tree`]. Every
-/// command sends its own name, so a click is answered by the item that was
-/// clicked rather than by a shared placeholder.
-pub fn view(
-    tokens: ThemeTokens,
-    state: EditorState,
-    settings: &EditorSettings,
-) -> Element<'static, Message> {
-    let roots = menu_tree::MAIN_MENU
-        .iter()
-        .filter(|entry| command_state::is_shown(entry.name, entry.visible, state))
-        .map(|entry| {
-            let root = button(caption_of(entry, tokens.text.iced()))
-                .padding([7, 6])
-                .on_press(Message::MenuCommand(entry.name))
-                .style(move |theme, status| chrome::menu_root_button_style(tokens, theme, status));
-
-            let children = command_state::children_of(entry);
-            Item::with_menu(root, submenu(children, tokens, state, settings, MENU_WIDTH))
-        })
-        .collect::<Vec<_>>();
-
-    MenuBar::new(roots)
-        .spacing(1.0)
-        .padding([1, 4])
-        .draw_path(DrawPath::Backdrop)
-        .style(move |_: &Theme, _| chrome::menu_bar_style(tokens))
-        .into()
-}
-
-/// Builds one dropdown from the entries it holds.
-fn submenu(
-    entries: &'static [MenuEntry],
-    tokens: ThemeTokens,
-    state: EditorState,
-    settings: &EditorSettings,
-    width: f32,
-) -> Menu<'static, Message, Theme, iced::Renderer> {
-    let items = drawn(entries, state)
-        .into_iter()
-        .map(|entry| item(entry, tokens, state, settings))
-        .collect::<Vec<_>>();
-
-    Menu::new(items)
-        .width(Length::Fixed(width))
-        .max_width(width + 40.0)
-        .offset(2.0)
-        .spacing(1.0)
-}
 
 /// The entries one dropdown actually draws, in order.
 ///
@@ -100,22 +48,261 @@ fn drawn(entries: &'static [MenuEntry], state: EditorState) -> Vec<&'static Menu
     kept
 }
 
-/// Builds one entry, which is a separator, a command, or a submenu.
-fn item(
+/// Which menu is open, and which of its entries has opened one of its own.
+///
+/// The editor keeps this rather than the widget, which is the whole point:
+/// `iced_aw`'s menu bar keeps it inside itself and lets nothing reach it, so
+/// the Alt key could never open a menu. This can be set by a press, by a
+/// pointer, or by a key.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct OpenMenu {
+    /// Which of the bar's roots is open, counting the ones that are drawn.
+    pub root: Option<usize>,
+    /// Which entry inside it has opened a submenu, by its name.
+    pub inside: Option<&'static str>,
+}
+
+impl OpenMenu {
+    /// Nothing open.
+    #[must_use]
+    pub const fn shut() -> Self {
+        Self {
+            root: None,
+            inside: None,
+        }
+    }
+
+    /// Whether any menu is open.
+    #[must_use]
+    pub const fn is_open(&self) -> bool {
+        self.root.is_some()
+    }
+
+    /// Opens one of the roots, closing whatever it had open.
+    #[must_use]
+    pub const fn opening(root: usize) -> Self {
+        Self {
+            root: Some(root),
+            inside: None,
+        }
+    }
+}
+
+/// The roots the bar draws, in order.
+#[must_use]
+pub fn roots(state: EditorState) -> Vec<&'static MenuEntry> {
+    menu_tree::MAIN_MENU
+        .iter()
+        .filter(|entry| command_state::is_shown(entry.name, entry.visible, state))
+        .collect()
+}
+
+/// Which root a letter opens, by the letter the resource underlines.
+///
+/// `Alt` and that letter is what opens a menu in the original, and the
+/// letters were already known: `MenuEntry::accelerator` holds where in the
+/// caption the underlined one is.
+#[must_use]
+pub fn root_for(letter: char, state: EditorState) -> Option<usize> {
+    roots(state)
+        .into_iter()
+        .position(|entry| accelerator_of(entry) == Some(letter.to_ascii_lowercase()))
+}
+
+/// Which entry of an open menu a letter chooses.
+///
+/// Only an entry that is offered can be chosen: a letter belonging to a
+/// greyed command does nothing, exactly as a click on it would.
+#[must_use]
+pub fn entry_for(
+    letter: char,
+    entries: &'static [MenuEntry],
+    state: EditorState,
+) -> Option<&'static MenuEntry> {
+    drawn(entries, state).into_iter().find(|entry| {
+        accelerator_of(entry) == Some(letter.to_ascii_lowercase())
+            && entry.enabled
+            && command_state::is_enabled(entry.name, state)
+    })
+}
+
+/// Whether an entry opens a submenu rather than doing something.
+///
+/// An instrument opens one only where a measurement card was found, which
+/// is what the original does and what the recovered pair collapses to.
+#[must_use]
+pub fn opens_a_submenu(entry: &'static MenuEntry, state: EditorState) -> bool {
+    let children = command_state::children_of(entry);
+    !children.is_empty() && (state.has_hardware || !is_an_instrument(entry))
+}
+
+/// The letter the resource underlines in a caption, in lower case.
+#[must_use]
+pub fn accelerator_of(entry: &'static MenuEntry) -> Option<char> {
+    let at = entry.accelerator?;
+    entry
+        .caption
+        .chars()
+        .nth(at)
+        .map(|letter| letter.to_ascii_lowercase())
+}
+
+/// Roughly how far along the bar one root starts.
+///
+/// The bar is a row of buttons and iced lays it out when it draws, which is
+/// after this has to decide where to put the dropdown. So the width of a
+/// caption is reckoned from how many characters it has - near enough to put
+/// the dropdown under its own root, and the only thing here that is an
+/// estimate rather than a fact.
+#[must_use]
+pub fn root_offset(root: usize, state: EditorState) -> f32 {
+    roots(state).into_iter().take(root).map(root_width).sum()
+}
+
+/// Roughly how wide one root button is.
+fn root_width(entry: &'static MenuEntry) -> f32 {
+    #[allow(
+        clippy::cast_precision_loss,
+        reason = "a caption is a dozen characters"
+    )]
+    let letters = entry.caption.chars().count() as f32;
+    letters.mul_add(LETTER_WIDTH, ROOT_PADDING)
+}
+
+/// About how wide one letter of the menu font is.
+const LETTER_WIDTH: f32 = 7.0;
+
+/// The padding and spacing around one root button.
+const ROOT_PADDING: f32 = 14.0;
+
+/// The bar of roots, with the open one standing out.
+pub fn bar(tokens: ThemeTokens, state: EditorState, open: OpenMenu) -> Element<'static, Message> {
+    let mut strip = row![].spacing(1).align_y(Alignment::Center);
+    for (at, entry) in roots(state).into_iter().enumerate() {
+        let lit = open.root == Some(at);
+        strip = strip.push(
+            mouse_area(
+                button(caption_of(entry, tokens.text.iced()))
+                    .padding([7, 6])
+                    .on_press(Message::MenuRootPressed(at))
+                    .style(move |theme, status| {
+                        chrome::menu_root_button_style(tokens, theme, status)
+                    }),
+            )
+            // Once one menu is open, moving across the bar opens the next,
+            // which is what every menu bar does and what the original does.
+            .on_enter(if open.is_open() {
+                Message::MenuRootHovered(at)
+            } else {
+                Message::NoOp
+            }),
+        );
+        let _ = lit;
+    }
+
+    container(strip.push(horizontal_space()))
+        .width(Length::Fill)
+        .style(move |_: &Theme| chrome::menu_strip_style(tokens))
+        .into()
+}
+
+/// The dropdown of whichever menu is open, if one is.
+///
+/// Drawn over the rest of the editor rather than inside the bar, so it can
+/// cover the sheet the way a menu does.
+pub fn dropdown(
+    tokens: ThemeTokens,
+    state: EditorState,
+    settings: &EditorSettings,
+    open: OpenMenu,
+) -> Option<Element<'static, Message>> {
+    let root = open.root?;
+    let entry = *roots(state).get(root)?;
+    let panel = panel(
+        command_state::children_of(entry),
+        tokens,
+        state,
+        settings,
+        MENU_WIDTH,
+        open.inside,
+    );
+
+    Some(
+        container(panel)
+            .padding(iced::Padding {
+                top: 0.0,
+                right: 0.0,
+                bottom: 0.0,
+                left: root_offset(root, state),
+            })
+            .into(),
+    )
+}
+
+/// One dropdown, and the one it has open inside it.
+fn panel(
+    entries: &'static [MenuEntry],
+    tokens: ThemeTokens,
+    state: EditorState,
+    settings: &EditorSettings,
+    width: f32,
+    inside: Option<&'static str>,
+) -> Element<'static, Message> {
+    let mut lines = column![].width(Length::Fixed(width));
+    for entry in drawn(entries, state) {
+        lines = lines.push(line(entry, tokens, state, settings));
+    }
+
+    let panel = container(lines)
+        .padding(2)
+        .style(move |iced_theme| chrome::menu_panel_style(tokens, iced_theme));
+
+    // A submenu is drawn beside the one that opened it, as far down as the
+    // entry that did.
+    let Some(name) = inside else {
+        return panel.into();
+    };
+    let Some(opener) = drawn(entries, state)
+        .into_iter()
+        .find(|entry| entry.name == name)
+    else {
+        return panel.into();
+    };
+    let children = command_state::children_of(opener);
+    if children.is_empty() {
+        return panel.into();
+    }
+
+    row![
+        panel,
+        panel_of(children, tokens, state, settings, SUBMENU_WIDTH)
+    ]
+    .into()
+}
+
+/// A nested dropdown, which opens nothing further.
+fn panel_of(
+    entries: &'static [MenuEntry],
+    tokens: ThemeTokens,
+    state: EditorState,
+    settings: &EditorSettings,
+    width: f32,
+) -> Element<'static, Message> {
+    panel(entries, tokens, state, settings, width, None)
+}
+
+/// One line of a dropdown.
+fn line(
     entry: &'static MenuEntry,
     tokens: ThemeTokens,
     state: EditorState,
     settings: &EditorSettings,
-) -> Item<'static, Message, Theme, iced::Renderer> {
+) -> Element<'static, Message> {
     if entry.is_separator() {
-        return Item::new(separator(tokens));
+        return separator(tokens);
     }
 
-    // An instrument offers a submenu only where real-time hardware was found;
-    // without it the original shows the plain command, which is what the
-    // recovered pair collapses to here.
-    let children = command_state::children_of(entry);
-    let opens = !children.is_empty() && (state.has_hardware || !is_an_instrument(entry));
+    let opens = opens_a_submenu(entry, state);
     let trailing = if opens {
         SUBMENU_MARK
     } else {
@@ -128,8 +315,6 @@ fn item(
     } else {
         tokens.text_secondary.iced()
     };
-    // A command that keeps a setting is drawn ticked while that setting is on,
-    // which is what the original shows and what tells a switch from an action.
     let tick = if settings.is_checked(entry.name) == Some(true) {
         TICK
     } else {
@@ -154,17 +339,20 @@ fn item(
         .padding([4, 12])
         .style(move |theme, status| chrome::menu_item_button_style(tokens, theme, status));
     if enabled {
-        control = control.on_press(Message::MenuCommand(entry.name));
+        control = control.on_press(if opens {
+            Message::MenuEntryOpened(entry.name)
+        } else {
+            Message::MenuCommand(entry.name)
+        });
     }
 
-    if opens {
-        Item::with_menu(
-            control,
-            submenu(children, tokens, state, settings, SUBMENU_WIDTH),
-        )
-    } else {
-        Item::new(control)
-    }
+    mouse_area(control)
+        .on_enter(if opens {
+            Message::MenuEntryOpened(entry.name)
+        } else {
+            Message::MenuEntryHovered
+        })
+        .into()
 }
 
 /// Whether this entry is one of the nine instruments the resource names twice.

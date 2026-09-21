@@ -191,13 +191,63 @@ pub fn is_enabled(name: &str, state: EditorState) -> bool {
         // installed one rather than shipping or replacing it.
         "Contents" | "HelpOnComponents" => state.has_help,
 
-        // The measurement card commands need a card.
+        // The measurement card commands need a card. `mnOpenTestcard`
+        // (01c77340) is a stub in this build like the imports below, but
+        // the rule is the same either way and the card is the honest
+        // reason; the other two are real handlers.
         "mnOpenTestcard" | "mnCloseTestcard" | "mnConfigFPGA" => state.has_hardware,
 
-        // `mnAIAssistant` and `mnSPiceEditor` are greyed by the expired demo
-        // the comparison was run against, and nothing in the menu says on
-        // what. The licence is the likely answer, so they stay offered here
-        // rather than have a rule invented for them; see TIARA-rfa0uy5.
+
+        // Never offered, and none of them because of a licence. Each one's
+        // handler in the original is a stub: it takes no Sender - which
+        // every live handler takes - and does nothing.
+        //
+        //   mnAIAssistant         01ca4da0   finalises a local string
+        //   ImportTINA            01c83490   void f(void) { return; }
+        //   ImportPalmtopCircuit  01c834a0   the same
+        //   ImportPSpice          01c834b0   the same
+        //   ImportDigit           01c92b60   the same
+        //   ImportEDIF            01c834c0   clears three locals, returns
+        //
+        // The contrast with a command the licence really does stop settles
+        // it: `ACVectorDiagramClick` at 01c97cf0 is a real handler that calls
+        // the check at 0152b4a0 and does its work only when that check
+        // passes. These have nothing to stop.
+        //
+        // The original leaves the five imports offered and they do nothing
+        // when pressed, which is worse than saying so; the port has no
+        // reader for any of those formats either, so it greys them. A
+        // command that is offered should do something. See TIARA-rfa0uy5
+        // and TIARA-uffopye.
+        "mnAIAssistant"
+        | "ImportTINA"
+        | "ImportPalmtopCircuit"
+        | "ImportPSpice"
+        | "ImportEDIF"
+        | "ImportDigit"
+        // The breadboard view is not a second way of drawing the sheet, as
+        // it looked from outside: it is a conversation with another
+        // program. Both handlers call FUN_01ca13b0 - `New` with 0 and
+        // `Continue` with 1 - and that one
+        //
+        //   asks FUN_01b1d9d0(L"pcbviewer.exe", 0) whether the viewer is
+        //   running, launches it out of the install folder if it is not,
+        //   and spins until it answers;
+        //   reads ReadString("ComponentButtons", "BBoard") for the
+        //   breadboard to open, and then sends the viewer two lines:
+        //     NewBreadBoard(<that board>, <this circuit>)
+        //     BreadBoardComplete(0|1)     <- the New/Continue difference
+        //
+        // So the picture of a breadboard is drawn by pcbviewer.exe and
+        // never by TINA. The port does not launch the original's PCB
+        // program - the same call already made for `Backannotate`, which
+        // reads the board's file directly instead - and it has no
+        // breadboard view of its own, so the pair is greyed rather than
+        // offered and silent. A breadboard view of the port's own is a
+        // feature in its own right, not a command on the sheet.
+        | "mnBreadBoardViewNew"
+        | "mnBreadBoardViewContinue" => false,
+
         _ => true,
     }
 }
@@ -265,11 +315,6 @@ mod tests {
             "ExportXML",
             "ImportXML",
             "ImportUserLibs",
-            "ImportTINA",
-            "ImportPalmtopCircuit",
-            "ImportPSpice",
-            "ImportEDIF",
-            "ImportDigit",
             "ImportIbis",
             "mnLTSpiceImport",
         ] {
@@ -277,6 +322,20 @@ mod tests {
                 is_enabled(name, empty()),
                 "{name} is offered by the original even on an empty sheet"
             );
+        }
+
+        // Five members of the Import group are greyed all the same, and
+        // not because the sheet is empty: they do nothing in the original
+        // and the port has no reader for them either. See the rule above.
+        for name in [
+            "ImportTINA",
+            "ImportPalmtopCircuit",
+            "ImportPSpice",
+            "ImportEDIF",
+            "ImportDigit",
+        ] {
+            assert!(!is_enabled(name, empty()));
+            assert!(!is_enabled(name, drawn()));
         }
     }
 
@@ -304,6 +363,27 @@ mod tests {
         ] {
             assert!(!is_enabled(name, empty()), "{name} should be greyed");
             assert!(is_enabled(name, selected()), "{name} should be offered");
+        }
+    }
+
+    #[test]
+    fn the_breadboard_view_is_never_offered_because_it_is_another_program() {
+        // FUN_01ca13b0 launches pcbviewer.exe and sends it NewBreadBoard
+        // and BreadBoardComplete; the port does not launch it, so neither
+        // command is ever offered, whatever is on the sheet.
+        for name in ["mnBreadBoardViewNew", "mnBreadBoardViewContinue"] {
+            assert!(!is_enabled(name, empty()), "{name} should be greyed");
+            assert!(!is_enabled(name, drawn()), "{name} should still be greyed");
+            assert!(
+                !is_enabled(name, selected()),
+                "{name} should still be greyed"
+            );
+            // And it is still offered in the menu, as the original offers
+            // it: greyed is not hidden.
+            assert!(
+                is_shown(name, true, empty()),
+                "{name} should still be shown"
+            );
         }
     }
 
@@ -493,5 +573,52 @@ mod tests {
 
         // Nothing else follows the help.
         assert!(is_enabled("mnNew", none));
+    }
+
+    #[test]
+    fn the_command_whose_handler_is_a_stub_is_never_offered() {
+        // The original greys it whatever state it is in, because there is
+        // nothing behind it in that build - and this port has no AI
+        // assistant either. Nothing the editor does turns it on.
+        for state in [empty(), drawn()] {
+            assert!(!is_enabled("mnAIAssistant", state));
+        }
+        // It is still drawn, greyed, where the resource draws it.
+        assert!(is_shown("mnAIAssistant", true, empty()));
+    }
+
+    #[test]
+    fn the_netlist_editor_is_offered_because_this_port_has_one() {
+        // The original greys it: that build ships its handler as a stub.
+        // This port is not that build - it has a Netlist Editor window - so
+        // it offers the command and opens it. A deliberate departure, and
+        // the one place the port is more than the original here.
+        for state in [empty(), drawn()] {
+            assert!(is_enabled("mnSPiceEditor", state));
+        }
+        assert!(is_shown("mnSPiceEditor", true, empty()));
+    }
+
+    #[test]
+    fn the_imports_that_do_nothing_are_not_offered() {
+        // Five of the six import commands are stubs in the original and
+        // the port has no reader for their formats, so it greys them
+        // rather than offer a command that does nothing.
+        for command in [
+            "ImportTINA",
+            "ImportPalmtopCircuit",
+            "ImportPSpice",
+            "ImportEDIF",
+            "ImportDigit",
+        ] {
+            for state in [empty(), drawn()] {
+                assert!(!is_enabled(command, state), "{command} should be greyed");
+            }
+            // They are still drawn, greyed, where the resource draws them.
+            assert!(is_shown(command, true, empty()));
+        }
+
+        // The sixth reads a file the port now reads, so it is offered.
+        assert!(is_enabled("mnLTSpiceImport", drawn()));
     }
 }

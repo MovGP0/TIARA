@@ -8,6 +8,14 @@ use tiara_core::global_parameters::{
     validate_global_parameter_rows,
 };
 
+pub const TITLE: &str = "Global Parameter Editor";
+pub const SCREENSHOT: &str = "screenshots/Global_Parameter_Editor.png";
+pub const FORM_RESOURCE: &str = "frmParamEditor";
+
+/// `TfrmParamEditor.FormCreate`, which is what the original runs when the
+/// window is made.
+pub const ORIGINAL_FUNCTION: Option<&str> = Some("0143a7c0");
+
 pub const HELP_CONTEXT: u32 = 0x4b2;
 pub const NAME_HEADER_RESOURCE_ID: u32 = 0x836;
 pub const VALUE_HEADER_RESOURCE_ID: u32 = 0x832;
@@ -135,6 +143,14 @@ pub struct Window {
     help_context: u32,
     grid_resources: GridResourceState,
     checkbox_overlay: Option<CheckboxCell>,
+}
+
+/// An editor over a document with no parameters in it yet, which is what the
+/// shell holds until a circuit defines some.
+impl Default for Window {
+    fn default() -> Self {
+        Self::new(Vec::new(), Vec::new())
+    }
 }
 
 impl Window {

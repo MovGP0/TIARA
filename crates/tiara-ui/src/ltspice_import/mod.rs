@@ -1,9 +1,19 @@
+pub mod shell;
+
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use iced::widget::{button, column, row, text, text_input};
 use iced::{Element, Task};
+
+pub const TITLE: &str = "LTSpice Import";
+pub const SCREENSHOT: &str = "screenshots/LTSpice_Import.png";
+pub const FORM_RESOURCE: &str = "LTSpiceImportDlg";
+
+/// `TLTSpiceImportDlg.FormCreate`, which is what the original runs when the
+/// window is made.
+pub const ORIGINAL_FUNCTION: Option<&str> = Some("01b8fda0");
 
 pub const IMPORT_DIRECTORY_SETTING: &str = "LT_ImportDir";
 pub const IMPORT_FILE_SETTING: &str = "LT_ImportFileName";
@@ -252,6 +262,7 @@ pub enum Message {
     CancelPressed,
 }
 
+#[derive(Debug)]
 pub struct Window<S> {
     services: Arc<Mutex<S>>,
     file_name: String,
@@ -271,6 +282,13 @@ where
             status: ImportStatus::Idle,
             cancelled: false,
         }
+    }
+
+    /// The services the window was given, so the shell can ask them what
+    /// the last import left behind.
+    #[must_use]
+    pub fn services(&self) -> Arc<Mutex<S>> {
+        Arc::clone(&self.services)
     }
 
     #[must_use]
@@ -433,6 +451,14 @@ fn source_directory_setting(source: &Path) -> String {
         directory.push(std::path::MAIN_SEPARATOR);
     }
     directory
+}
+
+/// The window as the shell holds it: its own services, and nothing typed in
+/// it yet.
+impl Default for Window<shell::Services> {
+    fn default() -> Self {
+        Self::new(shell::Services::new(None), String::new())
+    }
 }
 
 #[cfg(test)]

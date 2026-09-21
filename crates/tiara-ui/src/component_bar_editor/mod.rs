@@ -5,6 +5,10 @@
 //! navigator selection gate, the navigator icon toggle, the help command, and
 //! the new-file panel.
 
+use iced::widget::{
+    button, checkbox, column, container, horizontal_space, radio, row, scrollable, text, text_input,
+};
+use iced::{Element, Length};
 use std::path::{Path, PathBuf};
 
 pub const TITLE: &str = "Edit Component Bar";
@@ -1645,6 +1649,694 @@ pub trait NewFilePanelHost {
 /// choice, so reopening the panel shows whatever was last typed.
 pub fn close_new_file_panel(host: &mut impl NewFilePanelHost) {
     host.set_new_file_panel_visible(false);
+}
+
+/// What the window is called and where it came from.
+pub const SCREENSHOT: &str = "screenshots/Edit_Component_Bar.png";
+
+/// `TfrmEditCompRack.FormCreate`, which is what the original runs when the
+/// window is made.
+pub const ORIGINAL_FUNCTION: Option<&str> = Some("01b97ba0");
+
+/// What a line with no name of its own is shown as.
+const UNNAMED_ITEM: &str = "(unnamed)";
+
+/// The three pages the item properties are shown on, as the form names them.
+pub const PROPERTY_PAGES: [&str; 3] = ["File Macro", "Library Macro", "Library Macro Group"];
+
+/// Where a new registry file goes: beside the program, or beside the user.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum FileScope {
+    /// The file belongs to whoever is logged in.
+    #[default]
+    Private,
+    /// The file belongs to the machine, and everyone sees it.
+    Shared,
+}
+
+/// One line of the navigator: a component, or a group holding components.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RackItem {
+    /// What the tree calls it.
+    pub id: NavigatorItem,
+    /// The group it sits in, if it sits in one.
+    pub parent: Option<NavigatorItem>,
+    /// Whether it holds other items rather than standing for a part.
+    pub is_group: bool,
+    /// What it is called, and what it stands for.
+    pub entry: ComponentEntry,
+}
+
+impl RackItem {
+    /// A component.
+    #[must_use]
+    pub const fn component(
+        id: NavigatorItem,
+        parent: Option<NavigatorItem>,
+        entry: ComponentEntry,
+    ) -> Self {
+        Self {
+            id,
+            parent,
+            is_group: false,
+            entry,
+        }
+    }
+
+    /// A group.
+    #[must_use]
+    pub fn group(id: NavigatorItem, name: impl Into<String>) -> Self {
+        Self {
+            id,
+            parent: None,
+            is_group: true,
+            entry: ComponentEntry {
+                name: name.into(),
+                value: String::new(),
+                flag: false,
+            },
+        }
+    }
+}
+
+/// What was pressed or typed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Message {
+    /// A line of the navigator was chosen.
+    ItemChosen(NavigatorItem),
+    /// One of the item's properties was typed into.
+    NameChanged(String),
+    HelpChanged(String),
+    HotkeyChanged(String),
+    IconChanged(String),
+    /// One of the three property pages was chosen.
+    PageChosen(usize),
+    FileMacroNameChanged(String),
+    LibraryPartChanged(String),
+    LibraryGroupChanged(String),
+    /// A registry file tab was chosen.
+    FileChosen(usize),
+    /// Whether the navigator draws icons beside its lines.
+    ShowIconsToggled(bool),
+    /// The toolbar.
+    AddComponent,
+    AddGroup,
+    Delete,
+    Reset,
+    Default,
+    /// The new-file panel.
+    NewFilePressed,
+    NewFileNameChanged(String),
+    ScopeChosen(FileScope),
+    CreateFile,
+    ClosePanel,
+    /// The buttons along the bottom.
+    Ok,
+    Cancel,
+    Help,
+}
+
+/// The Edit Component Bar window.
+///
+/// The form is large - a navigator tree, a strip of registry files, the
+/// item's properties on one of three pages, a panel for making a new file,
+/// and a toolbar - and the decisions behind it were recovered long ago and
+/// had nowhere to live. This is where they live: every command that has a
+/// recovered rule asks that rule rather than making one up.
+#[derive(Debug, Clone)]
+pub struct Window {
+    /// The registry files the navigator can show, as its tab strip lists
+    /// them.
+    files: Vec<String>,
+    /// Which of them is showing.
+    selected_file: usize,
+    /// The lines of the navigator, in the order they are drawn.
+    items: Vec<RackItem>,
+    /// Which line is chosen, if any.
+    selected: Option<NavigatorItem>,
+    /// What the next line made will be called.
+    next_item: u64,
+    /// The item's properties, as typed.
+    name: String,
+    help_id: String,
+    hotkey: String,
+    icon: String,
+    /// Which of the three property pages is showing.
+    page: usize,
+    file_macro_name: String,
+    library_part: String,
+    library_group: String,
+    /// Whether the navigator draws icons.
+    show_icons: bool,
+    /// The new-file panel, which is hidden until it is asked for.
+    new_file_panel_visible: bool,
+    new_file_name: String,
+    scope: FileScope,
+    /// Whether anything has been changed since the window opened.
+    modified: bool,
+    /// What was answered, once the window has been answered.
+    modal_result: Option<i32>,
+}
+
+impl Default for Window {
+    fn default() -> Self {
+        Self {
+            files: vec![FACTORY_BACKUP_STEM.to_owned()],
+            selected_file: 0,
+            items: Vec::new(),
+            selected: None,
+            next_item: 1,
+            name: String::new(),
+            help_id: String::new(),
+            hotkey: String::new(),
+            icon: String::new(),
+            page: 0,
+            file_macro_name: String::new(),
+            library_part: String::new(),
+            library_group: String::new(),
+            // The form's own check box starts ticked.
+            show_icons: true,
+            new_file_panel_visible: false,
+            new_file_name: String::new(),
+            scope: FileScope::default(),
+            modified: false,
+            modal_result: None,
+        }
+    }
+}
+
+impl Window {
+    /// A window over the lines given, which is what a test uses and what the
+    /// shell will use once the component bar is read from the installation.
+    #[must_use]
+    pub fn holding(items: Vec<RackItem>) -> Self {
+        let next_item = items.iter().map(|item| item.id.0 + 1).max().unwrap_or(1);
+        Self {
+            items,
+            next_item,
+            ..Self::default()
+        }
+    }
+
+    /// The lines of the navigator.
+    #[must_use]
+    pub fn items(&self) -> &[RackItem] {
+        &self.items
+    }
+
+    /// Which line is chosen.
+    #[must_use]
+    pub const fn selected(&self) -> Option<NavigatorItem> {
+        self.selected
+    }
+
+    /// Whether anything has been changed since the window opened.
+    #[must_use]
+    pub const fn is_modified(&self) -> bool {
+        self.modified
+    }
+
+    /// What the window was answered with, once it has been.
+    #[must_use]
+    pub const fn modal_result(&self) -> Option<i32> {
+        self.modal_result
+    }
+
+    /// The three commands the recovered idle handler keeps in step.
+    #[must_use]
+    pub fn idle_commands(&self) -> IdleControlStates {
+        refresh_idle_commands(
+            self.new_file_panel_visible,
+            &self.new_file_name,
+            i32::try_from(self.selected_file).unwrap_or(i32::MAX),
+        )
+    }
+
+    /// Whether a line is a group.
+    fn is_group(&self, item: NavigatorItem) -> bool {
+        self.items
+            .iter()
+            .find(|line| line.id == item)
+            .is_some_and(|line| line.is_group)
+    }
+
+    /// One line, as it stands.
+    fn entry_of(&self, item: NavigatorItem) -> Option<ComponentEntry> {
+        self.items
+            .iter()
+            .find(|line| line.id == item)
+            .map(|line| line.entry.clone())
+    }
+
+    /// Where a line sits in the list.
+    fn place_of(&self, item: NavigatorItem) -> Option<usize> {
+        self.items.iter().position(|line| line.id == item)
+    }
+
+    /// Adds a line, following the recovered rule about where it goes.
+    ///
+    /// The rule is [`plan_component_add`]: nothing without a selection, a
+    /// group takes a fresh default inside it, and a component takes one
+    /// beside it - copied from it where the command asks for a copy.
+    pub fn add(&mut self, source: AddCommandSource, shift_held: bool) -> AddPlan {
+        let plan = plan_component_add(
+            source,
+            self.selected,
+            self.selected.is_some_and(|item| self.is_group(item)),
+            true,
+            shift_held,
+        );
+
+        let (anchor, entry, inside) = match plan {
+            AddPlan::Blocked => return plan,
+            AddPlan::IntoGroup(item) => (item, Self::default_entry(), true),
+            AddPlan::BesideWithDefaults(item) => (item, Self::default_entry(), false),
+            AddPlan::BesideAsCopy(item) => (
+                item,
+                self.entry_of(item).unwrap_or_else(Self::default_entry),
+                false,
+            ),
+        };
+
+        let id = self.take_item();
+        let parent = if inside {
+            Some(anchor)
+        } else {
+            self.items
+                .iter()
+                .find(|line| line.id == anchor)
+                .and_then(|line| line.parent)
+        };
+        let at = self.place_of(anchor).map_or(self.items.len(), |at| at + 1);
+        self.items
+            .insert(at, RackItem::component(id, parent, entry));
+        self.choose(id);
+        self.new_file_panel_visible = false;
+        self.modified = true;
+        plan
+    }
+
+    /// Adds a group, which the form's own button does beside the selection.
+    pub fn add_group(&mut self) {
+        let id = self.take_item();
+        let at = self
+            .selected
+            .and_then(|item| self.place_of(item))
+            .map_or(self.items.len(), |at| at + 1);
+        // Nameless for the same reason a fresh component is.
+        self.items.insert(at, RackItem::group(id, String::new()));
+        self.choose(id);
+        self.modified = true;
+    }
+
+    /// Takes the chosen line away, and everything inside it where it is a
+    /// group.
+    pub fn delete_chosen(&mut self) {
+        let Some(item) = self.selected else {
+            return;
+        };
+        self.items
+            .retain(|line| line.id != item && line.parent != Some(item));
+        self.selected = None;
+        self.clear_properties();
+        self.modified = true;
+    }
+
+    /// A fresh line's values.
+    ///
+    /// The original's default name is a global string - `DAT_02110dc8`,
+    /// read twice by the add handler at 01b98160 - and its content is not in
+    /// the recovered code. Rather than invent one, a fresh line is nameless
+    /// and the Name box beside the tree is where it gets a name, which is
+    /// where someone would type it anyway.
+    const fn default_entry() -> ComponentEntry {
+        ComponentEntry {
+            name: String::new(),
+            value: String::new(),
+            flag: false,
+        }
+    }
+
+    /// The next name for a line.
+    const fn take_item(&mut self) -> NavigatorItem {
+        let id = NavigatorItem(self.next_item);
+        self.next_item += 1;
+        id
+    }
+
+    /// Chooses a line, and shows its properties.
+    fn choose(&mut self, item: NavigatorItem) {
+        self.selected = Some(item);
+        if let Some(entry) = self.entry_of(item) {
+            self.name = entry.name;
+            self.file_macro_name = entry.value;
+        }
+    }
+
+    /// Empties the property fields, which is what having nothing chosen
+    /// leaves them as.
+    fn clear_properties(&mut self) {
+        self.name.clear();
+        self.help_id.clear();
+        self.hotkey.clear();
+        self.icon.clear();
+        self.file_macro_name.clear();
+        self.library_part.clear();
+        self.library_group.clear();
+    }
+
+    /// Answers a message.
+    pub fn update(&mut self, message: Message) {
+        match message {
+            Message::ItemChosen(item) => self.choose(item),
+            Message::NameChanged(value) => {
+                if let Some(item) = self.selected
+                    && let Some(at) = self.place_of(item)
+                {
+                    self.items[at].entry.name.clone_from(&value);
+                }
+                self.name = value;
+                self.modified = true;
+            }
+            Message::HelpChanged(value) => {
+                self.help_id = value;
+                self.modified = true;
+            }
+            Message::HotkeyChanged(value) => {
+                self.hotkey = value;
+                self.modified = true;
+            }
+            Message::IconChanged(value) => {
+                self.icon = value;
+                self.modified = true;
+            }
+            Message::PageChosen(page) => {
+                if page < PROPERTY_PAGES.len() {
+                    self.page = page;
+                }
+            }
+            Message::FileMacroNameChanged(value) => {
+                self.file_macro_name = value;
+                self.modified = true;
+            }
+            Message::LibraryPartChanged(value) => {
+                self.library_part = value;
+                self.modified = true;
+            }
+            Message::LibraryGroupChanged(value) => {
+                self.library_group = value;
+                self.modified = true;
+            }
+            Message::FileChosen(index) => {
+                if index < self.files.len() {
+                    self.selected_file = index;
+                }
+            }
+            Message::ShowIconsToggled(on) => self.show_icons = on,
+            Message::AddComponent => {
+                self.add(AddCommandSource::ToolbarButton, false);
+            }
+            Message::AddGroup => self.add_group(),
+            Message::Delete => self.delete_chosen(),
+            Message::Reset | Message::Default => {
+                // Both put the bar back: Reset to what was last saved and
+                // Default to what shipped. The port has neither to put back
+                // until the component bar is read from the installation, so
+                // both empty it rather than pretend.
+                self.items.clear();
+                self.selected = None;
+                self.clear_properties();
+                self.modified = true;
+            }
+            Message::NewFilePressed => {
+                self.new_file_panel_visible = true;
+                self.new_file_name.clear();
+            }
+            Message::NewFileNameChanged(value) => self.new_file_name = value,
+            Message::ScopeChosen(scope) => self.scope = scope,
+            Message::CreateFile => {
+                // The recovered idle handler is what says whether this can
+                // be pressed at all, and it is asked rather than guessed.
+                if self.idle_commands().create_file_enabled {
+                    let named = self.new_file_name.trim().to_owned();
+                    self.files.push(named);
+                    self.selected_file = self.files.len() - 1;
+                    self.new_file_panel_visible = false;
+                    self.new_file_name.clear();
+                    self.modified = true;
+                }
+            }
+            Message::ClosePanel => {
+                self.new_file_panel_visible = false;
+                self.new_file_name.clear();
+            }
+            Message::Ok => self.modal_result = Some(ACCEPTED_MODAL_RESULT),
+            Message::Cancel => self.modal_result = Some(0),
+            Message::Help => {}
+        }
+    }
+}
+
+impl Window {
+    /// The window as the form lays it out.
+    ///
+    /// The navigator on the left with its file tabs and toolbar above it, the
+    /// item's properties on the right on one of three pages, the new-file
+    /// panel below when it is asked for, and the three buttons at the foot.
+    #[must_use]
+    pub fn view(&self) -> Element<'_, Message> {
+        let body = row![self.navigator(), self.properties()]
+            .spacing(10)
+            .height(Length::Fill);
+
+        let buttons = row![
+            horizontal_space(),
+            button(text("OK").size(12)).on_press(Message::Ok),
+            button(text("Cancel").size(12)).on_press(Message::Cancel),
+            button(text("Help").size(12)).on_press(Message::Help),
+        ]
+        .spacing(6);
+
+        container(column![body, buttons].spacing(8).padding(8))
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
+    }
+
+    /// The left half: the toolbar, the file tabs, the tree, and the panel
+    /// for making a new file.
+    fn navigator(&self) -> Element<'_, Message> {
+        let toolbar = row![
+            button(text("Add component").size(11)).on_press(Message::AddComponent),
+            button(text("Add group").size(11)).on_press(Message::AddGroup),
+            button(text("Delete").size(11)).on_press(Message::Delete),
+            button(text("Reset").size(11)).on_press(Message::Reset),
+            button(text("Default").size(11)).on_press(Message::Default),
+            button(text("New file").size(11)).on_press(Message::NewFilePressed),
+        ]
+        .spacing(4);
+
+        let mut tabs = row![].spacing(2);
+        for (index, file) in self.files.iter().enumerate() {
+            let here = index == self.selected_file;
+            let face = if here {
+                format!("[{file}]")
+            } else {
+                file.clone()
+            };
+            tabs = tabs.push(
+                button(text(face).size(11))
+                    .padding([2, 8])
+                    .on_press(Message::FileChosen(index)),
+            );
+        }
+
+        let mut tree = column![].spacing(1);
+        for item in &self.items {
+            let chosen = self.selected == Some(item.id);
+            let mut face = String::new();
+            if self.show_icons {
+                // The form draws an icon here; until the icons are read from
+                // the installation, what kind of line it is stands in for
+                // one - which is what the check box is really choosing.
+                face.push_str(if item.is_group { "[+] " } else { "[ ] " });
+            }
+            if item.entry.name.is_empty() {
+                face.push_str(UNNAMED_ITEM);
+            } else {
+                face.push_str(&item.entry.name);
+            }
+            let indent = f32::from(u8::from(item.parent.is_some())) * 14.0;
+            tree = tree.push(
+                button(text(face).size(12))
+                    .padding(iced::Padding {
+                        top: 2.0,
+                        right: 6.0,
+                        bottom: 2.0,
+                        left: 6.0 + indent,
+                    })
+                    .width(Length::Fill)
+                    .on_press(Message::ItemChosen(item.id))
+                    .style(if chosen {
+                        button::primary
+                    } else {
+                        button::text
+                    }),
+            );
+        }
+
+        let mut left = column![
+            text("Navigator").size(12),
+            toolbar,
+            tabs,
+            checkbox("Show icons", self.show_icons).on_toggle(Message::ShowIconsToggled),
+            scrollable(tree).height(Length::Fill),
+        ]
+        .spacing(6);
+
+        if self.new_file_panel_visible {
+            left = left.push(self.new_file_panel());
+        }
+
+        container(left)
+            .width(Length::FillPortion(3))
+            .height(Length::Fill)
+            .into()
+    }
+
+    /// The panel that makes a new registry file.
+    fn new_file_panel(&self) -> Element<'_, Message> {
+        let create = button(text("Create").size(11));
+        // The recovered idle handler decides whether this can be pressed:
+        // the panel has to be open and the name has to have something in it
+        // after trimming.
+        let create = if self.idle_commands().create_file_enabled {
+            create.on_press(Message::CreateFile)
+        } else {
+            create
+        };
+
+        column![
+            text("Enter file name:").size(11),
+            text_input("", &self.new_file_name)
+                .on_input(Message::NewFileNameChanged)
+                .size(12)
+                .padding(4),
+            row![
+                radio(
+                    "Private",
+                    FileScope::Private,
+                    Some(self.scope),
+                    Message::ScopeChosen
+                ),
+                radio(
+                    "Shared",
+                    FileScope::Shared,
+                    Some(self.scope),
+                    Message::ScopeChosen
+                ),
+            ]
+            .spacing(10),
+            row![
+                create,
+                button(text("Close").size(11)).on_press(Message::ClosePanel)
+            ]
+            .spacing(6),
+        ]
+        .spacing(4)
+        .into()
+    }
+
+    /// The right half: what the chosen line is called and what it stands
+    /// for.
+    fn properties(&self) -> Element<'_, Message> {
+        let head = column![
+            text("Properties").size(12),
+            row![
+                text("Name").size(11).width(Length::Fixed(56.0)),
+                text_input("", &self.name)
+                    .on_input(Message::NameChanged)
+                    .size(12)
+                    .padding(4),
+            ]
+            .spacing(6),
+            row![
+                text("Help ID").size(11).width(Length::Fixed(56.0)),
+                text_input("", &self.help_id)
+                    .on_input(Message::HelpChanged)
+                    .size(12)
+                    .padding(4),
+            ]
+            .spacing(6),
+            row![
+                text("Hotkey").size(11).width(Length::Fixed(56.0)),
+                text_input("", &self.hotkey)
+                    .on_input(Message::HotkeyChanged)
+                    .size(12)
+                    .padding(4),
+            ]
+            .spacing(6),
+            row![
+                text("Icon").size(11).width(Length::Fixed(56.0)),
+                text_input("", &self.icon)
+                    .on_input(Message::IconChanged)
+                    .size(12)
+                    .padding(4),
+            ]
+            .spacing(6),
+        ]
+        .spacing(4);
+
+        let mut pages = row![].spacing(2);
+        for (index, page) in PROPERTY_PAGES.iter().enumerate() {
+            let here = index == self.page;
+            let face = if here {
+                format!("[{page}]")
+            } else {
+                (*page).to_owned()
+            };
+            pages = pages.push(
+                button(text(face).size(11))
+                    .padding([2, 8])
+                    .on_press(Message::PageChosen(index)),
+            );
+        }
+
+        let page: Element<'_, Message> = match self.page {
+            1 => row![
+                text("Part").size(11).width(Length::Fixed(56.0)),
+                text_input("", &self.library_part)
+                    .on_input(Message::LibraryPartChanged)
+                    .size(12)
+                    .padding(4),
+            ]
+            .spacing(6)
+            .into(),
+            2 => row![
+                text("Group ID").size(11).width(Length::Fixed(56.0)),
+                text_input("", &self.library_group)
+                    .on_input(Message::LibraryGroupChanged)
+                    .size(12)
+                    .padding(4),
+            ]
+            .spacing(6)
+            .into(),
+            _ => row![
+                text("File").size(11).width(Length::Fixed(56.0)),
+                text_input("", &self.file_macro_name)
+                    .on_input(Message::FileMacroNameChanged)
+                    .size(12)
+                    .padding(4),
+            ]
+            .spacing(6)
+            .into(),
+        };
+
+        container(column![head, pages, page].spacing(8))
+            .width(Length::FillPortion(2))
+            .height(Length::Fill)
+            .into()
+    }
 }
 
 #[cfg(test)]
@@ -3755,5 +4447,181 @@ mod tests {
                 ResetCall::Busy(false),
             ]
         );
+    }
+
+    /// A window holding one group and one component in it.
+    fn a_rack() -> Window {
+        Window::holding(vec![
+            RackItem::group(NavigatorItem(1), "Basic"),
+            RackItem::component(
+                NavigatorItem(2),
+                Some(NavigatorItem(1)),
+                ComponentEntry {
+                    name: "Resistor".to_owned(),
+                    value: "R".to_owned(),
+                    flag: false,
+                },
+            ),
+        ])
+    }
+
+    #[test]
+    fn the_window_opens_on_nothing_chosen_and_nothing_changed() {
+        let window = Window::default();
+        assert_eq!(window.selected(), None);
+        assert!(!window.is_modified());
+        assert_eq!(window.modal_result(), None);
+        assert!(window.items().is_empty());
+    }
+
+    #[test]
+    fn adding_without_a_selection_does_nothing_at_all() {
+        let mut window = a_rack();
+        let plan = window.add(AddCommandSource::ToolbarButton, false);
+
+        assert_eq!(plan, AddPlan::Blocked);
+        assert_eq!(window.items().len(), 2);
+        assert!(!window.is_modified());
+    }
+
+    #[test]
+    fn adding_on_a_group_puts_the_new_line_inside_it() {
+        let mut window = a_rack();
+        window.update(Message::ItemChosen(NavigatorItem(1)));
+
+        let plan = window.add(AddCommandSource::ToolbarButton, false);
+        assert_eq!(plan, AddPlan::IntoGroup(NavigatorItem(1)));
+
+        let made = window.selected().unwrap();
+        let line = window.items().iter().find(|i| i.id == made).unwrap();
+        assert_eq!(line.parent, Some(NavigatorItem(1)));
+        assert!(!line.is_group);
+        assert!(window.is_modified());
+    }
+
+    #[test]
+    fn adding_on_a_component_puts_the_new_line_beside_it() {
+        let mut window = a_rack();
+        window.update(Message::ItemChosen(NavigatorItem(2)));
+
+        let plan = window.add(AddCommandSource::ToolbarButton, false);
+        assert_eq!(plan, AddPlan::BesideWithDefaults(NavigatorItem(2)));
+
+        let made = window.selected().unwrap();
+        let line = window.items().iter().find(|i| i.id == made).unwrap();
+        // Beside means in the same group, and nameless until it is named.
+        assert_eq!(line.parent, Some(NavigatorItem(1)));
+        assert!(line.entry.name.is_empty());
+    }
+
+    #[test]
+    fn holding_shift_copies_the_line_instead_of_making_a_blank_one() {
+        let mut window = a_rack();
+        window.update(Message::ItemChosen(NavigatorItem(2)));
+
+        let plan = window.add(AddCommandSource::ToolbarButton, true);
+        assert_eq!(plan, AddPlan::BesideAsCopy(NavigatorItem(2)));
+
+        let made = window.selected().unwrap();
+        let line = window.items().iter().find(|i| i.id == made).unwrap();
+        assert_eq!(line.entry.name, "Resistor");
+        assert_eq!(line.entry.value, "R");
+    }
+
+    #[test]
+    fn duplicating_a_group_is_refused_because_there_is_nothing_to_duplicate() {
+        let mut window = a_rack();
+        window.update(Message::ItemChosen(NavigatorItem(1)));
+
+        let plan = window.add(AddCommandSource::DuplicateMenuItem, false);
+        assert_eq!(plan, AddPlan::Blocked);
+        assert_eq!(window.items().len(), 2);
+    }
+
+    #[test]
+    fn deleting_a_group_takes_what_is_inside_it_as_well() {
+        let mut window = a_rack();
+        window.update(Message::ItemChosen(NavigatorItem(1)));
+        window.update(Message::Delete);
+
+        assert!(window.items().is_empty());
+        assert_eq!(window.selected(), None);
+    }
+
+    #[test]
+    fn typing_a_name_names_the_line_that_is_chosen() {
+        let mut window = a_rack();
+        window.update(Message::ItemChosen(NavigatorItem(2)));
+        window.update(Message::NameChanged("Capacitor".to_owned()));
+
+        let line = window
+            .items()
+            .iter()
+            .find(|i| i.id == NavigatorItem(2))
+            .unwrap();
+        assert_eq!(line.entry.name, "Capacitor");
+    }
+
+    #[test]
+    fn the_new_file_command_waits_for_a_name_with_something_in_it() {
+        let mut window = Window::default();
+        // Closed, so nothing can be created.
+        assert!(!window.idle_commands().create_file_enabled);
+
+        window.update(Message::NewFilePressed);
+        assert!(!window.idle_commands().create_file_enabled);
+
+        // A name of spaces is no name.
+        window.update(Message::NewFileNameChanged("   ".to_owned()));
+        assert!(!window.idle_commands().create_file_enabled);
+
+        window.update(Message::NewFileNameChanged("  mine  ".to_owned()));
+        assert!(window.idle_commands().create_file_enabled);
+
+        window.update(Message::CreateFile);
+        assert_eq!(window.files.len(), 2);
+        assert_eq!(window.files[1], "mine");
+        assert_eq!(window.selected_file, 1);
+        // And the panel closes behind it.
+        assert!(!window.new_file_panel_visible);
+    }
+
+    #[test]
+    fn the_two_file_commands_follow_which_file_is_showing() {
+        let mut window = Window::default();
+        let first = window.idle_commands();
+        assert!(first.first_file_command_enabled);
+        assert!(!first.later_file_command_enabled);
+
+        window.update(Message::NewFilePressed);
+        window.update(Message::NewFileNameChanged("mine".to_owned()));
+        window.update(Message::CreateFile);
+
+        let later = window.idle_commands();
+        assert!(!later.first_file_command_enabled);
+        assert!(later.later_file_command_enabled);
+    }
+
+    #[test]
+    fn the_three_property_pages_are_the_ones_the_form_names() {
+        let mut window = a_rack();
+        assert_eq!(PROPERTY_PAGES.len(), 3);
+
+        window.update(Message::PageChosen(2));
+        assert_eq!(window.page, 2);
+        // A page that is not there is ignored.
+        window.update(Message::PageChosen(7));
+        assert_eq!(window.page, 2);
+    }
+
+    #[test]
+    fn the_buttons_at_the_foot_answer_the_window() {
+        let mut window = a_rack();
+        window.update(Message::Ok);
+        assert_eq!(window.modal_result(), Some(ACCEPTED_MODAL_RESULT));
+
+        let mut cancelled = a_rack();
+        cancelled.update(Message::Cancel);
+        assert_eq!(cancelled.modal_result(), Some(0));
     }
 }

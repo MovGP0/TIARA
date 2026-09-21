@@ -2,9 +2,26 @@ use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WindowTrace {
+    /// A photograph of the window taken from the running original.
+    ///
+    /// Empty for a window the original will not open. Two of its commands
+    /// are greyed in the only build there is - their handlers are stubs, see
+    /// TIARA-rfa0uy5 - and a window that cannot be opened cannot be
+    /// photographed. Those are built from the form instead, which is
+    /// evidence of the same kind and rather more exact.
     pub screenshot: &'static str,
+    /// The form the window was built from, which every one of them has.
     pub form_resource: &'static str,
+    /// The address of the handler the original runs to make it.
     pub original_function: Option<&'static str>,
+}
+
+impl WindowTrace {
+    /// Whether there is a photograph of this one.
+    #[must_use]
+    pub const fn has_a_picture(&self) -> bool {
+        !self.screenshot.is_empty()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -20,6 +37,8 @@ pub enum WindowKind {
     BatchSimulation,
     BillOfMaterials,
     BlockWizard,
+    ComponentBarEditor,
+    ComponentExplorer,
     Converters,
     DesignTool,
     DigitalSignalGenerator,
@@ -30,6 +49,7 @@ pub enum WindowKind {
     FindComponent,
     FlowchartEditor,
     FootprintNameEditor,
+    GlobalParameterEditor,
     FourierSeries,
     FrequencySpectrum,
     FunctionGenerator,
@@ -38,8 +58,12 @@ pub enum WindowKind {
     Interpreter,
     LogicAnalyzer,
     LogicDesign,
+    LtspiceImport,
+    MacroProperties,
+    MacroWizard,
     MapFaultToHardware,
     Multimeter,
+    NetlistEditor,
     NetworkAnalyzer,
     NumericalFormat,
     Oscilloscope,
@@ -63,7 +87,7 @@ pub enum WindowKind {
 }
 
 impl WindowKind {
-    pub const ALL: [Self; 50] = [
+    pub const ALL: [Self; 57] = [
         Self::SchematicEditor,
         Self::AboutTina,
         Self::AcMultisineAnalysis,
@@ -74,6 +98,8 @@ impl WindowKind {
         Self::BatchSimulation,
         Self::BillOfMaterials,
         Self::BlockWizard,
+        Self::ComponentBarEditor,
+        Self::ComponentExplorer,
         Self::Converters,
         Self::DesignTool,
         Self::DigitalSignalGenerator,
@@ -84,6 +110,7 @@ impl WindowKind {
         Self::FindComponent,
         Self::FlowchartEditor,
         Self::FootprintNameEditor,
+        Self::GlobalParameterEditor,
         Self::FourierSeries,
         Self::FrequencySpectrum,
         Self::FunctionGenerator,
@@ -92,8 +119,12 @@ impl WindowKind {
         Self::Interpreter,
         Self::LogicAnalyzer,
         Self::LogicDesign,
+        Self::LtspiceImport,
+        Self::MacroProperties,
+        Self::MacroWizard,
         Self::MapFaultToHardware,
         Self::Multimeter,
+        Self::NetlistEditor,
         Self::NetworkAnalyzer,
         Self::NumericalFormat,
         Self::Oscilloscope,
@@ -128,6 +159,8 @@ impl WindowKind {
             Self::BatchSimulation => crate::batch_simulation::TITLE,
             Self::BillOfMaterials => crate::bill_of_materials::TITLE,
             Self::BlockWizard => crate::block_wizard::TITLE,
+            Self::ComponentBarEditor => crate::component_bar_editor::TITLE,
+            Self::ComponentExplorer => crate::component_explorer::TITLE,
             Self::Converters => crate::converters::TITLE,
             Self::DesignTool => crate::design_tool::TITLE,
             Self::DigitalSignalGenerator => crate::digital_signal_generator::TITLE,
@@ -138,6 +171,7 @@ impl WindowKind {
             Self::FindComponent => crate::find_component::TITLE,
             Self::FlowchartEditor => crate::flowchart_editor::TITLE,
             Self::FootprintNameEditor => crate::footprint_name_editor::TITLE,
+            Self::GlobalParameterEditor => crate::global_parameter_editor::TITLE,
             Self::FourierSeries => crate::fourier_series::TITLE,
             Self::FrequencySpectrum => crate::frequency_spectrum::TITLE,
             Self::FunctionGenerator => crate::function_generator::TITLE,
@@ -146,8 +180,12 @@ impl WindowKind {
             Self::Interpreter => crate::interpreter::TITLE,
             Self::LogicAnalyzer => crate::logic_analyzer::TITLE,
             Self::LogicDesign => crate::logic_design::TITLE,
+            Self::LtspiceImport => crate::ltspice_import::TITLE,
+            Self::MacroProperties => crate::macro_properties::TITLE,
+            Self::MacroWizard => crate::macro_wizard::TITLE,
             Self::MapFaultToHardware => crate::map_fault_to_hardware::TITLE,
             Self::Multimeter => crate::multimeter::TITLE,
+            Self::NetlistEditor => crate::netlist_editor::TITLE,
             Self::NetworkAnalyzer => crate::network_analyzer::TITLE,
             Self::NumericalFormat => crate::numerical_format::TITLE,
             Self::Oscilloscope => crate::oscilloscope::TITLE,
@@ -220,6 +258,16 @@ impl WindowKind {
                 crate::block_wizard::FORM_RESOURCE,
                 crate::block_wizard::ORIGINAL_FUNCTION,
             ),
+            Self::ComponentBarEditor => trace_for(
+                crate::component_bar_editor::SCREENSHOT,
+                crate::component_bar_editor::FORM_RESOURCE,
+                crate::component_bar_editor::ORIGINAL_FUNCTION,
+            ),
+            Self::ComponentExplorer => trace_for(
+                crate::component_explorer::SCREENSHOT,
+                crate::component_explorer::FORM_RESOURCE,
+                crate::component_explorer::ORIGINAL_FUNCTION,
+            ),
             Self::Converters => trace_for(
                 crate::converters::SCREENSHOT,
                 crate::converters::FORM_RESOURCE,
@@ -270,6 +318,11 @@ impl WindowKind {
                 crate::footprint_name_editor::FORM_RESOURCE,
                 crate::footprint_name_editor::ORIGINAL_FUNCTION,
             ),
+            Self::GlobalParameterEditor => trace_for(
+                crate::global_parameter_editor::SCREENSHOT,
+                crate::global_parameter_editor::FORM_RESOURCE,
+                crate::global_parameter_editor::ORIGINAL_FUNCTION,
+            ),
             Self::FourierSeries => trace_for(
                 crate::fourier_series::SCREENSHOT,
                 crate::fourier_series::FORM_RESOURCE,
@@ -310,6 +363,21 @@ impl WindowKind {
                 crate::logic_design::FORM_RESOURCE,
                 crate::logic_design::ORIGINAL_FUNCTION,
             ),
+            Self::LtspiceImport => trace_for(
+                crate::ltspice_import::SCREENSHOT,
+                crate::ltspice_import::FORM_RESOURCE,
+                crate::ltspice_import::ORIGINAL_FUNCTION,
+            ),
+            Self::MacroProperties => trace_for(
+                crate::macro_properties::SCREENSHOT,
+                crate::macro_properties::FORM_RESOURCE,
+                crate::macro_properties::ORIGINAL_FUNCTION,
+            ),
+            Self::MacroWizard => trace_for(
+                crate::macro_wizard::SCREENSHOT,
+                crate::macro_wizard::FORM_RESOURCE,
+                crate::macro_wizard::ORIGINAL_FUNCTION,
+            ),
             Self::MapFaultToHardware => trace_for(
                 crate::map_fault_to_hardware::SCREENSHOT,
                 crate::map_fault_to_hardware::FORM_RESOURCE,
@@ -319,6 +387,11 @@ impl WindowKind {
                 crate::multimeter::SCREENSHOT,
                 crate::multimeter::FORM_RESOURCE,
                 crate::multimeter::ORIGINAL_FUNCTION,
+            ),
+            Self::NetlistEditor => trace_for(
+                crate::netlist_editor::SCREENSHOT,
+                crate::netlist_editor::FORM_RESOURCE,
+                crate::netlist_editor::ORIGINAL_FUNCTION,
             ),
             Self::NetworkAnalyzer => trace_for(
                 crate::network_analyzer::SCREENSHOT,
@@ -457,7 +530,7 @@ mod tests {
             .map(|kind| kind.title())
             .collect::<HashSet<_>>();
 
-        assert_eq!(WindowKind::ALL.len(), 50);
+        assert_eq!(WindowKind::ALL.len(), 57);
         assert_eq!(titles.len(), WindowKind::ALL.len());
         assert!(titles.iter().all(|title| !title.is_empty()));
     }
@@ -507,15 +580,37 @@ mod tests {
     }
 
     #[test]
-    fn every_secondary_window_has_source_trace_metadata() {
+    fn every_secondary_window_says_where_it_came_from() {
         for kind in WindowKind::ALL
             .into_iter()
             .filter(|kind| *kind != WindowKind::SchematicEditor)
         {
             let trace = kind.trace().expect("secondary window trace");
 
-            assert!(trace.screenshot.starts_with("screenshots/"));
-            assert!(!trace.form_resource.is_empty());
+            // The form is the one thing every window has.
+            assert!(!trace.form_resource.is_empty(), "{kind} names no form");
+            // A photograph, where there is one, is one of ours.
+            assert!(
+                !trace.has_a_picture() || trace.screenshot.starts_with("screenshots/"),
+                "{kind} names a picture from somewhere else"
+            );
         }
+    }
+
+    #[test]
+    fn only_a_window_the_original_will_not_open_goes_without_a_picture() {
+        // Every window was photographed from the running original except
+        // those whose command the original greys, which cannot be opened to
+        // be photographed. Keeping the list here means a window that quietly
+        // loses its picture is caught.
+        let unphotographed: Vec<WindowKind> = WindowKind::ALL
+            .into_iter()
+            .filter(|kind| kind.trace().is_some_and(|trace| !trace.has_a_picture()))
+            .collect();
+
+        assert_eq!(
+            unphotographed,
+            [WindowKind::MacroProperties, WindowKind::NetlistEditor]
+        );
     }
 }

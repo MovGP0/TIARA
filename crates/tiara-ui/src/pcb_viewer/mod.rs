@@ -4,7 +4,13 @@ use crate::shared::window_shell;
 
 pub const TITLE: &str = "3D Viewer - Noname";
 pub const SCREENSHOT: &str = "screenshots/PCB_Viewer_MainWindow.png";
-pub const FORM_RESOURCE: &str = "SchematicEditor";
+// No PCB viewer form was recovered. The PCB forms in the image are
+// `PCBWizard`, `PcbForm`, `PcbForm4`, `PCBCompImportDlg` and
+// `frmPCBOnlyCompWizard`, and none of them is a viewer - the viewer is
+// `PCBViewer.exe`, a separate program beside `tina.exe`. So this window
+// is built from the screenshot alone, and says so rather than claiming a
+// form it is not built from.
+pub const FORM_RESOURCE: &str = "(no recovered form - built from the screenshot)";
 pub const ORIGINAL_FUNCTION: Option<&str> = Some("01c9b010");
 const STATUS: &str = "3D board preview";
 const MENUS: &[(&str, &[&str])] = &[

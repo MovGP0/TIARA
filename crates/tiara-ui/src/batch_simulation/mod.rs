@@ -5,6 +5,8 @@ use iced::widget::{button, checkbox, column, container, row, text, text_input};
 use iced::{Element, Length};
 
 pub const TITLE: &str = "Batch simulation";
+pub const SCREENSHOT: &str = "screenshots/Batch_Simulation.png";
+pub const ORIGINAL_FUNCTION: Option<&str> = Some("01c49730");
 pub const FORM_RESOURCE: &str = "BatchSimulationDlg";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

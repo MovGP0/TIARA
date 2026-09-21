@@ -1,104 +1,89 @@
-﻿# Cancel
+﻿# CancelBtn
 
-> Analysis status: The standard VCL cancel request is recovered. The custom handler and final form outcome remain unresolved.
+> Analysis status: The form is superseded by one whose handlers are recovered; this control's own handler is not in the image.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
 | Form | SpiceAskVoltagesDlg |
-| Form caption | Voltages/Currents |
 | Component path | SpiceAskVoltagesDlg.BtnPanel.CancelBtn |
 | Control class | TBitBtn |
-| Button kind | bkCancel |
-| Caption | Supplied by the predefined button kind; not stored explicitly in the DFM. |
+| Caption | Not present in the recovered resource. |
 | Hint | Not present in the recovered resource. |
+| Kind | bkCancel |
 | Handler name | CancelBtnClick |
-| Handler address | Not recovered |
+| Handler address | Not in the image - see below. |
 | Graph node | `resource:dfm:SpiceAskVoltagesDlg/SpiceAskVoltagesDlg.BtnPanel.CancelBtn` |
 | Handler node | `concept:dfm-handler:TSpiceAskVoltagesDlg/CancelBtnClick` |
-| Graph layer | tina.exe |
+| Graph layer | UI |
 
 ## What happens when clicked
 
-The recovered VCL path proves that this button requests a cancel result before it dispatches the custom click handler:
+`CancelBtn` sits on SpiceAskVoltagesDlg - the dialog that lists the voltages and currents a SPICE run produced.
 
-1. The DFM loader applies `Kind = bkCancel` to the `TBitBtn`. The recovered `TBitBtn.SetKind` path uses kind index 2. The modal-result table at virtual address `01e17818` contains value 2 at that index, the Delphi `mrCancel` value. The same path applies the predefined button presentation and marks this kind as a cancel button.
-2. `TBitBtn.Click` has special branches only for `bkHelp` and `bkClose`. A `bkCancel` click delegates to the inherited button-click path.
-3. The inherited path searches for the parent form. If it finds one, it copies modal result 2 from the button to the form.
-4. The same inherited path then calls the common VCL control-click dispatcher. That dispatcher invokes `TSpiceAskVoltagesDlg.CancelBtnClick` with the button as `Sender`.
+The resource gives this button `Kind = bkCancel`, and what that means is recovered code rather than a guess. While the form is built, TBitBtn.SetKind (0082bc30) reads the kind and gives the button the modal result it stands for - here `mrCancel` (2) - along with its default or cancel state. When the button is pressed, TCustomButton.Click (00687f30) copies that result into the form it sits on, and only afterwards does TControl.Click (00650840) dispatch `CancelBtnClick`. So the press sets the form's modal result and ends the dialog with it whatever the custom handler does.
 
-The modal-result write occurs before the custom `OnClick` dispatch. Therefore, the standard path requests cancellation, but the unresolved handler can still clear the modal result, change form or model state, show a message, or perform cleanup.
+What `CancelBtnClick` itself does - whether it validates, what it writes, whether it can refuse to close - is not in the image.
 
-If no parent form is found, the inherited path skips the modal-result write but still dispatches `OnClick`. The DFM places the button inside a panel owned by `SpiceAskVoltagesDlg`, so this is a framework fallback rather than the expected resource hierarchy.
-
-## Cancel flow
+## Click flow
 
 ```mermaid
 flowchart TD
-    resource["DFM loads CancelBtn with Kind = bkCancel"] --> kindSetter["TBitBtn.SetKind stores ModalResult = 2"]
-    click["User clicks Cancel"] --> bitClick["TBitBtn.Click"]
-    bitClick --> inherited["bkCancel delegates to TCustomButton.Click"]
-    inherited --> parent{"Parent form found?"}
-    parent -->|Yes| request["Write mrCancel value 2 to the form"]
-    parent -->|No| noRequest["Skip the modal-result write"]
-    request --> dispatch["TControl.Click dispatches OnClick"]
-    noRequest --> dispatch
-    kindSetter -. supplies result .-> request
-    dispatch --> custom["TSpiceAskVoltagesDlg.CancelBtnClick address not recovered"]
-    custom -. unknown state changes .-> outcome["Final close, cleanup, and returned result are unknown"]
+    control["CancelBtn (TBitBtn)"]
+    handler["CancelBtnClick"]
+    setkind["TBitBtn.SetKind (0082bc30), while the form is built"]
+    setkind -->|"Kind = bkCancel"| held["the button holds mrCancel"]
+    control -->|"pressed"| press["TCustomButton.Click (00687f30)"]
+    held --> press
+    press --> onform["the form holds mrCancel"]
+    press --> dispatch["TControl.Click (00650840)"]
+    dispatch -->|"OnClick"| handler
+    onform --> close["the dialog ends with mrCancel"]
+    handler -.->|"not in the image"| gone["unknown"]
+    control -.->|"the build opens this instead"| modern["TTinaAskVoltagesDlg (14 of 14 resolved)"]
 ```
 
-## Recovered VCL call path
+## Inputs
 
-- [`FUN_0082bc30`](../../../DecompiledSources/Tina16/functions/000000000082BC30__FUN_0082bc30.c) is the recovered `TBitBtn.SetKind` path. It selects a predefined caption, modal result, stock glyph, and default or cancel state from the button-kind index.
-- [`FUN_0082b0e0`](../../../DecompiledSources/Tina16/functions/000000000082B0E0__FUN_0082b0e0.c) is the recovered `TBitBtn.Click` override. Kind value 2 uses its inherited-click branch.
-- [`FUN_00687f30`](../../../DecompiledSources/Tina16/functions/0000000000687F30__FUN_00687f30.c) finds the parent form, copies the button modal result at offset `0x4f0` to form offset `0x508`, and then calls the common click dispatcher.
-- [`FUN_00650840`](../../../DecompiledSources/Tina16/functions/0000000000650840__FUN_00650840.c) invokes an assigned click event or its action-link fallback.
-- [Recovered DFM evidence](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json) supplies the form, panel, button kind, event name, and unresolved handler mapping.
+- The button's `Kind`, which the resource records as `bkCancel`. That is an input to the VCL path above and is known.
+- Whatever `CancelBtnClick` reads from the form. Not known: the handler is not in the image.
 
-## Form context
+## Decisions
 
-The recovered resource contains six components:
+- None in the VCL path: a cancel button sets its result and the dialog ends. Whether `CancelBtnClick` decides anything first is not known.
 
-- The form caption is **Voltages/Currents**.
-- The main client panel contains one `TViewGrid` named `StringGrid`.
-- The bottom button panel contains this `bkCancel` button and a separate `bkHelp` button.
-- The form has unresolved `OnCreate`, `OnShow`, `OnResize`, `OnClose`, and `OnDestroy` methods.
-- The Cancel button has no explicit caption, hint, embedded glyph bytes, image reference, nearby label candidate, or explicit `ModalResult` property in the DFM. Its cancel semantics come from `Kind = bkCancel` and the recovered VCL kind table.
+## State changes
 
-This context identifies a voltage-and-current grid dialog. It does not prove what data the custom cancel handler restores, frees, or keeps.
+- The form's modal result becomes `mrCancel`. That is recovered.
+- Any other change is not known. Nothing in the image says what `CancelBtnClick` writes.
 
-## Custom-handler gap
+## Outputs
 
-The graph contains one `triggers` edge from the button resource to the unresolved handler concept. The concept has no address, recovered function node, outgoing call edge, or handler source file.
+- The dialog ends with `mrCancel`, which is what its caller reads.
 
-A read-only search found `TSpiceAskVoltagesDlg` once in each captured runtime image, rebuilt image, and process dump. That occurrence belongs to the embedded form resource. In the mapped runtime image, its length-prefixed string starts at virtual address `03931204`. A search for the 64-bit pointer to that address found no reference, so it does not identify a VMT class-name slot.
+## Errors and no-op behaviour
 
-A second scan did not depend on the class-name slot. It tested every aligned Delphi VMT self-pointer in the mapped runtime image and decoded published-field tables. It selected candidates that contain all five fields recovered for this form: `BtnPanel`, `CancelBtn`, `HelpBtn`, `Panel`, and `StringGrid`. Only two valid VMTs matched:
+- Not known. Whether `CancelBtnClick` can fail, and what it does when there is nothing to do, is not in the image.
+- The Escape key reaches this button, since a cancel button is the form's cancel button by the same `Kind`.
 
-- `TAskVoltagesDlg` at `00f4c1b0`, whose method table maps `CancelBtnClick` to `00f51340`.
-- `TTinaAskVoltagesDlg` at `012b5010`, whose method table maps `CancelBtnClick` to `012b6310`.
+## Why the handler is not in the image
 
-No third VMT matches the Spice form's published fields. A separate published-method scan found 15 distinct valid `CancelBtnClick` code addresses. These addresses are the complete set already resolved to 16 controls in the DFM evidence; the two Percentage controls share one address. `RegisterDlg`, `SpiceAskVoltagesDlg`, and `TransferMediaFrm` remain the three unresolved controls with this handler name. Other occurrences are serialized DFM text and fail the method-entry size and code-pointer checks.
+`TSpiceAskVoltagesDlg` is one of 26 form classes in this image whose event bindings resolve to nothing at all. Across the whole resource, 320 forms carry at least one binding: 293 resolve every one of theirs, 26 resolve none of theirs, and one resolves some. This form is in the second group - 6 bindings, 0 resolved.
 
-These results do not establish that the custom handler is absent. The missing form class can be in an uncaptured module, and the handler can be inherited from a class whose relationship to this DFM is not recovered. Neither case supplies an exact address. The recovered C source also has no class-name or handler-name reference that can map this `CancelBtnClick` binding to one of the valid addresses.
+The cause is known and is not a gap in the analysis. A Delphi event binding is followed by finding the class's published method table, which hangs off its VMT. For these 26 classes the image holds the class name only inside the DFM stream: there is no second instance of it to anchor a VMT, so no published method table can be found and no handler name can be turned into an address. The pages that would hold them are the ones the protector left encrypted. No further static work on this image will recover them.
 
-## Inputs, outputs, and limits
+## Evidence
 
-| Question | Proven result |
-| --- | --- |
-| Framework input | A click on the `bkCancel` button. |
-| Framework state change | The parent form modal result is set to 2 when a parent form is found. |
-| Custom handler input | The VCL dispatcher passes `CancelBtn` as `Sender`. |
-| Grid or model rollback | Unknown because `CancelBtnClick` is unresolved. |
-| Cleanup | Unknown; the form lifecycle handlers are also unresolved. |
-| Final result | The framework requests `mrCancel`, but the custom handler can change the result or form state. |
-| No-parent fallback | Skip the modal-result write and still dispatch the custom event. |
-| Error behavior | No handler-level validation, message, exception path, or recovery rule is recovered. |
+- Resource: [DecompiledSources/Tina16/resources/dfm/ui-evidence.json](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json)
+- TBitBtn.SetKind, which maps the Kind the resource records onto the button's ModalResult and its default or cancel state: [DecompiledSources/Tina16/functions/000000000082BC30__FUN_0082bc30.c](../../../DecompiledSources/Tina16/functions/000000000082BC30__FUN_0082bc30.c)
+- TCustomButton.Click, which writes that ModalResult into the parent form before the click is dispatched: [DecompiledSources/Tina16/functions/0000000000687F30__FUN_00687f30.c](../../../DecompiledSources/Tina16/functions/0000000000687F30__FUN_00687f30.c)
+- TControl.Click, which dispatches the OnClick the resource names: [DecompiledSources/Tina16/functions/0000000000650840__FUN_00650840.c](../../../DecompiledSources/Tina16/functions/0000000000650840__FUN_00650840.c)
+- The form the build uses instead: `TTinaAskVoltagesDlg`, 14 of 14 bindings resolved.
+- The other controls on this form that do something: `SpiceAskVoltagesDlg` (Voltages/Currents).
+- No extracted glyph is associated with this control.
 
 ## Analysis limits
 
-- `bkCancel` proves the framework cancel request. It does not prove the custom rollback or cleanup behavior.
-- No caller or modal-result consumer for this form is recovered, so the final returned value is not assigned to an application action.
-- Recovering the custom behavior requires an address-backed VMT, published-method mapping, or live event-method pair for `TSpiceAskVoltagesDlg`. The rebuilt main-module image supplies none of these identities.
+- The caption, the hint, the control class and the labels near it are not evidence of behaviour and none of them was used as such here.
+- Recovering `CancelBtnClick` needs the class table, which needs the protected pages. Watching the running program would settle what the control does without settling how, and for this form the command that would have opened it was watched, and it opened `TTinaAskVoltagesDlg` instead.

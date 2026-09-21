@@ -7,6 +7,8 @@ use tiara_core::analysis_options::{AnalysisOptions, ERC_MATRIX_SIZE, ErcMatrix};
 use crate::advanced_analysis_options::{AdvancedOptions, Window as AdvancedOptionsWindow};
 
 pub const TITLE: &str = "Analysis Options";
+pub const SCREENSHOT: &str = "screenshots/Analysis_Options_Window.png";
+pub const ORIGINAL_FUNCTION: Option<&str> = Some("014f1700");
 pub const FORM_RESOURCE: &str = "AnalysisOptionDlg";
 pub const HELP_CONTEXT: u32 = 0x461;
 pub const OPTIONS_PAGE_HELP_CONTEXT: u32 = 0x96;
@@ -312,6 +314,12 @@ pub struct Window {
     host_configuration_active: bool,
     accepted_settings: Option<AcceptedAnalysisOptions>,
     pending_commit_events: Vec<CommitEvent>,
+}
+
+impl Default for Window {
+    fn default() -> Self {
+        Self::new(AnalysisOptions::default(), AdvancedOptions::default())
+    }
 }
 
 impl Window {

@@ -40,7 +40,7 @@ pub fn separator_style(tokens: ThemeTokens, _theme: &Theme) -> container::Style 
 pub fn status_style(tokens: ThemeTokens, _theme: &Theme) -> container::Style {
     container::Style {
         background: Some(Background::Color(tokens.statusbar_bg.iced())),
-        text_color: Some(Color::WHITE),
+        text_color: Some(tokens.text.iced()),
         ..container::Style::default()
     }
 }

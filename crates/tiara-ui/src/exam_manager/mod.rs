@@ -27,7 +27,7 @@ impl Default for Window {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Message {
     TabSelected(usize),
     FaultSelected(&'static str),

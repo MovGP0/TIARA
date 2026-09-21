@@ -11,7 +11,13 @@ pub struct WindowTrace {
 pub enum WindowKind {
     #[default]
     SchematicEditor,
+    AboutTina,
+    AcMultisineAnalysis,
+    AnalysisModeSelection,
+    AnalysisOptions,
+    AnalysisParameters,
     AnalysisResults,
+    BatchSimulation,
     BillOfMaterials,
     BlockWizard,
     Converters,
@@ -24,7 +30,10 @@ pub enum WindowKind {
     FindComponent,
     FlowchartEditor,
     FootprintNameEditor,
+    FourierSeries,
+    FrequencySpectrum,
     FunctionGenerator,
+    InsertText,
     InteractiveMode,
     Interpreter,
     LogicAnalyzer,
@@ -38,20 +47,31 @@ pub enum WindowKind {
     PcbDesign,
     PcbViewer,
     ProtectCircuit,
+    PythonShell,
     SchematicReconciliation,
     SchematicSymbolEditor,
+    SelectTinaFolder,
     SerialMonitor,
     SignalAnalyzer,
     SpectrumAnalyzer,
+    SpiceCommandEditor,
+    SpiceExport,
     SymbolTable,
     TestAndMeasurementOptions,
+    TransientAnalysis,
     XyRecorder,
 }
 
 impl WindowKind {
-    pub const ALL: [Self; 36] = [
+    pub const ALL: [Self; 50] = [
         Self::SchematicEditor,
+        Self::AboutTina,
+        Self::AcMultisineAnalysis,
+        Self::AnalysisModeSelection,
+        Self::AnalysisOptions,
+        Self::AnalysisParameters,
         Self::AnalysisResults,
+        Self::BatchSimulation,
         Self::BillOfMaterials,
         Self::BlockWizard,
         Self::Converters,
@@ -64,7 +84,10 @@ impl WindowKind {
         Self::FindComponent,
         Self::FlowchartEditor,
         Self::FootprintNameEditor,
+        Self::FourierSeries,
+        Self::FrequencySpectrum,
         Self::FunctionGenerator,
+        Self::InsertText,
         Self::InteractiveMode,
         Self::Interpreter,
         Self::LogicAnalyzer,
@@ -78,20 +101,31 @@ impl WindowKind {
         Self::PcbDesign,
         Self::PcbViewer,
         Self::ProtectCircuit,
+        Self::PythonShell,
         Self::SchematicReconciliation,
         Self::SchematicSymbolEditor,
+        Self::SelectTinaFolder,
         Self::SerialMonitor,
         Self::SignalAnalyzer,
         Self::SpectrumAnalyzer,
+        Self::SpiceCommandEditor,
+        Self::SpiceExport,
         Self::SymbolTable,
         Self::TestAndMeasurementOptions,
+        Self::TransientAnalysis,
         Self::XyRecorder,
     ];
 
     pub const fn title(self) -> &'static str {
         match self {
             Self::SchematicEditor => "Schematic Editor",
+            Self::AboutTina => crate::about_box::TITLE,
+            Self::AcMultisineAnalysis => crate::ac_multisine_analysis::TITLE,
+            Self::AnalysisModeSelection => crate::analysis_mode_selection::TITLE,
+            Self::AnalysisOptions => crate::analysis_options::TITLE,
+            Self::AnalysisParameters => crate::analysis_parameters::TITLE,
             Self::AnalysisResults => crate::analysis_results::TITLE,
+            Self::BatchSimulation => crate::batch_simulation::TITLE,
             Self::BillOfMaterials => crate::bill_of_materials::TITLE,
             Self::BlockWizard => crate::block_wizard::TITLE,
             Self::Converters => crate::converters::TITLE,
@@ -104,7 +138,10 @@ impl WindowKind {
             Self::FindComponent => crate::find_component::TITLE,
             Self::FlowchartEditor => crate::flowchart_editor::TITLE,
             Self::FootprintNameEditor => crate::footprint_name_editor::TITLE,
+            Self::FourierSeries => crate::fourier_series::TITLE,
+            Self::FrequencySpectrum => crate::frequency_spectrum::TITLE,
             Self::FunctionGenerator => crate::function_generator::TITLE,
+            Self::InsertText => crate::insert_text::TITLE,
             Self::InteractiveMode => crate::interactive_mode::TITLE,
             Self::Interpreter => crate::interpreter::TITLE,
             Self::LogicAnalyzer => crate::logic_analyzer::TITLE,
@@ -118,13 +155,18 @@ impl WindowKind {
             Self::PcbDesign => crate::pcb_design::TITLE,
             Self::PcbViewer => crate::pcb_viewer::TITLE,
             Self::ProtectCircuit => crate::protect_circuit::TITLE,
+            Self::PythonShell => crate::python_shell::TITLE,
             Self::SchematicReconciliation => crate::schematic_reconciliation::TITLE,
             Self::SchematicSymbolEditor => crate::schematic_symbol_editor::TITLE,
+            Self::SelectTinaFolder => crate::select_tina_folder::TITLE,
             Self::SerialMonitor => crate::serial_monitor::TITLE,
             Self::SignalAnalyzer => crate::signal_analyzer::TITLE,
             Self::SpectrumAnalyzer => crate::spectrum_analyzer::TITLE,
+            Self::SpiceCommandEditor => crate::spice_command_editor::TITLE,
+            Self::SpiceExport => crate::spice_export::TITLE,
             Self::SymbolTable => crate::symbol_table::TITLE,
             Self::TestAndMeasurementOptions => crate::test_and_measurement_options::TITLE,
+            Self::TransientAnalysis => crate::transient_analysis::TITLE,
             Self::XyRecorder => crate::xy_recorder::TITLE,
         }
     }
@@ -133,10 +175,40 @@ impl WindowKind {
     pub const fn trace(self) -> Option<WindowTrace> {
         let trace = match self {
             Self::SchematicEditor => return None,
+            Self::AboutTina => trace_for(
+                crate::about_box::SCREENSHOT,
+                crate::about_box::FORM_RESOURCE,
+                crate::about_box::ORIGINAL_FUNCTION,
+            ),
+            Self::AcMultisineAnalysis => trace_for(
+                crate::ac_multisine_analysis::SCREENSHOT,
+                crate::ac_multisine_analysis::FORM_RESOURCE,
+                crate::ac_multisine_analysis::ORIGINAL_FUNCTION,
+            ),
+            Self::AnalysisModeSelection => trace_for(
+                crate::analysis_mode_selection::SCREENSHOT,
+                crate::analysis_mode_selection::FORM_RESOURCE,
+                crate::analysis_mode_selection::ORIGINAL_FUNCTION,
+            ),
+            Self::AnalysisOptions => trace_for(
+                crate::analysis_options::SCREENSHOT,
+                crate::analysis_options::FORM_RESOURCE,
+                crate::analysis_options::ORIGINAL_FUNCTION,
+            ),
+            Self::AnalysisParameters => trace_for(
+                crate::analysis_parameters::SCREENSHOT,
+                crate::analysis_parameters::FORM_RESOURCE,
+                crate::analysis_parameters::ORIGINAL_FUNCTION,
+            ),
             Self::AnalysisResults => trace_for(
                 crate::analysis_results::SCREENSHOT,
                 crate::analysis_results::FORM_RESOURCE,
                 crate::analysis_results::ORIGINAL_FUNCTION,
+            ),
+            Self::BatchSimulation => trace_for(
+                crate::batch_simulation::SCREENSHOT,
+                crate::batch_simulation::FORM_RESOURCE,
+                crate::batch_simulation::ORIGINAL_FUNCTION,
             ),
             Self::BillOfMaterials => trace_for(
                 crate::bill_of_materials::SCREENSHOT,
@@ -198,10 +270,25 @@ impl WindowKind {
                 crate::footprint_name_editor::FORM_RESOURCE,
                 crate::footprint_name_editor::ORIGINAL_FUNCTION,
             ),
+            Self::FourierSeries => trace_for(
+                crate::fourier_series::SCREENSHOT,
+                crate::fourier_series::FORM_RESOURCE,
+                crate::fourier_series::ORIGINAL_FUNCTION,
+            ),
+            Self::FrequencySpectrum => trace_for(
+                crate::frequency_spectrum::SCREENSHOT,
+                crate::frequency_spectrum::FORM_RESOURCE,
+                crate::frequency_spectrum::ORIGINAL_FUNCTION,
+            ),
             Self::FunctionGenerator => trace_for(
                 crate::function_generator::SCREENSHOT,
                 crate::function_generator::FORM_RESOURCE,
                 crate::function_generator::ORIGINAL_FUNCTION,
+            ),
+            Self::InsertText => trace_for(
+                crate::insert_text::SCREENSHOT,
+                crate::insert_text::FORM_RESOURCE,
+                crate::insert_text::ORIGINAL_FUNCTION,
             ),
             Self::InteractiveMode => trace_for(
                 crate::interactive_mode::SCREENSHOT,
@@ -268,6 +355,11 @@ impl WindowKind {
                 crate::protect_circuit::FORM_RESOURCE,
                 crate::protect_circuit::ORIGINAL_FUNCTION,
             ),
+            Self::PythonShell => trace_for(
+                crate::python_shell::SCREENSHOT,
+                crate::python_shell::FORM_RESOURCE,
+                crate::python_shell::ORIGINAL_FUNCTION,
+            ),
             Self::SchematicReconciliation => trace_for(
                 crate::schematic_reconciliation::SCREENSHOT,
                 crate::schematic_reconciliation::FORM_RESOURCE,
@@ -277,6 +369,11 @@ impl WindowKind {
                 crate::schematic_symbol_editor::SCREENSHOT,
                 crate::schematic_symbol_editor::FORM_RESOURCE,
                 crate::schematic_symbol_editor::ORIGINAL_FUNCTION,
+            ),
+            Self::SelectTinaFolder => trace_for(
+                crate::select_tina_folder::SCREENSHOT,
+                crate::select_tina_folder::FORM_RESOURCE,
+                crate::select_tina_folder::ORIGINAL_FUNCTION,
             ),
             Self::SerialMonitor => trace_for(
                 crate::serial_monitor::SCREENSHOT,
@@ -293,6 +390,16 @@ impl WindowKind {
                 crate::spectrum_analyzer::FORM_RESOURCE,
                 crate::spectrum_analyzer::ORIGINAL_FUNCTION,
             ),
+            Self::SpiceCommandEditor => trace_for(
+                crate::spice_command_editor::SCREENSHOT,
+                crate::spice_command_editor::FORM_RESOURCE,
+                crate::spice_command_editor::ORIGINAL_FUNCTION,
+            ),
+            Self::SpiceExport => trace_for(
+                crate::spice_export::SCREENSHOT,
+                crate::spice_export::FORM_RESOURCE,
+                crate::spice_export::ORIGINAL_FUNCTION,
+            ),
             Self::SymbolTable => trace_for(
                 crate::symbol_table::SCREENSHOT,
                 crate::symbol_table::FORM_RESOURCE,
@@ -302,6 +409,11 @@ impl WindowKind {
                 crate::test_and_measurement_options::SCREENSHOT,
                 crate::test_and_measurement_options::FORM_RESOURCE,
                 crate::test_and_measurement_options::ORIGINAL_FUNCTION,
+            ),
+            Self::TransientAnalysis => trace_for(
+                crate::transient_analysis::SCREENSHOT,
+                crate::transient_analysis::FORM_RESOURCE,
+                crate::transient_analysis::ORIGINAL_FUNCTION,
             ),
             Self::XyRecorder => trace_for(
                 crate::xy_recorder::SCREENSHOT,
@@ -345,9 +457,53 @@ mod tests {
             .map(|kind| kind.title())
             .collect::<HashSet<_>>();
 
-        assert_eq!(WindowKind::ALL.len(), 36);
+        assert_eq!(WindowKind::ALL.len(), 50);
         assert_eq!(titles.len(), WindowKind::ALL.len());
         assert!(titles.iter().all(|title| !title.is_empty()));
+    }
+
+    #[test]
+    fn the_pcb_windows_name_the_form_each_is_actually_built_from() {
+        // These two were built from the wrong form once. The wizard has a form
+        // of its own; the PCB Design window is the one called `PCBWizard`; and
+        // no viewer form was recovered at all, so that window says so rather
+        // than borrowing the editor's.
+        let wizard = WindowKind::PcbComponentWizard
+            .trace()
+            .expect("the wizard has a trace");
+        let design = WindowKind::PcbDesign
+            .trace()
+            .expect("PCB Design has a trace");
+        let viewer = WindowKind::PcbViewer
+            .trace()
+            .expect("the viewer has a trace");
+
+        assert_eq!(wizard.form_resource, "frmPCBOnlyCompWizard");
+        assert_eq!(design.form_resource, "PCBWizard");
+        assert_ne!(wizard.form_resource, design.form_resource);
+        assert!(viewer.form_resource.starts_with("(no recovered form"));
+        assert_ne!(viewer.form_resource, "SchematicEditor");
+    }
+
+    #[test]
+    fn the_three_analysers_share_one_form_because_the_original_does() {
+        // Choosing any of the three on the running original opens
+        // TSignalAnalyzerWin; only the caption differs. Three windows naming
+        // one form is right here, not a copy-paste fault.
+        let signal = WindowKind::SignalAnalyzer.trace().expect("a trace");
+        let spectrum = WindowKind::SpectrumAnalyzer.trace().expect("a trace");
+        let network = WindowKind::NetworkAnalyzer.trace().expect("a trace");
+
+        assert_eq!(signal.form_resource, spectrum.form_resource);
+        assert_eq!(signal.form_resource, network.form_resource);
+        assert_ne!(
+            WindowKind::SignalAnalyzer.title(),
+            WindowKind::SpectrumAnalyzer.title()
+        );
+        assert_ne!(
+            WindowKind::SignalAnalyzer.title(),
+            WindowKind::NetworkAnalyzer.title()
+        );
     }
 
     #[test]

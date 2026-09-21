@@ -1,6 +1,6 @@
 ﻿# CancelBtn
 
-> Analysis status: Pending individual source review.
+> Analysis status: Recovered as far as the image allows; the custom handler is inside a class the protector kept.
 
 ## Control
 
@@ -11,65 +11,77 @@
 | Control class | TBitBtn |
 | Caption | Not present in the recovered resource. |
 | Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Kind | bkCancel |
 | Handler name | CancelBtnClick |
-| Handler address | Not present in the recovered resource. |
+| Handler address | Not in the image - see below. |
 | Graph node | `resource:dfm:RegisterDlg/RegisterDlg.CancelBtn` |
 | Handler node | `concept:dfm-handler:TRegisterDlg/CancelBtnClick` |
-| Graph layer | tina.exe |
+| Graph layer | UI |
 
 ## What happens when clicked
 
-Pending individual analysis. An agent must read the recovered handler source and its relevant callees before it replaces this text.
+`CancelBtn` sits on RegisterDlg - the licence dialog, captioned `Authorize`. It carries the registration fields, a menu for moving a licence between machines, and the contact details for doing it by hand.
+
+The resource gives this button `Kind = bkCancel`, and what that means is recovered code rather than a guess. While the form is built, TBitBtn.SetKind (0082bc30) reads the kind and gives the button the modal result it stands for - here `mrCancel` (2) - along with its default or cancel state. When the button is pressed, TCustomButton.Click (00687f30) copies that result into the form it sits on, and only afterwards does TControl.Click (00650840) dispatch `CancelBtnClick`. So the press sets the form's modal result and ends the dialog with it whatever the custom handler does.
+
+What `CancelBtnClick` itself does - whether it validates, what it writes, whether it can refuse to close - is not in the image.
 
 ## Click flow
 
 ```mermaid
-flowchart LR
-    control["CancelBtn"] -->|OnClick| handler["CancelBtnClick"]
-    handler -.-> unresolved["Recovered address not established"]
+flowchart TD
+    control["CancelBtn (TBitBtn)"]
+    handler["CancelBtnClick"]
+    setkind["TBitBtn.SetKind (0082bc30), while the form is built"]
+    setkind -->|"Kind = bkCancel"| held["the button holds mrCancel"]
+    control -->|"pressed"| press["TCustomButton.Click (00687f30)"]
+    held --> press
+    press --> onform["the form holds mrCancel"]
+    press --> dispatch["TControl.Click (00650840)"]
+    dispatch -->|"OnClick"| handler
+    onform --> close["the dialog ends with mrCancel"]
+    handler -.->|"no address, no body, no edges"| gone["unknown"]
 ```
 
-## Handler evidence
+## Inputs
 
-- Source: [DecompiledSources/Tina16/resources/dfm/ui-evidence.json](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json)
-- Recovered role: Not present in the recovered resource.
-- Current graph summary: Unresolved Delphi event handler TRegisterDlg.CancelBtnClick, referenced by 1 UI event.
-- Current graph behavior: Not present in the recovered resource.
-- Current graph evidence: Not present in the recovered resource.
-- Complexity: simple
-- Distinct outgoing calls: Not present in the recovered resource.
+- The button's `Kind`, which the resource records as `bkCancel`. That is an input to the VCL path above and is known.
+- Whatever `CancelBtnClick` reads from the form. Not known: the handler is not in the image.
 
-## Direct calls
+## Decisions
 
-- No direct call edge is present in the recovered graph.
+- None in the VCL path: a cancel button sets its result and the dialog ends. Whether `CancelBtnClick` decides anything first is not known.
 
-## Resource evidence
+## State changes
 
-- Kind: bkCancel
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
+- The form's modal result becomes `mrCancel`. That is recovered.
+- Any other change is not known. Nothing in the image says what `CancelBtnClick` writes.
 
-## Nearby label candidates
+## Outputs
 
-Nearby labels are layout candidates only. They are not proof of behavior.
+- The dialog ends with `mrCancel`, which is what its caller reads.
 
-- No same-parent label candidate is available.
+## Errors and no-op behaviour
 
-## Manual RTTI/VMT recovery result
+- Not known. Whether `CancelBtnClick` can fail, and what it does when there is nothing to do, is not in the image.
+- The Escape key reaches this button, since a cancel button is the form's cancel button by the same `Kind`.
 
-The successful manual recovery pattern for `TdlgFlowchartInterruptAVRext0` was applied to this form. That class has a second class-name copy for RTTI, a qword from VMT offset `-0x88` to its length-prefixed class name, and a published-method-table pointer at VMT offset `-0x98`.
+## Why the handler is not in the image
 
-`TRegisterDlg` has a different result. The mapped runtime image, rebuilt executable, and complete process dump each contain only one exact ASCII `TRegisterDlg` string. In the mapped image, this string is at `038f1e8d`, after the length byte `0x0c`, inside the embedded `TPF0` form stream. No qword in the mapped image points to `038f1e8c` or `038f1e8d`. Thus, this copy is not an address-backed VMT class-name target.
+`TRegisterDlg` is one of 26 form classes in this image whose event bindings resolve to nothing at all. Across the whole resource, 320 forms carry at least one binding: 293 resolve every one of theirs, 26 resolve none of theirs, and one resolves some. This form is in the second group - 14 bindings, 0 resolved.
 
-`KillLicMnuClick`, `ExportLicMnuClick`, `ImportLicMnuClick`, `InitTrMediaMnuClick`, `EmailLBClick`, and `WebLBClick` also occur only in this form stream. `CancelBtnClick` and `OKBtnClick` occur for other classes, but no recovered `TRegisterDlg` VMT can assign any common-name entry to this form. All 14 recovered events on the class remain addressless in the graph.
+The cause is known and is not a gap in the analysis. A Delphi event binding is followed by finding the class's published method table, which hangs off its VMT. For these 26 classes the image holds the class name only inside the DFM stream: there is no second instance of it to anchor a VMT, so no published method table can be found and no handler name can be turned into an address. The pages that would hold them are the ones the protector left encrypted. No further static work on this image will recover them.
 
-Therefore, the available artifacts supply no `TRegisterDlg` VMT base, no VMT `-0x98` published-method-table pointer, and no method record that maps this handler name to executable code. An exact handler address cannot be assigned without another module, symbol map, or runtime capture that contains the missing class RTTI.
+## Evidence
+
+- Resource: [DecompiledSources/Tina16/resources/dfm/ui-evidence.json](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json)
+- TBitBtn.SetKind, which maps the Kind the resource records onto the button's ModalResult and its default or cancel state: [DecompiledSources/Tina16/functions/000000000082BC30__FUN_0082bc30.c](../../../DecompiledSources/Tina16/functions/000000000082BC30__FUN_0082bc30.c)
+- TCustomButton.Click, which writes that ModalResult into the parent form before the click is dispatched: [DecompiledSources/Tina16/functions/0000000000687F30__FUN_00687f30.c](../../../DecompiledSources/Tina16/functions/0000000000687F30__FUN_00687f30.c)
+- TControl.Click, which dispatches the OnClick the resource names: [DecompiledSources/Tina16/functions/0000000000650840__FUN_00650840.c](../../../DecompiledSources/Tina16/functions/0000000000650840__FUN_00650840.c)
+- The other controls on this form that do something: `RegisterDlg` (Authorize), `OKBtn` (OK), `PageCtrl` (TPageControl), `OrderNumEB` (TEdit), `EmailLB` (register@designsoftware.com), `WebLB` (http://www.designsoftware.com), `OrderNoEB` (TEdit), `InitTrMediaMnu` (1. Initialize transfer media).
+- No extracted glyph is associated with this control.
 
 ## Analysis limits
 
-- Do not infer behavior from the control class, caption, hint, glyph, or nearby label alone.
-- The UI extractor recovered the `CancelBtnClick` name but no code address. Its concept node has one incoming UI trigger and no function source or call edge. All 14 recovered `TRegisterDlg` events have the same unresolved address gap. The `bkCancel` kind does not establish what the custom handler does. Keep this article pending until a handler body or another proven state path is recovered.
+- The caption, the hint, the control class and the labels near it are not evidence of behaviour and none of them was used as such here.
+- Recovering `CancelBtnClick` needs the class table, which needs the protected pages. Watching the running program would settle what the control does without settling how, and for this form not attempted: it belongs to licensing, and pressing its controls on a real installation could move or destroy a licence.

@@ -16,8 +16,12 @@ use crate::shared::window_shell;
 
 pub const TITLE: &str = "PCB Component Wizard";
 pub const SCREENSHOT: &str = "screenshots/PCB_Component_Wizard.png";
-pub const FORM_RESOURCE: &str = "PCBWizard";
-pub const ORIGINAL_FUNCTION: Option<&str> = Some("01bb2d60");
+// The wizard has a form of its own. `PCBWizard` is the PCB Design
+// window, which `pcb_design` is built from; choosing
+// `Tools > PCB Tools > PCB Component Wizard...` on the running original
+// opens `TfrmPCBOnlyCompWizard`, captioned `PCB Component Wizard`.
+pub const FORM_RESOURCE: &str = "frmPCBOnlyCompWizard";
+pub const ORIGINAL_FUNCTION: Option<&str> = Some("01bc2800");
 const STATUS: &str = "Prepare a PCB project";
 const TOOLBAR: &[&str] = &[];
 

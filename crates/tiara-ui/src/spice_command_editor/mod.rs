@@ -8,7 +8,9 @@ use std::fmt;
 use iced::widget::{button, column, container, pick_list, row, scrollable, text, text_input};
 use iced::{Alignment, Element, Length};
 
-pub const TITLE: &str = "SPICE Command Editor";
+pub const TITLE: &str = "Spice command editor";
+pub const SCREENSHOT: &str = "screenshots/Spice_Command_Editor.png";
+pub const ORIGINAL_FUNCTION: Option<&str> = Some("01472b90");
 pub const FORM_RESOURCE: &str = "SpiceCommandEditor";
 const COMMAND_SEPARATOR: &str = " ";
 const ANALYSIS_COMMANDS: [&str; 4] = [".ac", ".dc", ".noise", ".tran"];

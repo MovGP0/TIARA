@@ -1012,6 +1012,16 @@ impl Window {
         }
     }
 
+    /// Which of the three instruments this window is.
+    ///
+    /// The original builds one window class for all three and tells them apart
+    /// by the mode it creates the form with, so the caption and the traces
+    /// follow from this rather than from the class.
+    #[must_use]
+    pub const fn analyzer_kind(&self) -> AnalyzerKind {
+        self.analyzer_kind
+    }
+
     /// Ports Ghidra function `FUN_0138a340` at `0x0138A340`.
     #[must_use]
     pub fn create_form(analyzer_mode: u8) -> Self {

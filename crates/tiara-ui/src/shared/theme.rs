@@ -102,7 +102,7 @@ impl CustomThemeFile {
                 border: ThemeColor::rgb(0x3C, 0x3C, 0x3C),
                 panel_bg: ThemeColor::rgb(0x18, 0x18, 0x18),
                 toolbar_bg: ThemeColor::rgb(0x33, 0x33, 0x33),
-                statusbar_bg: ThemeColor::rgb(0x00, 0x7A, 0xCC),
+                statusbar_bg: ThemeColor::rgb(0x2B, 0x2B, 0x2B),
                 selection: ThemeColor::rgb(0x26, 0x4F, 0x78),
                 hover: ThemeColor::rgb(0x2A, 0x2D, 0x2E),
                 error: ThemeColor::rgb(0xF4, 0x44, 0x47),

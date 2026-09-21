@@ -14,7 +14,9 @@ use iced::widget::{button, checkbox, column, pick_list, radio, row, text};
 use iced::{Element, Task};
 use rfd::FileDialog;
 
-pub const TITLE: &str = "SPICE Export";
+pub const TITLE: &str = "Spice export option dialog";
+pub const SCREENSHOT: &str = "screenshots/Spice_Export_Options.png";
+pub const ORIGINAL_FUNCTION: Option<&str> = Some("01bae540");
 pub const FORM_RESOURCE: &str = "frmSpiceExportDlg";
 pub const LIBRARY_EVALUATION: &str = "iced supplies state, messages, and widgets; rfd supplies the native save dialog; std supplies paths and final file writes; a TIARA NetlistBackend adapter owns circuit validation and device conversion.";
 
@@ -359,6 +361,15 @@ pub struct Window {
     macro_mode: MacroMode,
     analyses: AnalysisSelection,
     export_intent: ExportIntent,
+}
+
+/// What the recovered export writes when nothing says otherwise.
+pub const DEFAULT_EXTENSION: &str = ".cir";
+
+impl Default for Window {
+    fn default() -> Self {
+        Self::new(PathBuf::new(), PathBuf::new(), DEFAULT_EXTENSION)
+    }
 }
 
 impl Window {

@@ -2,6 +2,9 @@ use iced::widget::{button, column, container, text};
 use iced::{Color, Element, Length, Task};
 
 pub const TITLE: &str = "About TINA";
+pub const SCREENSHOT: &str = "screenshots/About_TINA.png";
+pub const FORM_RESOURCE: &str = "AboutBox";
+pub const ORIGINAL_FUNCTION: Option<&str> = Some("016fcbd0");
 pub const VERSION_TEMPLATE: &str = "Version %s";
 pub const BUILD_DATE_TEMPLATE: &str = "Build date: %s";
 pub const LIBRARY_EVALUATION: &str = "iced supplies the About window state, messages, and widgets. Rust String and iterator operations supply deterministic formatting, line-ending normalization, and link detection without extra dependencies.";
@@ -116,6 +119,27 @@ pub struct Window {
     external_link_requests: Vec<String>,
     layout: AboutLayout,
     close_requested: bool,
+}
+
+/// The layout the resource declares, which is what the window opens with.
+pub const RESOURCE_LAYOUT: AboutLayout = AboutLayout {
+    window_height: 355,
+    main_panel_height: 305,
+    copyright_panel_height: 105,
+    ok_button_top: 320,
+    dedication_top: 43,
+    license_panel_height: 97,
+    license_panel_visibility: Visibility::Visible,
+    divider_visibility: Visibility::Visible,
+    dedication_visibility: Visibility::Visible,
+    copyright_panel_alignment: PanelAlignment::Bottom,
+    copyright_text_wrapping: TextWrapping::NoWrap,
+};
+
+impl Default for Window {
+    fn default() -> Self {
+        Self::new(RESOURCE_LAYOUT)
+    }
 }
 
 impl Window {
@@ -391,20 +415,8 @@ fn find_dedication_link(dedication: &str) -> Option<DedicationLink> {
 mod tests {
     use super::*;
 
-    fn resource_layout() -> AboutLayout {
-        AboutLayout {
-            window_height: 355,
-            main_panel_height: 305,
-            copyright_panel_height: 105,
-            ok_button_top: 320,
-            dedication_top: 43,
-            license_panel_height: 97,
-            license_panel_visibility: Visibility::Visible,
-            divider_visibility: Visibility::Visible,
-            dedication_visibility: Visibility::Visible,
-            copyright_panel_alignment: PanelAlignment::Bottom,
-            copyright_text_wrapping: TextWrapping::NoWrap,
-        }
+    const fn resource_layout() -> AboutLayout {
+        RESOURCE_LAYOUT
     }
 
     fn snapshot(dedication: &str) -> ActivationSnapshot {

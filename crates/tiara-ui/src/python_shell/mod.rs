@@ -22,6 +22,8 @@ use tiara_core::python_shell::{
 };
 
 pub const TITLE: &str = "Python Shell";
+pub const SCREENSHOT: &str = "screenshots/Python_Shell_Window.png";
+pub const ORIGINAL_FUNCTION: Option<&str> = Some("0146ff20");
 pub const FORM_RESOURCE: &str = "PyMainForm";
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -4,6 +4,10 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+pub const TITLE: &str = "Select Tina folder";
+pub const SCREENSHOT: &str = "screenshots/Select_Tina_Folder.png";
+pub const FORM_RESOURCE: &str = "frmSelectTinaFolder";
+pub const ORIGINAL_FUNCTION: Option<&str> = Some("01c44300");
 use iced::widget::{button, checkbox, column, row, text};
 use iced::{Element, Task};
 

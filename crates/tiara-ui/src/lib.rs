@@ -1,10 +1,13 @@
 pub mod about_box;
 pub mod ac_goal_functions;
+pub mod ac_multisine_analysis;
 pub mod ac_time_function_dialog;
 pub mod add_curve;
 pub mod advanced_analysis_options;
 pub mod analysis_mode_range;
+pub mod analysis_mode_selection;
 pub mod analysis_options;
+pub mod analysis_parameters;
 pub mod analysis_results;
 mod application;
 pub mod application_startup;
@@ -67,6 +70,7 @@ pub mod diagram_text_properties;
 pub mod diagram_vertical_scroll;
 pub mod digital_signal_generator;
 pub mod digital_timing_dialog;
+pub mod dock;
 mod drawing_preferences;
 pub mod edit_advice;
 pub mod editor_color_scheme;
@@ -86,6 +90,8 @@ pub mod find_component;
 pub mod flowchart_editor;
 pub mod footprint_name_editor;
 pub mod form_help;
+pub mod fourier_series;
+pub mod frequency_spectrum;
 mod function_generator;
 pub mod global_parameter_editor;
 pub mod harmonic_balance_dialog;
@@ -99,6 +105,7 @@ pub mod ic_wizard;
 pub mod import_dialog;
 pub mod import_from_picture;
 pub mod import_picture_ext;
+pub mod insert_text;
 pub mod interactive_mode;
 pub mod interpreter;
 pub mod list_circuits;
@@ -212,6 +219,7 @@ pub mod text_log_windows;
 pub mod tina_dde_manager;
 pub mod tlr_catalog_editor;
 pub mod tlr_real_editor;
+pub mod transient_analysis;
 pub mod transient_convergence_error;
 pub mod trial_notice_startup;
 pub mod tsc_preview_dialog;
@@ -237,7 +245,8 @@ pub fn run() -> iced::Result {
         TiaraApplication::update,
         TiaraApplication::view,
     )
+    .subscription(|_: &TiaraApplication| TiaraApplication::subscription())
     .theme(TiaraApplication::iced_theme)
     .window_size(Size::new(1_280.0, 800.0))
-    .run()
+    .run_with(|| (TiaraApplication::remembering(), iced::Task::none()))
 }

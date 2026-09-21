@@ -1,6 +1,6 @@
 ﻿# BitBtn1
 
-> Analysis status: Blocked by an unresolved event-handler address.
+> Analysis status: Recovered as far as the image allows; the custom handler is inside a class the protector kept.
 
 ## Control
 
@@ -11,72 +11,76 @@
 | Control class | TBitBtn |
 | Caption | Not present in the recovered resource. |
 | Hint | Not present in the recovered resource. |
-| Text | Not present in the recovered resource. |
+| Kind | bkOK |
 | Handler name | BitBtn1Click |
-| Handler address | Not present in the recovered resource. |
+| Handler address | Not in the image - see below. |
 | Graph node | `resource:dfm:SuspendAuthDlg/SuspendAuthDlg.BitBtn1` |
 | Handler node | `concept:dfm-handler:TSuspendAuthDlg/BitBtn1Click` |
-| Graph layer | tina.exe |
+| Graph layer | UI |
 
 ## What happens when clicked
 
-The recovered DFM stream binds `SuspendAuthDlg.BitBtn1.OnClick` to the method name `BitBtn1Click`. The checked-in extractor could not resolve a code address from this event binding or from a `TSuspendAuthDlg` published-method table. The graph therefore contains an unresolved handler concept, not a recovered function.
+`BitBtn1` sits on SuspendAuthDlg - the dialog that uploads a licence to the internet so it can be taken up on another machine.
 
-A manual scan of the rebuilt runtime and its mapped image did not recover the missing table. The only `TSuspendAuthDlg` text is the class-name ShortString in the `TPF0` form stream at mapped-image RVA `03535a50`. No 64-bit pointer in the mapped image refers to that ShortString, so there is no recovered standard VMT class-name link for this class. The complete minidump also contains no second `TSuspendAuthDlg` occurrence.
+The resource gives this button `Kind = bkOK`, and what that means is recovered code rather than a guess. While the form is built, TBitBtn.SetKind (0082bc30) reads the kind and gives the button the modal result it stands for - here `mrOK` (1) - along with its default or cancel state. When the button is pressed, TCustomButton.Click (00687f30) copies that result into the form it sits on, and only afterwards does TControl.Click (00650840) dispatch `BitBtn1Click`. So the press sets the form's modal result and ends the dialog with it whatever the custom handler does.
 
-The mapped image contains eight address-bearing Delphi published-method records named `BitBtn1Click`. Their code addresses are `00f0d410`, `00f91f40`, `00fd8430`, `010a05c0`, `010a0e20`, `01171a20`, `011acd00`, and `01b36460`. The read-only graph maps these records to `DFAxisCnf2Dlg`, `dlgFlowChartOptions`, `dlgFlowChartSetDevice`, `GetName`, `GetValue`, `Screen_form1`, `tables_form`, and `introduction_form`. None belongs to `SuspendAuthDlg`. A same-name record from another class is not evidence for this control.
-
-The form caption is `Upload license to the Internet`. The form also contains the `OrderNumEB` editor and a warning that the program cannot be used after pressing OK until the license is downloaded again. The button has the built-in kind `bkOK`. These resources establish the dialog context and the button's OK presentation. They do not prove that the handler reads the order number, validates it, contacts a server, uploads or removes a license, closes the dialog, or reports an error.
-
-No recovered source establishes the input checks, network endpoint, state change, success result, failure result, or no-op behavior of `BitBtn1Click`.
+What `BitBtn1Click` itself does - whether it validates, what it writes, whether it can refuse to close - is not in the image.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["BitBtn1<br/>DFM Kind = bkOK"] -->|"OnClick"| binding["Handler name: BitBtn1Click"]
-    binding --> address{"Code address resolved?"}
-    address -->|"No"| gap["No recovered function source or callee path"]
-    gap --> unknown["License and network effects remain unknown"]
+    control["BitBtn1 (TBitBtn)"]
+    handler["BitBtn1Click"]
+    setkind["TBitBtn.SetKind (0082bc30), while the form is built"]
+    setkind -->|"Kind = bkOK"| held["the button holds mrOK"]
+    control -->|"pressed"| press["TCustomButton.Click (00687f30)"]
+    held --> press
+    press --> onform["the form holds mrOK"]
+    press --> dispatch["TControl.Click (00650840)"]
+    dispatch -->|"OnClick"| handler
+    onform --> close["the dialog ends with mrOK"]
+    handler -.->|"no address, no body, no edges"| gone["unknown"]
 ```
 
-## Handler evidence
+## Inputs
 
-- Source: [DecompiledSources/Tina16/resources/dfm/ui-evidence.json](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json)
-- Extractor: [analysis/undelphi/TiaraUiEvidence.rs](../../../analysis/undelphi/TiaraUiEvidence.rs)
-- Recovered role: Unknown because no handler function was resolved.
-- Current graph summary: Unresolved Delphi event handler TSuspendAuthDlg.BitBtn1Click, referenced by 1 UI event.
-- Current graph behavior: Unknown.
-- Current graph evidence: The trigger edge preserves the DFM method name, but its handler address is null.
-- Complexity: simple
-- Distinct outgoing calls: None. The handler node is an unresolved concept.
+- The button's `Kind`, which the resource records as `bkOK`. That is an input to the VCL path above and is known.
+- Whatever `BitBtn1Click` reads from the form. Not known: the handler is not in the image.
 
-## Direct calls
+## Decisions
 
-- No direct call edge is present. A call tree cannot start without a recovered handler address.
+- The VCL takes no decision here beyond setting the modal result. Whether the dialog then actually closes rests with the form's `OnCloseQuery`, which this form binds and which is not in the image either - so a refusal to close is possible and cannot be ruled out.
 
-## Resource evidence
+## State changes
 
-- Kind: bkOK
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: None.
+- The form's modal result becomes `mrOK`. That is recovered.
+- Any other change is not known. Nothing in the image says what `BitBtn1Click` writes.
 
-## Nearby label candidates
+## Outputs
 
-Nearby labels are layout candidates only. They are not proof of behavior.
+- The dialog ends with `mrOK`, which is what its caller reads.
 
-- Rank 1: Note that, after pressing OK you will not be able to use the program until you download your license again! at distance 156.
-- Rank 2: Order number: at distance 218.
+## Errors and no-op behaviour
+
+- Not known. Whether `BitBtn1Click` can fail, and what it does when there is nothing to do, is not in the image.
+
+## Why the handler is not in the image
+
+`TSuspendAuthDlg` is one of 26 form classes in this image whose event bindings resolve to nothing at all. Across the whole resource, 320 forms carry at least one binding: 293 resolve every one of theirs, 26 resolve none of theirs, and one resolves some. This form is in the second group - 3 bindings, 0 resolved.
+
+The cause is known and is not a gap in the analysis. A Delphi event binding is followed by finding the class's published method table, which hangs off its VMT. For these 26 classes the image holds the class name only inside the DFM stream: there is no second instance of it to anchor a VMT, so no published method table can be found and no handler name can be turned into an address. The pages that would hold them are the ones the protector left encrypted. No further static work on this image will recover them.
+
+## Evidence
+
+- Resource: [DecompiledSources/Tina16/resources/dfm/ui-evidence.json](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json)
+- TBitBtn.SetKind, which maps the Kind the resource records onto the button's ModalResult and its default or cancel state: [DecompiledSources/Tina16/functions/000000000082BC30__FUN_0082bc30.c](../../../DecompiledSources/Tina16/functions/000000000082BC30__FUN_0082bc30.c)
+- TCustomButton.Click, which writes that ModalResult into the parent form before the click is dispatched: [DecompiledSources/Tina16/functions/0000000000687F30__FUN_00687f30.c](../../../DecompiledSources/Tina16/functions/0000000000687F30__FUN_00687f30.c)
+- TControl.Click, which dispatches the OnClick the resource names: [DecompiledSources/Tina16/functions/0000000000650840__FUN_00650840.c](../../../DecompiledSources/Tina16/functions/0000000000650840__FUN_00650840.c)
+- The other controls on this form that do something: `SuspendAuthDlg` (Upload license to the Internet).
+- No extracted glyph is associated with this control.
 
 ## Analysis limits
 
-- The DFM provides the `BitBtn1Click` name but no code address.
-- The rebuilt runtime SHA-256 value is `40A8F62B0B54C4C0609EF95129ACDEA1D25495E9C29B65716E2F8DFC521E2F26`. The manual scan found no standard VMT pointer to the only recovered `TSuspendAuthDlg` class-name ShortString.
-- All eight valid published-method records named `BitBtn1Click` belong to other recovered form classes. No unassigned address-bearing record remains.
-- RTTI and VMT resolution did not find a published method address for this event. The `FormCreate` and `FormHelp` events on the same `TSuspendAuthDlg` class also remain unresolved.
-- The graph has no function node, source file, outgoing call, extracted glyph, network endpoint, or function annotation for this binding.
-- A schema-complete function annotation cannot be created without an address and evidence-backed scalar fields.
-- A later recovery requires another runtime capture that contains the `TSuspendAuthDlg` VMT or a proven class-alias registration. It must then identify the handler address and inspect its source and relevant callees before it can describe application behavior.
+- The caption, the hint, the control class and the labels near it are not evidence of behaviour and none of them was used as such here.
+- Recovering `BitBtn1Click` needs the class table, which needs the protected pages. Watching the running program would settle what the control does without settling how, and for this form not attempted: it belongs to licensing, and pressing its controls on a real installation could move or destroy a licence.

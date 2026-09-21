@@ -1,101 +1,87 @@
-﻿# Cancel the transfer-media dialog
+﻿# CancelBtn
 
-> Analysis status: The standard VCL Cancel request is recovered. The custom handler and final close decision remain unresolved.
+> Analysis status: Recovered as far as the image allows; the custom handler is inside a class the protector kept.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
 | Form | TransferMediaFrm |
-| Form caption | Transfer license |
 | Component path | TransferMediaFrm.CancelBtn |
 | Control class | TBitBtn |
-| Button kind | bkCancel |
+| Caption | Not present in the recovered resource. |
+| Hint | Not present in the recovered resource. |
+| Kind | bkCancel |
 | Handler name | CancelBtnClick |
-| Handler address | Not recovered |
+| Handler address | Not in the image - see below. |
 | Graph node | `resource:dfm:TransferMediaFrm/TransferMediaFrm.CancelBtn` |
 | Handler node | `concept:dfm-handler:TTransferMediaFrm/CancelBtnClick` |
-| Graph layer | tina.exe |
+| Graph layer | UI |
 
 ## What happens when clicked
 
-The recovered VCL path proves that this button requests a Cancel result before it dispatches the custom click handler:
+`CancelBtn` sits on TransferMediaFrm - the dialog that moves a licence onto transfer media.
 
-1. The DFM loader applies `Kind = bkCancel` to the `TBitBtn`. The recovered kind-setting path supplies the standard Cancel presentation and modal result 2, the Delphi `mrCancel` value.
-2. `TBitBtn.Click` delegates `bkCancel` to the inherited button-click path. Only `bkHelp` and `bkClose` use special branches in this override.
-3. The inherited path finds the parent form. When it finds one, it copies modal result 2 to the form.
-4. The path then dispatches `TTransferMediaFrm.CancelBtnClick`.
+The resource gives this button `Kind = bkCancel`, and what that means is recovered code rather than a guess. While the form is built, TBitBtn.SetKind (0082bc30) reads the kind and gives the button the modal result it stands for - here `mrCancel` (2) - along with its default or cancel state. When the button is pressed, TCustomButton.Click (00687f30) copies that result into the form it sits on, and only afterwards does TControl.Click (00650840) dispatch `CancelBtnClick`. So the press sets the form's modal result and ends the dialog with it whatever the custom handler does.
 
-The modal-result write happens before the custom event dispatch. The custom handler can still change transfer state, change the modal result, release resources, or return without another state change. Its code address and body are not recovered, so none of these application actions can be assigned.
+What `CancelBtnClick` itself does - whether it validates, what it writes, whether it can refuse to close - is not in the image.
 
-The form also has an unresolved `FormCloseQuery` handler. It can allow or reject the close request. Therefore, this evidence proves a Cancel request. It does not prove that the dialog closes or that transfer state is rolled back.
-
-## Transfer-media context
-
-The form resource supplies these direct facts:
-
-- The form caption is **Transfer license**.
-- `DriveCB` is a `TDriveComboBox` under the label **Choose transfer media:**.
-- Three initially hidden status controls contain these instructions:
-  - **Insert a disk in your target (unauthorised) computer.**
-  - **Insert the disk into your source (authorized) computer.**
-  - **Reinsert your disk into your target computer.**
-- The sibling buttons use `bkOK` and `bkHelp`.
-- `FormShow`, `FormHelp`, `FormCloseQuery`, `OKBtnClick`, and `CancelBtnClick` all have null code addresses.
-
-These resources establish the displayed transfer-media workflow. They do not prove which instruction is active when Cancel is clicked, whether media I/O has started, or which state the custom handler changes.
-
-## Cancel flow
+## Click flow
 
 ```mermaid
 flowchart TD
-    resource["DFM loads CancelBtn with Kind = bkCancel"] --> kindSetter["TBitBtn.SetKind supplies modal result 2"]
-    click["User clicks Cancel"] --> bitClick["TBitBtn.Click"]
-    bitClick --> inherited["Delegate to inherited button Click"]
-    inherited --> parent{"Parent form found?"}
-    parent -->|Yes| request["Write mrCancel value 2 to form modal result"]
-    parent -->|No| noRequest["Skip modal-result write"]
-    request --> dispatch["Dispatch OnClick"]
-    noRequest --> dispatch
-    kindSetter -. "supplies result" .-> request
-    dispatch --> custom["TTransferMediaFrm.CancelBtnClick<br/>address not recovered"]
-    custom -. "unknown handler result" .-> closeQuery["TTransferMediaFrm.FormCloseQuery<br/>address not recovered"]
-    closeQuery -. "unknown decision" .-> outcome["Final close and transfer state are unknown"]
+    control["CancelBtn (TBitBtn)"]
+    handler["CancelBtnClick"]
+    setkind["TBitBtn.SetKind (0082bc30), while the form is built"]
+    setkind -->|"Kind = bkCancel"| held["the button holds mrCancel"]
+    control -->|"pressed"| press["TCustomButton.Click (00687f30)"]
+    held --> press
+    press --> onform["the form holds mrCancel"]
+    press --> dispatch["TControl.Click (00650840)"]
+    dispatch -->|"OnClick"| handler
+    onform --> close["the dialog ends with mrCancel"]
+    handler -.->|"no address, no body, no edges"| gone["unknown"]
 ```
 
-## Recovered evidence
+## Inputs
 
-- [TBitBtn kind setter](../../../DecompiledSources/Tina16/functions/000000000082BC30__FUN_0082bc30.c) selects the standard caption, modal result, glyph, and default or cancel state from the button kind.
-- [TBitBtn click override](../../../DecompiledSources/Tina16/functions/000000000082B0E0__FUN_0082b0e0.c) sends kinds other than `bkHelp` and `bkClose` to the inherited button path.
-- [Inherited button click](../../../DecompiledSources/Tina16/functions/0000000000687F30__FUN_00687f30.c) copies the button modal result to the parent form before it calls the common click dispatcher.
-- [Common click dispatcher](../../../DecompiledSources/Tina16/functions/0000000000650840__FUN_00650840.c) invokes the assigned event with the control as `Sender`, or uses the action-link fallback.
-- [Recovered DFM evidence](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json) supplies the form caption, drive selector, instructions, button kind, and unresolved event names.
-- [UI evidence extractor](../../../analysis/undelphi/TiaraUiEvidence.rs) is the checked-in address-resolution path used for these bindings.
-- The graph contains one `triggers` edge from `CancelBtn` to the unresolved handler concept. It contains no function node, source file, or outgoing call edge for `CancelBtnClick`.
-- The glyph manifest has no extracted image for this button. Its standard image is supplied at run time by `bkCancel`.
+- The button's `Kind`, which the resource records as `bkCancel`. That is an input to the VCL path above and is known.
+- Whatever `CancelBtnClick` reads from the form. Not known: the handler is not in the image.
 
-## Handler-address gap
+## Decisions
 
-Manual recovery confirms why the handler remains unresolved. The captured runtime has one ASCII `TTransferMediaFrm` occurrence. Its ShortString length byte is at virtual address `0393D7D4`, and its text starts at `0393D7D5`. It is in the serialized form payload beside this form's event names. A scan of all 1,513 captured memory ranges found no 64-bit pointer to that ShortString. Therefore, this occurrence does not identify a Delphi `vmtClassName` slot.
+- None in the VCL path: a cancel button sets its result and the dialog ends. Whether `CancelBtnClick` decides anything first is not known.
 
-A self-pointer scan of the complete mapped `tina.exe` image found 5,123 VMT candidates and parsed 4,910 class-name and published-method-table combinations. None has the class name `TTransferMediaFrm`. The executable image has 15 structurally valid published-method records named `CancelBtnClick`, but the parsed VMTs assign same-name records to other form classes. The handler name alone cannot select one of those code addresses.
+## State changes
 
-A later recovery needs a loaded module or another address-bearing record that identifies the `TTransferMediaFrm` VMT. That VMT must map its `CancelBtnClick` entry to executable code before a call tree or function annotation can be created.
+- The form's modal result becomes `mrCancel`. That is recovered.
+- Any other change is not known. Nothing in the image says what `CancelBtnClick` writes.
 
-## Inputs, outputs, and limits
+## Outputs
 
-| Question | Proven result |
-| --- | --- |
-| Immediate input | A click on the `bkCancel` button. |
-| Framework state change | The parent form receives modal result 2 when a parent form is found. |
-| Custom handler input | The VCL dispatcher passes `CancelBtn` as `Sender`. |
-| Transfer cleanup or rollback | Unknown because `CancelBtnClick` is unresolved. |
-| Media or license write | Unknown; no custom source or call path is recovered. |
-| Final close result | Unknown because the custom handler and `FormCloseQuery` are unresolved. |
-| Error behavior | No handler-level message, exception path, or recovery rule is recovered. |
+- The dialog ends with `mrCancel`, which is what its caller reads.
+
+## Errors and no-op behaviour
+
+- Not known. Whether `CancelBtnClick` can fail, and what it does when there is nothing to do, is not in the image.
+- The Escape key reaches this button, since a cancel button is the form's cancel button by the same `Kind`.
+
+## Why the handler is not in the image
+
+`TTransferMediaFrm` is one of 26 form classes in this image whose event bindings resolve to nothing at all. Across the whole resource, 320 forms carry at least one binding: 293 resolve every one of theirs, 26 resolve none of theirs, and one resolves some. This form is in the second group - 5 bindings, 0 resolved.
+
+The cause is known and is not a gap in the analysis. A Delphi event binding is followed by finding the class's published method table, which hangs off its VMT. For these 26 classes the image holds the class name only inside the DFM stream: there is no second instance of it to anchor a VMT, so no published method table can be found and no handler name can be turned into an address. The pages that would hold them are the ones the protector left encrypted. No further static work on this image will recover them.
+
+## Evidence
+
+- Resource: [DecompiledSources/Tina16/resources/dfm/ui-evidence.json](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json)
+- TBitBtn.SetKind, which maps the Kind the resource records onto the button's ModalResult and its default or cancel state: [DecompiledSources/Tina16/functions/000000000082BC30__FUN_0082bc30.c](../../../DecompiledSources/Tina16/functions/000000000082BC30__FUN_0082bc30.c)
+- TCustomButton.Click, which writes that ModalResult into the parent form before the click is dispatched: [DecompiledSources/Tina16/functions/0000000000687F30__FUN_00687f30.c](../../../DecompiledSources/Tina16/functions/0000000000687F30__FUN_00687f30.c)
+- TControl.Click, which dispatches the OnClick the resource names: [DecompiledSources/Tina16/functions/0000000000650840__FUN_00650840.c](../../../DecompiledSources/Tina16/functions/0000000000650840__FUN_00650840.c)
+- The other controls on this form that do something: `TransferMediaFrm` (Transfer license), `OKBtn` (bkOK).
+- No extracted glyph is associated with this control.
 
 ## Analysis limits
 
-- The standard `bkCancel` path proves a Cancel request only.
-- The transfer instructions and drive selector do not prove the custom handler's data flow.
-- No function annotation JSON is justified without a recovered function address.
+- The caption, the hint, the control class and the labels near it are not evidence of behaviour and none of them was used as such here.
+- Recovering `CancelBtnClick` needs the class table, which needs the protected pages. Watching the running program would settle what the control does without settling how, and for this form not attempted: it belongs to licensing, and pressing its controls on a real installation could move or destroy a licence.

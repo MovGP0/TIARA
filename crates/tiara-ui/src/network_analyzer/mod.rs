@@ -1,162 +1,69 @@
-use iced::widget::{column, container, pick_list, row, scrollable, text, text_input};
-use iced::{Alignment, Element, Length};
+//! The Network Analyzer, as `T&M > Network Analyzer` opens it.
+//!
+//! It is the signal analyser's window in its network mode, not a window of its
+//! own. Choosing any of the three analyser commands on the running original
+//! opens a `TSignalAnalyzerWin`; only the caption differs, and the mode the
+//! form is created with settles which instrument it is. So this module says
+//! which mode, and the window itself is [`crate::signal_analyzer`], which
+//! models all three.
 
-use crate::shared::window_shell;
+pub use crate::signal_analyzer::Message;
 
 pub const TITLE: &str = "Network Analyzer - Virtual";
 pub const SCREENSHOT: &str = "screenshots/Network_Analyzer_Window.png";
 pub const FORM_RESOURCE: &str = "SignalAnalyzerWin";
 pub const ORIGINAL_FUNCTION: Option<&str> = Some("0138a340");
-const STATUS: &str = "Frequency [Hz]";
-const TOOLBAR: &[&str] = &["Source...", "Display...", "Trigger...", "Start", "Stop"];
 
+/// The mode `FUN_0138a340` is called with for this instrument.
+///
+/// The recovered `from_mode` answers `Network` for anything that is neither 4
+/// nor 15; the original uses 5 here.
+pub const ANALYZER_MODE: u8 = 5;
+
+/// The window, which is the signal analyser's in this instrument's mode.
+///
+/// A type of its own rather than an alias, so that building one by default -
+/// which is how the shell builds every window it holds - creates it in the
+/// right mode instead of the signal analyser's.
 #[derive(Debug)]
-pub struct Window {
-    values: Vec<String>,
-    selections: Vec<Option<&'static str>>,
-}
+pub struct Window(crate::signal_analyzer::Window);
 
 impl Default for Window {
     fn default() -> Self {
-        Self {
-            values: vec![String::new(); 6],
-            selections: vec![None; 4],
-        }
+        Self(crate::signal_analyzer::Window::create_form(ANALYZER_MODE))
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum Message {
-    TextChanged(usize, String),
-    OptionSelected(usize, &'static str),
-    NoOp,
 }
 
 impl Window {
     pub fn update(&mut self, message: Message) {
-        match message {
-            Message::TextChanged(index, value) => {
-                if let Some(field) = self.values.get_mut(index) {
-                    *field = value;
-                }
-            }
-            Message::OptionSelected(index, value) => {
-                if let Some(selection) = self.selections.get_mut(index) {
-                    *selection = Some(value);
-                }
-            }
-            Message::NoOp => {}
-        }
+        self.0.update(message);
     }
-    /// Builds the controls associated with `SCREENSHOT` and `FORM_RESOURCE`.
-    /// `ORIGINAL_FUNCTION` preserves the recovered function connection when available.
-    #[allow(clippy::too_many_lines)]
-    pub fn view(&self) -> Element<'_, Message> {
-        let menu = window_shell::empty_menu();
-        let toolbar = window_shell::toolbar(TOOLBAR, Message::NoOp);
-        let body: Element<'_, Message> = row![
-            container(scrollable(
-                column![
-                    row![
-                        text("Gain (dB)").width(Length::FillPortion(2)),
-                        text_input("", &self.values[0])
-                            .on_input(move |value| Message::TextChanged(0, value))
-                            .width(Length::FillPortion(3)),
-                    ]
-                    .spacing(8)
-                    .align_y(Alignment::Center),
-                    row![
-                        text("High").width(Length::FillPortion(2)),
-                        text_input("", &self.values[1])
-                            .on_input(move |value| Message::TextChanged(1, value))
-                            .width(Length::FillPortion(3)),
-                    ]
-                    .spacing(8)
-                    .align_y(Alignment::Center),
-                    row![
-                        text("Low").width(Length::FillPortion(2)),
-                        text_input("", &self.values[2])
-                            .on_input(move |value| Message::TextChanged(2, value))
-                            .width(Length::FillPortion(3)),
-                    ]
-                    .spacing(8)
-                    .align_y(Alignment::Center),
-                    row![
-                        text("Amplitude range").width(Length::FillPortion(2)),
-                        pick_list(["Auto", "Low", "High"], self.selections[0], move |value| {
-                            Message::OptionSelected(0, value)
-                        })
-                        .width(Length::FillPortion(3)),
-                    ]
-                    .spacing(8)
-                    .align_y(Alignment::Center),
-                    row![
-                        text("Frequency start").width(Length::FillPortion(2)),
-                        text_input("", &self.values[3])
-                            .on_input(move |value| Message::TextChanged(3, value))
-                            .width(Length::FillPortion(3)),
-                    ]
-                    .spacing(8)
-                    .align_y(Alignment::Center),
-                    row![
-                        text("Frequency stop").width(Length::FillPortion(2)),
-                        text_input("", &self.values[4])
-                            .on_input(move |value| Message::TextChanged(4, value))
-                            .width(Length::FillPortion(3)),
-                    ]
-                    .spacing(8)
-                    .align_y(Alignment::Center),
-                    row![
-                        text("Resolution").width(Length::FillPortion(2)),
-                        pick_list(
-                            ["Default", "Option 1", "Option 2"],
-                            self.selections[1],
-                            move |value| { Message::OptionSelected(1, value) }
-                        )
-                        .width(Length::FillPortion(3)),
-                    ]
-                    .spacing(8)
-                    .align_y(Alignment::Center),
-                    row![
-                        text("Transmission coefficient").width(Length::FillPortion(2)),
-                        text_input("", &self.values[5])
-                            .on_input(move |value| Message::TextChanged(5, value))
-                            .width(Length::FillPortion(3)),
-                    ]
-                    .spacing(8)
-                    .align_y(Alignment::Center),
-                    row![
-                        text("Port1").width(Length::FillPortion(2)),
-                        pick_list(["Port 1", "Port 2"], self.selections[2], move |value| {
-                            Message::OptionSelected(2, value)
-                        })
-                        .width(Length::FillPortion(3)),
-                    ]
-                    .spacing(8)
-                    .align_y(Alignment::Center),
-                    row![
-                        text("Port2").width(Length::FillPortion(2)),
-                        pick_list(["Port 1", "Port 2"], self.selections[3], move |value| {
-                            Message::OptionSelected(3, value)
-                        })
-                        .width(Length::FillPortion(3)),
-                    ]
-                    .spacing(8)
-                    .align_y(Alignment::Center),
-                ]
-                .spacing(8)
-            ))
-            .padding(8)
-            .width(Length::Fixed(300.0))
-            .height(Length::Fill),
-            window_shell::surface("Network Analyzer - Virtual display surface"),
-        ]
-        .spacing(6)
-        .padding(6)
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .into();
 
-        window_shell::frame(TITLE, menu, toolbar, body, STATUS)
+    /// Builds the controls associated with `SCREENSHOT` and `FORM_RESOURCE`.
+    /// `ORIGINAL_FUNCTION` preserves the recovered function connection.
+    #[must_use]
+    pub fn view(&self) -> iced::Element<'_, Message> {
+        self.0.view()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ANALYZER_MODE, FORM_RESOURCE, TITLE, Window};
+    use crate::signal_analyzer::AnalyzerKind;
+
+    #[test]
+    fn the_window_opens_as_the_network_analyser() {
+        assert_eq!(
+            AnalyzerKind::from_mode(ANALYZER_MODE),
+            AnalyzerKind::Network
+        );
+        assert_eq!(Window::default().0.analyzer_kind(), AnalyzerKind::Network);
+    }
+
+    #[test]
+    fn it_is_the_signal_analyser_form_under_another_caption() {
+        assert_eq!(FORM_RESOURCE, crate::signal_analyzer::FORM_RESOURCE);
+        assert_ne!(TITLE, crate::signal_analyzer::TITLE);
     }
 }

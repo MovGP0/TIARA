@@ -1,6 +1,6 @@
-﻿# Clear
+﻿# sbClear
 
-> Analysis status: Blocked by an unresolved event-handler address.
+> Analysis status: Recovered as far as the image allows; the custom handler is inside a class the protector kept.
 
 ## Control
 
@@ -11,63 +11,60 @@
 | Control class | TSpeedButton |
 | Caption | Not present in the recovered resource. |
 | Hint | Clear |
-| Text | Not present in the recovered resource. |
+| Kind | Not present in the recovered resource. |
 | Handler name | sbClearClick |
-| Handler address | Not present in the recovered resource. |
+| Handler address | Not in the image - see below. |
 | Graph node | `resource:dfm:ThreadControl/ThreadControl.pcMain.tsManual.sbClear` |
 | Handler node | `concept:dfm-handler:TThreadControl/sbClearClick` |
-| Graph layer | tina.exe |
+| Graph layer | UI |
 
 ## What happens when clicked
 
-The recovered DFM stream binds this speed button to `TThreadControl.sbClearClick`. The extractor did not resolve a code address for the published method. The graph therefore contains an unresolved handler concept and no function source or call tree.
+`sbClear` sits on ThreadControl - a test harness: one tab runs whole suites - analog circuits, digital circuits, the design tool - and the other drives single runs by hand. No menu command in the Schematic Editor opens it.
 
-The `Clear` hint, the inspected two-state glyph, and the adjacent `lbManualList` list box provide a clearing context. They do not prove whether the handler removes the selected entry, clears the complete list, resets test output, stops active work, or asks for confirmation. Inputs, decisions, state changes, outputs, errors, and empty-list behavior remain unknown.
+The resource binds its `OnClick` to `sbClearClick`. That binding is all the image holds: `sbClearClick` has no address, no body and no call edges, so what the click does beyond reaching the handler is not recovered.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    control["Clear speed button"] -->|OnClick from DFM| binding["TThreadControl.sbClearClick"]
-    binding --> address{"Is a code address resolved?"}
-    address -->|No| gap["No recovered source or call tree"]
-    gap --> unknown["Clear target and empty-state behavior remain unknown"]
+    control["sbClear (TSpeedButton)"] -->|"OnClick"| handler["sbClearClick"]
+    handler -.->|"no address, no body, no edges"| gone["unknown"]
 ```
 
-## Handler evidence
+## Inputs
 
-- Source: [DecompiledSources/Tina16/resources/dfm/ui-evidence.json](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json)
-- Extractor: [analysis/undelphi/TiaraUiEvidence.rs](../../../analysis/undelphi/TiaraUiEvidence.rs)
-- Recovered role: Unknown because no handler function was resolved.
-- Current graph summary: Unresolved Delphi event handler TThreadControl.sbClearClick, referenced by 1 UI event.
-- Current graph behavior: Unknown.
-- Current graph evidence: The trigger edge preserves the DFM method name, but its handler address is null.
-- Complexity: simple
-- Distinct outgoing calls: None. The handler node is an unresolved concept.
+- Whatever `sbClearClick` reads from the form. Not known: the handler is not in the image.
 
-## Direct calls
+## Decisions
 
-- No direct call edge is present. A call tree cannot start without a recovered handler address.
+- Not known. No decision can be attributed to a handler that is not in the image, and the caption is not evidence of one.
 
-## Resource evidence
+## State changes
 
-- Kind: Not present in the recovered resource.
-- Modal result: Not present in the recovered resource.
-- Checked state: Not present in the recovered resource.
-- List items: Not present in the recovered resource.
-- Image reference: Not present in the recovered resource.
-- Extracted glyph: [`0490_ThreadControl_ThreadControl_pcMain_tsManual_sbClear_Glyph_Data.png`](../../../glyph/0490_ThreadControl_ThreadControl_pcMain_tsManual_sbClear_Glyph_Data.png)
+- Not not known. Nothing in the image says what `sbClearClick` writes.
 
-## Nearby label candidates
+## Outputs
 
-Nearby labels are layout candidates only. They are not proof of behavior.
+- Not known.
 
-- No same-parent label candidate is available.
+## Errors and no-op behaviour
+
+- Not known. Whether `sbClearClick` can fail, and what it does when there is nothing to do, is not in the image.
+
+## Why the handler is not in the image
+
+`TThreadControl` is one of 26 form classes in this image whose event bindings resolve to nothing at all. Across the whole resource, 320 forms carry at least one binding: 293 resolve every one of theirs, 26 resolve none of theirs, and one resolves some. This form is in the second group - 9 bindings, 0 resolved.
+
+The cause is known and is not a gap in the analysis. A Delphi event binding is followed by finding the class's published method table, which hangs off its VMT. For these 26 classes the image holds the class name only inside the DFM stream: there is no second instance of it to anchor a VMT, so no published method table can be found and no handler name can be turned into an address. The pages that would hold them are the ones the protector left encrypted. No further static work on this image will recover them.
+
+## Evidence
+
+- Resource: [DecompiledSources/Tina16/resources/dfm/ui-evidence.json](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json)
+- The other controls on this form that do something: `ThreadControl` (ThreadControl), `bDesignToolTest` (DesignTool Test), `bDigitalCircuitsTest` (Digital Circuits Test), `bAnalogCircuitsTest` (Analog Circuits Test), `btnTest1` (Test1), `btnTest2` (Test2), `sbAdd1` (TSpeedButton), `sbStart1` (TSpeedButton).
+- No extracted glyph is associated with this control.
 
 ## Analysis limits
 
-- The DFM provides the handler name but no code address. RTTI and VMT resolution did not produce a function in the recovered range.
-- A manual scan found no `TThreadControl` VMT or published-method record for this handler. The only additional `sbClearClick` record belongs to `TMCULogWindow`, so it cannot identify this control's handler.
-- A repository-wide search found no recovered `TThreadControl` or `sbClearClick` implementation outside the resource and glyph evidence.
-- The hint, glyph, and list-box context do not identify the clear scope or empty-state behavior.
-- A recovered address or an independent runtime trace is required before this control can receive a function annotation or a behavior claim.
+- The caption, the hint, the control class and the labels near it are not evidence of behaviour and none of them was used as such here.
+- Recovering `sbClearClick` needs the class table, which needs the protected pages. Watching the running program would settle what the control does without settling how, and for this form not attempted, the form not being reachable from the Schematic Editor menus.

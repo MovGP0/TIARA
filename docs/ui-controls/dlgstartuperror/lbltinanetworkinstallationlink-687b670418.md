@@ -1,108 +1,70 @@
 ﻿# http://www.tina.com/netwins.htm
 
-> Analysis status: The DFM control and VCL event boundary are recovered. The custom handler address and application behavior remain unresolved.
+> Analysis status: Recovered as far as the image allows; the custom handler is inside a class the protector kept.
 
 ## Control
 
 | Property | Recovered value |
 | --- | --- |
 | Form | dlgStartupError |
-| Form class | TdlgStartupError |
-| Form caption | Startup Error |
 | Component path | dlgStartupError.lblTinaNetworkInstallationLink |
 | Control class | TLabel |
 | Caption | http://www.tina.com/netwins.htm |
-| DFM visibility | false |
 | Hint | Not present in the recovered resource. |
+| Kind | Not present in the recovered resource. |
 | Handler name | lblNetworkInstallationLinkClick |
-| Handler address | Not recovered. |
+| Handler address | Not in the image - see below. |
 | Graph node | `resource:dfm:dlgStartupError/dlgStartupError.lblTinaNetworkInstallationLink` |
 | Handler node | `concept:dfm-handler:TdlgStartupError/lblNetworkInstallationLinkClick` |
-| Graph layer | tina.exe |
+| Graph layer | UI |
 
 ## What happens when clicked
 
-The recovered evidence proves this event boundary:
+`lblTinaNetworkInstallationLink` sits on dlgStartupError - the dialog shown when the program cannot start properly. It explains the fault and offers the two web pages that describe network installation.
 
-1. The DFM creates `lblTinaNetworkInstallationLink` as a label with the displayed URL as its caption.
-2. The DFM assigns `OnClick = lblNetworkInstallationLinkClick`.
-3. The common VCL click dispatcher can call the stored event with the clicked Tina label as `Sender`.
-4. The event binding has no code address. The graph therefore ends at an unresolved-handler concept.
-
-No address-backed source proves that the handler opens the displayed URL. It can read the `Sender`, compare the two labels, use a fixed target, copy text, show another dialog, return without an operation, or take another action. The URL caption and hand-link presentation are not sufficient implementation evidence.
+The resource binds its `OnClick` to `lblNetworkInstallationLinkClick`. That binding is all the image holds: `lblNetworkInstallationLinkClick` has no address, no body and no call edges, so what the click does beyond reaching the handler is not recovered.
 
 ## Click flow
 
 ```mermaid
 flowchart TD
-    clickTina["Click the Tina network-installation label"] --> vclDispatch["VCL dispatches the stored OnClick event"]
-    vclDispatch --> senderTina["Pass the Tina label as Sender"]
-    senderTina --> sharedBinding["TdlgStartupError.lblNetworkInstallationLinkClick"]
-    sharedBinding --> addressKnown{"Handler address recovered?"}
-    addressKnown -->|No| unresolvedHandler["Stop at the unresolved-handler concept"]
-    unresolvedHandler -.-> unknownEffect["Navigation, state changes, errors, and no-op behavior are unknown"]
+    control["http://www.tina.com/netwins.htm (TLabel)"] -->|"OnClick"| handler["lblNetworkInstallationLinkClick"]
+    handler -.->|"no address, no body, no edges"| gone["unknown"]
 ```
 
-## Shared-handler distinction
+## Inputs
 
-The Tina and Edison labels use the same method name, but they remain separate controls. VCL passes the clicked label as `Sender`. The missing handler can branch on that object, read its caption, or ignore it. The shared binding does not prove that both controls use the same URL or final action.
+- Whatever `lblNetworkInstallationLinkClick` reads from the form. Not known: the handler is not in the image.
 
-## Form and visibility evidence
+## Decisions
 
-The DFM stores all four message labels as hidden:
+- Not known. No decision can be attributed to a handler that is not in the image, and the caption is not evidence of one.
 
-- `lblNetworkVersion` explains that a network version is installed on a local drive and points the user to installation instructions.
-- `lblTinaNetworkInstallationLink` contains this Tina URL.
-- `lblEdisonNetworkInstallationLink` contains the Edison URL.
-- `lblSingleVersion` explains that a single-user version is installed on a network server.
+## State changes
 
-The form has an unresolved `FormShow` method. It can select which message and link become visible, but its code address and body are not recovered. Therefore the DFM proves the stored startup-error choices, not the runtime condition that displays this Tina label.
+- Not not known. Nothing in the image says what `lblNetworkInstallationLinkClick` writes.
 
-## Address-recovery evidence
+## Outputs
 
-### Graph and extractor
+- Not known.
 
-The graph contains one `triggers` edge from this control to `concept:dfm-handler:TdlgStartupError/lblNetworkInstallationLinkClick`. The concept has no function address, source path, incoming function-call edge, or outgoing call edge.
+## Errors and no-op behaviour
 
-[Recovered DFM evidence](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json) was produced by the checked-in [UI evidence extractor](../../../analysis/undelphi/TiaraUiEvidence.rs). The extractor first uses an address from the event binding. If that is absent, it asks the owning form class and published method table to resolve the method name. Both paths returned no address for this event.
+- Not known. Whether `lblNetworkInstallationLinkClick` can fail, and what it does when there is nothing to do, is not in the image.
 
-### Recovered binary artifacts
+## Why the handler is not in the image
 
-A focused read-only scan found one exact `TdlgStartupError` string and two exact `lblNetworkInstallationLinkClick` strings in each of these recovered artifacts:
+`TdlgStartupError` is one of 26 form classes in this image whose event bindings resolve to nothing at all. Across the whole resource, 320 forms carry at least one binding: 293 resolve every one of theirs, 26 resolve none of theirs, and one resolves some. This form is in the second group - 3 bindings, 0 resolved.
 
-- the rebuilt runtime executable;
-- the mapped runtime image;
-- the complete process dump.
+The cause is known and is not a gap in the analysis. A Delphi event binding is followed by finding the class's published method table, which hangs off its VMT. For these 26 classes the image holds the class name only inside the DFM stream: there is no second instance of it to anchor a VMT, so no published method table can be found and no handler name can be turned into an address. The pages that would hold them are the ones the protector left encrypted. No further static work on this image will recover them.
 
-In each artifact, the class name follows a `TPF0` marker and both handler-name occurrences are inside that same form stream. The two occurrences are the two DFM `OnClick` properties. No second class-name or method-name occurrence identifies a class VMT or published method table.
+## Evidence
 
-The raw pointer test used the successful `TdlgFlowchartInterruptAVRext0` pattern. That class has a qword from VMT offset `-0x88` to its length-prefixed class name and a published-method-table pointer at VMT offset `-0x98`. In the mapped image, the only `TdlgStartupError` copy is at `03843ea1`, five bytes after the `TPF0` marker at `03843e9c`. The two `lblNetworkInstallationLinkClick` copies are at `038441ea` and `0384432b` in the same stream. No qword points to the class string at `03843ea1` or its length byte at `03843ea0`. Thus, the available image supplies no class VMT base and no VMT `-0x98` table pointer from which to read an exact handler address.
-
-### Decompiled source
-
-The [function index](../../../DecompiledSources/Tina16/functions/function-index.csv) catalogs the recovered functions. Searches of the index and function sources found no exact `TdlgStartupError`, `dlgStartupError`, or `lblNetworkInstallationLinkClick` reference. Numeric-only code can still exist, but no recovered address binds such code to this control.
-
-The recovered [VCL click dispatcher](../../../DecompiledSources/Tina16/functions/0000000000650840__FUN_00650840.c) establishes the `Sender` dispatch boundary. It does not establish the missing application method.
-
-## Inputs, outputs, and limits
-
-| Question | Proven result |
-| --- | --- |
-| Immediate input | A click on `lblTinaNetworkInstallationLink`; VCL can pass that label as `Sender`. |
-| URL input | The label caption stores `http://www.tina.com/netwins.htm`. No recovered handler read of that caption is available. |
-| Browser or shell operation | Unknown. No open-URL, browser, or shell call is tied to this event. |
-| Form-state change | Unknown. The `FormShow` and click handlers are both unresolved. |
-| Repeated-click behavior | Unknown. No guard, state check, or no-op branch is recovered. |
-| Error behavior | Unknown. No exception, message, fallback, or return-value handling is tied to the event. |
-| Persistence | Unknown. No settings, file, registry, or database operation is tied to the event. |
-
-## Resource evidence
-
-- The control is a `TLabel` with the exact Tina URL as its caption and no hint, action, image reference, or extracted glyph.
-- Its DFM visibility is false.
-- Its nearest other labels are the Edison URL and the network-version explanation. They provide startup-error context only.
+- Resource: [DecompiledSources/Tina16/resources/dfm/ui-evidence.json](../../../DecompiledSources/Tina16/resources/dfm/ui-evidence.json)
+- The other controls on this form that do something: `dlgStartupError` (Startup Error), `lblEdisonNetworkInstallationLink` (http://www.edisonlab.com/enetwins.htm).
+- No extracted glyph is associated with this control.
 
 ## Analysis limits
 
-- No function annotation fragment is created because no application function address has a proven responsibility for this control.
-- Further analysis needs the module that owns the `TdlgStartupError` VMT and published method table, a symbol or map file, or a runtime trace that captures the resolved `OnClick` target.
+- The caption, the hint, the control class and the labels near it are not evidence of behaviour and none of them was used as such here.
+- Recovering `lblNetworkInstallationLinkClick` needs the class table, which needs the protected pages. Watching the running program would settle what the control does without settling how, and for this form not attempted, the form not being reachable from the Schematic Editor menus.

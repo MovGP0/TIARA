@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:dct="http://purl.org/dc/terms/" dct:license="https://github.com/MovGP0/TIARA/blob/main/LICENSE" width="32" height="32" viewBox="0 0 32 32" role="img">
+  <title>resistor networks</title>
+  <!-- Original TIARA artwork. SPDX-License-Identifier: MIT -->
+  <g fill="none" stroke="#000000" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 5H28M8 5V10M16 5V10M24 5V10M8 22V28M16 22V28M24 22V28" stroke-width="1.6"/><rect x="6" y="10" width="4" height="12" rx="0"/><rect x="14" y="10" width="4" height="12" rx="0"/><rect x="22" y="10" width="4" height="12" rx="0"/>
+  </g>
+</svg>

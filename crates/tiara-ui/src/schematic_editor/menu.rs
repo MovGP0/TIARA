@@ -1,5 +1,5 @@
 use iced::widget::{
-    button, column, container, horizontal_space, mouse_area, rich_text, row, span, text,
+    button, column, container, horizontal_space, mouse_area, rich_text, row, span, svg, text,
 };
 use iced::{Alignment, Element, Length, Theme};
 
@@ -9,21 +9,12 @@ use tiara_core::editor_settings::EditorSettings;
 
 use super::command_state::{self, EditorState};
 use super::menu_tree::{self, MenuEntry};
+use crate::shared::glyphs::Glyphs;
 use crate::shared::theme::ThemeTokens;
 
 /// How wide a dropdown is, and how wide one nested inside it is.
 const MENU_WIDTH: f32 = 320.0;
 const SUBMENU_WIDTH: f32 = 300.0;
-
-/// The mark drawn beside an entry that opens a submenu.
-///
-/// Drawn here rather than written into the caption. The shell this replaces put
-/// a literal `"  >"` in the caption text, which looked like a submenu and could
-/// never open one.
-const SUBMENU_MARK: &str = "\u{203A}";
-
-/// The mark drawn beside a command whose setting is on.
-const TICK: &str = "\u{2713}";
 
 /// The entries one dropdown actually draws, in order.
 ///
@@ -303,11 +294,6 @@ fn line(
     }
 
     let opens = opens_a_submenu(entry, state);
-    let trailing = if opens {
-        SUBMENU_MARK
-    } else {
-        entry.shortcut.unwrap_or("")
-    };
     let enabled = entry.enabled && command_state::is_enabled(entry.name, state);
 
     let caption_colour = if enabled {
@@ -315,23 +301,29 @@ fn line(
     } else {
         tokens.text_secondary.iced()
     };
+    let icons = Glyphs::shared();
     let tick = if settings.is_checked(entry.name) == Some(true) {
-        TICK
+        icons.named("check")
     } else {
-        " "
+        None
+    };
+    let trailing = if opens {
+        icon_cell(icons.named("chevron-right"), caption_colour)
+    } else {
+        text(entry.shortcut.unwrap_or(""))
+            .size(chrome::MENU_LABEL_SIZE)
+            .color(tokens.text_secondary.iced())
+            .into()
     };
 
     let label = row![
-        text(tick)
-            .size(chrome::MENU_LABEL_SIZE)
-            .color(caption_colour),
+        icon_cell(tick, caption_colour),
+        icon_cell(icons.get(entry.name), caption_colour),
         caption_of(entry, caption_colour),
         horizontal_space(),
-        text(trailing)
-            .size(chrome::MENU_LABEL_SIZE)
-            .color(tokens.text_secondary.iced()),
+        trailing,
     ]
-    .spacing(12)
+    .spacing(8)
     .align_y(Alignment::Center);
 
     let mut control = button(label)
@@ -353,6 +345,22 @@ fn line(
             Message::MenuEntryHovered
         })
         .into()
+}
+
+/// A fixed icon column keeps checked and unchecked captions aligned.
+fn icon_cell(handle: Option<svg::Handle>, colour: iced::Color) -> Element<'static, Message> {
+    handle.map_or_else(
+        || horizontal_space().width(18).into(),
+        |handle| {
+            svg(handle)
+                .width(18)
+                .height(18)
+                .style(move |_, _| svg::Style {
+                    color: Some(colour),
+                })
+                .into()
+        },
+    )
 }
 
 /// Whether this entry is one of the nine instruments the resource names twice.

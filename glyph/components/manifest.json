@@ -1,0 +1,1271 @@
+{
+  "license": "MIT",
+  "viewBox": "0 0 32 32",
+  "icons": [
+    {
+      "id": "7 segment display 4 digit",
+      "file": "7 segment display 4 digit.svg",
+      "family": "Displays"
+    },
+    {
+      "id": "Arduino",
+      "file": "Arduino.svg",
+      "family": "Boards"
+    },
+    {
+      "id": "Arduino Shields",
+      "file": "Arduino Shields.svg",
+      "family": "Boards"
+    },
+    {
+      "id": "EEPROM/ROM",
+      "file": "EEPROM%2FROM.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "HDL",
+      "file": "HDL.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "Modules-Breakouts",
+      "file": "Modules-Breakouts.svg",
+      "family": "Boards"
+    },
+    {
+      "id": "SPI",
+      "file": "SPI.svg",
+      "family": "Sources"
+    },
+    {
+      "id": "id_component_2_terminal_phototransistor",
+      "file": "id_component_2_terminal_phototransistor.svg",
+      "family": "Optoelectronics"
+    },
+    {
+      "id": "id_component_3-state_buffer",
+      "file": "id_component_3-state_buffer.svg",
+      "family": "Logic gates"
+    },
+    {
+      "id": "id_component_3_terminal_phototransistor",
+      "file": "id_component_3_terminal_phototransistor.svg",
+      "family": "Optoelectronics"
+    },
+    {
+      "id": "id_component_4_terminal_mosfets",
+      "file": "id_component_4_terminal_mosfets.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_555_timer",
+      "file": "id_component_555_timer.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_7_segment_display",
+      "file": "id_component_7_segment_display.svg",
+      "family": "Displays"
+    },
+    {
+      "id": "id_component_PIR_sensor",
+      "file": "id_component_PIR_sensor.svg",
+      "family": "Sensors"
+    },
+    {
+      "id": "id_component_a_matrix",
+      "file": "id_component_a_matrix.svg",
+      "family": "Networks"
+    },
+    {
+      "id": "id_component_ad_converters",
+      "file": "id_component_ad_converters.svg",
+      "family": "Converters"
+    },
+    {
+      "id": "id_component_add_sub_mult_div",
+      "file": "id_component_add_sub_mult_div.svg",
+      "family": "Analog control"
+    },
+    {
+      "id": "id_component_alternate_switch",
+      "file": "id_component_alternate_switch.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_amper_meter",
+      "file": "id_component_amper_meter.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_ampere_meter",
+      "file": "id_component_ampere_meter.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_analog_multiplexers",
+      "file": "id_component_analog_multiplexers.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_analog_switches",
+      "file": "id_component_analog_switches.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_and2_gate",
+      "file": "id_component_and2_gate.svg",
+      "family": "Logic gates"
+    },
+    {
+      "id": "id_component_and3_gate",
+      "file": "id_component_and3_gate.svg",
+      "family": "Logic gates"
+    },
+    {
+      "id": "id_component_and4_gate",
+      "file": "id_component_and4_gate.svg",
+      "family": "Logic gates"
+    },
+    {
+      "id": "id_component_arithmetic_circuits",
+      "file": "id_component_arithmetic_circuits.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_ascii_display",
+      "file": "id_component_ascii_display.svg",
+      "family": "Displays"
+    },
+    {
+      "id": "id_component_ascii_key",
+      "file": "id_component_ascii_key.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_average_meter",
+      "file": "id_component_average_meter.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_b_matrix",
+      "file": "id_component_b_matrix.svg",
+      "family": "Networks"
+    },
+    {
+      "id": "id_component_basic_ic_packages",
+      "file": "id_component_basic_ic_packages.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_battery",
+      "file": "id_component_battery.svg",
+      "family": "Sources"
+    },
+    {
+      "id": "id_component_bridge",
+      "file": "id_component_bridge.svg",
+      "family": "Networks"
+    },
+    {
+      "id": "id_component_bridge_rectifier",
+      "file": "id_component_bridge_rectifier.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_buffer",
+      "file": "id_component_buffer.svg",
+      "family": "Logic gates"
+    },
+    {
+      "id": "id_component_buffers",
+      "file": "id_component_buffers.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_buffers___drivers",
+      "file": "id_component_buffers___drivers.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_bulb",
+      "file": "id_component_bulb.svg",
+      "family": "Electromechanical"
+    },
+    {
+      "id": "id_component_bus_display",
+      "file": "id_component_bus_display.svg",
+      "family": "Displays"
+    },
+    {
+      "id": "id_component_calculator_keypad",
+      "file": "id_component_calculator_keypad.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_capacitor",
+      "file": "id_component_capacitor.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_changeover_push_button",
+      "file": "id_component_changeover_push_button.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_changeover_switch",
+      "file": "id_component_changeover_switch.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_charged_capacitor",
+      "file": "id_component_charged_capacitor.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_clock",
+      "file": "id_component_clock.svg",
+      "family": "Sources"
+    },
+    {
+      "id": "id_component_clock2",
+      "file": "id_component_clock2.svg",
+      "family": "Sources"
+    },
+    {
+      "id": "id_component_closed_push_button",
+      "file": "id_component_closed_push_button.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_comparators",
+      "file": "id_component_comparators.svg",
+      "family": "Analog ICs"
+    },
+    {
+      "id": "id_component_connectors",
+      "file": "id_component_connectors.svg",
+      "family": "Connections"
+    },
+    {
+      "id": "id_component_controlled_sources",
+      "file": "id_component_controlled_sources.svg",
+      "family": "Sources"
+    },
+    {
+      "id": "id_component_controllers",
+      "file": "id_component_controllers.svg",
+      "family": "Analog control"
+    },
+    {
+      "id": "id_component_counters",
+      "file": "id_component_counters.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_coupled_inductors",
+      "file": "id_component_coupled_inductors.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_current_arrow",
+      "file": "id_component_current_arrow.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_current_generator",
+      "file": "id_component_current_generator.svg",
+      "family": "Sources"
+    },
+    {
+      "id": "id_component_current_shunt_monitors",
+      "file": "id_component_current_shunt_monitors.svg",
+      "family": "Analog ICs"
+    },
+    {
+      "id": "id_component_current_source",
+      "file": "id_component_current_source.svg",
+      "family": "Sources"
+    },
+    {
+      "id": "id_component_d_flipflop",
+      "file": "id_component_d_flipflop.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_da_converters",
+      "file": "id_component_da_converters.svg",
+      "family": "Converters"
+    },
+    {
+      "id": "id_component_data_generator_4-bit",
+      "file": "id_component_data_generator_4-bit.svg",
+      "family": "Sources"
+    },
+    {
+      "id": "id_component_data_generator_8-bit",
+      "file": "id_component_data_generator_8-bit.svg",
+      "family": "Sources"
+    },
+    {
+      "id": "id_component_data_selectors_multiplexers",
+      "file": "id_component_data_selectors_multiplexers.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_dead_time_blocks",
+      "file": "id_component_dead_time_blocks.svg",
+      "family": "Analog control"
+    },
+    {
+      "id": "id_component_decoders_demultiplexers",
+      "file": "id_component_decoders_demultiplexers.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_delta",
+      "file": "id_component_delta.svg",
+      "family": "Networks"
+    },
+    {
+      "id": "id_component_diac",
+      "file": "id_component_diac.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_difference_amplifiers",
+      "file": "id_component_difference_amplifiers.svg",
+      "family": "Analog ICs"
+    },
+    {
+      "id": "id_component_digital_crystal",
+      "file": "id_component_digital_crystal.svg",
+      "family": "Sources"
+    },
+    {
+      "id": "id_component_digital_high_source",
+      "file": "id_component_digital_high_source.svg",
+      "family": "Sources"
+    },
+    {
+      "id": "id_component_digital_low_source",
+      "file": "id_component_digital_low_source.svg",
+      "family": "Sources"
+    },
+    {
+      "id": "id_component_digital_multivibrators",
+      "file": "id_component_digital_multivibrators.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_digital_voltage_source",
+      "file": "id_component_digital_voltage_source.svg",
+      "family": "Sources"
+    },
+    {
+      "id": "id_component_diode",
+      "file": "id_component_diode.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_diode_arrays",
+      "file": "id_component_diode_arrays.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_diodes",
+      "file": "id_component_diodes.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_dip_switches",
+      "file": "id_component_dip_switches.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_display_16-bit",
+      "file": "id_component_display_16-bit.svg",
+      "family": "Displays"
+    },
+    {
+      "id": "id_component_double_pole_changeover_relay",
+      "file": "id_component_double_pole_changeover_relay.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_double_pole_open_relay",
+      "file": "id_component_double_pole_open_relay.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_efficiency_meter",
+      "file": "id_component_efficiency_meter.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_energy_storing_inductor",
+      "file": "id_component_energy_storing_inductor.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_flip-flops___latches",
+      "file": "id_component_flip-flops___latches.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_fpga_pin",
+      "file": "id_component_fpga_pin.svg",
+      "family": "Connections"
+    },
+    {
+      "id": "id_component_frequency_meter",
+      "file": "id_component_frequency_meter.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_fully-differential_amplifiers",
+      "file": "id_component_fully-differential_amplifiers.svg",
+      "family": "Analog ICs"
+    },
+    {
+      "id": "id_component_fuse",
+      "file": "id_component_fuse.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_g_matrix",
+      "file": "id_component_g_matrix.svg",
+      "family": "Networks"
+    },
+    {
+      "id": "id_component_gaasfet",
+      "file": "id_component_gaasfet.svg",
+      "family": "RF"
+    },
+    {
+      "id": "id_component_ganfet",
+      "file": "id_component_ganfet.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_gates",
+      "file": "id_component_gates.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_glcd_display",
+      "file": "id_component_glcd_display.svg",
+      "family": "Displays"
+    },
+    {
+      "id": "id_component_ground",
+      "file": "id_component_ground.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_h_matrix",
+      "file": "id_component_h_matrix.svg",
+      "family": "Networks"
+    },
+    {
+      "id": "id_component_hex_display",
+      "file": "id_component_hex_display.svg",
+      "family": "Displays"
+    },
+    {
+      "id": "id_component_hex_key",
+      "file": "id_component_hex_key.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_hex_keypad",
+      "file": "id_component_hex_keypad.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_high-low_switch",
+      "file": "id_component_high-low_switch.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_ideal_adc",
+      "file": "id_component_ideal_adc.svg",
+      "family": "Converters"
+    },
+    {
+      "id": "id_component_ideal_dac",
+      "file": "id_component_ideal_dac.svg",
+      "family": "Converters"
+    },
+    {
+      "id": "id_component_ideal_op._amplifier",
+      "file": "id_component_ideal_op._amplifier.svg",
+      "family": "Analog ICs"
+    },
+    {
+      "id": "id_component_igbt",
+      "file": "id_component_igbt.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_impedance",
+      "file": "id_component_impedance.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_impedance_meter",
+      "file": "id_component_impedance_meter.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_inductive_coupling",
+      "file": "id_component_inductive_coupling.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_inductor",
+      "file": "id_component_inductor.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_inductors",
+      "file": "id_component_inductors.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_infrared_sensor",
+      "file": "id_component_infrared_sensor.svg",
+      "family": "Sensors"
+    },
+    {
+      "id": "id_component_initial_condition1",
+      "file": "id_component_initial_condition1.svg",
+      "family": "Simulation"
+    },
+    {
+      "id": "id_component_initial_condition2",
+      "file": "id_component_initial_condition2.svg",
+      "family": "Simulation"
+    },
+    {
+      "id": "id_component_instrumentation_amplifiers",
+      "file": "id_component_instrumentation_amplifiers.svg",
+      "family": "Analog ICs"
+    },
+    {
+      "id": "id_component_interface",
+      "file": "id_component_interface.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_inverter",
+      "file": "id_component_inverter.svg",
+      "family": "Logic gates"
+    },
+    {
+      "id": "id_component_jk_flipflop",
+      "file": "id_component_jk_flipflop.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_jk_flipflop_with_clear",
+      "file": "id_component_jk_flipflop_with_clear.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_jk_flipflop_with_preset",
+      "file": "id_component_jk_flipflop_with_preset.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_jumper",
+      "file": "id_component_jumper.svg",
+      "family": "Connections"
+    },
+    {
+      "id": "id_component_junction_fet_n-channel",
+      "file": "id_component_junction_fet_n-channel.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_junction_fet_p-channel",
+      "file": "id_component_junction_fet_p-channel.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_k_matrix",
+      "file": "id_component_k_matrix.svg",
+      "family": "Networks"
+    },
+    {
+      "id": "id_component_lag_blocks",
+      "file": "id_component_lag_blocks.svg",
+      "family": "Analog control"
+    },
+    {
+      "id": "id_component_latch",
+      "file": "id_component_latch.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_lcd_display",
+      "file": "id_component_lcd_display.svg",
+      "family": "Displays"
+    },
+    {
+      "id": "id_component_lcd_display2",
+      "file": "id_component_lcd_display2.svg",
+      "family": "Displays"
+    },
+    {
+      "id": "id_component_leds",
+      "file": "id_component_leds.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_light_sensor",
+      "file": "id_component_light_sensor.svg",
+      "family": "Sensors"
+    },
+    {
+      "id": "id_component_logic_comparators",
+      "file": "id_component_logic_comparators.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_logic_indicator",
+      "file": "id_component_logic_indicator.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_logic_indicator2",
+      "file": "id_component_logic_indicator2.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_lossy_capacitor",
+      "file": "id_component_lossy_capacitor.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_macro_pin",
+      "file": "id_component_macro_pin.svg",
+      "family": "Connections"
+    },
+    {
+      "id": "id_component_magnetic_core",
+      "file": "id_component_magnetic_core.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_mcu",
+      "file": "id_component_mcu.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_memory",
+      "file": "id_component_memory.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_microphones",
+      "file": "id_component_microphones.svg",
+      "family": "Electromechanical"
+    },
+    {
+      "id": "id_component_microstrip",
+      "file": "id_component_microstrip.svg",
+      "family": "RF"
+    },
+    {
+      "id": "id_component_microstrip_open_ended",
+      "file": "id_component_microstrip_open_ended.svg",
+      "family": "RF"
+    },
+    {
+      "id": "id_component_microstrip_shorted",
+      "file": "id_component_microstrip_shorted.svg",
+      "family": "RF"
+    },
+    {
+      "id": "id_component_motor",
+      "file": "id_component_motor.svg",
+      "family": "Electromechanical"
+    },
+    {
+      "id": "id_component_mounting_hole",
+      "file": "id_component_mounting_hole.svg",
+      "family": "Connections"
+    },
+    {
+      "id": "id_component_multimeters",
+      "file": "id_component_multimeters.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_n-channel_jfet",
+      "file": "id_component_n-channel_jfet.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_n-channel_mos",
+      "file": "id_component_n-channel_mos.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_nand2_gate",
+      "file": "id_component_nand2_gate.svg",
+      "family": "Logic gates"
+    },
+    {
+      "id": "id_component_nand3_gate",
+      "file": "id_component_nand3_gate.svg",
+      "family": "Logic gates"
+    },
+    {
+      "id": "id_component_nand4_gate",
+      "file": "id_component_nand4_gate.svg",
+      "family": "Logic gates"
+    },
+    {
+      "id": "id_component_network_analyser",
+      "file": "id_component_network_analyser.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_nmos_depletion-type",
+      "file": "id_component_nmos_depletion-type.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_nmos_enhancement-type",
+      "file": "id_component_nmos_enhancement-type.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_nodeset1",
+      "file": "id_component_nodeset1.svg",
+      "family": "Simulation"
+    },
+    {
+      "id": "id_component_nodeset2",
+      "file": "id_component_nodeset2.svg",
+      "family": "Simulation"
+    },
+    {
+      "id": "id_component_nonlinear_blocks",
+      "file": "id_component_nonlinear_blocks.svg",
+      "family": "Analog control"
+    },
+    {
+      "id": "id_component_nonlinear_inductors",
+      "file": "id_component_nonlinear_inductors.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_nor2_gate",
+      "file": "id_component_nor2_gate.svg",
+      "family": "Logic gates"
+    },
+    {
+      "id": "id_component_nor3_gate",
+      "file": "id_component_nor3_gate.svg",
+      "family": "Logic gates"
+    },
+    {
+      "id": "id_component_nor4_gate",
+      "file": "id_component_nor4_gate.svg",
+      "family": "Logic gates"
+    },
+    {
+      "id": "id_component_npn_bipolar_transistor",
+      "file": "id_component_npn_bipolar_transistor.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_npn_bipolar_transistors",
+      "file": "id_component_npn_bipolar_transistors.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_npn_darlington_transistors",
+      "file": "id_component_npn_darlington_transistors.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_npn_rf_bipolar_transistors",
+      "file": "id_component_npn_rf_bipolar_transistors.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_ohmmeter",
+      "file": "id_component_ohmmeter.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_open_circuit",
+      "file": "id_component_open_circuit.svg",
+      "family": "Connections"
+    },
+    {
+      "id": "id_component_open_push_button",
+      "file": "id_component_open_push_button.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_operational_amplifier",
+      "file": "id_component_operational_amplifier.svg",
+      "family": "Analog ICs"
+    },
+    {
+      "id": "id_component_operational_amplifiers",
+      "file": "id_component_operational_amplifiers.svg",
+      "family": "Analog ICs"
+    },
+    {
+      "id": "id_component_optocouplers",
+      "file": "id_component_optocouplers.svg",
+      "family": "Optoelectronics"
+    },
+    {
+      "id": "id_component_or2_gate",
+      "file": "id_component_or2_gate.svg",
+      "family": "Logic gates"
+    },
+    {
+      "id": "id_component_or3_gate",
+      "file": "id_component_or3_gate.svg",
+      "family": "Logic gates"
+    },
+    {
+      "id": "id_component_or4_gate",
+      "file": "id_component_or4_gate.svg",
+      "family": "Logic gates"
+    },
+    {
+      "id": "id_component_oscilloscopes",
+      "file": "id_component_oscilloscopes.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_other_components",
+      "file": "id_component_other_components.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_p-channel_jfet",
+      "file": "id_component_p-channel_jfet.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_p-channel_mos",
+      "file": "id_component_p-channel_mos.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_photodiode",
+      "file": "id_component_photodiode.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_photoresistor",
+      "file": "id_component_photoresistor.svg",
+      "family": "Optoelectronics"
+    },
+    {
+      "id": "id_component_pin_diode_1p",
+      "file": "id_component_pin_diode_1p.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_pin_diode_2p",
+      "file": "id_component_pin_diode_2p.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_pmos_depletion-type",
+      "file": "id_component_pmos_depletion-type.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_pmos_enhancement-type",
+      "file": "id_component_pmos_enhancement-type.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_pnp_bipolar_transistor",
+      "file": "id_component_pnp_bipolar_transistor.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_pnp_bipolar_transistors",
+      "file": "id_component_pnp_bipolar_transistors.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_pnp_darlington_transistors",
+      "file": "id_component_pnp_darlington_transistors.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_pnp_rf_bipolar_transistors",
+      "file": "id_component_pnp_rf_bipolar_transistors.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_potentiometer",
+      "file": "id_component_potentiometer.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_power_meter",
+      "file": "id_component_power_meter.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_pull_up_down_resistor",
+      "file": "id_component_pull_up_down_resistor.svg",
+      "family": "Logic"
+    },
+    {
+      "id": "id_component_pull_up_resistor",
+      "file": "id_component_pull_up_resistor.svg",
+      "family": "Logic"
+    },
+    {
+      "id": "id_component_pulse_source",
+      "file": "id_component_pulse_source.svg",
+      "family": "Sources"
+    },
+    {
+      "id": "id_component_pulse_source2",
+      "file": "id_component_pulse_source2.svg",
+      "family": "Sources"
+    },
+    {
+      "id": "id_component_quartz_crystal",
+      "file": "id_component_quartz_crystal.svg",
+      "family": "Sources"
+    },
+    {
+      "id": "id_component_real_ad_da",
+      "file": "id_component_real_ad_da.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_real_time_measurement_point",
+      "file": "id_component_real_time_measurement_point.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_registers",
+      "file": "id_component_registers.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_relay_coils",
+      "file": "id_component_relay_coils.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_relay_switches",
+      "file": "id_component_relay_switches.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_resistor",
+      "file": "id_component_resistor.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_resistor_networks",
+      "file": "id_component_resistor_networks.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_rf_capacitors",
+      "file": "id_component_rf_capacitors.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_rf_circulator",
+      "file": "id_component_rf_circulator.svg",
+      "family": "RF"
+    },
+    {
+      "id": "id_component_rf_direction_coupler",
+      "file": "id_component_rf_direction_coupler.svg",
+      "family": "RF"
+    },
+    {
+      "id": "id_component_rf_inductors_1p",
+      "file": "id_component_rf_inductors_1p.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_rf_inductors_2p",
+      "file": "id_component_rf_inductors_2p.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_rf_varicap_diode",
+      "file": "id_component_rf_varicap_diode.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_s_matrix",
+      "file": "id_component_s_matrix.svg",
+      "family": "Networks"
+    },
+    {
+      "id": "id_component_schmidt_inverter",
+      "file": "id_component_schmidt_inverter.svg",
+      "family": "Logic gates"
+    },
+    {
+      "id": "id_component_schottky_diode",
+      "file": "id_component_schottky_diode.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_second_order_lag_blocks",
+      "file": "id_component_second_order_lag_blocks.svg",
+      "family": "Analog control"
+    },
+    {
+      "id": "id_component_signal_analysers",
+      "file": "id_component_signal_analysers.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_single_pole_changeover_relay",
+      "file": "id_component_single_pole_changeover_relay.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_single_pole_closed_relay",
+      "file": "id_component_single_pole_closed_relay.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_single_pole_open_relay",
+      "file": "id_component_single_pole_open_relay.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_smps",
+      "file": "id_component_smps.svg",
+      "family": "Analog ICs"
+    },
+    {
+      "id": "id_component_solar_cell",
+      "file": "id_component_solar_cell.svg",
+      "family": "Optoelectronics"
+    },
+    {
+      "id": "id_component_speaker",
+      "file": "id_component_speaker.svg",
+      "family": "Electromechanical"
+    },
+    {
+      "id": "id_component_sqvco",
+      "file": "id_component_sqvco.svg",
+      "family": "Analog control"
+    },
+    {
+      "id": "id_component_sr_flipflop",
+      "file": "id_component_sr_flipflop.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_star",
+      "file": "id_component_star.svg",
+      "family": "Networks"
+    },
+    {
+      "id": "id_component_steady_state_sensor",
+      "file": "id_component_steady_state_sensor.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_steady_state_trigger",
+      "file": "id_component_steady_state_trigger.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_stepper_motor",
+      "file": "id_component_stepper_motor.svg",
+      "family": "Electromechanical"
+    },
+    {
+      "id": "id_component_svco",
+      "file": "id_component_svco.svg",
+      "family": "Analog control"
+    },
+    {
+      "id": "id_component_switch",
+      "file": "id_component_switch.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_switching_diode",
+      "file": "id_component_switching_diode.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_thermistors",
+      "file": "id_component_thermistors.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_thyristor",
+      "file": "id_component_thyristor.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_thyristors",
+      "file": "id_component_thyristors.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_time-controlled_alt_switch",
+      "file": "id_component_time-controlled_alt_switch.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_time-controlled_switch",
+      "file": "id_component_time-controlled_switch.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_timers",
+      "file": "id_component_timers.svg",
+      "family": "Logic ICs"
+    },
+    {
+      "id": "id_component_tinalabii",
+      "file": "id_component_tinalabii.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_traffic_light",
+      "file": "id_component_traffic_light.svg",
+      "family": "Displays"
+    },
+    {
+      "id": "id_component_transformers",
+      "file": "id_component_transformers.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_transmission_lines",
+      "file": "id_component_transmission_lines.svg",
+      "family": "RF"
+    },
+    {
+      "id": "id_component_triac",
+      "file": "id_component_triac.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_tvco",
+      "file": "id_component_tvco.svg",
+      "family": "Analog control"
+    },
+    {
+      "id": "id_component_ultrasonic_sensor",
+      "file": "id_component_ultrasonic_sensor.svg",
+      "family": "Sensors"
+    },
+    {
+      "id": "id_component_vacuum_tubes",
+      "file": "id_component_vacuum_tubes.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_variable_capacitor",
+      "file": "id_component_variable_capacitor.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_variable_gain_amplifiers",
+      "file": "id_component_variable_gain_amplifiers.svg",
+      "family": "Analog ICs"
+    },
+    {
+      "id": "id_component_variable_inductor",
+      "file": "id_component_variable_inductor.svg",
+      "family": "Passive"
+    },
+    {
+      "id": "id_component_varicap_diode",
+      "file": "id_component_varicap_diode.svg",
+      "family": "Semiconductors"
+    },
+    {
+      "id": "id_component_vco",
+      "file": "id_component_vco.svg",
+      "family": "Analog control"
+    },
+    {
+      "id": "id_component_volt_arrow",
+      "file": "id_component_volt_arrow.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_volt_meter",
+      "file": "id_component_volt_meter.svg",
+      "family": "Meters"
+    },
+    {
+      "id": "id_component_voltage-controlled_switch",
+      "file": "id_component_voltage-controlled_switch.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_voltage-controlled_switch_with_hysteresis",
+      "file": "id_component_voltage-controlled_switch_with_hysteresis.svg",
+      "family": "Switches"
+    },
+    {
+      "id": "id_component_voltage_generator",
+      "file": "id_component_voltage_generator.svg",
+      "family": "Sources"
+    },
+    {
+      "id": "id_component_voltage_pin",
+      "file": "id_component_voltage_pin.svg",
+      "family": "Connections"
+    },
+    {
+      "id": "id_component_voltage_references",
+      "file": "id_component_voltage_references.svg",
+      "family": "Analog ICs"
+    },
+    {
+      "id": "id_component_voltage_regulators",
+      "file": "id_component_voltage_regulators.svg",
+      "family": "Analog ICs"
+    },
+    {
+      "id": "id_component_voltage_source",
+      "file": "id_component_voltage_source.svg",
+      "family": "Sources"
+    },
+    {
+      "id": "id_component_xor_gate",
+      "file": "id_component_xor_gate.svg",
+      "family": "Logic gates"
+    },
+    {
+      "id": "id_component_z_matrix",
+      "file": "id_component_z_matrix.svg",
+      "family": "Networks"
+    },
+    {
+      "id": "id_component_zener_diode",
+      "file": "id_component_zener_diode.svg",
+      "family": "Semiconductors"
+    }
+  ]
+}

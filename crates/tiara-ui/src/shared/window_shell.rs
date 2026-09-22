@@ -1,4 +1,4 @@
-use iced::widget::{button, column, container, horizontal_rule, horizontal_space, row, text};
+use iced::widget::{button, column, container, horizontal_rule, horizontal_space, row, svg, text};
 use iced::{Alignment, Background, Border, Color, Element, Length, Theme};
 use iced_aw::menu::{Item, Menu, MenuBar};
 
@@ -46,7 +46,7 @@ where
                 .iter()
                 .map(|item| {
                     Item::new(
-                        button(text(*item))
+                        button(command_label(item))
                             .padding([4, 10])
                             .width(Length::Fill)
                             .on_press(message.clone()),
@@ -87,7 +87,7 @@ where
 {
     let buttons = labels.iter().map(|label| {
         Element::from(
-            button(text(*label))
+            button(command_label(label))
                 .padding([5, 8])
                 .on_press(message.clone()),
         )
@@ -111,6 +111,28 @@ where
         .height(Length::Fill)
         .style(work_area_style)
         .into()
+}
+
+fn command_label<'a, M: 'a>(label: &'a str) -> Element<'a, M> {
+    super::glyphs::Glyphs::shared()
+        .for_label(label)
+        .map_or_else(
+            || text(label).into(),
+            |handle| {
+                row![
+                    svg(handle)
+                        .width(18)
+                        .height(18)
+                        .style(|theme: &Theme, _| svg::Style {
+                            color: Some(theme.palette().text),
+                        }),
+                    text(label),
+                ]
+                .spacing(6)
+                .align_y(Alignment::Center)
+                .into()
+            },
+        )
 }
 
 fn status_bar<'a, M>(status: &'a str) -> Element<'a, M>

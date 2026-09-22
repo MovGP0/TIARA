@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:dct="http://purl.org/dc/terms/" dct:license="https://github.com/MovGP0/TIARA/blob/main/LICENSE" width="32" height="32" viewBox="0 0 32 32" role="img">
+  <title>pmos depletion-type</title>
+  <!-- Original TIARA artwork. SPDX-License-Identifier: MIT -->
+  <g fill="none" stroke="#000000" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 16H10M10 8V24M22 4V10H15M22 28V22H15" stroke-width="1.6"/><path d="M15 9V23" stroke-width="1.6"/><path d="M16 16H22M19 13L22 16 19 19" stroke-width="1.3"/><path d="M22 16V22" stroke-width="1.6"/>
+  </g>
+</svg>

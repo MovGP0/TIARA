@@ -14,8 +14,8 @@ pub mod toolbars;
 pub mod zoom;
 
 use iced::widget::{
-    Row, button, column, combo_box, container, horizontal_space, image, mouse_area, pick_list,
-    radio, row, scrollable, svg, text, text_input, tooltip,
+    Row, button, column, combo_box, container, horizontal_space, mouse_area, pick_list, radio, row,
+    scrollable, svg, text, text_input, tooltip,
 };
 use iced::{Alignment, Element, Length};
 
@@ -24,7 +24,6 @@ use std::path::PathBuf;
 use tiara_core::component_registry::{self, Registry};
 use tiara_core::device_catalogue::{self, Catalogue};
 use tiara_core::editor_settings::EditorSettings;
-use tiara_core::icon_strip::{self, Strip};
 use tiara_core::netlist;
 use tiara_core::page_setup::{Orientation, Paper};
 use tiara_core::schematic_document::{Arrange, NoteKind, Point, ShapeKind, Sheet, WireKind};
@@ -41,10 +40,7 @@ const BASIC_CATEGORY: usize = 0;
 /// The drop-down whose choice the bar keeps.
 const ZOOM_PICKER: &str = "ZoomFactor";
 
-/// The form the toolbar's glyphs were taken from.
-const GLYPH_FORM: &str = "SchematicEditor";
-
-/// How large a toolbar glyph is drawn, which is the size the original draws it.
+/// Logical size of a toolbar vector; the renderer scales it for the display.
 const GLYPH_SIZE: f32 = 16.0;
 
 /// How tall the page is drawn in the preview.
@@ -52,7 +48,7 @@ const PREVIEW_HEIGHT: f32 = 420.0;
 
 /// How big a button's picture is drawn.
 ///
-/// The strip's tiles are 29 across, which is what the original draws.
+/// Keep component button geometry stable when changing vector artwork.
 const ICON_SIDE: f32 = 29.0;
 
 /// How tall the palette strip is, so it does not change height per category.
@@ -224,12 +220,6 @@ pub struct SchematicEditor {
     /// edge - which is what the Component Explorer does when it reveals a
     /// part.
     view_origin: Point,
-    /// The pictures the component bar draws on its buttons.
-    ///
-    /// One strip of square tiles, and a button's own number says which tile
-    /// is its. Empty unless the editor was made with somewhere to read it
-    /// from.
-    icons: Option<Strip>,
     /// The component bar the installation ships: its tabs and their
     /// buttons.
     ///
@@ -352,7 +342,6 @@ impl Default for SchematicEditor {
             typed_value: String::new(),
             open_menu: menu::OpenMenu::shut(),
             view_origin: Point::new(0, 0),
-            icons: None,
             bar: Registry::default(),
             catalogue: Catalogue::default(),
             part_names: Vec::new(),
@@ -420,20 +409,9 @@ impl SchematicEditor {
             .collect()
     }
 
-    /// The picture one bar button draws, where the strip has one for it.
-    pub(crate) fn icon_of(&self, entry: &component_registry::Entry) -> Option<image::Handle> {
-        let strip = self.icons.as_ref()?;
-        let side = u32::try_from(strip.down()).ok()?;
-        let pixels = strip.picture(usize::try_from(entry.icon).ok()?)?;
-        Some(image::Handle::from_rgba(side, side, pixels))
-    }
-
     /// The port's own drawing of a bar button, where it has one.
     ///
-    /// Preferred over the tile from the installation: the tiles are the
-    /// original's artwork, four bits a pixel at 29 across, and they look
-    /// soft at any other size. See `TIARA-cty14gz`, which is the drawing of
-    /// them, and [`crate::shared::component_glyphs`], which finds them.
+    /// Uses editable SVG overrides or packaged SVG defaults, never a bitmap.
     pub(crate) fn drawing_of(
         entry: &component_registry::Entry,
     ) -> Option<iced::widget::svg::Handle> {
@@ -677,10 +655,6 @@ impl SchematicEditor {
             .as_ref()
             .map(|at| component_registry::file_in(at))
             .map_or_else(Registry::default, |file| Registry::read(&file));
-        self.icons = installation
-            .as_ref()
-            .map(|at| icon_strip::file_in(at))
-            .and_then(|file| Strip::read(&file).ok());
         self.symbols = tiara_core::symbol_library::SymbolLibrary::at(installation);
     }
 
@@ -1221,21 +1195,24 @@ impl SchematicEditor {
             return self.tool_picker(item, width);
         }
 
-        // The original draws a glyph on each of these. Where the glyph was
-        // recovered the button shows it; where it was not, the button keeps the
-        // hint as text, which is legible even if it is not what the original
-        // looks like.
-        let face: Element<'_, Message> = glyphs::Glyphs::shared()
-            .get(GLYPH_FORM, item.name)
-            .map_or_else(
-                || text(item.hint).size(12).into(),
-                |handle| {
-                    image(handle)
-                        .width(Length::Fixed(GLYPH_SIZE))
-                        .height(Length::Fixed(GLYPH_SIZE))
-                        .into()
-                },
-            );
+        // The same TIARA vector serves the toolbar and its menu command.
+        let colour = if item.enabled {
+            tokens.text
+        } else {
+            tokens.text_secondary
+        };
+        let face: Element<'_, Message> = glyphs::Glyphs::shared().get(item.name).map_or_else(
+            || text(item.hint).size(12).into(),
+            |handle| {
+                svg(handle)
+                    .width(Length::Fixed(GLYPH_SIZE))
+                    .height(Length::Fixed(GLYPH_SIZE))
+                    .style(move |_, _| svg::Style {
+                        color: Some(colour.iced()),
+                    })
+                    .into()
+            },
+        );
 
         let mut control = button(face)
             .padding([6, 8])
@@ -1244,17 +1221,14 @@ impl SchematicEditor {
             control = control.on_press(Message::ToolCommand(item.name));
         }
 
-        if item.description.is_empty() {
-            control.into()
+        let hint = if item.description.is_empty() {
+            item.hint
         } else {
-            tooltip(
-                control,
-                text(item.description).size(12),
-                tooltip::Position::Bottom,
-            )
+            item.description
+        };
+        tooltip(control, text(hint).size(12), tooltip::Position::Bottom)
             .style(move |iced_theme| chrome::toolbar_style(tokens, iced_theme))
             .into()
-        }
     }
 
     /// One of the bar's two drop-downs.
@@ -1320,21 +1294,18 @@ impl SchematicEditor {
             let mut strip = row![].spacing(3).align_y(Alignment::Center);
             for (at, entry) in buttons.iter().enumerate() {
                 let tab = self.selected_category;
-                // The installed bar draws a little picture on each button
-                // and says what it is when the pointer rests on it, so that
-                // is what this does. Three things are tried in turn: the
-                // port's own drawing of that button, the tile from the
-                // installation's strip, and the button's name - so a copy
-                // with no drawings still looks like the original's bar, and
-                // one with no installation still works.
+                // Unknown entries keep a readable name, never a bitmap.
                 let face: Element<'_, Message> = Self::drawing_of(entry).map_or_else(
-                    || {
-                        self.icon_of(entry).map_or_else(
-                            || text(entry.caption()).size(11).into(),
-                            |handle| image(handle).width(ICON_SIDE).height(ICON_SIDE).into(),
-                        )
+                    || text(entry.caption()).size(11).into(),
+                    |handle| {
+                        svg(handle)
+                            .width(ICON_SIDE)
+                            .height(ICON_SIDE)
+                            .style(move |_, _| svg::Style {
+                                color: Some(tokens.text.iced()),
+                            })
+                            .into()
                     },
-                    |handle| svg(handle).width(ICON_SIDE).height(ICON_SIDE).into(),
                 );
                 strip = strip.push(tooltip(
                     button(face)
@@ -1362,14 +1333,33 @@ impl SchematicEditor {
 
         let content: Element<'_, Message> = if self.selected_category == BASIC_CATEGORY {
             let symbols = COMPONENT_SYMBOLS.iter().map(move |symbol| {
-                Element::from(
-                    button(text(*symbol).size(14))
-                        .padding([8, 10])
+                let handle = inventory::component_icon_id(symbol)
+                    .and_then(|id| {
+                        crate::shared::component_glyphs::ComponentGlyphs::shared().get(id)
+                    })
+                    .or_else(|| glyphs::Glyphs::shared().named("component"));
+                let face: Element<'_, Message> = handle.map_or_else(
+                    || text(*symbol).size(14).into(),
+                    |handle| {
+                        svg(handle)
+                            .width(ICON_SIDE)
+                            .height(ICON_SIDE)
+                            .style(move |_, _| svg::Style {
+                                color: Some(tokens.text.iced()),
+                            })
+                            .into()
+                    },
+                );
+                Element::from(tooltip(
+                    button(face)
+                        .padding([4, 4])
                         .on_press(Message::PickUp(symbol))
                         .style(move |theme, status| {
                             chrome::toolbar_button_style(tokens, theme, status)
                         }),
-                )
+                    text(*symbol).size(12),
+                    tooltip::Position::Bottom,
+                ))
             });
 
             row(symbols).spacing(3).align_y(Alignment::Center).into()
@@ -3709,10 +3699,10 @@ mod tests {
     }
 
     #[test]
-    fn without_an_installation_a_bar_button_has_no_picture() {
+    fn without_an_installation_a_known_bar_button_has_a_vector() {
         let editor = with_a_bar();
         let entry = &editor.bar_buttons(0)[0];
-        assert!(editor.icon_of(entry).is_none());
+        assert!(SchematicEditor::drawing_of(entry).is_some());
         // And the tooltip is just what it is called.
         assert_eq!(editor.describe(entry), "Resistor");
     }
@@ -3754,7 +3744,7 @@ mod tests {
     }
 
     #[test]
-    fn an_installed_bar_draws_a_picture_on_its_buttons() {
+    fn an_installed_bar_draws_vectors_on_its_buttons() {
         // Read at run time and never committed.
         if help::install_folder().is_none() {
             return;
@@ -3770,7 +3760,9 @@ mod tests {
         let buttons = editor.bar_buttons(0);
         assert!(!buttons.is_empty());
         assert!(
-            buttons.iter().all(|entry| editor.icon_of(entry).is_some()),
+            buttons
+                .iter()
+                .all(|entry| SchematicEditor::drawing_of(entry).is_some()),
             "every button on the first tab should have its picture"
         );
 
@@ -4437,11 +4429,7 @@ mod tests {
     }
 
     #[test]
-    fn a_button_with_no_drawing_of_its_own_falls_back_to_the_installation() {
-        // The three ways a button can be faced, in order. With no drawings
-        // on this machine the first gives nothing, and the bar still works
-        // - which is the whole point of the fallback.
-        let editor = SchematicEditor::default();
+    fn an_unknown_component_uses_text_not_an_installation_bitmap() {
         let entry = tiara_core::component_registry::Entry {
             id: "id_component_nothing_like_this".to_owned(),
             code: 0,
@@ -4450,7 +4438,6 @@ mod tests {
             icon: 0,
             icon_path: String::new(),
         };
-        let _ = &editor;
         assert!(SchematicEditor::drawing_of(&entry).is_none());
     }
 

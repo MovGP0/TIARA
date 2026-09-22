@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:dct="http://purl.org/dc/terms/" dct:license="https://github.com/MovGP0/TIARA/blob/main/LICENSE" width="32" height="32" viewBox="0 0 32 32" role="img">
+  <title>s matrix</title>
+  <!-- Original TIARA artwork. SPDX-License-Identifier: MIT -->
+  <g fill="none" stroke="#000000" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="6" y="6" width="20" height="20" rx="1"/><path d="M2 10H6M2 22H6M26 10H30M26 22H30" stroke-width="1.6"/><g transform="translate(13 11.5) scale(1.5)"><g transform="translate(0 0)"><path d="M4 0H1L0 1V2L1 3H3L4 4V5L3 6H0" stroke-width="1.15"/></g></g>
+  </g>
+</svg>

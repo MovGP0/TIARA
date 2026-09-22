@@ -194,7 +194,8 @@ cargo test --workspace     # now the library-backed tests run too
 | --- | --- | --- |
 | every `.DDB` in the install folder (eleven here) | `ddb_device.rs`, `obss.rs`, `symbol_library.rs` | Device symbols and their pins. Find them by scanning for the extension — a hand-written list of them was wrong for a while. **Never commit or embed these.** |
 | `Spicelib/*.tld` | `device_catalogue.rs` | The part catalogue. |
-| `compregy.tcr`, `COMPREGE.BMP` | `component_registry.rs`, `icon_strip.rs` | The component bar and its icons. |
+| `compregy.tcr` | `component_registry.rs` | Component bar entries. Its icons use TIARA SVGs, not installation bitmaps. |
+| `COMPREGE.BMP` | `icon_strip.rs` | Analysis and format tests only; never a runtime UI icon. |
 | `TINA*.CHM` | `schematic_editor/help.rs` | Help, which is opened rather than replaced. |
 | `Spicelib/*.lib` | `model_library.rs` | SPICE models. **408 of the 674 are encrypted** (`<Encrypted Library>`); those are refused by name, never decrypted. |
 
@@ -203,7 +204,7 @@ Two more variables, both optional:
 | Variable | What it points at |
 | --- | --- |
 | `TIARA_SPICE` | An external simulator, or the folder holding one. Without it, only the built-in solvers run. |
-| `TIARA_GLYPHS` | The folder of button drawings. `glyph/components/<registry id>.svg` are the port's own; without them the installation's `COMPREGE.BMP` tiles are used, and without those the button shows its name. |
+| `TIARA_GLYPHS` | Optional parent folder of editable `commands/*.svg` and `components/<registry id>.svg`. Valid overrides replace packaged TIARA SVGs individually after restart. Unknown icons show text. Never use bitmap icons or SVG wrappers around bitmaps. |
 
 The same rule covers `DecompiledSources/`: Ghidra output is evidence, not
 source, and nothing under it is compiled into a crate.

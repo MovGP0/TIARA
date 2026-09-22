@@ -115,7 +115,20 @@ build can be shipped:
 | Python | `rspice-python` (`import rspice`) | For driving RSpice from Python, not for driving it from Rust. |
 
 The separate-process route is the one that keeps TIARA distributable, and
-it is what the backend trait is shaped for: a netlist in, results out.
+it is the one that is built: `crates/tiara-core/src/simulator.rs` writes a
+netlist, runs the program, and reads the table back.
+
+Point it at an engine with **`TIARA_SPICE`** — the program itself or the
+folder holding it. Without one it is also looked for on the path, beside the
+application, and in `external/RSpice/target/release/`. When none is found
+every command that has to be solved is greyed, the same way the measurement
+card and the installed help already work; `Analysis > ERC...` stays offered,
+because a rules check solves nothing.
+
+```bash
+cargo build --release --manifest-path external/RSpice/Cargo.toml -p rspice-cli
+export TIARA_SPICE=external/RSpice/target/release
+```
 
 ### PyO3
 
@@ -133,6 +146,38 @@ Note the name: only `rspice` is about circuits. `rsspice` and `rust-spice`
 are NASA's SPICE Toolkit for space geometry -- ephemerides and eclipses --
 and are a different thing entirely.
 
+### How a circuit gets solved
+
+The port solves circuits itself and hands anything beyond its own solvers to
+an external simulator. Both paths end in the same `simulator::Table`, so
+whatever draws one draws the other.
+
+```
+schematic_document   a sheet: parts, wires, and each part's pins
+  netlist            what is joined to what, per pin
+    spice_netlist    the circuit as SPICE reads it, plus a directive
+      dc_solver      .OP, .TRAN, .DC - and diodes and transistors by search
+      ac_solver      .AC, in complex admittances
+      symbolic       the transfer function in s, and its poles and zeros
+      algebra        the same with the component names left standing
+      optimizer      one part changed until a node reaches a goal
+      simulator      an external engine, for anything the above refuse
+  digital_solver     gates settled by logic rather than voltages
+  rules_check        the recovered ERC, fed from the netlist
+    run_results      a run's table turned into curves to draw
+```
+
+Two rules hold throughout and are worth keeping:
+
+- **Anything a solver cannot do is refused by name** — `D1 is beyond the
+  built-in solver`, `a transistor`, `TEMP` — and falls through to the
+  external simulator. A wrong answer is worse than no answer.
+- **Tests work the expected value out rather than recording it.** A divider
+  is checked against `1000 * 2.5 / (10 - 2.5)`, a transistor against
+  `FORWARD_GAIN` itself, a diode by substituting the answer back into the
+  diode equation. Numbers copied from a first run only prove the code still
+  does what it did.
+
 ### What is read from an installation and never committed
 
 The original's data files are proprietary and stay outside the repository
@@ -147,10 +192,18 @@ cargo test --workspace     # now the library-backed tests run too
 
 | File | Read by | For |
 | --- | --- | --- |
-| `DEVICES.DDB` and the seven named `.DDB` files | `ddb_device.rs`, `obss.rs` | Device symbols and their pins. **Never commit or embed these.** |
+| every `.DDB` in the install folder (eleven here) | `ddb_device.rs`, `obss.rs`, `symbol_library.rs` | Device symbols and their pins. Find them by scanning for the extension — a hand-written list of them was wrong for a while. **Never commit or embed these.** |
 | `Spicelib/*.tld` | `device_catalogue.rs` | The part catalogue. |
 | `compregy.tcr`, `COMPREGE.BMP` | `component_registry.rs`, `icon_strip.rs` | The component bar and its icons. |
 | `TINA*.CHM` | `schematic_editor/help.rs` | Help, which is opened rather than replaced. |
+| `Spicelib/*.lib` | `model_library.rs` | SPICE models. **408 of the 674 are encrypted** (`<Encrypted Library>`); those are refused by name, never decrypted. |
+
+Two more variables, both optional:
+
+| Variable | What it points at |
+| --- | --- |
+| `TIARA_SPICE` | An external simulator, or the folder holding one. Without it, only the built-in solvers run. |
+| `TIARA_GLYPHS` | The folder of button drawings. `glyph/components/<registry id>.svg` are the port's own; without them the installation's `COMPREGE.BMP` tiles are used, and without those the button shows its name. |
 
 The same rule covers `DecompiledSources/`: Ghidra output is evidence, not
 source, and nothing under it is compiled into a crate.

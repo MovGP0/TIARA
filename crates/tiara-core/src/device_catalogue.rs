@@ -121,6 +121,12 @@ pub struct Entry {
     pub category: String,
     /// Who makes it, from the first line of the file it was read from.
     pub maker: String,
+    /// The catalogue file it was read from.
+    ///
+    /// Its model sits in a library of the same stem beside it, which is how
+    /// [`crate::model_library`] finds one. Empty for an entry read from a
+    /// line rather than a file.
+    pub source: std::path::PathBuf,
 }
 
 impl Entry {
@@ -291,7 +297,13 @@ pub fn read_file(path: &Path) -> Vec<Entry> {
     let mut lines = text.lines();
     // The first line is the maker, and is not an entry.
     let maker = lines.next().unwrap_or_default().trim().to_owned();
-    lines.filter_map(|line| read_line(line, &maker)).collect()
+    lines
+        .filter_map(|line| read_line(line, &maker))
+        .map(|mut entry| {
+            path.clone_into(&mut entry.source);
+            entry
+        })
+        .collect()
 }
 
 /// One line, where it is an entry.
@@ -323,6 +335,7 @@ pub fn read_line(line: &str, maker: &str) -> Option<Entry> {
             symbol: Symbol::Unresolved,
             category,
             maker: maker.to_owned(),
+            source: std::path::PathBuf::new(),
         });
     }
 
@@ -338,6 +351,7 @@ pub fn read_line(line: &str, maker: &str) -> Option<Entry> {
         symbol,
         category,
         maker: maker.to_owned(),
+        source: std::path::PathBuf::new(),
     })
 }
 

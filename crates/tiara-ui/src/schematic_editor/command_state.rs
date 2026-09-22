@@ -32,6 +32,12 @@ pub struct EditorState {
     pub has_selection: bool,
     /// Whether a real-time measurement card was found.
     pub has_hardware: bool,
+    /// Whether a simulator was found to hand a netlist to.
+    ///
+    /// The port writes the netlist and does not solve it; a simulator is a
+    /// separate program. See `tiara_core::simulator`, which says why it is
+    /// a program rather than a crate linked in.
+    pub has_a_simulator: bool,
     /// Whether anything can be undone yet.
     pub can_undo: bool,
     /// Whether anything can be redone yet.
@@ -181,7 +187,12 @@ pub fn is_enabled(name: &str, state: EditorState) -> bool {
         "mnRedo" => state.can_redo,
 
         // Nothing to repeat until something has been run.
-        "RunLastSimulation" => state.has_run_a_simulation,
+        // Nothing to repeat and nothing to show until something has been
+        // run. The two tables show a run rather than starting one, so they
+        // need no simulator - only a result.
+        "RunLastSimulation" | "mnTableofACresults" | "mnTableofDCresults" => {
+            state.has_run_a_simulation
+        }
 
         // The macro commands need a macro open.
         "mnEditMacroProperties" | "mnExportMacro" => state.inside_macro,
@@ -190,6 +201,24 @@ pub fn is_enabled(name: &str, state: EditorState) -> bool {
         // installation has. See TIARA-c5alqhq for why the port opens the
         // installed one rather than shipping or replacing it.
         "Contents" | "HelpOnComponents" => state.has_help,
+
+        // Everything that has to be solved needs something to solve it.
+        // The port writes a netlist and hands it to a simulator, so these
+        // follow whether one was found - the same shape as the card and
+        // the installed help above.
+        //
+        // `mnERC` is deliberately not here: a rules check is about how a
+        // circuit is drawn rather than what it does, so it needs no
+        // solver. See tiara_core::rules_check.
+        "CalculateNodalVoltages"
+        | "CalculateOperatingPoint"
+        | "ACTransferCharateristic"
+        | "DCTransferCharacteristic"
+        | "TemperatureAnalysis1"
+        | "DigitalTransient"
+        | "mnDigitalStepbyStep"
+        | "SteadyStateSolver"
+        | "mnStartInteractive" => state.has_a_simulator,
 
         // The measurement card commands need a card. `mnOpenTestcard`
         // (01c77340) is a stub in this build like the imports below, but
@@ -364,6 +393,63 @@ mod tests {
             assert!(!is_enabled(name, empty()), "{name} should be greyed");
             assert!(is_enabled(name, selected()), "{name} should be offered");
         }
+    }
+
+    #[test]
+    fn everything_that_must_be_solved_waits_for_something_to_solve_it() {
+        let without = EditorState {
+            has_components: true,
+            ..EditorState::default()
+        };
+        let with = EditorState {
+            has_components: true,
+            has_a_simulator: true,
+            ..EditorState::default()
+        };
+
+        for name in [
+            "CalculateNodalVoltages",
+            "CalculateOperatingPoint",
+            "ACTransferCharateristic",
+            "DCTransferCharacteristic",
+            "TemperatureAnalysis1",
+            "DigitalTransient",
+            "mnDigitalStepbyStep",
+            "SteadyStateSolver",
+            "mnStartInteractive",
+        ] {
+            assert!(!is_enabled(name, without), "{name} needs a simulator");
+            assert!(is_enabled(name, with), "{name} should be offered");
+            // Still shown, as the original shows it: greyed is not hidden.
+            assert!(is_shown(name, true, without), "{name} should be shown");
+        }
+    }
+
+    #[test]
+    fn choosing_an_interactive_mode_needs_no_simulator_because_it_runs_nothing() {
+        // The five share one handler in the original, which stores the menu
+        // item's Tag; only `Start` begins anything.
+        let nothing = empty();
+        for name in [
+            "mnIntAC",
+            "mnIntDC",
+            "mnIntTransient",
+            "mnIntTransientSingleShot",
+            "mnIntDigital",
+        ] {
+            assert!(is_enabled(name, nothing), "{name} chooses a mode");
+        }
+        assert!(!is_enabled("mnStartInteractive", nothing));
+    }
+
+    #[test]
+    fn the_rules_check_needs_no_simulator_because_it_solves_nothing() {
+        // A rules check is about how a circuit is drawn, not what it does.
+        let drawn_only = EditorState {
+            has_components: true,
+            ..EditorState::default()
+        };
+        assert!(is_enabled("mnERC", drawn_only));
     }
 
     #[test]

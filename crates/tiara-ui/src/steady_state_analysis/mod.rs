@@ -660,6 +660,39 @@ impl SteadyStateAnalysisWindow {
         self.shared_settings
     }
 
+    /// What the dialog is asking a simulator for, where it can ask.
+    ///
+    /// Only one of the three methods is a SPICE directive. `Transient`
+    /// means running the circuit until it settles, which is `.TRAN` over
+    /// the searching time. `Finite-difference Jacobian` and `Broyden update
+    /// Jacobian` are the original's own periodic solvers and have no `.`
+    /// line to write, so nothing is asked for and [`Self::why_not`] says
+    /// which method it is. Guessing a directive for them would answer a
+    /// different question from the one asked.
+    #[must_use]
+    pub fn asking(&self) -> Option<tiara_core::spice_netlist::Analysis> {
+        if self.steady_state_method != SteadyStateMethod::Transient {
+            return None;
+        }
+        Some(tiara_core::spice_netlist::Analysis::Transient {
+            step: self.edits.final_check_time.clone(),
+            stop: self.edits.max_search_time.clone(),
+            start: self.edits.start_display.clone(),
+        })
+    }
+
+    /// Why nothing can be asked for, where nothing can.
+    #[must_use]
+    pub fn why_not(&self) -> Option<String> {
+        if self.steady_state_method == SteadyStateMethod::Transient {
+            return None;
+        }
+        Some(format!(
+            "{} is the original's own solver and has no netlist to ask for it",
+            self.steady_state_method
+        ))
+    }
+
     #[must_use]
     pub fn integration_orders(&self) -> &[u8] {
         &self.integration_orders

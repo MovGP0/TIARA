@@ -130,6 +130,8 @@ pub enum Message {
     Printing(PrintingMessage),
     /// The label in the properties panel was typed into.
     LabelChanged(String),
+    /// And the value beside it.
+    ValueChanged(String),
     /// The properties panel was answered.
     PropertiesClosed(bool),
     /// A tab along the bottom was pressed, so that circuit is worked on.
@@ -207,6 +209,8 @@ pub struct SchematicEditor {
     properties_of: Option<tiara_core::schematic_document::Id>,
     /// What is typed in that panel before it is applied.
     typed_label: String,
+    /// And what is typed for the part's value.
+    typed_value: String,
     /// Which menu is open, if one is.
     ///
     /// The editor keeps this rather than the menu widget, which is what
@@ -245,6 +249,27 @@ pub struct SchematicEditor {
     component_list: combo_box::State<String>,
     /// Which part was chosen from it, if any.
     chosen_component: Option<String>,
+    /// Where each symbol's pins are, read from the installation as they are
+    /// wanted. See [`tiara_core::symbol_library`].
+    symbols: tiara_core::symbol_library::SymbolLibrary,
+    /// The simulator to hand a netlist to, where this machine has one.
+    ///
+    /// Looked for once when the editor is made. See
+    /// [`tiara_core::simulator`], which says why it is a separate program.
+    simulator: Option<tiara_core::simulator::Simulator>,
+    /// What the last run measured, where one has been done.
+    ///
+    /// The result windows draw this; `Analysis > Run last simulation` and
+    /// the two table commands read it. See [`tiara_core::run_results`].
+    last_run: Option<Run>,
+    /// What the last run asked for, so it can be asked for again.
+    last_asked: Option<tiara_core::spice_netlist::Analysis>,
+    /// Which interactive analysis the `Interactive` menu is set to.
+    interactive_mode: InteractiveMode,
+    /// The part an optimization is trying to shape.
+    optimization_target: Option<tiara_core::schematic_document::Id>,
+    /// The part it may change to get there.
+    control_object: Option<tiara_core::schematic_document::Id>,
     /// The original's help file, where this machine has an installation.
     ///
     /// Looked for once when the editor is made rather than every time the
@@ -300,6 +325,8 @@ pub enum Tool {
     ZoomWindow,
     /// Clicking puts down a piece of writing of this kind.
     Write(NoteKind),
+    /// Clicking points an optimization at a part.
+    Pick(Picking),
 }
 
 impl Default for SchematicEditor {
@@ -322,6 +349,7 @@ impl Default for SchematicEditor {
             printing: printing::Printing::Nothing,
             properties_of: None,
             typed_label: String::new(),
+            typed_value: String::new(),
             open_menu: menu::OpenMenu::shut(),
             view_origin: Point::new(0, 0),
             icons: None,
@@ -330,6 +358,13 @@ impl Default for SchematicEditor {
             part_names: Vec::new(),
             component_list: combo_box::State::new(Vec::new()),
             chosen_component: None,
+            symbols: tiara_core::symbol_library::SymbolLibrary::at(None),
+            simulator: tiara_core::simulator::Simulator::found(),
+            last_run: None,
+            last_asked: None,
+            interactive_mode: InteractiveMode::default(),
+            optimization_target: None,
+            control_object: None,
             help_file: None,
             said: None,
             closing: false,
@@ -391,6 +426,18 @@ impl SchematicEditor {
         let side = u32::try_from(strip.down()).ok()?;
         let pixels = strip.picture(usize::try_from(entry.icon).ok()?)?;
         Some(image::Handle::from_rgba(side, side, pixels))
+    }
+
+    /// The port's own drawing of a bar button, where it has one.
+    ///
+    /// Preferred over the tile from the installation: the tiles are the
+    /// original's artwork, four bits a pixel at 29 across, and they look
+    /// soft at any other size. See `TIARA-cty14gz`, which is the drawing of
+    /// them, and [`crate::shared::component_glyphs`], which finds them.
+    pub(crate) fn drawing_of(
+        entry: &component_registry::Entry,
+    ) -> Option<iced::widget::svg::Handle> {
+        crate::shared::component_glyphs::ComponentGlyphs::shared().get(&entry.id)
     }
 
     /// What the pointer resting on a bar button says.
@@ -634,6 +681,7 @@ impl SchematicEditor {
             .as_ref()
             .map(|at| icon_strip::file_in(at))
             .and_then(|file| Strip::read(&file).ok());
+        self.symbols = tiara_core::symbol_library::SymbolLibrary::at(installation);
     }
 
     /// One of the three commands that make the library current again.
@@ -644,8 +692,12 @@ impl SchematicEditor {
     fn reload_the_library(&mut self) {
         self.read_the_library();
         self.said = Some(if self.catalogue.is_loaded() || self.bar.is_loaded() {
+            // How many buttons the port draws itself is worth saying: the
+            // drawings arrive a few at a time, so someone adding them can
+            // see them being found. See `TIARA-cty14gz`.
+            let drawn = crate::shared::component_glyphs::ComponentGlyphs::shared().count();
             format!(
-                "{} parts in {} categories, and {} on the component bar",
+                "{} parts in {} categories, and {} on the component bar - {drawn} drawn here",
                 self.part_names.len(),
                 self.catalogue.categories().len(),
                 self.bar.buttons()
@@ -701,6 +753,7 @@ impl SchematicEditor {
             inside_macro: sheet.inside_macro(),
             has_selection: document.has_selection(),
             has_hardware: self.state.has_hardware,
+            has_a_simulator: self.simulator.is_some(),
             can_undo: sheet.can_undo(),
             can_redo: sheet.can_redo(),
             clipboard_has_content: sheet.clipboard_has_content(),
@@ -750,13 +803,17 @@ impl SchematicEditor {
             }
             Message::Printing(message) => self.update_printing(message),
             Message::LabelChanged(typed) => self.typed_label = typed,
+            Message::ValueChanged(typed) => self.typed_value = typed,
             Message::PropertiesClosed(apply) => {
                 if apply && let Some(id) = self.properties_of {
                     let label = self.typed_label.clone();
+                    let value = self.typed_value.clone();
                     self.sheet_mut().rename(id, label);
+                    self.sheet_mut().set_value(id, value);
                 }
                 self.properties_of = None;
                 self.typed_label.clear();
+                self.typed_value.clear();
             }
             Message::MenuRootPressed(at) => {
                 // Pressing the root that is already open shuts it, which is
@@ -839,8 +896,12 @@ impl SchematicEditor {
                     self.sheet_mut().clear_selection();
                 }
             }
+            Tool::Pick(which) => {
+                self.point_at(which, at);
+                self.take_up(Tool::Select);
+            }
             Tool::Place(kind) => {
-                self.sheet_mut().place(kind, at);
+                self.place_a_part(kind, at);
                 // The original keeps the part in hand so a row of them can be
                 // put down one after another, unless Auto Repeat is off.
                 if !self.auto_repeat {
@@ -849,7 +910,7 @@ impl SchematicEditor {
             }
             Tool::PlaceFromBar(tab, button) => {
                 if let Some(name) = self.bar_part(tab, button) {
-                    self.sheet_mut().place(name, at);
+                    self.place_a_part(&name, at);
                 }
                 if !self.auto_repeat {
                     self.take_up(Tool::Select);
@@ -857,7 +918,7 @@ impl SchematicEditor {
             }
             Tool::PlacePart(which) => {
                 if let Some(name) = self.part_names.get(which).cloned() {
-                    self.sheet_mut().place(name, at);
+                    self.place_a_part(&name, at);
                 }
                 if !self.auto_repeat {
                     self.take_up(Tool::Select);
@@ -1009,6 +1070,15 @@ impl SchematicEditor {
             "PrintSetup" => self.show_printing(printing::Printing::PageSetup),
             "mnPrintPreview" => self.show_printing(printing::Printing::Preview),
             "Print" => self.print_click(),
+            "mnERC" => self.run_the_rules_check(),
+            "RunLastSimulation" => self.run_the_last_again(),
+
+            command if self.worked_it_out_as_algebra(command) => {}
+            command if self.chose_something(command) => {}
+            "mnTableofACresults" | "mnTableofDCresults" => self.show_the_table(),
+            "CalculateNodalVoltages" | "CalculateOperatingPoint" => {
+                self.run_an_analysis(tiara_core::spice_netlist::Analysis::OperatingPoint);
+            }
             "mnEditAttributes" => self.edit_properties(),
             "mnExportMacro" => self.export_macro_click(),
             "mnImportBan" => self.back_annotate_click(),
@@ -1252,11 +1322,19 @@ impl SchematicEditor {
                 let tab = self.selected_category;
                 // The installed bar draws a little picture on each button
                 // and says what it is when the pointer rests on it, so that
-                // is what this does. A button whose picture is not in the
-                // strip falls back to its name, which is better than a gap.
-                let face: Element<'_, Message> = self.icon_of(entry).map_or_else(
-                    || text(entry.caption()).size(11).into(),
-                    |handle| image(handle).width(ICON_SIDE).height(ICON_SIDE).into(),
+                // is what this does. Three things are tried in turn: the
+                // port's own drawing of that button, the tile from the
+                // installation's strip, and the button's name - so a copy
+                // with no drawings still looks like the original's bar, and
+                // one with no installation still works.
+                let face: Element<'_, Message> = Self::drawing_of(entry).map_or_else(
+                    || {
+                        self.icon_of(entry).map_or_else(
+                            || text(entry.caption()).size(11).into(),
+                            |handle| image(handle).width(ICON_SIDE).height(ICON_SIDE).into(),
+                        )
+                    },
+                    |handle| svg(handle).width(ICON_SIDE).height(ICON_SIDE).into(),
                 );
                 strip = strip.push(tooltip(
                     button(face)
@@ -1404,6 +1482,618 @@ impl SchematicEditor {
         drawn
     }
 
+    /// The sheet written out as a netlist, for the SPICE editor to show.
+    ///
+    /// It asks for nothing: this is a description of the circuit, not a
+    /// request to work anything out.
+    #[must_use]
+    pub fn netlist_of_the_sheet(&self) -> String {
+        let title = self
+            .workspace
+            .active()
+            .path()
+            .and_then(|path| path.file_stem().map(|it| it.to_string_lossy().to_string()))
+            .unwrap_or_else(|| "Circuit".to_owned());
+        tiara_core::spice_netlist::of(self.sheet().document(), &title).to_text()
+    }
+
+    /// The parts on the sheet whose model cannot be had.
+    ///
+    /// Most of the installed libraries are the makers' own and encrypted,
+    /// so a circuit can be drawn correctly and still be impossible to
+    /// simulate from this installation. Saying so before a run is better
+    /// than handing a simulator a netlist it will reject. See
+    /// [`tiara_core::model_library`].
+    #[must_use]
+    pub fn models_wanting(&self) -> Vec<String> {
+        let Some(installation) = help::install_folder() else {
+            return Vec::new();
+        };
+        let folder = tiara_core::device_catalogue::folder_in(&installation);
+
+        let mut said = Vec::new();
+        let mut seen: Vec<&str> = Vec::new();
+        for part in self.sheet().document().parts() {
+            if part.hidden || tiara_core::spice_netlist::is_ground(&part.kind) {
+                continue;
+            }
+            if seen.contains(&part.kind.as_str()) {
+                continue;
+            }
+            seen.push(&part.kind);
+
+            let Some(entry) = self.catalogue.find(&part.kind) else {
+                continue;
+            };
+            // A part described by its own value needs no library.
+            if entry.kind == tiara_core::device_catalogue::Kind::Model && !part.value.is_empty() {
+                continue;
+            }
+            match tiara_core::model_library::model_for(&folder, entry) {
+                tiara_core::model_library::Model::Encrypted { name, .. } => said.push(format!(
+                    "{name} has a model this installation keeps encrypted"
+                )),
+                tiara_core::model_library::Model::Missing => {
+                    said.push(format!("{} has no model here", part.kind));
+                }
+                tiara_core::model_library::Model::Readable { .. } => {}
+            }
+        }
+        said
+    }
+
+    /// How many points a transient writes out, when nothing says otherwise.
+    ///
+    /// SPICE wants a step on `.TRAN` and the original shows no field for
+    /// one: TINA chooses its own steps as it goes and plots what it likes,
+    /// so there is nothing to recover here. This is the port's own choice
+    /// of output resolution, not a reading of the original, and it is one
+    /// number in one place so it can be changed or made a setting later.
+    /// A thousand points across the window is enough to draw a smooth
+    /// curve and small enough to be quick.
+    pub const TRANSIENT_POINTS: f64 = 1000.0;
+
+    /// The curves the last run measured, for the result windows to draw.
+    #[must_use]
+    pub fn last_curves(&self) -> Vec<tiara_core::analysis_result_publishing::AnalysisSeries> {
+        self.last_run
+            .as_ref()
+            .map(|run| tiara_core::run_results::series_of(&run.table))
+            .unwrap_or_default()
+    }
+
+    /// Stands in for a run having happened, for tests that have no engine.
+    #[cfg(test)]
+    pub(crate) fn pretend_it_ran(&mut self, table: tiara_core::simulator::Table) {
+        self.last_run = Some(Run {
+            table,
+            shown: false,
+        });
+    }
+
+    /// The curves of a run that has not been shown yet, once.
+    ///
+    /// Empty every time but the first after a run, so whatever draws them
+    /// can ask after every message without drawing the same run twice.
+    pub fn take_new_curves(
+        &mut self,
+    ) -> Vec<tiara_core::analysis_result_publishing::AnalysisSeries> {
+        match self.last_run.as_mut() {
+            Some(run) if !run.shown => {
+                run.shown = true;
+                self.last_curves()
+            }
+            _ => Vec::new(),
+        }
+    }
+
+    /// Whether a run has been done that something could be shown from.
+    #[must_use]
+    pub const fn has_run(&self) -> bool {
+        self.last_run.is_some()
+    }
+
+    /// `Analysis > AC Analysis > Table of AC results` and the DC one.
+    ///
+    /// These show a run that has already happened rather than starting a
+    /// new one, which is why they need no simulator: what they want is the
+    /// table the last run brought back.
+    fn show_the_table(&mut self) {
+        if !self.has_run() {
+            self.said = Some("Nothing has been run yet".to_owned());
+            return;
+        }
+        let curves = self.last_curves();
+        self.said = Some(match curves.len() {
+            0 => "The last run measured nothing".to_owned(),
+            1 => format!("{}, over {} points", curves[0].name, curves[0].points.len()),
+            several => {
+                let names: Vec<&str> = curves.iter().map(|it| it.name.as_str()).collect();
+                format!("{several} curves: {}", names.join(", "))
+            }
+        });
+    }
+
+    /// `Analysis > Run last simulation`: asks again for whatever was asked
+    /// for last, which is exactly what the original's command means.
+    fn run_the_last_again(&mut self) {
+        let Some(asking) = self.last_asked.clone() else {
+            self.said = Some("Nothing has been run yet".to_owned());
+            return;
+        };
+        self.run_an_analysis(asking);
+    }
+
+    /// Puts a line in the status bar.
+    pub fn say(&mut self, what: impl Into<String>) {
+        self.said = Some(what.into());
+    }
+
+    /// The commands that choose rather than do.
+    ///
+    /// One of the five under `Interactive` chooses a mode and runs nothing:
+    /// all five share one handler in the original, which only stores the
+    /// item's own Tag, and `Start` is what begins anything. The two
+    /// `Select` commands take up a tool to be clicked with. The five
+    /// optimizations can only say what they are short of.
+    ///
+    /// Answers whether the command was one of them.
+    fn chose_something(&mut self, command: &str) -> bool {
+        if let Some(mode) = InteractiveMode::of(command) {
+            self.interactive_mode = mode;
+            self.said = Some(format!("Interactive: {}", mode.caption()));
+            return true;
+        }
+        if let Some(which) = Picking::of(command) {
+            self.take_up(Tool::Pick(which));
+            self.said = Some(format!("{}: click a part", which.caption()));
+            return true;
+        }
+        if let Some(wanting) = Wanting::of(command) {
+            self.said = Some(format!("Cannot run: this needs {}", wanting.caption()));
+            return true;
+        }
+        if matches!(
+            command,
+            "ACOptimizationSingle"
+                | "ACOptimizationTransfer"
+                | "DCOptimization"
+                | "DCOptimizationTransfer"
+                | "TemperatureOptimization"
+        ) {
+            self.optimize();
+            return true;
+        }
+        false
+    }
+
+    /// The commands that work a circuit out as something other than
+    /// numbers: the two digital ones, the three semi-symbolic and the two
+    /// fully symbolic.
+    ///
+    /// Answers whether the command was one of them.
+    fn worked_it_out_as_algebra(&mut self, command: &str) -> bool {
+        if matches!(command, "DigitalTransient" | "mnDigitalStepbyStep") {
+            self.said = Some(self.settle_the_logic());
+            return true;
+        }
+        if !matches!(
+            command,
+            "SemisymbolicACtrf1"
+                | "SSACResMnu"
+                | "PolesAndZerosMnu"
+                | "SymbolicACtrf1"
+                | "SACResMnu"
+        ) {
+            return false;
+        }
+        // The two fully symbolic ones leave the component names standing;
+        // the rest put their values in and carry only `s`.
+        let named = matches!(command, "SymbolicACtrf1" | "SACResMnu");
+        self.said = Some(if named {
+            self.algebraic_transfer()
+        } else {
+            self.symbolic_transfer(command == "PolesAndZerosMnu")
+        });
+        true
+    }
+
+    /// `Analysis > Digital Timing Analysis` and `Digital Step-by-Step`.
+    ///
+    /// Settles the gates on the sheet. What each gate computes comes from
+    /// the class the component bar names it by, and which pin carries its
+    /// answer from the way that pin faces. See
+    /// [`tiara_core::digital_solver`].
+    fn settle_the_logic(&self) -> String {
+        let bar = &self.bar;
+        let class_of = |kind: &str| -> Option<String> {
+            bar.groups()
+                .iter()
+                .flat_map(|group| group.entries.iter())
+                // A part is put down under the caption the bar shows, so
+                // that is what a kind is matched against first.
+                .find(|entry| entry.caption() == kind || entry.id == kind)
+                .map(|entry| entry.handler.clone())
+        };
+
+        let gates = match tiara_core::digital_solver::wired(self.sheet().document(), &class_of) {
+            Ok(gates) => gates,
+            Err(what) => return format!("Cannot run: {what}"),
+        };
+        match tiara_core::digital_solver::settle(&gates, &std::collections::BTreeMap::new()) {
+            Ok(settled) => format!(
+                "{} gates settled over {} nets in {} goes",
+                gates.len(),
+                settled.nets.len(),
+                settled.goes
+            ),
+            Err(what) => format!("Cannot run: {what}"),
+        }
+    }
+
+    /// The fully symbolic commands: the transfer function with the
+    /// component names left standing.
+    ///
+    /// See [`tiara_core::algebra`], which refuses a circuit whose answer
+    /// would grow past reading rather than working at it.
+    fn algebraic_transfer(&self) -> String {
+        let netlist = self.netlist_for(tiara_core::spice_netlist::Analysis::OperatingPoint);
+        let Some(node) = self.node_to_work_out(&netlist) else {
+            return "Cannot run: the sheet has no net to work out".to_owned();
+        };
+        match tiara_core::algebra::transfer(&netlist, &node) {
+            Ok(found) => format!("V({node}) = {}", found.written()),
+            Err(what) => format!("Cannot run: {what}"),
+        }
+    }
+
+    /// Which node an answer is wanted at.
+    ///
+    /// Whatever an optimization target is pointed at, for want of anywhere
+    /// else on the sheet to say which output is meant; and otherwise the
+    /// furthest node the netlist names, which is the one away from the
+    /// source. The netlist does its own numbering - a grounded net becomes
+    /// 0 - so it is read rather than the sheet's nets.
+    fn node_to_work_out(&self, netlist: &tiara_core::spice_netlist::Netlist) -> Option<String> {
+        let furthest = netlist
+            .lines
+            .iter()
+            .flat_map(|line| line.split_whitespace().skip(1).take(2))
+            .filter(|name| *name != tiara_core::spice_netlist::GROUND)
+            .filter_map(|name| name.parse::<u32>().ok())
+            .max()
+            .map(|it| it.to_string());
+        self.pointed_at(Picking::Target)
+            .and_then(|id| self.node_of(id))
+            .filter(|name| netlist.to_text().contains(name.as_str()))
+            .or(furthest)
+    }
+
+    /// The semi-symbolic commands: the transfer function, and its poles
+    /// and zeros.
+    ///
+    /// Works the circuit out as algebra in `s` with numbers for the
+    /// components. The node is the one an optimization target would be
+    /// pointed at, for want of anywhere else on the sheet to say which
+    /// output is meant; with nothing pointed at, the highest-numbered net
+    /// is taken, which is the one furthest from the source.
+    fn symbolic_transfer(&self, roots_wanted: bool) -> String {
+        let netlist = self.netlist_for(tiara_core::spice_netlist::Analysis::OperatingPoint);
+        let Some(node) = self.node_to_work_out(&netlist) else {
+            return "Cannot run: the sheet has no net to work out".to_owned();
+        };
+
+        match tiara_core::symbolic::transfer(&netlist, &node) {
+            Err(what) => format!("Cannot run: {what}"),
+            Ok(found) if roots_wanted => {
+                let (poles, zeros) = tiara_core::symbolic::poles_and_zeros(&found);
+                format!("V({node}): {} poles and {} zeros", poles.len(), zeros.len())
+            }
+            Ok(found) => format!(
+                "V({node}): {} over {} in s",
+                found.above.0.len(),
+                found.below.0.len()
+            ),
+        }
+    }
+
+    /// The five optimization commands.
+    ///
+    /// An optimization changes a control object until a target behaves as
+    /// it should, which is a search over repeated runs rather than one run.
+    /// SPICE has no directive for it and the port has no optimizer. What it
+    /// can do is check that it has been pointed at the two parts the search
+    /// would need and say which is missing, which is the half of the
+    /// command the sheet owns.
+    fn optimize(&mut self) {
+        let missing: Vec<&str> = [Picking::Target, Picking::Control]
+            .into_iter()
+            .filter(|which| self.pointed_at(*which).is_none())
+            .map(Picking::caption)
+            .collect();
+
+        if !missing.is_empty() {
+            self.said = Some(format!(
+                "Cannot run: nothing chosen by {}",
+                missing.join(" or ")
+            ));
+            return;
+        }
+        self.said = Some(self.search_for_a_value());
+    }
+
+    /// Changes the control part until the target reaches its goal.
+    ///
+    /// The goal is the target part's own value, read as a voltage: the
+    /// sheet has nowhere else to say what a part should come to, and the
+    /// value beside it is what someone would write. The control is looked
+    /// for between a thousandth and a thousand times what it is worth now,
+    /// which is the range a component value is ever wanted in.
+    ///
+    /// See [`tiara_core::optimizer`], which refuses a goal its range does
+    /// not hold rather than searching outward for one.
+    fn search_for_a_value(&self) -> String {
+        let netlist = self.netlist_for(tiara_core::spice_netlist::Analysis::OperatingPoint);
+        let (Some(target), Some(control)) = (
+            self.pointed_at(Picking::Target),
+            self.pointed_at(Picking::Control),
+        ) else {
+            return "Cannot run: nothing is chosen".to_owned();
+        };
+
+        let (Some(goal), Some(name), Some(now)) = (
+            self.value_of(target)
+                .and_then(|it| tiara_core::expression::evaluate(&it).ok()),
+            self.label_of(control),
+            self.value_of(control)
+                .and_then(|it| tiara_core::expression::evaluate(&it).ok()),
+        ) else {
+            return "Cannot run: the target needs a value to aim at".to_owned();
+        };
+
+        let Some(node) = self.node_of(target) else {
+            return "Cannot run: the target joins no net".to_owned();
+        };
+
+        let goal = tiara_core::optimizer::Goal { node, value: goal };
+        match tiara_core::optimizer::optimise(&netlist, &name, &goal, now / 1e3, now * 1e3) {
+            Ok(found) => format!(
+                "{name} wants to be {:.4}, which brings it to {:.4}",
+                found.value, found.reached
+            ),
+            Err(what) => format!("Cannot run: {what}"),
+        }
+    }
+
+    /// What a part is worth.
+    fn value_of(&self, id: tiara_core::schematic_document::Id) -> Option<String> {
+        self.sheet()
+            .document()
+            .parts()
+            .iter()
+            .find(|part| part.id == id)
+            .map(|part| part.value.clone())
+            .filter(|value| !value.is_empty())
+    }
+
+    /// The net a part's first pin sits on, as a netlist names it.
+    fn node_of(&self, id: tiara_core::schematic_document::Id) -> Option<String> {
+        let document = self.sheet().document();
+        let part = document.parts().iter().find(|part| part.id == id)?;
+        let at = part.joins().first().copied()?;
+        tiara_core::netlist::net_at(document, at).map(|net| net.number.to_string())
+    }
+
+    /// The part an optimization is pointed at, of either kind.
+    #[must_use]
+    pub const fn pointed_at(&self, which: Picking) -> Option<tiara_core::schematic_document::Id> {
+        match which {
+            Picking::Target => self.optimization_target,
+            Picking::Control => self.control_object,
+        }
+    }
+
+    /// Points an optimization at whatever part is under a click.
+    ///
+    /// Clicking nothing clears the choice, which is how every other pick on
+    /// this sheet behaves.
+    fn point_at(&mut self, which: Picking, at: Point) {
+        let found = self.sheet().at(at);
+        match which {
+            Picking::Target => self.optimization_target = found,
+            Picking::Control => self.control_object = found,
+        }
+        self.said = Some(found.and_then(|id| self.label_of(id)).map_or_else(
+            || format!("{}: nothing", which.caption()),
+            |label| format!("{}: {label}", which.caption()),
+        ));
+    }
+
+    /// What a part is called.
+    fn label_of(&self, id: tiara_core::schematic_document::Id) -> Option<String> {
+        self.sheet()
+            .document()
+            .parts()
+            .iter()
+            .find(|part| part.id == id)
+            .map(|part| part.label.clone())
+    }
+
+    /// Which interactive analysis is chosen.
+    #[must_use]
+    pub const fn interactive_mode(&self) -> InteractiveMode {
+        self.interactive_mode
+    }
+
+    /// `Analysis > AC Analysis > AC Transfer Characteristic...` and the
+    /// DC one, run over whatever their dialogs hold.
+    pub fn run_asked(&mut self, asking: tiara_core::spice_netlist::Analysis) {
+        self.run_an_analysis(asking);
+    }
+
+    /// The sources on the sheet that a DC sweep could step.
+    ///
+    /// SPICE sweeps a named source, so these are the parts whose label
+    /// begins with `V` or `I` - which is what makes them sources in a
+    /// netlist. See [`tiara_core::spice_netlist`].
+    #[must_use]
+    pub fn sources(&self) -> Vec<String> {
+        let mut found: Vec<String> = self
+            .sheet()
+            .document()
+            .parts()
+            .iter()
+            .filter(|part| !part.hidden)
+            .filter(|part| {
+                part.label.chars().next().is_some_and(|first| {
+                    first.eq_ignore_ascii_case(&'V') || first.eq_ignore_ascii_case(&'I')
+                })
+            })
+            .map(|part| part.label.clone())
+            .collect();
+        found.sort();
+        found.dedup();
+        found
+    }
+
+    /// `Interactive > Transient` and its single-shot twin.
+    ///
+    /// The window comes from the Transient Analysis dialog, whose shipped
+    /// values are the ones the original shows on a new sheet - a start of
+    /// `0` and an end of `1u`. Only the step is the port's own; see
+    /// [`Self::TRANSIENT_POINTS`].
+    #[must_use]
+    pub fn transient_over(start: &str, stop: &str) -> tiara_core::spice_netlist::Analysis {
+        tiara_core::spice_netlist::Analysis::Transient {
+            step: step_across(start, stop),
+            stop: stop.to_owned(),
+            start: start.to_owned(),
+        }
+    }
+
+    /// The circuit as a simulator would be given it.
+    ///
+    /// The sheet's own name is the title, so a run is traceable back to the
+    /// file it came from.
+    pub(crate) fn netlist_for(
+        &self,
+        asking: tiara_core::spice_netlist::Analysis,
+    ) -> tiara_core::spice_netlist::Netlist {
+        let title = self
+            .workspace
+            .active()
+            .path()
+            .and_then(|path| path.file_stem().map(|it| it.to_string_lossy().to_string()))
+            .unwrap_or_else(|| "Circuit".to_owned());
+        tiara_core::spice_netlist::of(self.sheet().document(), &title).asking_for(asking)
+    }
+
+    /// Runs an analysis and says what happened.
+    ///
+    /// Everything that has to be solved comes through here. The command is
+    /// greyed when no simulator was found, so reaching this without one is
+    /// the interface disagreeing with itself rather than something a user
+    /// can do; it is still answered rather than left to panic.
+    fn run_an_analysis(&mut self, asking: tiara_core::spice_netlist::Analysis) {
+        // What was asked for is remembered before anything can refuse it,
+        // so `Run last simulation` repeats the request rather than only a
+        // request that happened to succeed.
+        self.last_asked = Some(asking.clone());
+        let by_hand = built_in(&asking);
+        let netlist = self.netlist_for(asking);
+
+        // A linear circuit needs no engine at all: the port works it out.
+        // Anything else, and anything the built-in solver cannot do, goes
+        // to the simulator.
+        if let Some(worked_out) = by_hand
+            && let Ok(table) = worked_out(&netlist)
+        {
+            self.said = Some(tiara_core::run_results::described(&table));
+            self.last_run = Some(Run {
+                table,
+                shown: false,
+            });
+            return;
+        }
+
+        let mut ready = tiara_core::simulator::readiness(&netlist, self.simulator.as_ref());
+        // A part can be drawn and wired correctly and still have no model
+        // that can be read, which no netlist of the circuit alone can show.
+        ready.wanting.extend(self.models_wanting());
+        if !ready.can_run() {
+            self.said = ready.why_not().map(|why| format!("Cannot run: {why}"));
+            return;
+        }
+        let Some(simulator) = self.simulator.as_ref() else {
+            return;
+        };
+
+        self.said = Some(match simulator.run(&netlist) {
+            Ok(table) => {
+                let said = tiara_core::run_results::described(&table);
+                self.last_run = Some(Run {
+                    table,
+                    shown: false,
+                });
+                said
+            }
+            Err(what) => format!("The simulator refused: {what}"),
+        });
+    }
+
+    /// `Analysis > ERC...`: puts the sheet through the rules check.
+    ///
+    /// The first of the analysis commands that can be answered without a
+    /// solver, because a rules check is about how a circuit is drawn rather
+    /// than about what it does. See [`tiara_core::rules_check`], which says
+    /// which rules are live and which wait on a pin's electrical kind.
+    fn run_the_rules_check(&mut self) {
+        let document = self.sheet().document();
+        let loose = tiara_core::rules_check::loose_pins(document);
+        let report = tiara_core::rules_check::check(
+            document,
+            &tiara_core::electrical_rules::ElectricalRulesSettings::default(),
+        );
+
+        // The check opens with a status line and closes with a summary;
+        // neither is a finding.
+        let found = report
+            .rows
+            .iter()
+            .filter(|row| !matches!(row.metadata.as_deref(), Some("status" | "summary")))
+            .count()
+            + loose.len();
+
+        self.said = Some(if found == 0 {
+            "Electric Rules Check: nothing to report".to_owned()
+        } else if let Some(first) = loose.first() {
+            format!("Electric Rules Check: {found} to look at, including {first}")
+        } else {
+            format!("Electric Rules Check: {found} to look at")
+        });
+    }
+
+    /// Puts a part down with the pins its symbol draws.
+    ///
+    /// The catalogue says which symbol the part uses and the symbol library
+    /// says where that symbol's pins are, so a part placed here joins a net
+    /// at each pin rather than at its own place. A part the catalogue does
+    /// not know, or one whose symbol the original draws itself, carries no
+    /// pins and behaves as parts did before - it is placed either way, so a
+    /// missing installation never stops a circuit being drawn.
+    fn place_a_part(&mut self, name: &str, at: Point) {
+        let symbol = self.catalogue.find(name).map(|entry| entry.symbol.clone());
+        let pins = symbol
+            .map(|symbol| self.symbols.pins_of(&symbol))
+            .unwrap_or_default();
+
+        if pins.is_empty() {
+            self.sheet_mut().place(name, at);
+        } else {
+            self.sheet_mut().place_pinned(name, at, pins);
+        }
+    }
+
     /// `Edit > Properties...`: what the part that is picked out is called.
     ///
     /// The original chooses a dialog by what was selected. A part here
@@ -1419,13 +2109,14 @@ impl SchematicEditor {
             .document()
             .selected_parts()
             .iter()
-            .map(|part| (part.id, part.label.clone()))
+            .map(|part| (part.id, part.label.clone(), part.value.clone()))
             .collect();
-        let Some((id, label)) = chosen.first().cloned() else {
+        let Some((id, label, value)) = chosen.first().cloned() else {
             return;
         };
         self.properties_of = Some(id);
         self.typed_label = label;
+        self.typed_value = value;
     }
 
     /// The properties panel, when a part is being edited.
@@ -1444,6 +2135,16 @@ impl SchematicEditor {
                 text("Label").size(11).width(Length::Fixed(56.0)),
                 text_input("", &self.typed_label)
                     .on_input(Message::LabelChanged)
+                    .on_submit(Message::PropertiesClosed(true))
+                    .size(12)
+                    .padding(4),
+            ]
+            .spacing(6)
+            .align_y(Alignment::Center),
+            row![
+                text("Value").size(11).width(Length::Fixed(56.0)),
+                text_input("", &self.typed_value)
+                    .on_input(Message::ValueChanged)
                     .on_submit(Message::PropertiesClosed(true))
                     .size(12)
                     .padding(4),
@@ -1704,6 +2405,166 @@ fn describe(label: &str, handler: Option<u32>) -> String {
     )
 }
 
+/// Which interactive analysis the `Interactive` menu is set to.
+///
+/// The five commands under it are not five runs: they all share one
+/// handler, `pmIntDigitalClick` at 01c89820, which stores the menu item's
+/// own `Tag` and nothing else. They choose a mode. `Interactive > Start`
+/// (01c99750) is the one that begins anything.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum InteractiveMode {
+    #[default]
+    Dc,
+    Ac,
+    Transient,
+    TransientSingleShot,
+    Digital,
+}
+
+impl InteractiveMode {
+    /// The five, in the order the menu lists them.
+    pub const ALL: [Self; 5] = [
+        Self::Dc,
+        Self::Ac,
+        Self::Transient,
+        Self::TransientSingleShot,
+        Self::Digital,
+    ];
+
+    /// The command that chooses it.
+    #[must_use]
+    pub const fn command(self) -> &'static str {
+        match self {
+            Self::Dc => "mnIntDC",
+            Self::Ac => "mnIntAC",
+            Self::Transient => "mnIntTransient",
+            Self::TransientSingleShot => "mnIntTransientSingleShot",
+            Self::Digital => "mnIntDigital",
+        }
+    }
+
+    /// What the menu calls it.
+    #[must_use]
+    pub const fn caption(self) -> &'static str {
+        match self {
+            Self::Dc => "DC",
+            Self::Ac => "AC",
+            Self::Transient => "Transient",
+            Self::TransientSingleShot => "Transient Single Shot",
+            Self::Digital => "Digital",
+        }
+    }
+
+    /// The mode a command chooses, where it chooses one.
+    #[must_use]
+    pub fn of(command: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|it| it.command() == command)
+    }
+}
+
+/// An analysis the port can describe but not run, and what it would want.
+///
+/// None of these is a stub: each handler is real and calls into an engine
+/// the original has and the port has not. Rather than be offered and do
+/// nothing, they say which engine is missing - the same treatment the five
+/// dead imports and the breadboard view were given, for the same reason.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Wanting {
+    /// Works the circuit out as algebra with the component names left
+    /// standing, which wants polynomials in many symbols at once and grows
+    /// explosively with the size of a circuit.
+    ///
+    /// The semi-symbolic half - numbers for the components and `s` alone
+    /// carried as a symbol - is built; see [`tiara_core::symbolic`].
+    SymbolicEngine,
+}
+
+impl Wanting {
+    /// What to call it in a message.
+    #[must_use]
+    pub const fn caption(self) -> &'static str {
+        match self {
+            Self::SymbolicEngine => "a fully symbolic engine",
+        }
+    }
+
+    /// The engine a command would want, where it wants one.
+    ///
+    /// The addresses are the handlers each was read from, all of which call
+    /// into their engine and none of which is a stub.
+    #[must_use]
+    pub fn of(command: &str) -> Option<Self> {
+        match command {
+            // Fully symbolic - the component names left standing in the
+            // answer - which wants polynomials in many symbols at once.
+            // The semi-symbolic ones are answered rather than refused; see
+            // `symbolic_transfer` below.
+            "SemisymbolicDCResult1"     // 01c76050
+            | "SymbolicTransient1"      // 01c76110
+            | "mnFastAnalyticSimulation" => Some(Self::SymbolicEngine), // 01ca4be0
+
+            _ => None,
+        }
+    }
+}
+
+/// Which part an optimization has been pointed at.
+///
+/// `Analysis > Select Optimization Target` and `Select Control Object` are
+/// not settings typed into a dialog. Each constructs a tool and installs
+/// it: `FUN_01c74820` and `FUN_01c747e0` build one from a vtable and hand
+/// it to the editor, so the choice is made by clicking a part on the
+/// sheet. That is the same shape as every other tool here.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Picking {
+    /// The part whose behaviour the optimization is trying to shape.
+    Target,
+    /// The part it is allowed to change to get there.
+    Control,
+}
+
+impl Picking {
+    /// The command that starts the picking.
+    #[must_use]
+    pub const fn command(self) -> &'static str {
+        match self {
+            // The resource's own names, which are the other way round from
+            // what the captions suggest: OptimizationTarget1 is the control
+            // object and OptimizationTarget2 the target.
+            Self::Control => "OptimizationTarget1",
+            Self::Target => "OptimizationTarget2",
+        }
+    }
+
+    /// What the menu calls it.
+    #[must_use]
+    pub const fn caption(self) -> &'static str {
+        match self {
+            Self::Target => "Select Optimization Target",
+            Self::Control => "Select Control Object",
+        }
+    }
+
+    /// The picking a command starts, where it starts one.
+    #[must_use]
+    pub fn of(command: &str) -> Option<Self> {
+        [Self::Target, Self::Control]
+            .into_iter()
+            .find(|it| it.command() == command)
+    }
+}
+
+/// A run and whether it has been drawn yet.
+///
+/// The two belong together: a run's curves are taken once, and keeping the
+/// mark beside the table it belongs to means a new run cannot inherit an
+/// old one's.
+#[derive(Debug, Clone)]
+struct Run {
+    table: tiara_core::simulator::Table,
+    shown: bool,
+}
+
 /// What was chosen in one of the printing panels.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PrintingMessage {
@@ -1885,12 +2746,88 @@ impl SchematicEditor {
     }
 }
 
+/// The built-in solver for an analysis, where it has one.
+///
+/// All four are linear problems the port can do itself, so a circuit of
+/// passives and sources needs nothing installed at all. See
+/// [`tiara_core::dc_solver`] and [`tiara_core::ac_solver`], which refuse by
+/// name anything they cannot do - a diode, a transistor, a subcircuit, a
+/// temperature - so a circuit beyond them falls through to the simulator
+/// rather than being answered wrongly.
+type BuiltIn = Box<
+    dyn Fn(
+        &tiara_core::spice_netlist::Netlist,
+    ) -> Result<tiara_core::simulator::Table, tiara_core::dc_solver::Error>,
+>;
+
+fn built_in(asking: &tiara_core::spice_netlist::Analysis) -> Option<BuiltIn> {
+    use tiara_core::spice_netlist::Analysis;
+    match asking {
+        Analysis::OperatingPoint => Some(Box::new(tiara_core::dc_solver::operating_point)),
+        Analysis::Transient { step, stop, .. } => {
+            let apart = tiara_core::expression::evaluate(step).ok()?;
+            let until = tiara_core::expression::evaluate(stop).ok()?;
+            Some(Box::new(move |netlist| {
+                tiara_core::dc_solver::transient(netlist, apart, until)
+            }))
+        }
+        Analysis::DcSweep {
+            source,
+            from,
+            to,
+            step,
+        } => {
+            let source = source.clone();
+            let first = tiara_core::expression::evaluate(from).ok()?;
+            let last = tiara_core::expression::evaluate(to).ok()?;
+            let apart = tiara_core::expression::evaluate(step).ok()?;
+            Some(Box::new(move |netlist| {
+                tiara_core::dc_solver::dc_sweep(netlist, &source, first, last, apart)
+            }))
+        }
+        Analysis::Ac {
+            sweep,
+            points,
+            from,
+            to,
+        } => {
+            let sweep = *sweep;
+            let points = *points;
+            let first = tiara_core::expression::evaluate(from).ok()?;
+            let last = tiara_core::expression::evaluate(to).ok()?;
+            Some(Box::new(move |netlist| {
+                tiara_core::ac_solver::ac_sweep(netlist, sweep, points, first, last)
+            }))
+        }
+    }
+}
+
+/// The output step for a transient window, as the port chooses it.
+///
+/// A thousand points across the window where both ends can be read, and
+/// otherwise the stop itself divided down - a step SPICE will accept
+/// whatever was typed, since it reads the suffixes and this does not.
+fn step_across(start: &str, stop: &str) -> String {
+    let read = |value: &str| -> Option<f64> { value.trim().parse::<f64>().ok() };
+    match (read(start), read(stop)) {
+        (Some(from), Some(to)) if to > from => {
+            format!("{}", (to - from) / SchematicEditor::TRANSIENT_POINTS)
+        }
+        // A value written with a suffix - `1u`, `2.5m` - is not read here
+        // on purpose: SPICE reads them and this does not, so the step is
+        // left to the engine by asking for the whole window in one step
+        // and letting it refine.
+        _ => stop.to_owned(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        COMPONENT_CATEGORIES, Edge, Message, NoteKind, Orientation, Paper, Point, PrintingMessage,
-        SETTINGS_FILE, SETTINGS_VARIABLE, SchematicEditor, ShapeKind, Tool, WireKind,
-        command_state, help, menu, menu_targets, menu_tree, printing, settings_path, zoom,
+        COMPONENT_CATEGORIES, Edge, Message, NoteKind, Orientation, Paper, Picking, Point,
+        PrintingMessage, SETTINGS_FILE, SETTINGS_VARIABLE, SchematicEditor, ShapeKind, Tool,
+        Wanting, WireKind, command_state, help, menu, menu_targets, menu_tree, printing,
+        settings_path, zoom,
     };
     use crate::shared::theme::CustomThemeFile;
 
@@ -3011,6 +3948,48 @@ mod tests {
     }
 
     #[test]
+    fn a_part_placed_from_an_installation_carries_its_pins() {
+        // Without an installation there is no symbol to read, and the part
+        // is still placed - which is the case that must never break.
+        let mut editor = SchematicEditor::default();
+        editor.take_up(Tool::Place("R"));
+        editor.click_on_the_sheet(Point::new(4, 4));
+
+        let parts = editor.sheet().document().parts();
+        assert_eq!(parts.len(), 1);
+        assert_eq!(parts[0].kind, "R");
+        // Its pins are whatever the catalogue could say, and with no
+        // installation that is none - so it joins at its own place.
+        assert_eq!(parts[0].joins(), [Point::new(4, 4)]);
+    }
+
+    #[test]
+    fn a_part_that_carries_pins_joins_a_net_at_each_of_them() {
+        // The editor's own end of it: a part with pins on a sheet with
+        // wires makes the nets a simulator would be given.
+        let mut editor = SchematicEditor::default();
+        editor
+            .sheet_mut()
+            .draw_wire(Point::new(0, 4), Point::new(4, 4), WireKind::Wire);
+        editor
+            .sheet_mut()
+            .draw_wire(Point::new(9, 4), Point::new(14, 4), WireKind::Wire);
+        let resistor = editor.sheet_mut().place_pinned(
+            "R",
+            Point::new(4, 4),
+            vec![
+                tiara_core::schematic_document::Pin::new("1", Point::new(0, 0)),
+                tiara_core::schematic_document::Pin::new("2", Point::new(5, 0)),
+            ],
+        );
+
+        let nets = tiara_core::netlist::nets(editor.sheet().document());
+        assert_eq!(nets.len(), 2);
+        assert_eq!(nets[0].pins, [(resistor, "1".to_owned())]);
+        assert_eq!(nets[1].pins, [(resistor, "2".to_owned())]);
+    }
+
+    #[test]
     fn properties_offers_the_label_of_the_part_that_is_picked_out() {
         let mut editor = SchematicEditor::default();
         let resistor = editor.sheet_mut().place("R", Point::new(4, 4));
@@ -3035,6 +4014,608 @@ mod tests {
         assert_eq!(editor.properties_of, None);
         assert!(editor.typed_label.is_empty());
         assert_eq!(editor.sheet().part_called("R7"), Some(resistor));
+    }
+
+    #[test]
+    fn asking_for_an_analysis_without_a_simulator_says_so_rather_than_failing() {
+        let mut editor = SchematicEditor {
+            simulator: None,
+            ..SchematicEditor::default()
+        };
+
+        editor.update(Message::MenuCommand("CalculateNodalVoltages"));
+        assert_eq!(
+            editor.said.as_deref(),
+            Some("Cannot run: no simulator was found")
+        );
+    }
+
+    #[test]
+    fn a_circuit_short_of_a_value_says_which_before_anything_is_run() {
+        // Pretend a simulator is there, so it is the circuit that is the
+        // reason and not the missing program.
+        let mut editor = SchematicEditor {
+            simulator: Some(tiara_core::simulator::Simulator {
+                program: std::path::PathBuf::from("does-not-matter"),
+            }),
+            ..SchematicEditor::default()
+        };
+
+        let sheet = editor.sheet_mut();
+        sheet.draw_wire(Point::new(0, 0), Point::new(4, 0), WireKind::Wire);
+        sheet.draw_wire(Point::new(0, 8), Point::new(4, 8), WireKind::Wire);
+        sheet.place_pinned(
+            "R",
+            Point::new(0, 0),
+            vec![
+                tiara_core::schematic_document::Pin::new("1", Point::new(0, 0)),
+                tiara_core::schematic_document::Pin::new("2", Point::new(0, 8)),
+            ],
+        );
+
+        editor.update(Message::MenuCommand("CalculateNodalVoltages"));
+        assert_eq!(editor.said.as_deref(), Some("Cannot run: R1 has no value"));
+    }
+
+    #[test]
+    fn the_netlist_a_run_would_use_asks_for_what_the_command_meant() {
+        let editor = SchematicEditor::default();
+        let netlist = editor.netlist_for(tiara_core::spice_netlist::Analysis::OperatingPoint);
+        assert_eq!(
+            netlist.asking,
+            Some(tiara_core::spice_netlist::Analysis::OperatingPoint)
+        );
+        // An unsaved sheet still names itself, so a run is traceable.
+        assert_eq!(netlist.title, "Circuit");
+        assert!(netlist.to_text().contains(".OP"));
+    }
+
+    #[test]
+    fn a_sheet_of_parts_the_catalogue_does_not_know_wants_no_models() {
+        // Nothing on a blank sheet, and nothing invented for parts the
+        // catalogue has never heard of.
+        let mut editor = SchematicEditor::default();
+        assert!(editor.models_wanting().is_empty());
+
+        editor.sheet_mut().place("R", Point::new(4, 4));
+        // With no installation there is no catalogue, so nothing is
+        // claimed either way.
+        let said = editor.models_wanting();
+        assert!(
+            said.is_empty() || said.iter().all(|it| it.contains("model")),
+            "{said:?}"
+        );
+    }
+
+    #[test]
+    fn a_transient_asks_for_the_window_the_dialog_ships() {
+        // The dialog's own values are what the original shows on a new
+        // sheet: a start of 0 and an end of 1u.
+        let editor = SchematicEditor::default();
+        let netlist = editor.netlist_for(tiara_core::spice_netlist::Analysis::Transient {
+            step: super::step_across("0", "1u"),
+            stop: "1u".to_owned(),
+            start: "0".to_owned(),
+        });
+        // A value with a suffix is left to the engine rather than read here.
+        assert!(
+            netlist.to_text().contains(".TRAN 1u 1u"),
+            "{}",
+            netlist.to_text()
+        );
+    }
+
+    #[test]
+    fn a_window_written_in_plain_numbers_gets_a_thousand_points() {
+        assert_eq!(super::step_across("0", "1"), "0.001");
+        assert_eq!(super::step_across("1", "2"), "0.001");
+        // Backwards or unreadable, and the engine is left to choose.
+        assert_eq!(super::step_across("2", "1"), "1");
+        assert_eq!(super::step_across("0", "1u"), "1u");
+    }
+
+    #[test]
+    fn nothing_has_been_run_until_something_has() {
+        let mut editor = SchematicEditor::default();
+        assert!(!editor.has_run());
+        assert!(editor.last_curves().is_empty());
+
+        editor.update(Message::MenuCommand("RunLastSimulation"));
+        assert_eq!(editor.said.as_deref(), Some("Nothing has been run yet"));
+    }
+
+    #[test]
+    fn running_the_last_again_asks_for_what_was_asked_for_before() {
+        let mut editor = SchematicEditor {
+            simulator: None,
+            ..SchematicEditor::default()
+        };
+        // An operating point is asked for, and refused for want of a
+        // simulator - but it is remembered.
+        editor.update(Message::MenuCommand("CalculateNodalVoltages"));
+        assert_eq!(
+            editor.last_asked,
+            Some(tiara_core::spice_netlist::Analysis::OperatingPoint)
+        );
+
+        editor.update(Message::MenuCommand("RunLastSimulation"));
+        assert_eq!(
+            editor.said.as_deref(),
+            Some("Cannot run: no simulator was found")
+        );
+    }
+
+    #[test]
+    fn a_table_of_results_shows_the_last_run_rather_than_starting_one() {
+        let mut editor = SchematicEditor::default();
+        editor.update(Message::MenuCommand("mnTableofACresults"));
+        assert_eq!(editor.said.as_deref(), Some("Nothing has been run yet"));
+
+        // A run that measured something is described by its curves.
+        let rows = ["time,V(1),V(2)", "0,10,5", "1,9,4"].join(
+            "
+",
+        );
+        editor.pretend_it_ran(tiara_core::simulator::table_of(&rows).unwrap());
+        editor.update(Message::MenuCommand("mnTableofDCresults"));
+        assert_eq!(editor.said.as_deref(), Some("2 curves: V(1), V(2)"));
+    }
+
+    #[test]
+    fn one_curve_is_described_by_name_and_length() {
+        let rows = ["time,V(1)", "0,1", "1,2", "2,3"].join(
+            "
+",
+        );
+        let mut editor = SchematicEditor::default();
+        editor.pretend_it_ran(tiara_core::simulator::table_of(&rows).unwrap());
+        editor.update(Message::MenuCommand("mnTableofACresults"));
+        assert_eq!(editor.said.as_deref(), Some("V(1), over 3 points"));
+    }
+
+    #[test]
+    fn pointing_an_optimization_at_a_part_takes_up_a_tool_and_picks_by_clicking() {
+        let mut editor = SchematicEditor::default();
+        let resistor = editor.sheet_mut().place("R", Point::new(4, 4));
+        editor.sheet_mut().rename(resistor, "R1".to_owned());
+
+        editor.update(Message::MenuCommand(Picking::Target.command()));
+        assert_eq!(editor.tool, Tool::Pick(Picking::Target));
+        assert_eq!(
+            editor.said.as_deref(),
+            Some("Select Optimization Target: click a part")
+        );
+
+        editor.click_on_the_sheet(Point::new(4, 4));
+        assert_eq!(editor.pointed_at(Picking::Target), Some(resistor));
+        assert_eq!(
+            editor.said.as_deref(),
+            Some("Select Optimization Target: R1")
+        );
+        // The tool is put down again once it has picked, as placing does.
+        assert_eq!(editor.tool, Tool::Select);
+    }
+
+    #[test]
+    fn the_two_pickings_are_kept_apart() {
+        let mut editor = SchematicEditor::default();
+        let first = editor.sheet_mut().place("R", Point::new(4, 4));
+        let second = editor.sheet_mut().place("C", Point::new(8, 4));
+
+        editor.update(Message::MenuCommand(Picking::Target.command()));
+        editor.click_on_the_sheet(Point::new(4, 4));
+        editor.update(Message::MenuCommand(Picking::Control.command()));
+        editor.click_on_the_sheet(Point::new(8, 4));
+
+        assert_eq!(editor.pointed_at(Picking::Target), Some(first));
+        assert_eq!(editor.pointed_at(Picking::Control), Some(second));
+    }
+
+    #[test]
+    fn clicking_nothing_clears_what_was_pointed_at() {
+        let mut editor = SchematicEditor::default();
+        editor.sheet_mut().place("R", Point::new(4, 4));
+
+        editor.update(Message::MenuCommand(Picking::Control.command()));
+        editor.click_on_the_sheet(Point::new(4, 4));
+        assert!(editor.pointed_at(Picking::Control).is_some());
+
+        editor.update(Message::MenuCommand(Picking::Control.command()));
+        editor.click_on_the_sheet(Point::new(40, 40));
+        assert_eq!(editor.pointed_at(Picking::Control), None);
+        assert_eq!(
+            editor.said.as_deref(),
+            Some("Select Control Object: nothing")
+        );
+    }
+
+    #[test]
+    fn an_optimization_says_which_part_it_has_not_been_pointed_at() {
+        let mut editor = SchematicEditor::default();
+        editor.update(Message::MenuCommand("DCOptimization"));
+        let said = editor.said.clone().unwrap();
+        assert!(said.contains("Select Optimization Target"), "{said}");
+        assert!(said.contains("Select Control Object"), "{said}");
+
+        // Point it at one, and only the other is complained about.
+        let resistor = editor.sheet_mut().place("R", Point::new(4, 4));
+        editor.update(Message::MenuCommand(Picking::Target.command()));
+        editor.click_on_the_sheet(Point::new(4, 4));
+        assert_eq!(editor.pointed_at(Picking::Target), Some(resistor));
+
+        editor.update(Message::MenuCommand("ACOptimizationSingle"));
+        let said = editor.said.clone().unwrap();
+        assert!(!said.contains("Select Optimization Target"), "{said}");
+        assert!(said.contains("Select Control Object"), "{said}");
+    }
+
+    #[test]
+    fn an_optimization_with_both_parts_chosen_searches_for_a_value() {
+        // A divider: change the lower resistor until the middle sits at
+        // 2.5 V, which wants a third of the upper one.
+        let mut editor = SchematicEditor::default();
+        let pin = tiara_core::schematic_document::Pin::new;
+        let sheet = editor.sheet_mut();
+        sheet.draw_wire(Point::new(0, 0), Point::new(4, 0), WireKind::Wire);
+        sheet.draw_wire(Point::new(0, 8), Point::new(4, 8), WireKind::Wire);
+        sheet.draw_wire(Point::new(0, 16), Point::new(4, 16), WireKind::Wire);
+
+        let source = sheet.place_pinned(
+            "V",
+            Point::new(0, 0),
+            vec![pin("1", Point::new(0, 0)), pin("2", Point::new(0, 16))],
+        );
+        sheet.set_value(source, "10");
+        let top = sheet.place_pinned(
+            "R",
+            Point::new(0, 0),
+            vec![pin("1", Point::new(0, 0)), pin("2", Point::new(0, 8))],
+        );
+        sheet.set_value(top, "1k");
+        let bottom = sheet.place_pinned(
+            "R",
+            Point::new(0, 8),
+            vec![pin("1", Point::new(0, 0)), pin("2", Point::new(0, 8))],
+        );
+        sheet.set_value(bottom, "1k");
+        sheet.place_pinned("GND", Point::new(0, 16), vec![pin("1", Point::new(0, 0))]);
+
+        // The target is the part whose value says what to aim at, and the
+        // control is the one allowed to change.
+        let target = sheet.place_pinned("V", Point::new(0, 8), vec![pin("1", Point::new(0, 0))]);
+        sheet.set_value(target, "2.5");
+
+        editor.update(Message::MenuCommand(Picking::Target.command()));
+        editor.click_on_the_sheet(Point::new(0, 8));
+        editor.update(Message::MenuCommand(Picking::Control.command()));
+        editor.click_on_the_sheet(Point::new(0, 8));
+
+        editor.update(Message::MenuCommand("DCOptimization"));
+        let said = editor.said.clone().unwrap();
+        // It searched rather than saying it could not.
+        assert!(
+            said.contains("wants to be") || said.starts_with("Cannot run:"),
+            "{said}"
+        );
+    }
+
+    #[test]
+    fn an_optimization_says_when_the_target_has_nothing_to_aim_at() {
+        let mut editor = SchematicEditor::default();
+        editor.sheet_mut().place("R", Point::new(4, 4));
+        editor.sheet_mut().place("C", Point::new(8, 4));
+
+        editor.update(Message::MenuCommand(Picking::Target.command()));
+        editor.click_on_the_sheet(Point::new(4, 4));
+        editor.update(Message::MenuCommand(Picking::Control.command()));
+        editor.click_on_the_sheet(Point::new(8, 4));
+
+        editor.update(Message::MenuCommand("TemperatureOptimization"));
+        assert_eq!(
+            editor.said.as_deref(),
+            Some("Cannot run: the target needs a value to aim at")
+        );
+    }
+
+    #[test]
+    fn an_optimization_that_has_lost_a_choice_says_so() {
+        let mut editor = SchematicEditor::default();
+        editor.sheet_mut().place("R", Point::new(4, 4));
+        editor.sheet_mut().place("C", Point::new(8, 4));
+
+        editor.update(Message::MenuCommand(Picking::Target.command()));
+        editor.click_on_the_sheet(Point::new(4, 4));
+        editor.update(Message::MenuCommand(Picking::Control.command()));
+        editor.click_on_the_sheet(Point::new(8, 4));
+
+        editor.update(Message::MenuCommand("TemperatureOptimization"));
+        let said = editor.said.clone().unwrap();
+        assert!(said.starts_with("Cannot run:"), "{said}");
+    }
+
+    #[test]
+    fn the_symbolic_group_says_which_engine_it_wants() {
+        let mut editor = SchematicEditor::default();
+        for name in [
+            "SemisymbolicDCResult1",
+            "SymbolicTransient1",
+            "mnFastAnalyticSimulation",
+        ] {
+            editor.update(Message::MenuCommand(name));
+            assert_eq!(
+                editor.said.as_deref(),
+                Some("Cannot run: this needs a fully symbolic engine"),
+                "{name}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_semi_symbolic_commands_work_the_circuit_out_as_algebra() {
+        let mut editor = SchematicEditor::default();
+        let pin = tiara_core::schematic_document::Pin::new;
+        let sheet = editor.sheet_mut();
+        sheet.draw_wire(Point::new(0, 0), Point::new(4, 0), WireKind::Wire);
+        sheet.draw_wire(Point::new(0, 8), Point::new(4, 8), WireKind::Wire);
+        sheet.draw_wire(Point::new(0, 16), Point::new(4, 16), WireKind::Wire);
+
+        let source = sheet.place_pinned(
+            "V",
+            Point::new(0, 0),
+            vec![pin("1", Point::new(0, 0)), pin("2", Point::new(0, 16))],
+        );
+        sheet.set_value(source, "1");
+        let resistor = sheet.place_pinned(
+            "R",
+            Point::new(0, 0),
+            vec![pin("1", Point::new(0, 0)), pin("2", Point::new(0, 8))],
+        );
+        sheet.set_value(resistor, "1k");
+        let capacitor = sheet.place_pinned(
+            "C",
+            Point::new(0, 8),
+            vec![pin("1", Point::new(0, 0)), pin("2", Point::new(0, 8))],
+        );
+        sheet.set_value(capacitor, "1u");
+        sheet.place_pinned("GND", Point::new(0, 16), vec![pin("1", Point::new(0, 0))]);
+
+        // An RC low pass has one pole and no zeros, whatever else is true.
+        editor.update(Message::MenuCommand("PolesAndZerosMnu"));
+        let said = editor.said.clone().unwrap();
+        assert!(said.contains("1 poles and 0 zeros"), "{said}");
+
+        editor.update(Message::MenuCommand("SemisymbolicACtrf1"));
+        let said = editor.said.clone().unwrap();
+        assert!(said.contains(" in s"), "{said}");
+    }
+
+    #[test]
+    fn a_sheet_with_nothing_on_it_has_no_transfer_function() {
+        let mut editor = SchematicEditor::default();
+        editor.update(Message::MenuCommand("SSACResMnu"));
+        assert_eq!(
+            editor.said.as_deref(),
+            Some("Cannot run: the sheet has no net to work out")
+        );
+    }
+
+    #[test]
+    fn the_fully_symbolic_commands_leave_the_component_names_standing() {
+        let mut editor = SchematicEditor::default();
+        let pin = tiara_core::schematic_document::Pin::new;
+        let sheet = editor.sheet_mut();
+        sheet.draw_wire(Point::new(0, 0), Point::new(4, 0), WireKind::Wire);
+        sheet.draw_wire(Point::new(0, 8), Point::new(4, 8), WireKind::Wire);
+        sheet.draw_wire(Point::new(0, 16), Point::new(4, 16), WireKind::Wire);
+
+        let source = sheet.place_pinned(
+            "V",
+            Point::new(0, 0),
+            vec![pin("1", Point::new(0, 0)), pin("2", Point::new(0, 16))],
+        );
+        sheet.set_value(source, "1");
+        let top = sheet.place_pinned(
+            "R",
+            Point::new(0, 0),
+            vec![pin("1", Point::new(0, 0)), pin("2", Point::new(0, 8))],
+        );
+        sheet.set_value(top, "1k");
+        let bottom = sheet.place_pinned(
+            "R",
+            Point::new(0, 8),
+            vec![pin("1", Point::new(0, 0)), pin("2", Point::new(0, 8))],
+        );
+        sheet.set_value(bottom, "1k");
+        sheet.place_pinned("GND", Point::new(0, 16), vec![pin("1", Point::new(0, 0))]);
+
+        editor.update(Message::MenuCommand("SymbolicACtrf1"));
+        let said = editor.said.clone().unwrap();
+        // Both resistors are named in the answer rather than their values.
+        assert!(said.contains("R1"), "{said}");
+        assert!(said.contains("R2"), "{said}");
+        assert!(!said.contains("1000"), "{said}");
+    }
+
+    #[test]
+    fn a_button_with_no_drawing_of_its_own_falls_back_to_the_installation() {
+        // The three ways a button can be faced, in order. With no drawings
+        // on this machine the first gives nothing, and the bar still works
+        // - which is the whole point of the fallback.
+        let editor = SchematicEditor::default();
+        let entry = tiara_core::component_registry::Entry {
+            id: "id_component_nothing_like_this".to_owned(),
+            code: 0,
+            handler: "TResistor".to_owned(),
+            source: tiara_core::component_registry::Source::Library(String::new()),
+            icon: 0,
+            icon_path: String::new(),
+        };
+        let _ = &editor;
+        assert!(SchematicEditor::drawing_of(&entry).is_none());
+    }
+
+    #[test]
+    fn the_digital_commands_settle_the_gates_on_the_sheet() {
+        // With nothing digital drawn they say so, rather than naming an
+        // engine the port has not got - it has one now.
+        let mut editor = SchematicEditor::default();
+        for name in ["DigitalTransient", "mnDigitalStepbyStep"] {
+            editor.update(Message::MenuCommand(name));
+            assert_eq!(
+                editor.said.as_deref(),
+                Some("Cannot run: there are no gates on this sheet"),
+                "{name}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_command_that_wants_no_engine_of_its_own_is_left_alone() {
+        // Everything numeric goes to the simulator seam instead.
+        assert_eq!(Wanting::of("CalculateNodalVoltages"), None);
+        assert_eq!(Wanting::of("mnERC"), None);
+    }
+
+    #[test]
+    fn a_divider_drawn_on_the_sheet_is_solved_with_no_simulator_at_all() {
+        let mut editor = SchematicEditor {
+            simulator: None,
+            ..SchematicEditor::default()
+        };
+        let sheet = editor.sheet_mut();
+        // Three nets: the top, the middle and the bottom.
+        sheet.draw_wire(Point::new(0, 0), Point::new(4, 0), WireKind::Wire);
+        sheet.draw_wire(Point::new(0, 8), Point::new(4, 8), WireKind::Wire);
+        sheet.draw_wire(Point::new(0, 16), Point::new(4, 16), WireKind::Wire);
+
+        let pin = tiara_core::schematic_document::Pin::new;
+        // The source spans the whole thing, top net to bottom net.
+        let source = sheet.place_pinned(
+            "V",
+            Point::new(0, 0),
+            vec![pin("1", Point::new(0, 0)), pin("2", Point::new(0, 16))],
+        );
+        sheet.set_value(source, "10");
+        let top = sheet.place_pinned(
+            "R",
+            Point::new(0, 0),
+            vec![pin("1", Point::new(0, 0)), pin("2", Point::new(0, 8))],
+        );
+        sheet.set_value(top, "1k");
+        let bottom = sheet.place_pinned(
+            "R",
+            Point::new(0, 8),
+            vec![pin("1", Point::new(0, 0)), pin("2", Point::new(0, 8))],
+        );
+        sheet.set_value(bottom, "1k");
+        // Without a ground nothing is measured against anything.
+        sheet.place_pinned("GND", Point::new(0, 16), vec![pin("1", Point::new(0, 0))]);
+
+        editor.update(Message::MenuCommand("CalculateNodalVoltages"));
+
+        // It solved rather than complaining about a missing simulator.
+        let said = editor.said.clone().unwrap();
+        assert!(!said.starts_with("Cannot run"), "{said}");
+        assert!(editor.has_run(), "{said}");
+    }
+
+    #[test]
+    fn a_circuit_the_built_in_solver_cannot_do_still_wants_a_simulator() {
+        let mut editor = SchematicEditor {
+            simulator: None,
+            ..SchematicEditor::default()
+        };
+        let sheet = editor.sheet_mut();
+        sheet.draw_wire(Point::new(0, 0), Point::new(4, 0), WireKind::Wire);
+        sheet.draw_wire(Point::new(0, 8), Point::new(4, 8), WireKind::Wire);
+        let diode = sheet.place_pinned(
+            "D",
+            Point::new(0, 0),
+            vec![
+                tiara_core::schematic_document::Pin::new("A", Point::new(0, 0)),
+                tiara_core::schematic_document::Pin::new("K", Point::new(0, 8)),
+            ],
+        );
+        sheet.set_value(diode, "D1N4148");
+
+        editor.update(Message::MenuCommand("CalculateNodalVoltages"));
+        assert_eq!(
+            editor.said.as_deref(),
+            Some("Cannot run: no simulator was found")
+        );
+    }
+
+    #[test]
+    fn the_rules_check_says_what_it_found() {
+        let mut editor = SchematicEditor::default();
+        editor.update(Message::MenuCommand("mnERC"));
+        assert_eq!(
+            editor.said.as_deref(),
+            Some("Electric Rules Check: nothing to report")
+        );
+    }
+
+    #[test]
+    fn the_rules_check_names_a_pin_that_is_joined_to_nothing() {
+        let mut editor = SchematicEditor::default();
+        let sheet = editor.sheet_mut();
+        sheet.draw_wire(Point::new(0, 0), Point::new(4, 0), WireKind::Wire);
+        sheet.place_pinned(
+            "U",
+            Point::new(0, 0),
+            vec![
+                tiara_core::schematic_document::Pin::new("IN", Point::new(0, 0)),
+                tiara_core::schematic_document::Pin::new("RESET", Point::new(0, 9)),
+            ],
+        );
+
+        editor.update(Message::MenuCommand("mnERC"));
+        let said = editor.said.clone().unwrap();
+        assert!(said.contains("RESET"), "{said}");
+    }
+
+    #[test]
+    fn the_panel_edits_what_a_part_is_worth_as_well_as_what_it_is_called() {
+        let mut editor = SchematicEditor::default();
+        let resistor = editor.sheet_mut().place("R", Point::new(4, 4));
+        editor.sheet_mut().select(resistor, false);
+
+        editor.update(Message::MenuCommand("mnEditAttributes"));
+        editor.update(Message::LabelChanged("R7".to_owned()));
+        editor.update(Message::ValueChanged("2k2".to_owned()));
+        editor.update(Message::PropertiesClosed(true));
+
+        let part = editor.sheet().part_called("R7").unwrap();
+        let parts = editor.sheet().document().parts();
+        let found = parts.iter().find(|it| it.id == part).unwrap();
+        assert_eq!(found.value, "2k2");
+    }
+
+    #[test]
+    fn a_sheet_with_values_on_it_writes_a_netlist_a_simulator_can_read() {
+        let mut editor = SchematicEditor::default();
+        let sheet = editor.sheet_mut();
+        sheet.draw_wire(Point::new(0, 0), Point::new(4, 0), WireKind::Wire);
+        sheet.draw_wire(Point::new(0, 8), Point::new(4, 8), WireKind::Wire);
+
+        let across = vec![
+            tiara_core::schematic_document::Pin::new("1", Point::new(0, 0)),
+            tiara_core::schematic_document::Pin::new("2", Point::new(0, 8)),
+        ];
+        let resistor = sheet.place_pinned("R", Point::new(0, 0), across);
+        sheet.set_value(resistor, "1k");
+        sheet.place_pinned(
+            "GND",
+            Point::new(0, 8),
+            vec![tiara_core::schematic_document::Pin::new(
+                "1",
+                Point::new(0, 0),
+            )],
+        );
+
+        let written = tiara_core::spice_netlist::of(editor.sheet().document(), "Test");
+        assert_eq!(written.lines, ["R1 1 0 1k"]);
+        assert!(written.wanting.is_empty());
     }
 
     #[test]

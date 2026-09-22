@@ -160,6 +160,10 @@ pub struct TiaraApplication {
     symbol_table: crate::symbol_table::Window,
     test_and_measurement_options: crate::test_and_measurement_options::Window,
     transient_analysis: crate::transient_analysis::Window,
+    ac_transfer_analysis: crate::ac_transfer_analysis::Window,
+    temperature_analysis: crate::temperature_analysis::Window,
+    steady_state_analysis: crate::steady_state_analysis::SteadyStateAnalysisWindow,
+    dc_transfer_analysis: crate::dc_transfer_analysis::Window,
     xy_recorder: crate::xy_recorder::Window,
 }
 
@@ -227,6 +231,137 @@ impl TiaraApplication {
         self.pending.take().unwrap_or_else(iced::Task::none)
     }
 
+    /// Everything that happens when the schematic editor is used.
+    ///
+    /// A menu command may run an analysis, open a window this shell has, or
+    /// simply be the editor's own; and any of them may leave a run to draw.
+    fn schematic_editor_message(&mut self, message: schematic_editor::Message) {
+        if self.ran_an_analysis(&message) {
+            return;
+        }
+        if let schematic_editor::Message::MenuCommand(name) = message
+            && let Some(window) = schematic_editor::menu_targets::window_for(name)
+        {
+            // The SPICE editor opens on the netlist of the sheet being
+            // edited, as the original does: a netlist is a view of a
+            // circuit before it is a file of its own.
+            if window == WindowKind::NetlistEditor {
+                let netlist = self.schematic_editor.netlist_of_the_sheet();
+                self.netlist_editor.show_netlist(&netlist);
+            }
+            self.handle(Message::ShowWindow(window));
+        }
+        self.schematic_editor.update(message);
+        self.show_any_new_run();
+    }
+
+    /// Runs whichever analysis a menu command means, over the dialog that
+    /// holds its settings.
+    ///
+    /// Answers whether it ran anything, so the caller knows to stop. Kept
+    /// apart from `handle` because each analysis needs its own dialog and
+    /// the list will grow.
+    fn ran_an_analysis(&mut self, message: &schematic_editor::Message) -> bool {
+        // A transient is run over the window the Transient
+        // Analysis dialog holds, which ships the values the
+        // original shows on a new sheet.
+        // The AC and DC transfer characteristics are run over
+        // what their own dialogs hold.
+        if *message == schematic_editor::Message::MenuCommand("SteadyStateSolver") {
+            // Only the transient method is a directive; the two Jacobian
+            // ones are the original's own and say so rather than running
+            // something that answers a different question.
+            match self.steady_state_analysis.asking() {
+                Some(asking) => self.schematic_editor.run_asked(asking),
+                None => {
+                    if let Some(why) = self.steady_state_analysis.why_not() {
+                        self.schematic_editor.say(format!("Cannot run: {why}"));
+                    }
+                }
+            }
+            return true;
+        }
+        if *message == schematic_editor::Message::MenuCommand("TemperatureAnalysis1") {
+            let asking = self.temperature_analysis.asking();
+            self.schematic_editor.run_asked(asking);
+            return true;
+        }
+        if *message == schematic_editor::Message::MenuCommand("ACTransferCharateristic") {
+            let asking = self.ac_transfer_analysis.asking();
+            self.schematic_editor.run_asked(asking);
+            return true;
+        }
+        if *message == schematic_editor::Message::MenuCommand("DCTransferCharacteristic") {
+            self.dc_transfer_analysis
+                .offer_sources(self.schematic_editor.sources());
+            if self.dc_transfer_analysis.can_ask() {
+                let asking = self.dc_transfer_analysis.asking();
+                self.schematic_editor.run_asked(asking);
+            } else {
+                self.schematic_editor
+                    .say("Cannot run: the sheet has no source to sweep");
+            }
+            return true;
+        }
+        // `Interactive > Start` runs whichever of the five modes the menu
+        // is set to. The five themselves only choose the mode - they share
+        // one handler in the original that stores the item's Tag.
+        if *message == schematic_editor::Message::MenuCommand("mnStartInteractive") {
+            self.start_interactive();
+            return true;
+        }
+        // A menu command that names a window this shell has opens it.
+        false
+    }
+
+    /// `Interactive > Start`: runs whichever mode the menu is set to.
+    ///
+    /// The original keeps the circuit running and lets switches be thrown
+    /// while it does. The port runs the analysis once, which is the part of
+    /// it the simulator seam can do: a run is started, finished and drawn.
+    /// Staying live is a second thing, and pretending to be live while
+    /// running once would be worse than doing one honestly.
+    fn start_interactive(&mut self) {
+        use crate::schematic_editor::InteractiveMode;
+
+        let mode = self.schematic_editor.interactive_mode();
+        let asking = match mode {
+            InteractiveMode::Dc => Some(tiara_core::spice_netlist::Analysis::OperatingPoint),
+            InteractiveMode::Ac => Some(self.ac_transfer_analysis.asking()),
+            InteractiveMode::Transient | InteractiveMode::TransientSingleShot => {
+                let start = self.transient_analysis.start_display().to_owned();
+                let stop = self.transient_analysis.end_display().to_owned();
+                Some(schematic_editor::SchematicEditor::transient_over(
+                    &start, &stop,
+                ))
+            }
+            // Digital wants a digital engine, which the seam does not have.
+            InteractiveMode::Digital => None,
+        };
+
+        match asking {
+            Some(asking) => self.schematic_editor.run_asked(asking),
+            None => self.schematic_editor.say(format!(
+                "Cannot run: {} needs a digital simulator",
+                mode.caption()
+            )),
+        }
+    }
+
+    /// Shows a run's curves in the window that draws them.
+    ///
+    /// Called after every schematic-editor message rather than only after
+    /// the analysis ones, because a run can be started from the menu, from
+    /// a dialog or by repeating the last one, and this way none of those
+    /// has to remember to say so. A run that measured nothing, and a
+    /// message that started no run at all, both do nothing here.
+    fn show_any_new_run(&mut self) {
+        let curves = self.schematic_editor.take_new_curves();
+        if self.analysis_results.show_run(&curves) {
+            self.dock.show(WindowKind::AnalysisResults);
+        }
+    }
+
     #[allow(clippy::too_many_lines)]
     fn handle(&mut self, message: Message) {
         match message {
@@ -269,15 +404,7 @@ impl TiaraApplication {
                     ));
                 }
             }
-            Message::SchematicEditor(message) => {
-                // A menu command that names a window this shell has opens it.
-                if let schematic_editor::Message::MenuCommand(name) = message
-                    && let Some(window) = schematic_editor::menu_targets::window_for(name)
-                {
-                    self.handle(Message::ShowWindow(window));
-                }
-                self.schematic_editor.update(message);
-            }
+            Message::SchematicEditor(message) => self.schematic_editor_message(message),
             Message::AboutTina(message) => {
                 let _ = self.about_box.update(message);
             }
@@ -757,6 +884,211 @@ impl TiaraApplication {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_run_is_drawn_once_and_brings_its_window_forward() {
+        let mut application = TiaraApplication::default();
+        assert_eq!(application.analysis_results.result_count(), 0);
+
+        // Stand in for a run having happened.
+        application.schematic_editor.pretend_it_ran(
+            tiara_core::simulator::table_of("time,V(1),V(2)\n0,10,5\n1,9,4\n").unwrap(),
+        );
+        application.show_any_new_run();
+
+        assert!(application.analysis_results.result_count() > 0);
+        assert_eq!(application.active_window(), WindowKind::AnalysisResults);
+
+        // Asking again draws nothing more: a run is taken once.
+        let before = application.analysis_results.result_count();
+        application.show_any_new_run();
+        assert_eq!(application.analysis_results.result_count(), before);
+    }
+
+    #[test]
+    fn a_message_that_started_no_run_draws_nothing() {
+        let mut application = TiaraApplication::default();
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::MenuCommand("mnERC"),
+        ));
+        assert_eq!(application.analysis_results.result_count(), 0);
+    }
+
+    #[test]
+    fn a_steady_state_run_asks_for_a_transient_when_that_is_the_method() {
+        let mut application = TiaraApplication::default();
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::MenuCommand("SteadyStateSolver"),
+        ));
+        // Transient is the method the dialog starts on, so it asked - and
+        // there is no simulator here to answer.
+        assert_eq!(
+            application.schematic_editor.said(),
+            Some("Cannot run: no simulator was found")
+        );
+    }
+
+    #[test]
+    fn the_jacobian_methods_say_they_have_no_netlist_rather_than_running() {
+        let mut application = TiaraApplication::default();
+        let _ = application.steady_state_analysis.update(
+            crate::steady_state_analysis::Message::SteadyStateMethodChanged(
+                crate::steady_state_analysis::SteadyStateMethod::BroydenUpdateJacobian,
+            ),
+        );
+
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::MenuCommand("SteadyStateSolver"),
+        ));
+        let said = application.schematic_editor.said().unwrap();
+        assert!(said.contains("Broyden update Jacobian"), "{said}");
+        assert!(said.contains("no netlist"), "{said}");
+    }
+
+    #[test]
+    fn an_ac_transfer_is_run_over_what_its_dialog_holds() {
+        let mut application = TiaraApplication::default();
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::MenuCommand("ACTransferCharateristic"),
+        ));
+        // It got as far as asking; there is no simulator here to answer.
+        assert_eq!(
+            application.schematic_editor.said(),
+            Some("Cannot run: no simulator was found")
+        );
+    }
+
+    #[test]
+    fn a_dc_sweep_needs_a_source_on_the_sheet_and_says_so() {
+        let mut application = TiaraApplication::default();
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::MenuCommand("DCTransferCharacteristic"),
+        ));
+        assert_eq!(
+            application.schematic_editor.said(),
+            Some("Cannot run: the sheet has no source to sweep")
+        );
+    }
+
+    #[test]
+    fn a_dc_sweep_takes_the_sources_the_sheet_offers() {
+        let mut application = TiaraApplication::default();
+        let sheet = application.schematic_editor.sheet_mut();
+        let source = sheet.place("V", tiara_core::schematic_document::Point::new(0, 0));
+        sheet.rename(source, "V1".to_owned());
+
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::MenuCommand("DCTransferCharacteristic"),
+        ));
+        // The source was found, so the reason is the missing simulator.
+        assert_eq!(
+            application.schematic_editor.said(),
+            Some("Cannot run: no simulator was found")
+        );
+    }
+
+    #[test]
+    fn the_five_interactive_commands_choose_a_mode_and_run_nothing() {
+        // All five share one handler in the original, which stores the
+        // menu item's Tag and nothing else.
+        let mut application = TiaraApplication::default();
+        for mode in crate::schematic_editor::InteractiveMode::ALL {
+            application.handle(Message::SchematicEditor(
+                schematic_editor::Message::MenuCommand(mode.command()),
+            ));
+            assert_eq!(
+                application.schematic_editor.interactive_mode(),
+                mode,
+                "{} should choose its mode",
+                mode.command()
+            );
+            assert_eq!(
+                application.schematic_editor.said(),
+                Some(format!("Interactive: {}", mode.caption()).as_str())
+            );
+        }
+    }
+
+    #[test]
+    fn interactive_start_runs_whichever_mode_is_chosen() {
+        let mut application = TiaraApplication::default();
+        // DC is the mode it starts on, and it asks for an operating point.
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::MenuCommand("mnStartInteractive"),
+        ));
+        assert_eq!(
+            application.schematic_editor.said(),
+            Some("Cannot run: no simulator was found")
+        );
+    }
+
+    #[test]
+    fn interactive_digital_says_it_needs_an_engine_the_port_has_not_got() {
+        let mut application = TiaraApplication::default();
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::MenuCommand("mnIntDigital"),
+        ));
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::MenuCommand("mnStartInteractive"),
+        ));
+        assert_eq!(
+            application.schematic_editor.said(),
+            Some("Cannot run: Digital needs a digital simulator")
+        );
+    }
+
+    #[test]
+    fn the_spice_editor_opens_on_the_netlist_of_the_sheet() {
+        let mut application = TiaraApplication::default();
+        let sheet = application.schematic_editor.sheet_mut();
+        sheet.draw_wire(
+            tiara_core::schematic_document::Point::new(0, 0),
+            tiara_core::schematic_document::Point::new(4, 0),
+            tiara_core::schematic_document::WireKind::Wire,
+        );
+        sheet.draw_wire(
+            tiara_core::schematic_document::Point::new(0, 8),
+            tiara_core::schematic_document::Point::new(4, 8),
+            tiara_core::schematic_document::WireKind::Wire,
+        );
+        let resistor = sheet.place_pinned(
+            "R",
+            tiara_core::schematic_document::Point::new(0, 0),
+            vec![
+                tiara_core::schematic_document::Pin::new(
+                    "1",
+                    tiara_core::schematic_document::Point::new(0, 0),
+                ),
+                tiara_core::schematic_document::Pin::new(
+                    "2",
+                    tiara_core::schematic_document::Point::new(0, 8),
+                ),
+            ],
+        );
+        sheet.set_value(resistor, "1k");
+
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::MenuCommand("mnSPiceEditor"),
+        ));
+
+        assert_eq!(application.active_window(), WindowKind::NetlistEditor);
+        let shown = application.netlist_editor.text();
+        assert!(shown.contains("R1 1 2 1k"), "{shown}");
+        assert!(shown.contains(".END"), "{shown}");
+    }
+
+    #[test]
+    fn a_netlist_someone_has_been_typing_into_is_not_overwritten() {
+        let mut application = TiaraApplication::default();
+        application.netlist_editor.show_netlist("V1 1 0 10");
+        application.netlist_editor.mark_modified_for_test();
+
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::MenuCommand("mnSPiceEditor"),
+        ));
+
+        assert_eq!(application.netlist_editor.text(), "V1 1 0 10");
+    }
 
     #[test]
     fn application_opens_the_schematic_editor_without_a_window_switcher() {

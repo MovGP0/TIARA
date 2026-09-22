@@ -1470,6 +1470,30 @@ impl Default for Window {
     }
 }
 
+impl Window {
+    /// Shows the curves a run brought back.
+    ///
+    /// The result manager is the original's own and does the work; this is
+    /// only the door into it, so that a run in the schematic editor can
+    /// reach the window that draws it. See `tiara_core::run_results`.
+    pub fn show_run(
+        &mut self,
+        curves: &[tiara_core::analysis_result_publishing::AnalysisSeries],
+    ) -> bool {
+        if curves.is_empty() {
+            return false;
+        }
+        self.result_manager.publish_matching_plots(curves, 0);
+        true
+    }
+
+    /// How many results the window is holding.
+    #[must_use]
+    pub fn result_count(&self) -> usize {
+        self.result_manager.results().len()
+    }
+}
+
 /// Implements Ghidra function `FUN_01ab2f90` at `0x01AB2F90`.
 ///
 /// Renders an allowed curve from per-pixel evaluations when the current-window

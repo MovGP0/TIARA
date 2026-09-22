@@ -40,7 +40,7 @@ pub struct SymbolLibrary {
 impl SymbolLibrary {
     /// A library over an installation.
     #[must_use]
-    pub fn at(installation: Option<PathBuf>) -> Self {
+    pub const fn at(installation: Option<PathBuf>) -> Self {
         Self {
             installation,
             read: BTreeMap::new(),
@@ -57,7 +57,7 @@ impl SymbolLibrary {
             Symbol::Default(device) => (DEFAULT_LIBRARY.to_owned(), device.clone()),
             // One the original draws itself, and one the catalogue gave up
             // on. Neither is in a library to be looked up.
-            Symbol::Drawn(_) | Symbol::Unresolved { .. } => return Vec::new(),
+            Symbol::Drawn(_) | Symbol::Unresolved => return Vec::new(),
         };
 
         self.table(&library)
@@ -136,8 +136,8 @@ pub fn read_pins(file: &Path) -> BTreeMap<String, Vec<Pin>> {
                 .figures()
                 .into_iter()
                 .filter_map(|figure| match figure {
-                    crate::ddb_device::Figure::Pin { name, at, .. } => {
-                        Some(Pin::new(name, as_offset(at)))
+                    crate::ddb_device::Figure::Pin { name, at, facing } => {
+                        Some(Pin::new(name, as_offset(at)).facing(facing))
                     }
                     _ => None,
                 })

@@ -129,6 +129,15 @@ impl Id {
     pub const fn number(self) -> u32 {
         self.0
     }
+
+    /// An id that stands for no part.
+    ///
+    /// A sheet never hands one of these out - it numbers from one - so it
+    /// is only useful for naming a part that is not on a sheet at all.
+    #[must_use]
+    pub const fn none() -> Self {
+        Self(0)
+    }
 }
 
 /// One part on the sheet.
@@ -158,6 +167,15 @@ pub struct Part {
     /// its own place instead. See [`crate::netlist`].
     #[serde(default)]
     pub pins: Vec<Pin>,
+    /// What the part is worth, as it is written beside it - `1k`, `10n`,
+    /// `2N2222`.
+    ///
+    /// Empty until someone says, because nothing in the catalogue says for
+    /// them: a `.tld` entry carries a part's pins and its symbol and no
+    /// value. A netlist leaves the value off a part that has none rather
+    /// than inventing one. See [`crate::spice_netlist`].
+    #[serde(default)]
+    pub value: String,
 }
 
 impl Part {
@@ -201,6 +219,14 @@ pub struct Pin {
     pub name: String,
     /// How far from the part's place it sits, unturned.
     pub offset: Point,
+    /// Which way it points away from the symbol, unturned.
+    ///
+    /// On a gate this says which pins are inputs and which is the output:
+    /// exactly one faces the odd way. See
+    /// [`crate::logic_gate::output_pin`], which was measured across every
+    /// gate the component bar offers.
+    #[serde(default)]
+    pub facing: crate::ddb_device::Facing,
 }
 
 impl Pin {
@@ -209,7 +235,15 @@ impl Pin {
         Self {
             name: name.into(),
             offset,
+            facing: crate::ddb_device::Facing::default(),
         }
+    }
+
+    /// The same pin, facing a given way.
+    #[must_use]
+    pub const fn facing(mut self, facing: crate::ddb_device::Facing) -> Self {
+        self.facing = facing;
+        self
     }
 
     /// Where this pin is on the sheet, for a part placed and turned so.
@@ -606,6 +640,33 @@ impl Sheet {
         self.place_with_pins(kind, at, rotation, mirrored, label, Vec::new())
     }
 
+    /// Says what a part is worth.
+    ///
+    /// One undo step, like renaming one.
+    pub fn set_value(&mut self, id: Id, value: impl Into<String>) {
+        let value = value.into();
+        let Some(part) = self.document.parts.iter().find(|part| part.id == id) else {
+            return;
+        };
+        if part.value == value {
+            return;
+        }
+        self.remember();
+        if let Some(part) = self.document.parts.iter_mut().find(|part| part.id == id) {
+            part.value = value;
+        }
+    }
+
+    /// Puts a new part down with the pins its symbol draws.
+    ///
+    /// [`Self::place`] with pins: the part is named the same way, so a
+    /// resistor is still the next `R`.
+    pub fn place_pinned(&mut self, kind: impl Into<String>, at: Point, pins: Vec<Pin>) -> Id {
+        let kind = kind.into();
+        let label = self.next_label(&kind);
+        self.place_with_pins(kind, at, Rotation::default(), false, label, pins)
+    }
+
     /// Puts a part down with the pins its symbol draws.
     ///
     /// This is what the palette uses once the library has been read: a part
@@ -632,6 +693,7 @@ impl Sheet {
             hidden: false,
             locked: false,
             pins,
+            value: String::new(),
         });
         self.document.selection.clear();
         self.document.selection.insert(id);

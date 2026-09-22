@@ -1343,6 +1343,37 @@ impl Window {
         id
     }
 
+    /// Shows a netlist that was worked out from a circuit.
+    ///
+    /// `Tools > SPICE Editor` in the original opens on the netlist of the
+    /// sheet being edited rather than on an empty document, because a
+    /// netlist is a view of a circuit before it is a file of its own. The
+    /// port can do the same now that a sheet can be written out - see
+    /// `tiara_core::spice_netlist`.
+    ///
+    /// What was typed by hand is not thrown away: a document that has been
+    /// changed and not saved keeps what it holds, and the circuit's netlist
+    /// is offered the next time the editor is opened clean.
+    pub fn show_netlist(&mut self, text: &str) {
+        if self.document.editor.modified {
+            return;
+        }
+        text.clone_into(&mut self.document.editor.text);
+        self.sync_editor();
+    }
+
+    /// What the editor is showing.
+    #[must_use]
+    pub fn text(&self) -> &str {
+        &self.document.editor.text
+    }
+
+    /// Marks it as typed into, for a test that has to stand in for typing.
+    #[cfg(test)]
+    pub(crate) const fn mark_modified_for_test(&mut self) {
+        self.document.editor.modified = true;
+    }
+
     fn sync_editor(&mut self) {
         self.editor = text_editor::Content::with_text(&self.document.editor.text);
     }

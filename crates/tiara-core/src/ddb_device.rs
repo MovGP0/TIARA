@@ -437,7 +437,7 @@ impl Device {
 }
 
 /// Which way a pin faces, which is the way it points away from the symbol.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub enum Facing {
     /// Out of the left-hand side.
     #[default]

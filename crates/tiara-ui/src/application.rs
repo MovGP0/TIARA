@@ -602,6 +602,9 @@ impl TiaraApplication {
             }
             Message::NumericalFormat(message) => {
                 self.numerical_format.update(message);
+                if self.numerical_format.take_close_requested() {
+                    self.dock.close_window(WindowKind::NumericalFormat);
+                }
             }
             Message::Oscilloscope(message) => {
                 self.oscilloscope.update(message);
@@ -1167,6 +1170,70 @@ mod tests {
         assert_eq!(application.active_window(), WindowKind::SchematicEditor);
         assert!(application.schematic_editor.sheet().document().is_empty());
         assert!(!application.schematic_editor.state().can_undo);
+    }
+
+    #[test]
+    fn numerical_format_accept_closes_its_docked_surface() {
+        // Scenario: NUMFMT-OK-001.
+        let mut application = TiaraApplication::default();
+        application.numerical_format.initialize_from_interpreter(
+            crate::numerical_format::InterpreterNumericalSettings::default(),
+            false,
+        );
+        application.handle(Message::ShowWindow(WindowKind::NumericalFormat));
+
+        application.handle(Message::NumericalFormat(
+            crate::numerical_format::Message::Accept,
+        ));
+
+        assert!(!application.dock.holds(WindowKind::NumericalFormat));
+        assert_eq!(application.active_window(), WindowKind::SchematicEditor);
+    }
+
+    #[test]
+    fn numerical_format_cancel_closes_without_applying_edits() {
+        // Scenario: NUMFMT-CANCEL-001.
+        let initial = crate::numerical_format::InterpreterNumericalSettings::default();
+        let mut application = TiaraApplication::default();
+        application
+            .numerical_format
+            .initialize_from_interpreter(initial, false);
+        application.handle(Message::ShowWindow(WindowKind::NumericalFormat));
+        application.handle(Message::NumericalFormat(
+            crate::numerical_format::Message::DisplayedPrecisionChanged(String::from("6")),
+        ));
+
+        application.handle(Message::NumericalFormat(
+            crate::numerical_format::Message::Cancel,
+        ));
+
+        assert!(!application.dock.holds(WindowKind::NumericalFormat));
+        assert_eq!(application.numerical_format.target(), Some(initial));
+    }
+
+    #[test]
+    fn numerical_format_rejected_accept_keeps_its_docked_surface_open() {
+        // Scenario: NUMFMT-OK-001.
+        let mut application = TiaraApplication::default();
+        application.numerical_format.initialize_from_interpreter(
+            crate::numerical_format::InterpreterNumericalSettings::default(),
+            false,
+        );
+        application.handle(Message::ShowWindow(WindowKind::NumericalFormat));
+        application.handle(Message::NumericalFormat(
+            crate::numerical_format::Message::DisplayedPrecisionChanged(String::from("13")),
+        ));
+
+        application.handle(Message::NumericalFormat(
+            crate::numerical_format::Message::Accept,
+        ));
+
+        assert!(application.dock.holds(WindowKind::NumericalFormat));
+        assert_eq!(application.active_window(), WindowKind::NumericalFormat);
+        assert_eq!(
+            application.numerical_format.first_error(),
+            Some("Displayed precision must not exceed 12.")
+        );
     }
 
     #[test]

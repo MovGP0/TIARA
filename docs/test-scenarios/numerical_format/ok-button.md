@@ -4,9 +4,9 @@
 | --- | --- |
 | Scenario | `NUMFMT-OK-001` |
 | Window / tab | `numerical_format` |
-| Review | Draft |
-| Integration | Not derived |
-| Defect | None filed; validation and caller propagation need live investigation. |
+| Review | Reviewed 2026-09-26 |
+| Integration | Derived in `numerical_format` and `application` tests |
+| Defect | `TIARA-d4qddlz` fixed validation-controlled host closure. |
 
 ## Setup
 
@@ -33,9 +33,15 @@ The recovered logic can commit the numerical record before a later math error an
 
 ## Evidence and current result
 
-Source-derived draft. ok_click preserves partial-commit ordering; form_close_query rejects one close when validation_error is set. The Accept update arm sets close_requested even when ok_click fails. Host validation/close behavior and live TINA parity are not yet verified.
-These observations do not mean that all actions and variants in this draft
-have been executed. Review the unresolved points before deriving tests.
+Source review confirms that `ok_click` preserves the recovered partial-commit
+order. `form_close_query` rejects a close when validation fails. The fixed
+Accept route now requests host closure only after both checks succeed.
+
+Automated tests cover valid caller updates, valid host closure, precision 13
+remaining visible with its first error, and the recovered partial-commit cases.
+The current Windows computer-use helper cannot target the native TIARA window,
+so live comparison with TINA is still unavailable. This limit does not change
+the reviewed Rust behavior or the host-route result.
 
 - [crates/tiara-ui/src/numerical_format/mod.rs](../../../crates/tiara-ui/src/numerical_format/mod.rs)
 - [crates/tiara-ui/src/application.rs](../../../crates/tiara-ui/src/application.rs)
@@ -46,8 +52,7 @@ Discard only this scenario's disposable circuit and temporary files. Close its
 menus and dialogs. Restore any settings changed during the test. Do not modify
 another open circuit. Use a fresh fixture for each independent input route.
 
-## Later integration test
+## Automated coverage
 
-Cite `NUMFMT-OK-001`. Activate the actual control or keyboard route listed above.
-Assert the expected visible and document/caller effects; do not stop at a
-message or flag. This draft is not yet approved for test derivation.
+Tests that cite `NUMFMT-OK-001` exercise the Accept message from the rendered OK
+button, caller updates, validation, and the application dock state.

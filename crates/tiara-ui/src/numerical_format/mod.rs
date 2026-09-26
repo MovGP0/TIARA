@@ -251,8 +251,8 @@ impl Window {
                 self.controls.allow_component_values = value;
             }
             Message::Accept => {
-                let _ = self.ok_click();
-                self.close_requested = true;
+                let accepted = self.ok_click();
+                self.close_requested = self.form_close_query() && accepted;
             }
             Message::SetDefault => self.set_defaults(),
             Message::Cancel => self.close_requested = true,
@@ -389,6 +389,13 @@ impl Window {
     #[must_use]
     pub const fn close_requested(&self) -> bool {
         self.close_requested
+    }
+
+    /// Takes and clears the request that the application close this surface.
+    pub const fn take_close_requested(&mut self) -> bool {
+        let requested = self.close_requested;
+        self.close_requested = false;
+        requested
     }
 
     #[must_use]
@@ -550,6 +557,7 @@ mod tests {
 
     #[test]
     fn defaults_replace_staging_but_not_target_or_global_permission() {
+        // Scenario: NUMFMT-DEFAULT-001.
         let mut window = Window::default();
         let target = custom_settings();
         window.initialize_from_interpreter(target, true);
@@ -562,6 +570,39 @@ mod tests {
         assert_eq!(window.target(), Some(target));
         assert!(window.component_value_permission());
         assert!(window.validation_error());
+    }
+
+    #[test]
+    fn default_then_cancel_preserves_the_caller_and_permission() {
+        // Scenario: NUMFMT-DEFAULT-001.
+        let initial = custom_settings();
+        let mut window = Window::default();
+        window.initialize_from_interpreter(initial, true);
+
+        window.update(Message::SetDefault);
+        window.update(Message::Cancel);
+
+        assert!(window.take_close_requested());
+        assert_eq!(window.staging(), InterpreterNumericalSettings::default());
+        assert_eq!(window.target(), Some(initial));
+        assert!(window.component_value_permission());
+    }
+
+    #[test]
+    fn default_then_accept_commits_defaults_and_requests_close() {
+        // Scenario: NUMFMT-DEFAULT-001.
+        let mut window = Window::default();
+        window.initialize_from_interpreter(custom_settings(), false);
+
+        window.update(Message::SetDefault);
+        window.update(Message::Accept);
+
+        assert!(window.take_close_requested());
+        assert_eq!(
+            window.target(),
+            Some(InterpreterNumericalSettings::default())
+        );
+        assert!(!window.component_value_permission());
     }
 
     #[test]
@@ -584,6 +625,60 @@ mod tests {
         assert!((committed.math.differentiation_step - 0.125).abs() <= f64::EPSILON);
         assert_eq!(committed.math.integration_subdivisions, 64);
         assert!(window.component_value_permission());
+    }
+
+    #[test]
+    fn accept_requests_close_only_after_valid_input() {
+        // Scenario: NUMFMT-OK-001.
+        let mut window = Window::default();
+        window.initialize_from_interpreter(InterpreterNumericalSettings::default(), false);
+        window.update(Message::DisplayedPrecisionChanged(String::from("6")));
+        window.update(Message::DifferentiationStepChanged(String::from("0.02")));
+        window.update(Message::IntegrationSubdivisionsChanged(String::from("200")));
+
+        window.update(Message::Accept);
+
+        assert!(window.take_close_requested());
+        assert!(!window.close_requested());
+        let committed = window.target().expect("bound interpreter");
+        assert_eq!(committed.numerical.displayed_precision, 6);
+        assert!((committed.math.differentiation_step - 0.02).abs() <= f64::EPSILON);
+        assert_eq!(committed.math.integration_subdivisions, 200);
+    }
+
+    #[test]
+    fn rejected_accept_keeps_the_dialog_open() {
+        // Scenario: NUMFMT-OK-001.
+        let initial = custom_settings();
+        let mut window = Window::default();
+        window.initialize_from_interpreter(initial, false);
+        window.update(Message::DisplayedPrecisionChanged(String::from("13")));
+
+        window.update(Message::Accept);
+
+        assert!(!window.close_requested());
+        assert_eq!(window.target(), Some(initial));
+        assert_eq!(
+            window.first_error(),
+            Some("Displayed precision must not exceed 12.")
+        );
+    }
+
+    #[test]
+    fn cancel_requests_close_without_committing_controls() {
+        // Scenario: NUMFMT-CANCEL-001.
+        let initial = custom_settings();
+        let mut window = Window::default();
+        window.initialize_from_interpreter(initial, false);
+        window.update(Message::DisplayedPrecisionChanged(String::from("6")));
+        window.update(Message::DifferentiationStepChanged(String::from("bad")));
+        window.update(Message::AllowComponentValuesChanged(true));
+
+        window.update(Message::Cancel);
+
+        assert!(window.take_close_requested());
+        assert_eq!(window.target(), Some(initial));
+        assert!(!window.component_value_permission());
     }
 
     #[test]

@@ -4,9 +4,9 @@
 | --- | --- |
 | Scenario | `NUMFMT-DEFAULT-001` |
 | Window / tab | `numerical_format` |
-| Review | Draft |
-| Integration | Not derived |
-| Defect | None filed. |
+| Review | Reviewed 2026-09-26 |
+| Integration | Derived in `numerical_format` tests |
+| Defect | None. |
 
 ## Setup
 
@@ -34,9 +34,11 @@ Click Set Default twice; the second click must be harmless. Test both initial pe
 
 ## Evidence and current result
 
-Source-derived draft from set_defaults, load_controls_from_staging and the default records. No live numerical-format comparison was performed in this session.
-These observations do not mean that all actions and variants in this draft
-have been executed. Review the unresolved points before deriving tests.
+Source review confirms that `set_defaults` replaces staging and reloads the
+controls. It does not update the caller or the stored component-value
+permission. Automated coverage verifies these boundaries. The current Windows
+computer-use helper cannot target the native TIARA window, so live comparison
+with TINA is still unavailable.
 
 - [crates/tiara-ui/src/numerical_format/mod.rs](../../../crates/tiara-ui/src/numerical_format/mod.rs)
 
@@ -46,8 +48,7 @@ Discard only this scenario's disposable circuit and temporary files. Close its
 menus and dialogs. Restore any settings changed during the test. Do not modify
 another open circuit. Use a fresh fixture for each independent input route.
 
-## Later integration test
+## Automated coverage
 
-Cite `NUMFMT-DEFAULT-001`. Activate the actual control or keyboard route listed above.
-Assert the expected visible and document/caller effects; do not stop at a
-message or flag. This draft is not yet approved for test derivation.
+The test that cites `NUMFMT-DEFAULT-001` verifies the default staging values,
+unchanged caller values, and unchanged stored permission.

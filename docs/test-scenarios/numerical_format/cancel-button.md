@@ -4,9 +4,9 @@
 | --- | --- |
 | Scenario | `NUMFMT-CANCEL-001` |
 | Window / tab | `numerical_format` |
-| Review | Draft |
-| Integration | Not derived |
-| Defect | None filed. |
+| Review | Reviewed 2026-09-26 |
+| Integration | Derived in `numerical_format` and `application` tests |
+| Defect | `TIARA-d4qddlz` fixed application host closure. |
 
 ## Setup
 
@@ -33,9 +33,11 @@ Repeat after Set Default without clicking OK. Cancellation after a failed OK is 
 
 ## Evidence and current result
 
-Source-derived draft. Cancel sets close_requested without calling ok_click. Caller propagation, actual tab closure and TINA behavior remain unverified.
-These observations do not mean that all actions and variants in this draft
-have been executed. Review the unresolved points before deriving tests.
+Source review confirms that Cancel requests closure without calling `ok_click`.
+Automated tests change valid and invalid controls, cancel the surface, and
+verify that the caller value remains unchanged and the docked surface closes.
+The current Windows computer-use helper cannot target the native TIARA window,
+so live comparison with TINA is still unavailable.
 
 - [crates/tiara-ui/src/numerical_format/mod.rs](../../../crates/tiara-ui/src/numerical_format/mod.rs)
 - [crates/tiara-ui/src/application.rs](../../../crates/tiara-ui/src/application.rs)
@@ -46,8 +48,7 @@ Discard only this scenario's disposable circuit and temporary files. Close its
 menus and dialogs. Restore any settings changed during the test. Do not modify
 another open circuit. Use a fresh fixture for each independent input route.
 
-## Later integration test
+## Automated coverage
 
-Cite `NUMFMT-CANCEL-001`. Activate the actual control or keyboard route listed above.
-Assert the expected visible and document/caller effects; do not stop at a
-message or flag. This draft is not yet approved for test derivation.
+Tests that cite `NUMFMT-CANCEL-001` exercise the Cancel message from the
+rendered button, unchanged caller data, and the application dock state.

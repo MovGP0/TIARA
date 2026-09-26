@@ -239,6 +239,35 @@ mod tests {
     }
 
     #[test]
+    fn undo_and_redo_shortcuts_follow_the_active_document_history() {
+        let undoable = EditorState {
+            can_undo: true,
+            ..EditorState::default()
+        };
+        let redoable = EditorState {
+            can_redo: true,
+            ..EditorState::default()
+        };
+
+        assert_eq!(
+            command_for(&character("z"), Modifiers::CTRL, EditorState::default()),
+            None
+        );
+        assert_eq!(
+            command_for(&character("z"), Modifiers::CTRL, undoable),
+            Some("mnUndo")
+        );
+        assert_eq!(
+            command_for(&character("y"), Modifiers::CTRL, EditorState::default()),
+            None
+        );
+        assert_eq!(
+            command_for(&character("y"), Modifiers::CTRL, redoable),
+            Some("mnRedo")
+        );
+    }
+
+    #[test]
     fn a_function_key_is_read_by_its_number() {
         let found = command_for(
             &Key::Named(Named::F5),

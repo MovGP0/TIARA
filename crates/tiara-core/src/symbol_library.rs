@@ -19,13 +19,20 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use crate::ddb_device::{self, Place};
+use crate::ddb_device::{self, Figure, Place};
 use crate::device_catalogue::Symbol;
 use crate::obss::Container;
 use crate::schematic_document::{Pin, Point};
 
 /// What the library holding the numbered devices is called.
 pub const DEFAULT_LIBRARY: &str = "DEVICES";
+
+/// The geometry and electrical terminals of one installed symbol.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SymbolDrawing {
+    pub figures: Vec<Figure>,
+    pub pins: Vec<Pin>,
+}
 
 /// The pins of every symbol, read as they are wanted.
 #[derive(Debug, Default, Clone)]
@@ -34,7 +41,7 @@ pub struct SymbolLibrary {
     installation: Option<PathBuf>,
     /// One table per library file read so far, by the name the catalogue
     /// uses for it, lowercased.
-    read: BTreeMap<String, BTreeMap<String, Vec<Pin>>>,
+    read: BTreeMap<String, BTreeMap<String, SymbolDrawing>>,
 }
 
 impl SymbolLibrary {
@@ -52,18 +59,34 @@ impl SymbolLibrary {
     /// Empty for a symbol the original draws itself, one whose pinout the
     /// catalogue never resolved, or anything that cannot be found.
     pub fn pins_of(&mut self, symbol: &Symbol) -> Vec<Pin> {
+        self.drawing_of(symbol)
+            .map_or_else(Vec::new, |drawing| drawing.pins)
+    }
+
+    /// The complete drawing of a symbol, reading its library if necessary.
+    pub fn drawing_of(&mut self, symbol: &Symbol) -> Option<SymbolDrawing> {
         let (library, device) = match symbol {
             Symbol::Stored { library, device } => (library.clone(), device.clone()),
             Symbol::Default(device) => (DEFAULT_LIBRARY.to_owned(), device.clone()),
             // One the original draws itself, and one the catalogue gave up
             // on. Neither is in a library to be looked up.
-            Symbol::Drawn(_) | Symbol::Unresolved => return Vec::new(),
+            Symbol::Drawn(_) | Symbol::Unresolved => return None,
         };
 
-        self.table(&library)
-            .get(&device)
-            .cloned()
-            .unwrap_or_default()
+        self.table(&library).get(&device).cloned()
+    }
+
+    /// A drawing that has already been loaded, without file-system work.
+    #[must_use]
+    pub fn cached_drawing_of(&self, symbol: &Symbol) -> Option<&SymbolDrawing> {
+        let (library, device) = match symbol {
+            Symbol::Stored { library, device } => (library.as_str(), device.as_str()),
+            Symbol::Default(device) => (DEFAULT_LIBRARY, device.as_str()),
+            Symbol::Drawn(_) | Symbol::Unresolved => return None,
+        };
+        self.read
+            .get(&library.to_ascii_lowercase())
+            .and_then(|table| table.get(device))
     }
 
     /// Whether a library has been read already.
@@ -73,14 +96,14 @@ impl SymbolLibrary {
     }
 
     /// The table for one library, reading it the first time it is wanted.
-    fn table(&mut self, library: &str) -> &BTreeMap<String, Vec<Pin>> {
+    fn table(&mut self, library: &str) -> &BTreeMap<String, SymbolDrawing> {
         let key = library.to_ascii_lowercase();
         if !self.read.contains_key(&key) {
             let table = self
                 .installation
                 .as_deref()
                 .and_then(|at| file_for(at, library))
-                .map(|file| read_pins(&file))
+                .map(|file| read_drawings(&file))
                 .unwrap_or_default();
             self.read.insert(key.clone(), table);
         }
@@ -115,6 +138,15 @@ pub fn file_for(installation: &Path, library: &str) -> Option<PathBuf> {
 /// Every device in one library, and where its pins are.
 #[must_use]
 pub fn read_pins(file: &Path) -> BTreeMap<String, Vec<Pin>> {
+    read_drawings(file)
+        .into_iter()
+        .map(|(name, drawing)| (name, drawing.pins))
+        .collect()
+}
+
+/// Every device in one library, including all drawable primitives.
+#[must_use]
+pub fn read_drawings(file: &Path) -> BTreeMap<String, SymbolDrawing> {
     let Ok(opened) = std::fs::File::open(file) else {
         return BTreeMap::new();
     };
@@ -131,20 +163,23 @@ pub fn read_pins(file: &Path) -> BTreeMap<String, Vec<Pin>> {
         // for a part that turns - and the sheet turns the symbol itself.
         // So the pins come from the first element only; taking them from
         // all of them would give a two-terminal part eight pins.
-        let pins: Vec<Pin> = device.elements.first().map_or_else(Vec::new, |element| {
-            element
-                .figures()
-                .into_iter()
-                .filter_map(|figure| match figure {
-                    crate::ddb_device::Figure::Pin { name, at, facing } => {
-                        Some(Pin::new(name, as_offset(at)).facing(facing))
-                    }
-                    _ => None,
-                })
-                .collect()
-        });
+        let figures = device
+            .elements
+            .first()
+            .map_or_else(Vec::new, crate::ddb_device::Element::figures);
+        let pins = figures
+            .iter()
+            .filter_map(|figure| match figure {
+                Figure::Pin { name, at, facing } => {
+                    Some(Pin::new(name.clone(), as_offset(*at)).facing(*facing))
+                }
+                _ => None,
+            })
+            .collect();
         // The same name may appear more than once; the first wins.
-        table.entry(device.name).or_insert(pins);
+        table
+            .entry(device.name)
+            .or_insert(SymbolDrawing { figures, pins });
     }
     table
 }
@@ -157,7 +192,7 @@ fn as_offset(at: Place) -> Point {
 
 #[cfg(test)]
 mod tests {
-    use super::{DEFAULT_LIBRARY, SymbolLibrary, file_for, read_pins};
+    use super::{DEFAULT_LIBRARY, SymbolLibrary, file_for, read_drawings, read_pins};
     use crate::device_catalogue::Symbol;
 
     fn installed() -> Option<std::path::PathBuf> {
@@ -171,6 +206,11 @@ mod tests {
             library
                 .pins_of(&Symbol::Default("10".to_owned()))
                 .is_empty()
+        );
+        assert!(
+            library
+                .drawing_of(&Symbol::Default("10".to_owned()))
+                .is_none()
         );
         assert!(
             library
@@ -280,5 +320,25 @@ mod tests {
         // drawing that carry none.
         let with_pins = table.values().filter(|pins| !pins.is_empty()).count();
         assert!(with_pins * 2 > table.len(), "only {with_pins} carry pins");
+    }
+
+    #[test]
+    fn installed_symbols_keep_non_pin_geometry() {
+        let Some(installation) = installed() else {
+            return;
+        };
+        let Some(file) = file_for(&installation, DEFAULT_LIBRARY) else {
+            return;
+        };
+        let drawings = read_drawings(&file);
+        let drawing = drawings.get("10").expect("device 10");
+
+        assert!(!drawing.pins.is_empty());
+        assert!(
+            drawing
+                .figures
+                .iter()
+                .any(|figure| !matches!(figure, crate::ddb_device::Figure::Pin { .. }))
+        );
     }
 }

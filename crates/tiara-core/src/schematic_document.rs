@@ -16,6 +16,7 @@
 //! an inverse can.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
@@ -429,6 +430,12 @@ pub struct Document {
     /// nothing to save, so this is not written either.
     #[serde(skip)]
     modified: bool,
+    /// Original native TSC bytes, retained for an exact lossless write.
+    ///
+    /// An `Arc` keeps undo snapshots cheap. Editing support must encode the
+    /// changed native records before this source can be used for a save.
+    #[serde(skip)]
+    native_source: Option<Arc<[u8]>>,
 }
 
 /// A sheet and its selection, kept so the editor can go back to it.
@@ -498,6 +505,16 @@ impl Document {
     #[must_use]
     pub const fn is_modified(&self) -> bool {
         self.modified
+    }
+
+    /// The native file this document was read from, when there is one.
+    pub(crate) fn native_source(&self) -> Option<&[u8]> {
+        self.native_source.as_deref()
+    }
+
+    /// Keeps the native source for an exact read-then-write round trip.
+    pub(crate) fn retain_native_source(&mut self, source: &[u8]) {
+        self.native_source = Some(Arc::from(source));
     }
 
     /// Whether one thing is selected.
@@ -662,9 +679,29 @@ impl Sheet {
     /// [`Self::place`] with pins: the part is named the same way, so a
     /// resistor is still the next `R`.
     pub fn place_pinned(&mut self, kind: impl Into<String>, at: Point, pins: Vec<Pin>) -> Id {
+        self.place_pinned_with_value(kind, at, pins, String::new())
+    }
+
+    /// Puts a new part down with its pins and initial value as one edit.
+    ///
+    /// A palette command supplies both at placement time. They must share one
+    /// undo step so Undo removes the new part instead of only clearing its
+    /// default value.
+    pub fn place_pinned_with_value(
+        &mut self,
+        kind: impl Into<String>,
+        at: Point,
+        pins: Vec<Pin>,
+        value: impl Into<String>,
+    ) -> Id {
         let kind = kind.into();
         let label = self.next_label(&kind);
-        self.place_with_pins(kind, at, Rotation::default(), false, label, pins)
+        let id = self.place_with_pins(kind, at, Rotation::default(), false, label, pins);
+        let value = value.into();
+        if let Some(part) = self.document.parts.iter_mut().find(|part| part.id == id) {
+            part.value = value;
+        }
+        id
     }
 
     /// Puts a part down with the pins its symbol draws.
@@ -698,6 +735,40 @@ impl Sheet {
         self.document.selection.clear();
         self.document.selection.insert(id);
         id
+    }
+
+    /// Adds a part read from a circuit file without making an editor action.
+    pub(crate) fn load_part(
+        &mut self,
+        kind: impl Into<String>,
+        at: Point,
+        rotation: Rotation,
+        mirrored: bool,
+        label: impl Into<String>,
+        value: impl Into<String>,
+    ) {
+        let id = self.document.take_id();
+        self.document.parts.push(Part {
+            id,
+            kind: kind.into(),
+            at,
+            rotation,
+            mirrored,
+            label: label.into(),
+            hidden: false,
+            locked: false,
+            pins: Vec::new(),
+            value: value.into(),
+        });
+    }
+
+    /// Adds a wire read from a circuit file without making an editor action.
+    pub(crate) fn load_wire(&mut self, from: Point, to: Point, kind: WireKind) {
+        if from == to {
+            return;
+        }
+        let id = self.document.take_id();
+        self.document.wires.push(Wire { id, from, to, kind });
     }
 
     /// Takes the selected parts out of the circuit, or puts them back.
@@ -1153,6 +1224,17 @@ mod tests {
         assert!(sheet.document().is_modified());
         assert!(sheet.document().is_selected(id));
         assert_eq!(sheet.document().parts().len(), 1);
+    }
+
+    #[test]
+    fn placing_a_part_with_its_default_value_is_one_undo_step() {
+        let mut sheet = Sheet::default();
+        sheet.place_pinned_with_value("R", Point::new(4, 4), Vec::new(), "1k");
+
+        assert_eq!(sheet.document().parts()[0].value, "1k");
+        sheet.undo();
+        assert!(sheet.document().is_empty());
+        assert!(!sheet.can_undo());
     }
 
     #[test]

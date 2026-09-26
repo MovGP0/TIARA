@@ -1,5 +1,6 @@
 use iced::widget::{
-    button, column, container, horizontal_space, mouse_area, rich_text, row, span, svg, text,
+    button, column, container, horizontal_space, mouse_area, responsive, rich_text, row, span, svg,
+    text,
 };
 use iced::{Alignment, Element, Length, Theme};
 
@@ -15,6 +16,8 @@ use crate::shared::theme::ThemeTokens;
 /// How wide a dropdown is, and how wide one nested inside it is.
 const MENU_WIDTH: f32 = 320.0;
 const SUBMENU_WIDTH: f32 = 300.0;
+const ROOT_SPACING: f32 = 1.0;
+const MAX_MENU_DEPTH: usize = 4;
 
 /// The entries one dropdown actually draws, in order.
 ///
@@ -49,8 +52,8 @@ fn drawn(entries: &'static [MenuEntry], state: EditorState) -> Vec<&'static Menu
 pub struct OpenMenu {
     /// Which of the bar's roots is open, counting the ones that are drawn.
     pub root: Option<usize>,
-    /// Which entry inside it has opened a submenu, by its name.
-    pub inside: Option<&'static str>,
+    /// The submenu opener at each depth, from the root panel outwards.
+    pub path: [Option<&'static str>; MAX_MENU_DEPTH],
 }
 
 impl OpenMenu {
@@ -59,7 +62,7 @@ impl OpenMenu {
     pub const fn shut() -> Self {
         Self {
             root: None,
-            inside: None,
+            path: [None; MAX_MENU_DEPTH],
         }
     }
 
@@ -74,7 +77,39 @@ impl OpenMenu {
     pub const fn opening(root: usize) -> Self {
         Self {
             root: Some(root),
-            inside: None,
+            path: [None; MAX_MENU_DEPTH],
+        }
+    }
+
+    /// Opens one submenu and retains every parent needed to reach it.
+    pub fn open_entry(&mut self, name: &'static str, state: EditorState) {
+        let Some(root) = self.root.and_then(|root| roots(state).get(root).copied()) else {
+            return;
+        };
+        let mut entries = command_state::children_of(root);
+        for depth in 0..MAX_MENU_DEPTH {
+            if entries.iter().any(|entry| entry.name == name) {
+                self.path[depth] = Some(name);
+                self.path[(depth + 1)..].fill(None);
+                return;
+            }
+            let Some(parent) = self.path[depth]
+                .and_then(|parent| entries.iter().find(|entry| entry.name == parent))
+            else {
+                return;
+            };
+            entries = command_state::children_of(parent);
+        }
+    }
+
+    /// Closes the deepest submenu. Returns false when only the root remains.
+    pub fn close_deepest(&mut self) -> bool {
+        if let Some(depth) = self.path.iter().rposition(Option::is_some) {
+            self.path[depth] = None;
+            self.path[(depth + 1)..].fill(None);
+            true
+        } else {
+            false
         }
     }
 }
@@ -138,16 +173,19 @@ pub fn accelerator_of(entry: &'static MenuEntry) -> Option<char> {
         .map(|letter| letter.to_ascii_lowercase())
 }
 
-/// Roughly how far along the bar one root starts.
+/// How far along the bar one root starts.
 ///
-/// The bar is a row of buttons and iced lays it out when it draws, which is
-/// after this has to decide where to put the dropdown. So the width of a
-/// caption is reckoned from how many characters it has - near enough to put
-/// the dropdown under its own root, and the only thing here that is an
-/// estimate rather than a fact.
+/// The bar and this calculation use the same explicit width for every root.
+/// Therefore, the dropdown starts at the rendered button boundary.
 #[must_use]
 pub fn root_offset(root: usize, state: EditorState) -> f32 {
-    roots(state).into_iter().take(root).map(root_width).sum()
+    let widths: f32 = roots(state).into_iter().take(root).map(root_width).sum();
+    #[allow(
+        clippy::cast_precision_loss,
+        reason = "the menu has fewer roots than f32 can represent exactly"
+    )]
+    let gaps = root as f32 * ROOT_SPACING;
+    widths + gaps
 }
 
 /// Roughly how wide one root button is.
@@ -168,12 +206,13 @@ const ROOT_PADDING: f32 = 14.0;
 
 /// The bar of roots, with the open one standing out.
 pub fn bar(tokens: ThemeTokens, state: EditorState, open: OpenMenu) -> Element<'static, Message> {
-    let mut strip = row![].spacing(1).align_y(Alignment::Center);
+    let mut strip = row![].spacing(ROOT_SPACING).align_y(Alignment::Center);
     for (at, entry) in roots(state).into_iter().enumerate() {
         let lit = open.root == Some(at);
         strip = strip.push(
             mouse_area(
                 button(caption_of(entry, tokens.text.iced()))
+                    .width(Length::Fixed(root_width(entry)))
                     .padding([7, 6])
                     .on_press(Message::MenuRootPressed(at))
                     .style(move |theme, status| {
@@ -209,25 +248,54 @@ pub fn dropdown(
 ) -> Option<Element<'static, Message>> {
     let root = open.root?;
     let entry = *roots(state).get(root)?;
-    let panel = panel(
-        command_state::children_of(entry),
-        tokens,
-        state,
-        settings,
-        MENU_WIDTH,
-        open.inside,
-    );
-
+    let entries = command_state::children_of(entry);
+    let settings = settings.clone();
     Some(
-        container(panel)
-            .padding(iced::Padding {
-                top: 0.0,
-                right: 0.0,
-                bottom: 0.0,
-                left: root_offset(root, state),
-            })
-            .into(),
+        responsive(move |size| {
+            let layout =
+                dropdown_layout(root_offset(root, state), size.width, open.path[0].is_some());
+            let panel = panel(
+                entries,
+                tokens,
+                state,
+                &settings,
+                MENU_WIDTH,
+                &open.path,
+                layout.submenu_before,
+            );
+            container(panel)
+                .padding(iced::Padding {
+                    top: 0.0,
+                    right: 0.0,
+                    bottom: 0.0,
+                    left: layout.left,
+                })
+                .into()
+        })
+        .into(),
     )
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct DropdownLayout {
+    left: f32,
+    submenu_before: bool,
+}
+
+fn dropdown_layout(root_left: f32, available_width: f32, has_submenu: bool) -> DropdownLayout {
+    let root_left = root_left.min((available_width - MENU_WIDTH).max(0.0));
+    let submenu_before = has_submenu
+        && root_left + MENU_WIDTH + SUBMENU_WIDTH > available_width
+        && root_left >= SUBMENU_WIDTH;
+    let left = if submenu_before {
+        root_left - SUBMENU_WIDTH
+    } else {
+        root_left
+    };
+    DropdownLayout {
+        left,
+        submenu_before,
+    }
 }
 
 /// One dropdown, and the one it has open inside it.
@@ -237,49 +305,64 @@ fn panel(
     state: EditorState,
     settings: &EditorSettings,
     width: f32,
-    inside: Option<&'static str>,
+    path: &[Option<&'static str>],
+    submenu_before: bool,
 ) -> Element<'static, Message> {
     let mut lines = column![].width(Length::Fixed(width));
     for entry in drawn(entries, state) {
         lines = lines.push(line(entry, tokens, state, settings));
     }
 
-    let panel = container(lines)
+    let root_panel = container(lines)
         .padding(2)
         .style(move |iced_theme| chrome::menu_panel_style(tokens, iced_theme));
 
     // A submenu is drawn beside the one that opened it, as far down as the
     // entry that did.
-    let Some(name) = inside else {
-        return panel.into();
+    let Some(name) = path.first().copied().flatten() else {
+        return root_panel.into();
     };
     let Some(opener) = drawn(entries, state)
         .into_iter()
         .find(|entry| entry.name == name)
     else {
-        return panel.into();
+        return root_panel.into();
     };
     let children = command_state::children_of(opener);
     if children.is_empty() {
-        return panel.into();
+        return root_panel.into();
     }
 
-    row![
-        panel,
-        panel_of(children, tokens, state, settings, SUBMENU_WIDTH)
-    ]
-    .into()
+    let top = submenu_offset(entries, name, state);
+    let submenu = container(panel(
+        children,
+        tokens,
+        state,
+        settings,
+        SUBMENU_WIDTH,
+        path.get(1..).unwrap_or_default(),
+        submenu_before,
+    ))
+    .padding(iced::Padding {
+        top,
+        right: 0.0,
+        bottom: 0.0,
+        left: 0.0,
+    });
+
+    if submenu_before {
+        row![submenu, root_panel].into()
+    } else {
+        row![root_panel, submenu].into()
+    }
 }
 
-/// A nested dropdown, which opens nothing further.
-fn panel_of(
-    entries: &'static [MenuEntry],
-    tokens: ThemeTokens,
-    state: EditorState,
-    settings: &EditorSettings,
-    width: f32,
-) -> Element<'static, Message> {
-    panel(entries, tokens, state, settings, width, None)
+fn submenu_offset(entries: &'static [MenuEntry], name: &str, state: EditorState) -> f32 {
+    drawn(entries, state)
+        .into_iter()
+        .take_while(|entry| entry.name != name)
+        .map(|entry| if entry.is_separator() { 9.0 } else { 26.0 })
+        .sum()
 }
 
 /// One line of a dropdown.
@@ -413,7 +496,10 @@ fn separator(tokens: ThemeTokens) -> Element<'static, Message> {
 
 #[cfg(test)]
 mod tests {
-    use super::{drawn, is_an_instrument};
+    use super::{
+        OpenMenu, ROOT_SPACING, drawn, dropdown_layout, is_an_instrument, root_offset, root_width,
+        submenu_offset,
+    };
     use crate::schematic_editor::command_state::EditorState;
     use crate::schematic_editor::menu_tree::{MAIN_MENU, MenuEntry};
 
@@ -522,5 +608,58 @@ mod tests {
 
         assert!(is_an_instrument(oscilloscope));
         assert!(!is_an_instrument(measurement));
+    }
+
+    #[test]
+    fn each_dropdown_uses_the_exact_widths_assigned_to_earlier_roots() {
+        let state = empty();
+        let roots = super::roots(state);
+        let tools = roots
+            .iter()
+            .position(|entry| entry.caption == "Tools")
+            .expect("Tools root");
+        let preceding_width = roots[..tools]
+            .iter()
+            .map(|entry| root_width(entry))
+            .sum::<f32>();
+        let root_count = f32::from(u16::try_from(tools).unwrap());
+        let expected = root_count.mul_add(ROOT_SPACING, preceding_width);
+
+        assert!((root_offset(tools, state) - expected).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn a_submenu_is_offset_to_the_row_that_opened_it() {
+        let help = super::command_state::children_of(menu("Help"));
+        let offset = submenu_offset(help, "mnDesignSoftontheWeb", empty());
+
+        assert!(offset > 0.0);
+    }
+
+    #[test]
+    fn a_right_edge_submenu_opens_towards_the_available_space() {
+        let narrow = dropdown_layout(400.0, 720.0, true);
+        assert!(narrow.submenu_before);
+        assert!((narrow.left - 100.0).abs() < f32::EPSILON);
+
+        let wide = dropdown_layout(400.0, 1_200.0, true);
+        assert!(!wide.submenu_before);
+        assert!((wide.left - 400.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn submenu_ownership_keeps_the_parent_path() {
+        let state = empty();
+        let help_root = super::roots(state)
+            .iter()
+            .position(|entry| entry.caption == "Help")
+            .expect("Help root");
+        let mut open = OpenMenu::opening(help_root);
+
+        open.open_entry("mnDesignSoftontheWeb", state);
+
+        assert_eq!(open.path[0], Some("mnDesignSoftontheWeb"));
+        assert!(open.close_deepest());
+        assert_eq!(open.path, [None; 4]);
     }
 }

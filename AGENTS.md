@@ -76,7 +76,7 @@ referred to as `foo.workspace = true`; add a version in one place only.
 | `csv` 1.4.0 | tiara-ui | The test-bench tables. |
 | `walkdir` 2.5.0 | tiara-ui | Walking a model folder. |
 | `xmltree` 0.12.0 | tiara-ui | The XML the converters and the filter designer read. |
-| `serde` + `serde_json` 1.0 | both | The port's own `.tsc` and `.tsm` files, which are JSON. |
+| `serde` + `serde_json` 1.0 | both | `.tsm`, preferences, and structured interchange. Native `.tsc` files are binary OBSS circuit containers, not JSON. |
 | `glob` 0.3.3 | tiara-core | Finding circuit files. |
 | `num-traits` 0.2.19 | tiara-core | Sample arithmetic in the WAV reader. |
 

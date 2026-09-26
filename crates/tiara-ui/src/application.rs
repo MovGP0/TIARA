@@ -390,6 +390,16 @@ impl TiaraApplication {
                     }
                     return;
                 }
+                if matches!(
+                    key,
+                    iced::keyboard::Key::Named(iced::keyboard::key::Named::Escape)
+                ) && modifiers.is_empty()
+                {
+                    self.handle(Message::SchematicEditor(
+                        schematic_editor::Message::CancelTool,
+                    ));
+                    return;
+                }
                 // Every shortcut the menu shows is read back out of the menu
                 // itself, so the keys that work are the keys the menu
                 // advertises, and a greyed command's shortcut is as dead as
@@ -1354,6 +1364,63 @@ SYMATTR InstName R1
     }
 
     #[test]
+    fn every_repository_ltspice_example_reaches_the_editor() {
+        use crate::ltspice_import::LtspiceSchematicPort;
+
+        let examples = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples");
+        let mut sources = walkdir::WalkDir::new(&examples)
+            .into_iter()
+            .filter_map(Result::ok)
+            .filter(|entry| entry.file_type().is_file())
+            .map(walkdir::DirEntry::into_path)
+            .filter(|path| {
+                path.extension()
+                    .is_some_and(|extension| extension.eq_ignore_ascii_case("asc"))
+            })
+            .collect::<Vec<_>>();
+        sources.sort();
+        assert!(
+            !sources.is_empty(),
+            "{} has no LTspice examples",
+            examples.display()
+        );
+
+        for source in sources {
+            let mut application = TiaraApplication::default();
+            {
+                let services = application.ltspice_import.services();
+                let mut services = services.lock().unwrap();
+                services.create_new_schematic().unwrap();
+                services
+                    .import_ltspice_source(&source)
+                    .unwrap_or_else(|error| panic!("{}: {error}", source.display()));
+            }
+
+            application.handle(Message::LtspiceImport(
+                crate::ltspice_import::Message::FileNameChanged(String::new()),
+            ));
+
+            let document = application.schematic_editor.sheet().document();
+            assert_eq!(
+                application.active_window(),
+                WindowKind::SchematicEditor,
+                "{} did not reach the schematic editor",
+                source.display()
+            );
+            assert!(
+                !document.parts().is_empty() && !document.wires().is_empty(),
+                "{} produced no usable circuit",
+                source.display()
+            );
+            assert!(
+                !document.is_modified(),
+                "{} was marked as an unsaved edit",
+                source.display()
+            );
+        }
+    }
+
+    #[test]
     fn the_two_windows_the_original_will_not_open_still_open_here() {
         // Their commands are greyed in the original - one because its
         // handler is a stub, one because the original was never driven into
@@ -1487,5 +1554,129 @@ SYMATTR InstName R1
             iced::keyboard::Modifiers::CTRL,
         ));
         assert_eq!(application.schematic_editor.circuits().len(), 2);
+    }
+
+    #[test]
+    fn undo_and_redo_shortcuts_change_the_active_document() {
+        let mut application = TiaraApplication::default();
+        application.handle(Message::SchematicEditor(schematic_editor::Message::PickUp(
+            "R",
+        )));
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::SheetClicked(4, 6),
+        ));
+        assert_eq!(
+            application
+                .schematic_editor
+                .sheet()
+                .document()
+                .parts()
+                .len(),
+            1
+        );
+
+        application.handle(Message::KeyPressed(
+            iced::keyboard::Key::Character("z".into()),
+            iced::keyboard::Modifiers::CTRL,
+        ));
+
+        assert!(application.schematic_editor.sheet().document().is_empty());
+        assert!(application.schematic_editor.state().can_redo);
+
+        application.handle(Message::KeyPressed(
+            iced::keyboard::Key::Character("y".into()),
+            iced::keyboard::Modifiers::CTRL,
+        ));
+
+        assert_eq!(
+            application
+                .schematic_editor
+                .sheet()
+                .document()
+                .parts()
+                .len(),
+            1
+        );
+        assert!(!application.schematic_editor.state().can_redo);
+    }
+
+    #[test]
+    fn escape_cancels_active_placement_before_the_next_sheet_press() {
+        let mut application = TiaraApplication::default();
+        application.handle(Message::SchematicEditor(schematic_editor::Message::PickUp(
+            "R",
+        )));
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::SheetPressed(2, 2),
+        ));
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::SheetReleased(2, 2),
+        ));
+
+        application.handle(Message::KeyPressed(
+            iced::keyboard::Key::Named(iced::keyboard::key::Named::Escape),
+            iced::keyboard::Modifiers::empty(),
+        ));
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::SheetPressed(8, 8),
+        ));
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::SheetReleased(8, 8),
+        ));
+
+        assert_eq!(
+            application
+                .schematic_editor
+                .sheet()
+                .document()
+                .parts()
+                .len(),
+            1
+        );
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::MenuCommand("mnUndo"),
+        ));
+        assert!(application.schematic_editor.sheet().document().is_empty());
+    }
+
+    #[test]
+    fn a_new_edit_clears_redo_without_touching_another_document() {
+        let mut application = TiaraApplication::default();
+        application.handle(Message::SchematicEditor(schematic_editor::Message::PickUp(
+            "R",
+        )));
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::SheetClicked(2, 2),
+        ));
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::MenuCommand("mnNew"),
+        ));
+        application.handle(Message::SchematicEditor(schematic_editor::Message::PickUp(
+            "C",
+        )));
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::SheetClicked(6, 6),
+        ));
+        application.handle(Message::KeyPressed(
+            iced::keyboard::Key::Character("z".into()),
+            iced::keyboard::Modifiers::CTRL,
+        ));
+        assert!(application.schematic_editor.state().can_redo);
+
+        application.handle(Message::SchematicEditor(schematic_editor::Message::PickUp(
+            "L",
+        )));
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::SheetClicked(8, 8),
+        ));
+
+        assert!(!application.schematic_editor.state().can_redo);
+        application.handle(Message::SchematicEditor(
+            schematic_editor::Message::SelectDocument(0),
+        ));
+        assert_eq!(
+            application.schematic_editor.sheet().document().parts()[0].kind,
+            "R"
+        );
     }
 }

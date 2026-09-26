@@ -595,7 +595,7 @@ pub static MAIN_MENU: &[MenuEntry] = &[
                 shortcut: Some("Ctrl+Z"),
                 handler: Some(0x01C8EC70),
                 visible: true,
-                enabled: false,
+                enabled: true,
                 children: &[],
             },
             MenuEntry {
@@ -605,7 +605,7 @@ pub static MAIN_MENU: &[MenuEntry] = &[
                 shortcut: Some("Ctrl+Y"),
                 handler: Some(0x01C8ED20),
                 visible: true,
-                enabled: false,
+                enabled: true,
                 children: &[],
             },
             MenuEntry::separator(),
@@ -3158,11 +3158,11 @@ mod tests {
     }
 
     #[test]
-    fn undo_and_redo_start_greyed() {
+    fn undo_and_redo_delegate_eligibility_to_the_active_document() {
         for name in ["mnUndo", "mnRedo"] {
             let entry = find(name).unwrap_or_else(|| panic!("{name} is missing"));
             assert!(entry.visible);
-            assert!(!entry.enabled, "{name} should start greyed");
+            assert!(entry.enabled, "{name} must allow the live document state");
         }
     }
 

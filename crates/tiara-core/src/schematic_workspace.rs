@@ -324,6 +324,12 @@ mod tests {
         folder.join(format!("{name}.tsc"))
     }
 
+    fn copy_native_example(path: &std::path::Path) {
+        let source = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../examples/4011 Oscillator.TSC");
+        std::fs::copy(source, path).unwrap();
+    }
+
     fn drawn_on(workspace: &mut Workspace) {
         workspace
             .active_mut()
@@ -378,19 +384,20 @@ mod tests {
     }
 
     #[test]
-    fn saving_under_a_name_takes_that_name_for_the_tab_and_the_file() {
+    fn saving_under_a_name_is_refused_until_native_writing_is_supported() {
         let path = a_path("named");
         let _ = std::fs::remove_file(&path);
         let mut workspace = Workspace::default();
         drawn_on(&mut workspace);
 
-        workspace.save_as(&path).unwrap();
-        assert!(path.exists());
-        assert_eq!(workspace.active().name(), "named");
-        assert_eq!(workspace.active().path(), Some(path.as_path()));
-        assert!(!workspace.active().is_modified());
-
-        let _ = std::fs::remove_file(&path);
+        assert_eq!(
+            workspace.save_as(&path),
+            Err(schematic_file::Error::NativeWriteUnsupported)
+        );
+        assert!(!path.exists());
+        assert_eq!(workspace.active().name(), UNNAMED);
+        assert_eq!(workspace.active().path(), None);
+        assert!(workspace.active().is_modified());
     }
 
     #[test]
@@ -402,22 +409,22 @@ mod tests {
 
         let mut workspace = Workspace::default();
         drawn_on(&mut workspace);
-        workspace.save_as(&typed).unwrap();
-
         assert_eq!(
-            workspace.active().path(),
-            Some(typed.with_extension("tsc").as_path())
+            workspace.save_as(&typed),
+            Err(schematic_file::Error::NativeWriteUnsupported)
         );
+        assert!(!typed.with_extension("tsc").exists());
+        assert_eq!(workspace.active().path(), None);
         let _ = std::fs::remove_file(typed.with_extension("tsc"));
     }
 
     #[test]
-    fn saving_again_writes_where_it_was_saved_before() {
+    fn saving_again_does_not_overwrite_a_native_source() {
         let path = a_path("again");
-        let _ = std::fs::remove_file(&path);
+        copy_native_example(&path);
+        let before = std::fs::read(&path).unwrap();
         let mut workspace = Workspace::default();
-        drawn_on(&mut workspace);
-        workspace.save_as(&path).unwrap();
+        workspace.open(&path).unwrap();
 
         // Nothing has changed since, so there is nothing to write.
         assert_eq!(workspace.save().unwrap(), Saved::NothingToDo);
@@ -426,10 +433,12 @@ mod tests {
             .active_mut()
             .sheet_mut()
             .place("C", Point::new(8, 4));
-        assert_eq!(workspace.save().unwrap(), Saved::Written);
-
-        let read_back = schematic_file::read(&path).unwrap();
-        assert_eq!(read_back.parts().len(), 2);
+        assert_eq!(
+            workspace.save(),
+            Err(schematic_file::Error::NativeWriteUnsupported)
+        );
+        assert_eq!(std::fs::read(&path).unwrap(), before);
+        assert!(workspace.active().is_modified());
 
         let _ = std::fs::remove_file(&path);
     }
@@ -437,17 +446,14 @@ mod tests {
     #[test]
     fn opening_a_circuit_takes_the_place_of_the_blank_sheet() {
         let path = a_path("opened");
-        let _ = std::fs::remove_file(&path);
-        let mut written = Workspace::default();
-        drawn_on(&mut written);
-        written.save_as(&path).unwrap();
+        copy_native_example(&path);
 
         let mut workspace = Workspace::default();
         workspace.open(&path).unwrap();
 
         assert_eq!(workspace.count(), 1);
         assert_eq!(workspace.active().name(), "opened");
-        assert_eq!(workspace.active().sheet().document().parts().len(), 1);
+        assert!(!workspace.active().sheet().document().parts().is_empty());
         assert!(!workspace.active().is_modified());
 
         let _ = std::fs::remove_file(&path);
@@ -456,10 +462,7 @@ mod tests {
     #[test]
     fn opening_a_circuit_beside_one_being_worked_on_keeps_both() {
         let path = a_path("beside");
-        let _ = std::fs::remove_file(&path);
-        let mut written = Workspace::default();
-        drawn_on(&mut written);
-        written.save_as(&path).unwrap();
+        copy_native_example(&path);
 
         let mut workspace = Workspace::default();
         drawn_on(&mut workspace);
@@ -475,10 +478,9 @@ mod tests {
     #[test]
     fn a_circuit_already_open_is_brought_forward_rather_than_opened_twice() {
         let path = a_path("twice");
-        let _ = std::fs::remove_file(&path);
+        copy_native_example(&path);
         let mut workspace = Workspace::default();
-        drawn_on(&mut workspace);
-        workspace.save_as(&path).unwrap();
+        workspace.open(&path).unwrap();
         workspace.start_a_new_one();
         assert_eq!(workspace.active_index(), 1);
 
@@ -506,12 +508,12 @@ mod tests {
     }
 
     #[test]
-    fn save_all_writes_the_named_ones_and_names_the_rest() {
+    fn save_all_stops_before_overwriting_a_native_source() {
         let first = a_path("all-first");
-        let _ = std::fs::remove_file(&first);
+        copy_native_example(&first);
+        let before = std::fs::read(&first).unwrap();
         let mut workspace = Workspace::default();
-        drawn_on(&mut workspace);
-        workspace.save_as(&first).unwrap();
+        workspace.open(&first).unwrap();
         workspace
             .active_mut()
             .sheet_mut()
@@ -520,10 +522,12 @@ mod tests {
         workspace.start_a_new_one();
         drawn_on(&mut workspace);
 
-        let unnamed = workspace.save_all().unwrap();
-        assert_eq!(unnamed, ["Noname1"]);
-        assert_eq!(schematic_file::read(&first).unwrap().parts().len(), 2);
-        assert!(!workspace.all()[0].is_modified());
+        assert_eq!(
+            workspace.save_all(),
+            Err(schematic_file::Error::NativeWriteUnsupported)
+        );
+        assert_eq!(std::fs::read(&first).unwrap(), before);
+        assert!(workspace.all()[0].is_modified());
 
         let _ = std::fs::remove_file(&first);
     }

@@ -1582,6 +1582,61 @@ mod tests {
     }
 
     #[test]
+    fn every_repository_spice_example_reaches_the_netlist_editor() {
+        let examples = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples");
+        let mut sources = walkdir::WalkDir::new(&examples)
+            .into_iter()
+            .filter_map(Result::ok)
+            .filter(|entry| entry.file_type().is_file())
+            .map(walkdir::DirEntry::into_path)
+            .filter(|path| {
+                path.extension()
+                    .is_some_and(|extension| extension.eq_ignore_ascii_case("cir"))
+            })
+            .collect::<Vec<_>>();
+        sources.sort();
+        assert!(
+            !sources.is_empty(),
+            "{} has no SPICE examples",
+            examples.display()
+        );
+
+        for source in sources {
+            let text = tiara_core::netlist_viewer::read_netlist(&source)
+                .unwrap_or_else(|error| panic!("{}: {error}", source.display()));
+            assert!(
+                !text.trim().is_empty(),
+                "{} contains no netlist text",
+                source.display()
+            );
+
+            let mut editor = window();
+            update(
+                &mut editor,
+                Message::FileLoaded(source.clone(), Ok(text.clone())),
+            );
+
+            assert_eq!(
+                editor.document.file_name,
+                source,
+                "{} was not assigned to the editor",
+                source.display()
+            );
+            assert_eq!(
+                editor.text(),
+                text,
+                "{} changed while opening",
+                source.display()
+            );
+            assert!(
+                !editor.document.editor.modified,
+                "{} was marked as an unsaved edit",
+                source.display()
+            );
+        }
+    }
+
+    #[test]
     fn save_as_and_existing_save_keep_recovered_modified_timing() {
         let mut window = window();
         window.document.editor.record_editor_text("R1".to_owned());

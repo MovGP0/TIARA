@@ -211,10 +211,13 @@ mod tests {
         let _ = std::fs::remove_dir_all(&folder);
         std::fs::create_dir_all(&folder).unwrap();
         let circuit = folder.join("divider.tsc");
+        let source = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../examples/4011 Oscillator.TSC");
+        std::fs::copy(source, &circuit).unwrap();
 
         let mut editor = SchematicEditor::default();
-        editor.sheet_mut().place("R", Point::new(4, 4));
-        assert!(editor.save_to(Some(&circuit)));
+        editor.open_from(Some(&circuit));
+        assert_eq!(editor.said(), None);
 
         assert_eq!(editor.drawing_path(), circuit.with_extension("svg"));
 

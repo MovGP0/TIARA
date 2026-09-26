@@ -383,19 +383,15 @@ mod tests {
         editor
     }
 
-    /// An editor whose circuit has been written out under a name.
-    fn saved_at(path: &Path) -> SchematicEditor {
-        let mut editor = drawn_on();
-        assert!(editor.save_to(Some(path)));
+    /// An editor with a native example open under the requested test name.
+    fn opened_at(path: &Path) -> SchematicEditor {
+        let source =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/4011 Oscillator.TSC");
+        std::fs::copy(source, path).unwrap();
+        let mut editor = SchematicEditor::default();
+        editor.open_from(Some(path));
+        assert_eq!(editor.said(), None);
         editor
-    }
-
-    /// How many parts a written circuit holds.
-    fn read_back(path: &Path) -> usize {
-        tiara_core::schematic_file::read(path)
-            .unwrap()
-            .parts()
-            .len()
     }
 
     #[test]
@@ -417,7 +413,7 @@ mod tests {
     fn the_title_follows_the_circuit_being_worked_on() {
         let path = a_path("titled");
         let _ = std::fs::remove_file(&path);
-        let mut editor = saved_at(&path);
+        let mut editor = opened_at(&path);
 
         assert_eq!(editor.window_title(), "titled - Schematic Editor");
         assert!(editor.state().has_file);
@@ -430,20 +426,44 @@ mod tests {
     }
 
     #[test]
-    fn saving_and_opening_bring_the_same_circuit_back() {
+    fn opening_a_native_circuit_brings_it_into_the_editor() {
         let path = a_path("round-trip");
         let _ = std::fs::remove_file(&path);
-        let _written = saved_at(&path);
+        let source =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/4011 Oscillator.TSC");
+        std::fs::copy(source, &path).unwrap();
 
         let mut editor = SchematicEditor::default();
         editor.open_from(Some(&path));
 
-        assert_eq!(editor.sheet().document().parts().len(), 1);
+        assert!(!editor.sheet().document().parts().is_empty());
         assert_eq!(editor.document_name(), "round-trip");
         assert!(!editor.state().is_modified);
         assert_eq!(editor.said(), None);
 
         let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn compressed_and_uncompressed_examples_reach_the_editor() {
+        let examples = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples");
+        for relative in ["4011 Oscillator.TSC", "ACPOWER.TSC"] {
+            let path = examples.join(relative);
+            let mut editor = SchematicEditor::default();
+            editor.open_from(Some(&path));
+
+            assert_eq!(editor.said(), None, "{} did not open", path.display());
+            assert!(
+                !editor.sheet().document().parts().is_empty(),
+                "{} produced no parts",
+                path.display()
+            );
+            assert!(
+                !editor.state().is_modified,
+                "{} was marked as edited",
+                path.display()
+            );
+        }
     }
 
     #[test]
@@ -474,7 +494,9 @@ mod tests {
         // Reading one that works clears it again.
         let good = a_path("readable");
         let _ = std::fs::remove_file(&good);
-        let _written = saved_at(&good);
+        let source =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/4011 Oscillator.TSC");
+        std::fs::copy(source, &good).unwrap();
         editor.open_from(Some(&good));
         assert_eq!(editor.said(), None);
 
@@ -483,18 +505,23 @@ mod tests {
     }
 
     #[test]
-    fn saving_again_needs_no_name_and_writes_where_it_went_before() {
+    fn saving_again_does_not_overwrite_a_native_source() {
         let path = a_path("again");
         let _ = std::fs::remove_file(&path);
-        let mut editor = saved_at(&path);
+        let mut editor = opened_at(&path);
+        let before = std::fs::read(&path).unwrap();
         assert!(!editor.state().is_modified);
 
         editor.sheet_mut().place("C", Point::new(8, 4));
-        // Save on a named circuit writes it without asking anything.
         editor.update(Message::MenuCommand("Save"));
 
-        assert!(!editor.state().is_modified);
-        assert_eq!(read_back(&path), 2);
+        assert!(editor.state().is_modified);
+        assert!(
+            editor
+                .said()
+                .is_some_and(|said| said.contains("not supported"))
+        );
+        assert_eq!(std::fs::read(&path).unwrap(), before);
 
         let _ = std::fs::remove_file(&path);
     }
@@ -503,7 +530,7 @@ mod tests {
     fn closing_a_circuit_that_has_nothing_to_save_asks_nothing() {
         let path = a_path("closing");
         let _ = std::fs::remove_file(&path);
-        let mut editor = saved_at(&path);
+        let mut editor = opened_at(&path);
         editor.update(Message::MenuCommand("mnNew"));
         assert_eq!(editor.workspace.count(), 2);
 
@@ -549,7 +576,7 @@ mod tests {
     fn closing_everything_leaves_a_fresh_sheet() {
         let path = a_path("close-all");
         let _ = std::fs::remove_file(&path);
-        let mut editor = saved_at(&path);
+        let mut editor = opened_at(&path);
         editor.update(Message::MenuCommand("mnNew"));
 
         editor.update(Message::MenuCommand("mnCloseAll"));
@@ -560,32 +587,25 @@ mod tests {
     }
 
     #[test]
-    fn save_all_writes_every_named_circuit_and_stays_where_it_was() {
+    fn save_all_stops_before_overwriting_a_native_source() {
         let first = a_path("all-first");
-        let second = a_path("all-second");
         let _ = std::fs::remove_file(&first);
-        let _ = std::fs::remove_file(&second);
+        let mut editor = opened_at(&first);
+        let before = std::fs::read(&first).unwrap();
 
-        let mut editor = saved_at(&first);
-        editor.update(Message::MenuCommand("mnNew"));
-        editor.sheet_mut().place("C", Point::new(8, 4));
-        assert!(editor.save_to(Some(&second)));
-
-        // Change both, then write both at once.
-        editor.update(Message::SelectDocument(0));
         editor.sheet_mut().place("L", Point::new(12, 4));
-        editor.update(Message::SelectDocument(1));
-        editor.sheet_mut().place("L", Point::new(12, 4));
-
         editor.update(Message::MenuCommand("mnSaveAll"));
 
-        assert_eq!(editor.workspace.active_index(), 1);
-        assert!(!editor.workspace.any_modified());
-        assert_eq!(read_back(&first), 2);
-        assert_eq!(read_back(&second), 2);
+        assert_eq!(editor.workspace.active_index(), 0);
+        assert!(editor.workspace.any_modified());
+        assert!(
+            editor
+                .said()
+                .is_some_and(|said| said.contains("not supported"))
+        );
+        assert_eq!(std::fs::read(&first).unwrap(), before);
 
         let _ = std::fs::remove_file(&first);
-        let _ = std::fs::remove_file(&second);
     }
 
     #[test]

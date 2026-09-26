@@ -26,7 +26,9 @@ use tiara_core::device_catalogue::{self, Catalogue};
 use tiara_core::editor_settings::EditorSettings;
 use tiara_core::netlist;
 use tiara_core::page_setup::{Orientation, Paper};
-use tiara_core::schematic_document::{Arrange, NoteKind, Point, ShapeKind, Sheet, WireKind};
+use tiara_core::schematic_document::{
+    Arrange, NoteKind, Point, Rotation, ShapeKind, Sheet, WireKind,
+};
 use tiara_core::schematic_workspace::Workspace;
 
 use documents::examples_folder;
@@ -141,11 +143,20 @@ pub enum Message {
     ToolCommand(&'static str),
     /// The pointer moved over the sheet, in whole grid units.
     PointerMoved(i32, i32),
+    /// The primary pointer button was pressed on the sheet.
+    SheetPressed(i32, i32),
+    /// The primary pointer button was released on the sheet.
+    SheetReleased(i32, i32),
+    /// The secondary pointer button asked for the sheet context menu.
+    ContextMenuRequested(i32, i32),
+    /// The visible Cancel Mode context-menu item was selected.
+    CancelTool,
     /// Something happened in the exam panel the editor carries.
     ExamManager(crate::exam_manager::Message),
     /// A part was picked up from the palette, ready to be put down.
     PickUp(&'static str),
     /// The sheet was clicked at a place, in whole grid units.
+    #[cfg(test)]
     SheetClicked(i32, i32),
 }
 
@@ -186,6 +197,10 @@ pub struct SchematicEditor {
     tool: Tool,
     /// Where a two-click tool was first clicked, while it waits for the second.
     started_at: Option<Point>,
+    /// Where the primary pointer button went down, for drag gestures.
+    pointer_down: Option<Point>,
+    /// Where the sheet context menu is visible, if it is open.
+    context_menu_at: Option<Point>,
     /// Whether a tool stays in hand after it has been used once.
     ///
     /// `Insert > Auto Repeat`. With it off, putting one part down goes back to
@@ -333,6 +348,8 @@ impl Default for SchematicEditor {
             exam_panel: crate::exam_manager::Window::default(),
             tool: Tool::default(),
             started_at: None,
+            pointer_down: None,
+            context_menu_at: None,
             // The original keeps a part in hand until it is told otherwise.
             auto_repeat: true,
             settings: EditorSettings::default(),
@@ -477,14 +494,9 @@ impl SchematicEditor {
 
         // Escape shuts whatever is open, innermost first.
         if matches!(key, Key::Named(Named::Escape)) && self.open_menu.is_open() {
-            self.open_menu = if self.open_menu.inside.is_some() {
-                menu::OpenMenu {
-                    inside: None,
-                    ..self.open_menu
-                }
-            } else {
-                menu::OpenMenu::shut()
-            };
+            if !self.open_menu.close_deepest() {
+                self.open_menu = menu::OpenMenu::shut();
+            }
             return None;
         }
 
@@ -511,7 +523,7 @@ impl SchematicEditor {
         let entry = menu::entry_for(letter, entries, state)?;
 
         if menu::opens_a_submenu(entry, state) {
-            self.open_menu.inside = Some(entry.name);
+            self.open_menu.open_entry(entry.name, state);
             return None;
         }
         self.open_menu = menu::OpenMenu::shut();
@@ -522,16 +534,15 @@ impl SchematicEditor {
     fn open_entries(&self) -> Option<&'static [menu_tree::MenuEntry]> {
         let state = self.state();
         let root = *menu::roots(state).get(self.open_menu.root?)?;
-        let entries = command_state::children_of(root);
+        let mut entries = command_state::children_of(root);
 
-        let Some(inside) = self.open_menu.inside else {
-            return Some(entries);
-        };
-        entries
-            .iter()
-            .find(|entry| entry.name == inside)
-            .map(command_state::children_of)
-            .or(Some(entries))
+        for inside in self.open_menu.path.into_iter().flatten() {
+            let Some(parent) = entries.iter().find(|entry| entry.name == inside) else {
+                break;
+            };
+            entries = command_state::children_of(parent);
+        }
+        Some(entries)
     }
 
     /// Whether a menu is open.
@@ -803,8 +814,13 @@ impl SchematicEditor {
                     self.open_menu = menu::OpenMenu::opening(at);
                 }
             }
-            Message::MenuEntryOpened(name) => self.open_menu.inside = Some(name),
-            Message::MenuEntryHovered => self.open_menu.inside = None,
+            Message::MenuEntryOpened(name) => {
+                let state = self.state();
+                self.open_menu.open_entry(name, state);
+            }
+            // A leaf can belong to a submenu. Keep its owning path open while
+            // the pointer moves inside that submenu.
+            Message::MenuEntryHovered => {}
             Message::NoOp => {}
             Message::SelectDocument(at) => {
                 self.workspace.activate(at);
@@ -832,16 +848,22 @@ impl SchematicEditor {
                 self.tool = Tool::Place(kind);
                 self.started_at = None;
             }
+            #[cfg(test)]
             Message::SheetClicked(x, y) => {
                 self.click_on_the_sheet(Point::new(x, y));
             }
             Message::ToolCommand(name) => {
-                self.pressed = toolbars::find(name);
-                self.invoked = None;
+                self.handle_tool_command(name);
             }
             Message::PointerMoved(x, y) => {
                 self.pointer = (x, y);
             }
+            Message::SheetPressed(x, y) => self.press_the_sheet(Point::new(x, y)),
+            Message::SheetReleased(x, y) => self.release_the_sheet(Point::new(x, y)),
+            Message::ContextMenuRequested(x, y) => {
+                self.context_menu_at = Some(Point::new(x, y));
+            }
+            Message::CancelTool => self.cancel_active_tool(),
         }
     }
 
@@ -849,6 +871,58 @@ impl SchematicEditor {
     const fn take_up(&mut self, tool: Tool) {
         self.tool = tool;
         self.started_at = None;
+        self.pointer_down = None;
+    }
+
+    /// Ends an unfinished placement or drawing command without changing the
+    /// document or its history.
+    const fn cancel_active_tool(&mut self) {
+        self.context_menu_at = None;
+        self.take_up(Tool::Select);
+    }
+
+    fn handle_tool_command(&mut self, name: &'static str) {
+        self.pressed = toolbars::find(name);
+        self.invoked = None;
+        match name {
+            "ToolEdit" => self.act_on_the_sheet("ToolEdit"),
+            "ToolComp" => self.act_on_the_sheet("mnComponent"),
+            "ToolWire" => self.act_on_the_sheet("mnWire"),
+            "ToolText" => self.act_on_the_sheet("mnText"),
+            "ToolHideRecon" => self.act_on_the_sheet("mnHideReconnect"),
+            "ToolDelete" => self.act_on_the_sheet("mnDelete"),
+            _ => {}
+        }
+    }
+
+    /// Starts a click or drag gesture on the sheet.
+    fn press_the_sheet(&mut self, at: Point) {
+        self.context_menu_at = None;
+        self.pointer_down = Some(at);
+        self.click_on_the_sheet(at);
+    }
+
+    /// Completes a drag gesture. A press and release on the same grid point
+    /// remains a normal click, including the first click of a two-click wire.
+    fn release_the_sheet(&mut self, at: Point) {
+        let Some(from) = self.pointer_down.take() else {
+            return;
+        };
+        if from == at {
+            return;
+        }
+
+        match self.tool {
+            Tool::Select if self.sheet().at(from).is_some() => {
+                self.sheet_mut()
+                    .move_selection(at.x - from.x, at.y - from.y);
+            }
+            Tool::Draw(kind) if self.started_at == Some(from) => {
+                self.started_at = None;
+                self.finish_wire(from, at, kind);
+            }
+            _ => {}
+        }
     }
 
     /// The kind of the part put down most recently, if any.
@@ -900,17 +974,7 @@ impl SchematicEditor {
             }
             Tool::Draw(kind) => match self.started_at.take() {
                 None => self.started_at = Some(at),
-                Some(from) => {
-                    if self.settings.auto_wire && from.x != at.x && from.y != at.y {
-                        // Along the row first, then down the column, which is
-                        // the corner the original puts in.
-                        let corner = Point::new(at.x, from.y);
-                        self.sheet_mut().draw_wire(from, corner, kind);
-                        self.sheet_mut().draw_wire(corner, at, kind);
-                    } else {
-                        self.sheet_mut().draw_wire(from, at, kind);
-                    }
-                }
+                Some(from) => self.finish_wire(from, at, kind),
             },
             Tool::ZoomWindow => match self.started_at.take() {
                 None => self.started_at = Some(at),
@@ -931,6 +995,19 @@ impl SchematicEditor {
                     self.sheet_mut().draw_shape(kind, from, at);
                 }
             },
+        }
+    }
+
+    /// Commits one wire gesture, including the optional right-angle route.
+    fn finish_wire(&mut self, from: Point, at: Point, kind: WireKind) {
+        if self.settings.auto_wire && from.x != at.x && from.y != at.y {
+            // Along the row first, then down the column, which is the corner
+            // the original puts in.
+            let corner = Point::new(at.x, from.y);
+            self.sheet_mut().draw_wire(from, corner, kind);
+            self.sheet_mut().draw_wire(corner, at, kind);
+        } else {
+            self.sheet_mut().draw_wire(from, at, kind);
         }
     }
 
@@ -1447,29 +1524,91 @@ impl SchematicEditor {
             } else {
                 tokens.text.iced()
             };
-            // A part that is on the sheet but out of the circuit, or
-            // locked against being changed, says so where it is drawn.
-            let mut face = part.kind.clone();
-            if part.mirrored {
-                face.push_str(" ↔");
+            if let Some(drawing) = self.cached_symbol_drawing(&part.kind)
+                && let Some((offset, symbol)) = symbol_drawing(
+                    &drawing.figures,
+                    part.rotation,
+                    part.mirrored,
+                    scale,
+                    colour,
+                )
+            {
+                drawn = drawn.push(place_at(at.moved(offset.x, offset.y), scale, symbol));
+            } else {
+                drawn = drawn.push(place_at(
+                    at,
+                    scale,
+                    text(format!("□? {}", part.kind))
+                        .size(12)
+                        .color(colour)
+                        .into(),
+                ));
+            }
+
+            let mut labels = column![text(part.label.clone()).size(10).color(colour)];
+            if self.settings.values && !part.value.is_empty() {
+                labels = labels.push(text(part.value.clone()).size(10).color(colour));
             }
             if part.hidden {
-                face.push_str(" (out)");
+                labels = labels.push(text("out of circuit").size(9).color(colour));
             }
             if part.locked {
-                face.push_str(" 🔒");
+                labels = labels.push(text("locked").size(9).color(colour));
             }
-            drawn = drawn.push(place_at(
-                at,
-                scale,
-                column![
-                    text(face).size(13).color(colour),
-                    text(part.label.clone()).size(10).color(colour),
-                ]
-                .into(),
-            ));
+            drawn = drawn.push(place_at(at.moved(1, -2), scale, labels.into()));
+        }
+
+        if let Some(kind) = self.preview_kind() {
+            let at = Point::new(self.pointer.0, self.pointer.1);
+            if let Some(drawing) = self.cached_symbol_drawing(&kind)
+                && let Some((offset, symbol)) = symbol_drawing(
+                    &drawing.figures,
+                    Rotation::None,
+                    false,
+                    scale,
+                    tokens.accent.iced(),
+                )
+            {
+                drawn = drawn.push(place_at(at.moved(offset.x, offset.y), scale, symbol));
+            } else {
+                drawn = drawn.push(place_at(
+                    at,
+                    scale,
+                    text(format!("□? {kind}"))
+                        .size(12)
+                        .color(tokens.accent.iced())
+                        .into(),
+                ));
+            }
         }
         drawn
+    }
+
+    fn preview_kind(&self) -> Option<String> {
+        match self.tool {
+            Tool::Place(kind) => Some(kind.to_owned()),
+            Tool::PlaceFromBar(tab, button) => self.bar_part(tab, button),
+            Tool::PlacePart(which) => self.part_names.get(which).cloned(),
+            _ => None,
+        }
+    }
+
+    fn symbol_for(&self, name: &str) -> Option<device_catalogue::Symbol> {
+        self.catalogue
+            .find(name)
+            .map(|entry| entry.symbol.clone())
+            .or_else(|| match name {
+                "R" | "Resistor" => Some(device_catalogue::Symbol::Default("10".to_owned())),
+                _ => None,
+            })
+    }
+
+    fn cached_symbol_drawing(
+        &self,
+        name: &str,
+    ) -> Option<&tiara_core::symbol_library::SymbolDrawing> {
+        let symbol = self.symbol_for(name)?;
+        self.symbols.cached_drawing_of(&symbol)
     }
 
     /// The sheet written out as a netlist, for the SPICE editor to show.
@@ -2072,16 +2211,18 @@ impl SchematicEditor {
     /// pins and behaves as parts did before - it is placed either way, so a
     /// missing installation never stops a circuit being drawn.
     fn place_a_part(&mut self, name: &str, at: Point) {
-        let symbol = self.catalogue.find(name).map(|entry| entry.symbol.clone());
-        let pins = symbol
-            .map(|symbol| self.symbols.pins_of(&symbol))
-            .unwrap_or_default();
+        let drawing = self
+            .symbol_for(name)
+            .and_then(|symbol| self.symbols.drawing_of(&symbol));
+        let pins = drawing.map_or_else(Vec::new, |drawing| drawing.pins);
 
-        if pins.is_empty() {
-            self.sheet_mut().place(name, at);
+        let value = if matches!(name, "R" | "Resistor") {
+            "1k"
         } else {
-            self.sheet_mut().place_pinned(name, at, pins);
-        }
+            ""
+        };
+        self.sheet_mut()
+            .place_pinned_with_value(name, at, pins, value);
     }
 
     /// `Edit > Properties...`: what the part that is picked out is called.
@@ -2224,14 +2365,11 @@ impl SchematicEditor {
         }
         let names = self.net_names();
         for wire in self.sheet().document().wires() {
-            let Some(at) = self.shown_at(wire.from) else {
+            let (Some(from), Some(to)) = (self.shown_at(wire.from), self.shown_at(wire.to)) else {
                 continue;
             };
-            drawn = drawn.push(place_at(
-                at,
-                scale,
-                text("─").size(12).color(tokens.text.iced()).into(),
-            ));
+            let (at, line) = wire_drawing(from, to, scale, tokens.text.iced());
+            drawn = drawn.push(place_at(at, scale, line));
         }
         for (place, name) in names {
             let Some(at) = self.shown_at(place) else {
@@ -2247,6 +2385,23 @@ impl SchematicEditor {
             ));
         }
         drawn = self.draw_the_parts(drawn, tokens, scale);
+        if let Some(at) = self.context_menu_at.and_then(|at| self.shown_at(at)) {
+            drawn = drawn.push(place_at(
+                at,
+                scale,
+                container(
+                    button(text("Cancel Mode").size(12))
+                        .padding([5, 12])
+                        .on_press(Message::CancelTool)
+                        .style(move |theme, status| {
+                            chrome::menu_item_button_style(tokens, theme, status)
+                        }),
+                )
+                .padding(1)
+                .style(move |theme| chrome::menu_panel_style(tokens, theme))
+                .into(),
+            ));
+        }
 
         let sheet = container(drawn)
             .padding(12)
@@ -2263,7 +2418,12 @@ impl SchematicEditor {
                     in_units(point.y, scale) + origin.y,
                 )
             })
-            .on_press(Message::SheetClicked(self.pointer.0, self.pointer.1))
+            .on_press(Message::SheetPressed(self.pointer.0, self.pointer.1))
+            .on_release(Message::SheetReleased(self.pointer.0, self.pointer.1))
+            .on_right_press(Message::ContextMenuRequested(
+                self.pointer.0,
+                self.pointer.1,
+            ))
             .into()
     }
 
@@ -2368,6 +2528,149 @@ fn place_at(at: Point, scale: f32, what: Element<'_, Message>) -> Element<'_, Me
             bottom: 0.0,
         })
         .into()
+}
+
+/// Converts installed symbol primitives into a theme-coloured SVG.
+fn symbol_drawing(
+    figures: &[tiara_core::ddb_device::Figure],
+    rotation: Rotation,
+    mirrored: bool,
+    scale: f32,
+    colour: iced::Color,
+) -> Option<(Point, Element<'static, Message>)> {
+    use std::fmt::Write as _;
+    use tiara_core::ddb_device::{Figure, Place, UNITS_PER_SQUARE};
+
+    let transform = |place: Place| {
+        let mut x = i32::from(place.x);
+        let y = i32::from(place.y);
+        if mirrored {
+            x = -x;
+        }
+        match rotation {
+            Rotation::None => (x, y),
+            Rotation::Quarter => (-y, x),
+            Rotation::Half => (-x, -y),
+            Rotation::ThreeQuarters => (y, -x),
+        }
+    };
+
+    let mut points = Vec::new();
+    for figure in figures {
+        match figure {
+            Figure::Line { from, to } | Figure::Box { from, to } => {
+                points.extend([transform(*from), transform(*to)]);
+            }
+            Figure::Polyline { points: polyline } => {
+                points.extend(polyline.iter().copied().map(transform));
+            }
+            Figure::Pin { at, .. } => points.push(transform(*at)),
+            Figure::Text { .. } | Figure::Picture | Figure::Unknown { .. } => {}
+        }
+    }
+    let (mut min_x, mut min_y) = *points.first()?;
+    let (mut max_x, mut max_y) = (min_x, min_y);
+    for (x, y) in &points[1..] {
+        min_x = min_x.min(*x);
+        min_y = min_y.min(*y);
+        max_x = max_x.max(*x);
+        max_y = max_y.max(*y);
+    }
+
+    let unit = i32::from(UNITS_PER_SQUARE);
+    let margin = unit / 2;
+    let left = (min_x - margin).div_euclid(unit) * unit;
+    let top = (min_y - margin).div_euclid(unit) * unit;
+    let right = (max_x + margin + unit - 1).div_euclid(unit) * unit;
+    let bottom = (max_y + margin + unit - 1).div_euclid(unit) * unit;
+    let width = (right - left).max(unit);
+    let height = (bottom - top).max(unit);
+
+    let mut source = format!(
+        r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="{left} {top} {width} {height}" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">"#
+    );
+    for figure in figures {
+        match figure {
+            Figure::Line { from, to } => {
+                let (x1, y1) = transform(*from);
+                let (x2, y2) = transform(*to);
+                let _ = write!(source, r#"<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}"/>"#);
+            }
+            Figure::Box { from, to } => {
+                let (x1, y1) = transform(*from);
+                let (x2, y2) = transform(*to);
+                let x = x1.min(x2);
+                let y = y1.min(y2);
+                let box_width = x1.abs_diff(x2);
+                let box_height = y1.abs_diff(y2);
+                let _ = write!(
+                    source,
+                    r#"<rect x="{x}" y="{y}" width="{box_width}" height="{box_height}"/>"#
+                );
+            }
+            Figure::Polyline { points } => {
+                let joined = points
+                    .iter()
+                    .copied()
+                    .map(transform)
+                    .map(|(x, y)| format!("{x},{y}"))
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                let _ = write!(source, r#"<polyline points="{joined}"/>"#);
+            }
+            Figure::Pin { at, .. } => {
+                let (x, y) = transform(*at);
+                let _ = write!(
+                    source,
+                    r#"<circle cx="{x}" cy="{y}" r="2" fill="currentColor"/>"#
+                );
+            }
+            Figure::Text { .. } | Figure::Picture | Figure::Unknown { .. } => {}
+        }
+    }
+    source.push_str("</svg>");
+
+    let width = f32::from(i16::try_from(width).unwrap_or(i16::MAX)) * scale;
+    let height = f32::from(i16::try_from(height).unwrap_or(i16::MAX)) * scale;
+    let picture = svg(svg::Handle::from_memory(source.into_bytes()))
+        .width(Length::Fixed(width))
+        .height(Length::Fixed(height))
+        .style(move |_, _| svg::Style {
+            color: Some(colour),
+        })
+        .into();
+    Some((Point::new(left / unit, top / unit), picture))
+}
+
+/// Draws the complete segment between two grid points.
+fn wire_drawing(
+    from: Point,
+    to: Point,
+    scale: f32,
+    colour: iced::Color,
+) -> (Point, Element<'static, Message>) {
+    let at = Point::new(from.x.min(to.x), from.y.min(to.y));
+    let width =
+        f32::from(i16::try_from(from.x.abs_diff(to.x)).unwrap_or(i16::MAX)) * GRID_STEP * scale;
+    let height =
+        f32::from(i16::try_from(from.y.abs_diff(to.y)).unwrap_or(i16::MAX)) * GRID_STEP * scale;
+    let canvas_width = width.max(1.0) + 2.0;
+    let canvas_height = height.max(1.0) + 2.0;
+    let x1 = if from.x <= to.x { 1.0 } else { width + 1.0 };
+    let y1 = if from.y <= to.y { 1.0 } else { height + 1.0 };
+    let x2 = if from.x <= to.x { width + 1.0 } else { 1.0 };
+    let y2 = if from.y <= to.y { height + 1.0 } else { 1.0 };
+    let source = format!(
+        r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {canvas_width} {canvas_height}"><line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>"#
+    );
+    let line = svg(svg::Handle::from_memory(source.into_bytes()))
+        .width(Length::Fixed(canvas_width))
+        .height(Length::Fixed(canvas_height))
+        .style(move |_, _| svg::Style {
+            color: Some(colour),
+        })
+        .into();
+    (at, line)
 }
 
 /// One coordinate in the whole units the status bar reports.
@@ -2815,9 +3118,9 @@ fn step_across(start: &str, stop: &str) -> String {
 mod tests {
     use super::{
         COMPONENT_CATEGORIES, Edge, Message, NoteKind, Orientation, Paper, Picking, Point,
-        PrintingMessage, SETTINGS_FILE, SETTINGS_VARIABLE, SchematicEditor, ShapeKind, Tool,
-        Wanting, WireKind, command_state, help, menu, menu_targets, menu_tree, printing,
-        settings_path, zoom,
+        PrintingMessage, Rotation, SETTINGS_FILE, SETTINGS_VARIABLE, SchematicEditor, ShapeKind,
+        Tool, Wanting, WireKind, command_state, help, menu, menu_targets, menu_tree, printing,
+        settings_path, symbol_drawing, wire_drawing, zoom,
     };
     use crate::shared::theme::CustomThemeFile;
 
@@ -2840,6 +3143,183 @@ mod tests {
 
         assert_eq!(format!("X: {}", editor.pointer.0), "X: -3");
         assert_eq!(format!("Y: {}", editor.pointer.1), "Y: 7");
+    }
+
+    #[test]
+    fn the_edit_toolbar_button_cancels_repeated_placement() {
+        let mut editor = SchematicEditor::default();
+        editor.update(Message::PickUp("R"));
+        editor.update(Message::SheetPressed(2, 2));
+        editor.update(Message::SheetReleased(2, 2));
+        assert_eq!(editor.sheet().document().parts().len(), 1);
+
+        editor.update(Message::ToolCommand("ToolEdit"));
+        editor.update(Message::SheetPressed(8, 8));
+        editor.update(Message::SheetReleased(8, 8));
+
+        assert_eq!(editor.tool, Tool::Select);
+        assert_eq!(editor.sheet().document().parts().len(), 1);
+        editor.update(Message::MenuCommand("mnUndo"));
+        assert!(editor.sheet().document().is_empty());
+    }
+
+    #[test]
+    fn dragging_a_selected_part_moves_it_as_one_undoable_edit() {
+        let mut editor = SchematicEditor::default();
+        editor.update(Message::PickUp("R"));
+        editor.update(Message::SheetPressed(2, 2));
+        editor.update(Message::SheetReleased(2, 2));
+        editor.update(Message::ToolCommand("ToolEdit"));
+
+        editor.update(Message::SheetPressed(2, 2));
+        editor.update(Message::SheetReleased(7, 5));
+
+        assert_eq!(editor.sheet().document().parts()[0].at, Point::new(7, 5));
+        editor.update(Message::MenuCommand("mnUndo"));
+        assert_eq!(editor.sheet().document().parts()[0].at, Point::new(2, 2));
+    }
+
+    #[test]
+    fn the_delete_toolbar_button_uses_the_document_delete_operation() {
+        let mut editor = SchematicEditor::default();
+        editor.update(Message::PickUp("R"));
+        editor.update(Message::SheetPressed(2, 2));
+        editor.update(Message::SheetReleased(2, 2));
+        editor.update(Message::ToolCommand("ToolEdit"));
+        editor.update(Message::SheetPressed(2, 2));
+        editor.update(Message::SheetReleased(2, 2));
+
+        editor.update(Message::ToolCommand("ToolDelete"));
+
+        assert!(editor.sheet().document().is_empty());
+        editor.update(Message::MenuCommand("mnUndo"));
+        assert_eq!(editor.sheet().document().parts().len(), 1);
+        editor.update(Message::MenuCommand("mnRedo"));
+        assert!(editor.sheet().document().is_empty());
+    }
+
+    #[test]
+    fn the_wire_toolbar_button_supports_clicks_and_dragging() {
+        let mut editor = SchematicEditor::default();
+        editor.update(Message::ToolCommand("ToolWire"));
+        editor.update(Message::SheetPressed(1, 1));
+        editor.update(Message::SheetReleased(1, 1));
+        editor.update(Message::SheetPressed(9, 1));
+        editor.update(Message::SheetReleased(9, 1));
+        editor.update(Message::SheetPressed(2, 4));
+        editor.update(Message::SheetReleased(10, 4));
+
+        assert_eq!(editor.sheet().document().wires().len(), 2);
+        assert_eq!(editor.sheet().document().wires()[0].from, Point::new(1, 1));
+        assert_eq!(editor.sheet().document().wires()[0].to, Point::new(9, 1));
+        assert_eq!(editor.sheet().document().wires()[1].from, Point::new(2, 4));
+        assert_eq!(editor.sheet().document().wires()[1].to, Point::new(10, 4));
+    }
+
+    #[test]
+    fn cancel_mode_closes_the_context_menu_and_discards_an_unfinished_wire() {
+        let mut editor = SchematicEditor::default();
+        editor.update(Message::ToolCommand("ToolWire"));
+        editor.update(Message::SheetPressed(1, 1));
+        editor.update(Message::SheetReleased(1, 1));
+        editor.update(Message::ContextMenuRequested(4, 4));
+        assert_eq!(editor.context_menu_at, Some(Point::new(4, 4)));
+
+        editor.update(Message::CancelTool);
+        editor.update(Message::SheetPressed(9, 1));
+        editor.update(Message::SheetReleased(9, 1));
+
+        assert_eq!(editor.context_menu_at, None);
+        assert_eq!(editor.tool, Tool::Select);
+        assert!(editor.sheet().document().wires().is_empty());
+        let _ = editor.view(&CustomThemeFile::default());
+    }
+
+    #[test]
+    fn wire_drawing_starts_at_the_segment_bounds() {
+        let (at, _) = wire_drawing(Point::new(9, 6), Point::new(2, 1), 1.0, iced::Color::BLACK);
+
+        assert_eq!(at, Point::new(2, 1));
+    }
+
+    #[test]
+    fn symbol_geometry_renders_at_every_orientation_and_mirror_state() {
+        use tiara_core::ddb_device::{Facing, Figure, Place};
+
+        let figures = vec![
+            Figure::Line {
+                from: Place { x: 0, y: 0 },
+                to: Place { x: 40, y: 0 },
+            },
+            Figure::Box {
+                from: Place { x: 8, y: -8 },
+                to: Place { x: 32, y: 8 },
+            },
+            Figure::Polyline {
+                points: vec![
+                    Place { x: 8, y: 0 },
+                    Place { x: 12, y: -6 },
+                    Place { x: 20, y: 6 },
+                    Place { x: 28, y: -6 },
+                    Place { x: 32, y: 0 },
+                ],
+            },
+            Figure::Pin {
+                name: "1".to_owned(),
+                at: Place { x: 0, y: 0 },
+                facing: Facing::Left,
+            },
+        ];
+
+        for rotation in [
+            Rotation::None,
+            Rotation::Quarter,
+            Rotation::Half,
+            Rotation::ThreeQuarters,
+        ] {
+            for mirrored in [false, true] {
+                assert!(
+                    symbol_drawing(&figures, rotation, mirrored, 2.0, iced::Color::BLACK).is_some()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn no_installation_draws_an_explicit_unavailable_symbol_and_keeps_the_value() {
+        let mut editor = SchematicEditor::default();
+        editor.update(Message::PickUp("R"));
+        editor.update(Message::SheetPressed(3, 3));
+        editor.update(Message::SheetReleased(3, 3));
+
+        let part = &editor.sheet().document().parts()[0];
+        assert!(part.pins.is_empty());
+        assert_eq!(part.value, "1k");
+        assert!(editor.cached_symbol_drawing("R").is_none());
+        let _ = editor.view(&CustomThemeFile::default());
+    }
+
+    #[test]
+    fn an_installed_resistor_keeps_drawing_geometry_and_terminal_locations() {
+        let Some(installation) = help::install_folder() else {
+            return;
+        };
+        let mut editor = SchematicEditor {
+            symbols: tiara_core::symbol_library::SymbolLibrary::at(Some(installation)),
+            ..SchematicEditor::default()
+        };
+        editor.update(Message::PickUp("R"));
+        editor.update(Message::SheetPressed(3, 3));
+        editor.update(Message::SheetReleased(3, 3));
+
+        let part = &editor.sheet().document().parts()[0];
+        assert!(!part.pins.is_empty());
+        assert!(
+            editor
+                .cached_symbol_drawing("R")
+                .is_some_and(|drawing| !drawing.figures.is_empty())
+        );
+        let _ = editor.view(&CustomThemeFile::default());
     }
 
     #[test]
@@ -3872,7 +4352,7 @@ mod tests {
         let mark = menu::accelerator_of(zoom).expect("Zoom underlines a letter");
 
         assert_eq!(editor.navigate_menu(&letter(mark), plain()), None);
-        assert_eq!(editor.open_menu.inside, Some(zoom.name));
+        assert_eq!(editor.open_menu.path[0], Some(zoom.name));
         assert!(editor.menu_is_open());
     }
 
@@ -3881,11 +4361,11 @@ mod tests {
         let mut editor = SchematicEditor::default();
         editor.update(Message::MenuRootPressed(0));
         editor.update(Message::MenuEntryOpened("Export"));
-        assert_eq!(editor.open_menu.inside, Some("Export"));
+        assert_eq!(editor.open_menu.path[0], Some("Export"));
 
         let escape = iced::keyboard::Key::Named(iced::keyboard::key::Named::Escape);
         editor.navigate_menu(&escape, plain());
-        assert_eq!(editor.open_menu.inside, None);
+        assert_eq!(editor.open_menu.path[0], None);
         assert!(editor.menu_is_open());
 
         editor.navigate_menu(&escape, plain());

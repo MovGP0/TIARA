@@ -9,7 +9,7 @@ repository.workspace = true
 
 [dependencies]
 csv.workspace = true
-iced = { workspace = true, features = ["image", "svg", "tokio"] }
+iced = { workspace = true, features = ["image", "lazy", "svg", "tokio"] }
 iced_aw.workspace = true
 rfd.workspace = true
 serde.workspace = true

@@ -230,6 +230,16 @@ impl Dock {
         }
     }
 
+    /// Closes a window regardless of the region and tab that currently hold it.
+    ///
+    /// Dialog-like windows use this after their content accepts or cancels.
+    /// The schematic editor remains protected by [`Self::close`].
+    pub fn close_window(&mut self, kind: WindowKind) {
+        if let Some((pane, at)) = self.find(kind) {
+            self.close(pane, at);
+        }
+    }
+
     /// Moves a region onto another, as a drag does.
     pub fn drop(&mut self, pane: Pane, target: Target) {
         self.panes.drop(pane, target);
@@ -408,5 +418,17 @@ mod tests {
 
         dock.focus(editor);
         assert_eq!(dock.focused_kind(), WindowKind::SchematicEditor);
+    }
+
+    #[test]
+    fn a_dialog_can_close_itself_by_kind() {
+        let mut dock = Dock::default();
+        dock.show(WindowKind::SelectTinaFolder);
+        dock.show(WindowKind::Oscilloscope);
+
+        dock.close_window(WindowKind::SelectTinaFolder);
+
+        assert!(!dock.holds(WindowKind::SelectTinaFolder));
+        assert!(dock.holds(WindowKind::Oscilloscope));
     }
 }

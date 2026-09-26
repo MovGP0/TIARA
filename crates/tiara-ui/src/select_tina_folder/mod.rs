@@ -8,13 +8,17 @@ pub const TITLE: &str = "Select Tina folder";
 pub const SCREENSHOT: &str = "screenshots/Select_Tina_Folder.png";
 pub const FORM_RESOURCE: &str = "frmSelectTinaFolder";
 pub const ORIGINAL_FUNCTION: Option<&str> = Some("01c44300");
-use iced::widget::{button, checkbox, column, row, text};
-use iced::{Element, Task};
+use iced::widget::{button, checkbox, column, row, scrollable, text, tooltip};
+use iced::{Element, Length, Task};
+use rfd::AsyncFileDialog;
 
 const CATALOG_EXTENSIONS: &str = ".ddb;.fpl;.3dl;.tcr";
 const SPICE_LIBRARY_EXTENSIONS: &str = ".lib;.tld";
 const DESIGN_EXTENSION: &str = ".tsc";
 const IMPORT_LOG_NAME: &str = "Library Import.log";
+const BROWSE_ROW_CAPTION: &str = "Browse for another TINA installation...";
+const CATALOG_DATABASE_SUBFOLDER: &str = "DATABASES";
+const TINA_HOME_VARIABLE: &str = "TIARA_TINA_HOME";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TinaFolders {
@@ -31,6 +35,33 @@ pub struct ImportRequest {
     pub current_ini: PathBuf,
     pub catalog_database_subfolder: PathBuf,
     pub include_examples: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImportDestination {
+    pub folders: TinaFolders,
+    pub temporary: PathBuf,
+    pub ini: PathBuf,
+    pub catalog_database_subfolder: PathBuf,
+}
+
+impl ImportDestination {
+    #[must_use]
+    pub fn for_tiara_data_directory(data_directory: &Path) -> Self {
+        Self {
+            folders: TinaFolders {
+                tina: std::env::current_exe()
+                    .ok()
+                    .and_then(|path| path.parent().map(Path::to_path_buf))
+                    .unwrap_or_default(),
+                settings: data_directory.to_path_buf(),
+                catalog: data_directory.join("Catalog"),
+            },
+            temporary: data_directory.join("Temp"),
+            ini: data_directory.join("TINA.INI"),
+            catalog_database_subfolder: PathBuf::from(CATALOG_DATABASE_SUBFOLDER),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -412,20 +443,29 @@ pub enum ImportStatus {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    InstallationSelected(usize),
+    BrowsePressed,
+    BrowseFinished(Option<Installation>),
     IncludeExamplesChanged(bool),
     ImportPressed,
     ImportFinished(Result<ImportOutcome, ImportError>),
     OpenLogAnswered(bool),
     LogOpenFinished(Result<(), ImportError>),
+    CancelPressed,
 }
 
 #[derive(Debug, Default)]
 pub struct Window {
+    installations: Vec<Installation>,
+    browsed_installation: Option<Installation>,
+    selected_installation: Option<usize>,
+    destination: Option<ImportDestination>,
     request: Option<ImportRequest>,
     include_examples: bool,
     status: ImportStatus,
     completed_outcome: Option<ImportOutcome>,
     awaiting_open_log_answer: bool,
+    close_requested: bool,
 }
 
 impl Window {
@@ -438,6 +478,32 @@ impl Window {
         }
     }
 
+    pub fn open_standard(&mut self) {
+        let settings_path = crate::schematic_editor::settings_path();
+        let data_directory = settings_path
+            .parent()
+            .map_or_else(PathBuf::new, Path::to_path_buf);
+        let destination = ImportDestination::for_tiara_data_directory(&data_directory);
+        self.open_with_installations(standard_installations(), destination);
+    }
+
+    pub fn open_with_installations(
+        &mut self,
+        installations: Vec<Installation>,
+        destination: ImportDestination,
+    ) {
+        self.installations = installations;
+        self.browsed_installation = None;
+        self.selected_installation = None;
+        self.destination = Some(destination);
+        self.request = None;
+        self.include_examples = false;
+        self.status = ImportStatus::Idle;
+        self.completed_outcome = None;
+        self.awaiting_open_log_answer = false;
+        self.close_requested = false;
+    }
+
     #[must_use]
     pub const fn status(&self) -> &ImportStatus {
         &self.status
@@ -448,10 +514,54 @@ impl Window {
         self.awaiting_open_log_answer
     }
 
+    #[must_use]
+    pub fn installations(&self) -> &[Installation] {
+        &self.installations
+    }
+
+    #[must_use]
+    pub const fn selected_installation(&self) -> Option<usize> {
+        self.selected_installation
+    }
+
+    #[must_use]
+    pub const fn is_configured(&self) -> bool {
+        self.destination.is_some()
+    }
+
+    #[must_use]
+    pub const fn can_import(&self) -> bool {
+        self.request.is_some() && !matches!(self.status, ImportStatus::Copying)
+    }
+
+    #[must_use]
+    pub const fn close_requested(&self) -> bool {
+        self.close_requested
+    }
+
+    #[must_use]
+    pub const fn take_close_requested(&mut self) -> bool {
+        let requested = self.close_requested;
+        self.close_requested = false;
+        requested
+    }
+
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::InstallationSelected(index) => {
+                self.select_installation(index);
+                Task::none()
+            }
+            Message::BrowsePressed => self.browse_for_installation(),
+            Message::BrowseFinished(installation) => {
+                if let Some(installation) = installation {
+                    self.select_browsed_installation(installation);
+                }
+                Task::none()
+            }
             Message::IncludeExamplesChanged(value) => {
                 self.include_examples = value;
+                self.refresh_request();
                 Task::none()
             }
             Message::ImportPressed => self.start_import(),
@@ -466,7 +576,51 @@ impl Window {
                 }
                 Task::none()
             }
+            Message::CancelPressed => {
+                self.close_requested = true;
+                Task::none()
+            }
         }
+    }
+
+    fn select_installation(&mut self, index: usize) {
+        if index >= self.installations.len() {
+            return;
+        }
+        self.selected_installation = Some(index);
+        self.refresh_request();
+    }
+
+    fn select_browsed_installation(&mut self, installation: Installation) {
+        self.browsed_installation = Some(installation);
+        self.selected_installation = Some(self.installations.len());
+        self.refresh_request();
+    }
+
+    fn refresh_request(&mut self) {
+        let Some(destination) = &self.destination else {
+            return;
+        };
+        let installation = self.selected_installation.and_then(|index| {
+            self.installations
+                .get(index)
+                .or(self.browsed_installation.as_ref())
+        });
+        self.request = installation.and_then(|installation| {
+            installation.import_request(destination, self.include_examples)
+        });
+    }
+
+    fn browse_for_installation(&self) -> Task<Message> {
+        let current = self
+            .destination
+            .as_ref()
+            .map(|destination| destination.folders.tina.clone())
+            .unwrap_or_default();
+        Task::perform(
+            choose_valid_installation_folder(current),
+            Message::BrowseFinished,
+        )
     }
 
     fn start_import(&mut self) -> Task<Message> {
@@ -538,7 +692,7 @@ impl Window {
 
     #[must_use]
     pub fn view(&self) -> Element<'_, Message> {
-        let import_button = if self.request.is_some() && self.status != ImportStatus::Copying {
+        let import_button = if self.can_import() {
             button("Go!").on_press(Message::ImportPressed)
         } else {
             button("Go!")
@@ -550,14 +704,63 @@ impl Window {
             ImportStatus::Completed => "Import completed".to_owned(),
             ImportStatus::Failed(message) => message.clone(),
         };
-        let mut content = column![
-            text("Import Libraries, Examples and Designs"),
-            checkbox("Include Examples and Designs", self.include_examples)
-                .on_toggle(Message::IncludeExamplesChanged),
-            import_button,
-            text(status),
-        ]
-        .spacing(10);
+        let mut content = column![text("Import Libraries, Examples and Designs")].spacing(10);
+        if self.destination.is_some() {
+            let mut choices = column![].spacing(4);
+            for (index, installation) in self.installations.iter().enumerate() {
+                let marker = if self.selected_installation == Some(index) {
+                    "●"
+                } else {
+                    "○"
+                };
+                let choice = button(text(format!("{marker} {}", installation.display_name)))
+                    .on_press(Message::InstallationSelected(index))
+                    .width(Length::Fill);
+                choices = choices.push(
+                    tooltip(
+                        choice,
+                        text(installation.hint()).size(12),
+                        tooltip::Position::Bottom,
+                    )
+                    .gap(4),
+                );
+            }
+            let browse_index = self.installations.len();
+            let browse_caption = self
+                .browsed_installation
+                .as_ref()
+                .map_or(BROWSE_ROW_CAPTION, |installation| {
+                    installation.display_name.as_str()
+                });
+            let marker = if self.selected_installation == Some(browse_index) {
+                "●"
+            } else {
+                "○"
+            };
+            choices = choices.push(
+                button(text(format!("{marker} {browse_caption}")))
+                    .on_press(Message::BrowsePressed)
+                    .width(Length::Fill),
+            );
+            content = content
+                .push(text(
+                    "Select an earlier version of TINA to import Libraries, Examples and Designs",
+                ))
+                .push(scrollable(choices).height(Length::Fixed(190.0)));
+        }
+        content = content
+            .push(
+                checkbox("Include Examples and Designs", self.include_examples)
+                    .on_toggle(Message::IncludeExamplesChanged),
+            )
+            .push(
+                row![
+                    import_button,
+                    button("Cancel").on_press(Message::CancelPressed)
+                ]
+                .spacing(8),
+            )
+            .push(text(status));
         if self.awaiting_open_log_answer {
             content = content.push(
                 row![
@@ -1559,6 +1762,303 @@ pub struct Installation {
     pub catalog_dir: Option<String>,
 }
 
+impl Installation {
+    fn hint(&self) -> String {
+        let mut paths = vec![self.install_location.as_str()];
+        if let Some(settings) = self.settings_dir.as_deref() {
+            paths.push(settings);
+        }
+        if let Some(catalog) = self.catalog_dir.as_deref() {
+            paths.push(catalog);
+        }
+        paths.join("\n")
+    }
+
+    fn import_request(
+        &self,
+        destination: &ImportDestination,
+        include_examples: bool,
+    ) -> Option<ImportRequest> {
+        Some(ImportRequest {
+            previous: TinaFolders {
+                tina: PathBuf::from(&self.install_location),
+                settings: PathBuf::from(self.settings_dir.as_ref()?),
+                catalog: PathBuf::from(self.catalog_dir.as_ref()?),
+            },
+            current: destination.folders.clone(),
+            current_temporary: destination.temporary.clone(),
+            current_ini: destination.ini.clone(),
+            catalog_database_subfolder: destination.catalog_database_subfolder.clone(),
+            include_examples,
+        })
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct SetupDetails {
+    program_folder: String,
+    settings_directory: Option<String>,
+    catalog_directory: Option<String>,
+    display_name: Option<String>,
+}
+
+fn setup_details(installation: &Path) -> Option<SetupDetails> {
+    let contents = fs::read_to_string(installation.join(SETUP_FILE)).ok()?;
+    Some(SetupDetails {
+        program_folder: setup_value(&contents, PROGRAM_FOLDER_KEY).unwrap_or_default(),
+        settings_directory: setup_value(&contents, "Settings Folder"),
+        catalog_directory: setup_value(&contents, "Shared Catalog Folder"),
+        display_name: setup_value(&contents, "Start Menu Folder"),
+    })
+}
+
+fn setup_value(contents: &str, key: &str) -> Option<String> {
+    let mut in_setup = false;
+    for line in contents.lines() {
+        let line = line.trim();
+        if line.starts_with('[') && line.ends_with(']') {
+            in_setup = line[1..line.len() - 1].eq_ignore_ascii_case(SETUP_SECTION);
+            continue;
+        }
+        if in_setup
+            && let Some((name, value)) = line.split_once('=')
+            && name.trim().eq_ignore_ascii_case(key)
+        {
+            let value = value.trim();
+            if !value.is_empty() {
+                return Some(value.to_owned());
+            }
+        }
+    }
+    None
+}
+
+fn tina_version(text: &str) -> Option<i32> {
+    let lower = text.to_ascii_lowercase();
+    let after_tina = lower.split_once("tina")?.1;
+    let digits = after_tina
+        .chars()
+        .skip_while(|character| !character.is_ascii_digit())
+        .take_while(char::is_ascii_digit)
+        .collect::<String>();
+    digits.parse().ok()
+}
+
+fn same_folder(left: &Path, right: &Path) -> bool {
+    left.to_string_lossy()
+        .replace('/', "\\")
+        .trim_end_matches('\\')
+        .eq_ignore_ascii_case(
+            right
+                .to_string_lossy()
+                .replace('/', "\\")
+                .trim_end_matches('\\'),
+        )
+}
+
+fn installation_from_folder(folder: &Path, current: &Path) -> Option<Installation> {
+    if same_folder(folder, current) || !folder.join(TINA_EXECUTABLE).is_file() {
+        return None;
+    }
+    let details = setup_details(folder)?;
+    let display_name = details
+        .display_name
+        .clone()
+        .unwrap_or_else(|| folder.to_string_lossy().into_owned());
+    let version =
+        tina_version(&display_name).or_else(|| tina_version(&folder.to_string_lossy()))?;
+    if version < MINIMUM_INSTALLATION_VERSION {
+        return None;
+    }
+    Some(Installation {
+        display_name,
+        install_location: folder.to_string_lossy().into_owned(),
+        program_folder: details.program_folder,
+        settings_dir: details.settings_directory,
+        catalog_dir: details.catalog_directory,
+    })
+}
+
+async fn choose_valid_installation_folder(current: PathBuf) -> Option<Installation> {
+    loop {
+        let selected = AsyncFileDialog::new()
+            .set_title("Select an earlier TINA installation")
+            .pick_folder()
+            .await?;
+        if let Some(installation) = installation_from_folder(selected.path(), &current) {
+            return Some(installation);
+        }
+    }
+}
+
+fn standard_installations() -> Vec<Installation> {
+    let mut host = StandardInstallationScanHost::default();
+    let current = PathBuf::from(host.current_install_location());
+    let mut installations = discover_installations(&mut host);
+    for installation in host.detected_installations() {
+        if !installations.iter().any(|candidate| {
+            same_folder(
+                Path::new(&candidate.install_location),
+                Path::new(&installation.install_location),
+            )
+        }) {
+            installations.push(installation);
+        }
+    }
+    if let Some(folder) = std::env::var_os(TINA_HOME_VARIABLE).map(PathBuf::from)
+        && let Some(installation) = installation_from_folder(&folder, &current)
+        && !installations.iter().any(|candidate| {
+            same_folder(
+                Path::new(&candidate.install_location),
+                Path::new(&installation.install_location),
+            )
+        })
+    {
+        installations.push(installation);
+    }
+    installations
+}
+
+#[cfg(windows)]
+#[derive(Debug, Default)]
+struct StandardInstallationScanHost {
+    setup_by_program: std::collections::HashMap<String, SetupDetails>,
+}
+
+#[cfg(windows)]
+impl StandardInstallationScanHost {
+    fn detected_installations(&mut self) -> Vec<Installation> {
+        let current = PathBuf::from(self.current_install_location());
+        let mut installations = Vec::new();
+        for entry in self.uninstall_entries() {
+            let Some(display_name) = self.uninstall_value(&entry, DISPLAY_NAME_VALUE) else {
+                continue;
+            };
+            if !display_name.to_ascii_lowercase().contains("tina") {
+                continue;
+            }
+            let Some(location) = self.uninstall_value(&entry, INSTALL_LOCATION_VALUE) else {
+                continue;
+            };
+            let Some(mut installation) = installation_from_folder(Path::new(&location), &current)
+            else {
+                continue;
+            };
+            installation.display_name = display_name;
+            installation.settings_dir = self
+                .user_value(&installation.program_folder, SETTINGS_DIR_VALUE)
+                .or(installation.settings_dir);
+            installation.catalog_dir = self
+                .user_value(&installation.program_folder, CATALOG_DIR_VALUE)
+                .or(installation.catalog_dir);
+            installations.push(installation);
+        }
+        installations
+    }
+}
+
+#[cfg(windows)]
+impl InstallationScanHost for StandardInstallationScanHost {
+    fn uninstall_entries(&mut self) -> Vec<String> {
+        use winreg::RegKey;
+        use winreg::enums::{HKEY_LOCAL_MACHINE, KEY_READ};
+
+        RegKey::predef(HKEY_LOCAL_MACHINE)
+            .open_subkey_with_flags(UNINSTALL_KEY, KEY_READ)
+            .ok()
+            .map(|key| key.enum_keys().filter_map(Result::ok).collect())
+            .unwrap_or_default()
+    }
+
+    fn uninstall_value(&mut self, entry: &str, value: &str) -> Option<String> {
+        use winreg::RegKey;
+        use winreg::enums::{HKEY_LOCAL_MACHINE, KEY_READ};
+
+        let path = format!(r"{UNINSTALL_KEY}\{entry}");
+        RegKey::predef(HKEY_LOCAL_MACHINE)
+            .open_subkey_with_flags(path, KEY_READ)
+            .ok()?
+            .get_value(value)
+            .ok()
+    }
+
+    fn program_folder(&mut self, install_location: &str) -> String {
+        let details = setup_details(Path::new(install_location)).unwrap_or_default();
+        let program_folder = details.program_folder.clone();
+        self.setup_by_program
+            .insert(program_folder.clone(), details);
+        program_folder
+    }
+
+    fn current_install_location(&mut self) -> String {
+        std::env::current_exe()
+            .ok()
+            .and_then(|path| path.parent().map(Path::to_path_buf))
+            .unwrap_or_default()
+            .to_string_lossy()
+            .into_owned()
+    }
+
+    fn user_value(&mut self, program_folder: &str, value: &str) -> Option<String> {
+        use winreg::RegKey;
+        use winreg::enums::{HKEY_CURRENT_USER, KEY_READ};
+
+        let path = format!(r"SOFTWARE\DesignSoft\{program_folder}");
+        let registry_value = RegKey::predef(HKEY_CURRENT_USER)
+            .open_subkey_with_flags(path, KEY_READ)
+            .ok()
+            .and_then(|key| key.get_value(value).ok());
+        registry_value.or_else(|| {
+            let details = self.setup_by_program.get(program_folder)?;
+            match value {
+                SETTINGS_DIR_VALUE => details.settings_directory.clone(),
+                CATALOG_DIR_VALUE => details.catalog_directory.clone(),
+                _ => None,
+            }
+        })
+    }
+}
+
+#[cfg(not(windows))]
+#[derive(Debug, Default)]
+struct StandardInstallationScanHost;
+
+#[cfg(not(windows))]
+impl StandardInstallationScanHost {
+    fn detected_installations(&mut self) -> Vec<Installation> {
+        Vec::new()
+    }
+}
+
+#[cfg(not(windows))]
+impl InstallationScanHost for StandardInstallationScanHost {
+    fn uninstall_entries(&mut self) -> Vec<String> {
+        Vec::new()
+    }
+
+    fn uninstall_value(&mut self, _entry: &str, _value: &str) -> Option<String> {
+        None
+    }
+
+    fn program_folder(&mut self, install_location: &str) -> String {
+        setup_details(Path::new(install_location))
+            .map_or_else(String::new, |details| details.program_folder)
+    }
+
+    fn current_install_location(&mut self) -> String {
+        std::env::current_exe()
+            .ok()
+            .and_then(|path| path.parent().map(Path::to_path_buf))
+            .unwrap_or_default()
+            .to_string_lossy()
+            .into_owned()
+    }
+
+    fn user_value(&mut self, _program_folder: &str, _value: &str) -> Option<String> {
+        None
+    }
+}
+
 /// What discovering installations needs from the machine.
 pub trait InstallationScanHost {
     /// The uninstall entries to look at.
@@ -1854,5 +2354,168 @@ mod installation_scan_tests {
     fn nothing_installed_offers_nothing() {
         let mut host = Machine::default();
         assert!(discover_installations(&mut host).is_empty());
+    }
+}
+
+#[cfg(test)]
+mod selection_window_tests {
+    use super::*;
+
+    fn installation(name: &str) -> Installation {
+        Installation {
+            display_name: name.to_owned(),
+            install_location: format!(r"C:\{name}"),
+            program_folder: format!("Folder{name}"),
+            settings_dir: Some(format!(r"C:\{name}\Settings")),
+            catalog_dir: Some(format!(r"C:\{name}\Catalog")),
+        }
+    }
+
+    fn destination() -> ImportDestination {
+        ImportDestination {
+            folders: TinaFolders {
+                tina: PathBuf::from(r"C:\TIARA"),
+                settings: PathBuf::from(r"C:\TIARA\Settings"),
+                catalog: PathBuf::from(r"C:\TIARA\Catalog"),
+            },
+            temporary: PathBuf::from(r"C:\TIARA\Temp"),
+            ini: PathBuf::from(r"C:\TIARA\TINA.INI"),
+            catalog_database_subfolder: PathBuf::from("DATABASES"),
+        }
+    }
+
+    fn temporary_folder(name: &str) -> PathBuf {
+        let folder = std::env::current_dir()
+            .unwrap_or_default()
+            .join(".temp")
+            .join(format!("select-tina-folder-{}-{name}", std::process::id()));
+        if folder.exists() {
+            fs::remove_dir_all(&folder).expect("previous fixture must be removable");
+        }
+        fs::create_dir_all(&folder).expect("fixture directory must be creatable");
+        folder
+    }
+
+    fn write_installation(folder: &Path, version: i32, with_executable: bool) {
+        if with_executable {
+            fs::write(folder.join(TINA_EXECUTABLE), []).expect("tina.exe fixture must be written");
+        }
+        fs::write(
+            folder.join(SETUP_FILE),
+            format!(
+                "[Setup Settings]\r\nProgram Folder=Tina{version}\r\nSettings Folder={}\r\nShared Catalog Folder={}\r\nStart Menu Folder=TINA {version}\r\n",
+                folder.join("Settings").display(),
+                folder.join("Catalog").display()
+            ),
+        )
+        .expect("setup.ini fixture must be written");
+    }
+
+    #[test]
+    fn selection_builds_the_import_request_and_tracks_the_checkbox() {
+        let mut window = Window::default();
+        window.open_with_installations(vec![installation("TINA 16")], destination());
+
+        assert!(window.is_configured());
+        assert_eq!(
+            window.installations()[0].hint(),
+            "C:\\TINA 16\nC:\\TINA 16\\Settings\nC:\\TINA 16\\Catalog"
+        );
+        assert!(!window.can_import());
+        drop(window.update(Message::InstallationSelected(0)));
+        assert!(window.can_import());
+        assert_eq!(window.selected_installation(), Some(0));
+        assert_eq!(
+            window
+                .request
+                .as_ref()
+                .map(|request| request.include_examples),
+            Some(false)
+        );
+
+        drop(window.update(Message::IncludeExamplesChanged(true)));
+
+        assert_eq!(
+            window
+                .request
+                .as_ref()
+                .map(|request| request.include_examples),
+            Some(true)
+        );
+        assert_eq!(
+            window.request.as_ref().map(|request| &request.current),
+            Some(&destination().folders)
+        );
+    }
+
+    #[test]
+    fn a_browsed_installation_replaces_the_browse_row_and_enables_go() {
+        let mut window = Window::default();
+        window.open_with_installations(vec![installation("TINA 14")], destination());
+
+        drop(window.update(Message::BrowseFinished(Some(installation("TINA 16")))));
+
+        assert_eq!(window.selected_installation(), Some(1));
+        assert!(window.can_import());
+        assert_eq!(
+            window
+                .request
+                .as_ref()
+                .map(|request| request.previous.tina.as_path()),
+            Some(Path::new(r"C:\TINA 16"))
+        );
+    }
+
+    #[test]
+    fn cancellation_requests_one_host_close_without_starting_an_import() {
+        let mut window = Window::default();
+        window.open_with_installations(vec![installation("TINA 16")], destination());
+        drop(window.update(Message::InstallationSelected(0)));
+
+        drop(window.update(Message::CancelPressed));
+
+        assert_eq!(window.status(), &ImportStatus::Idle);
+        assert!(window.close_requested());
+        assert!(window.take_close_requested());
+        assert!(!window.take_close_requested());
+    }
+
+    #[test]
+    fn browse_validation_rejects_missing_old_and_current_installations() {
+        let root = temporary_folder("validation");
+        let missing_executable = root.join("TINA 16 missing");
+        let old = root.join("TINA 7");
+        let valid = root.join("TINA 16");
+        for folder in [&missing_executable, &old, &valid] {
+            fs::create_dir_all(folder).expect("installation fixture must be creatable");
+        }
+        write_installation(&missing_executable, 16, false);
+        write_installation(&old, 7, true);
+        write_installation(&valid, 16, true);
+
+        assert!(installation_from_folder(&missing_executable, Path::new("other")).is_none());
+        assert!(installation_from_folder(&old, Path::new("other")).is_none());
+        assert!(installation_from_folder(&valid, &valid).is_none());
+        let accepted = installation_from_folder(&valid, Path::new("other"))
+            .expect("version 16 fixture must be accepted");
+        assert_eq!(accepted.display_name, "TINA 16");
+        assert_eq!(
+            accepted.settings_dir.as_deref(),
+            Some(valid.join("Settings").to_string_lossy().as_ref())
+        );
+
+        fs::remove_dir_all(root).expect("fixture cleanup must succeed");
+    }
+
+    #[test]
+    fn tiara_destination_keeps_imported_data_below_the_data_directory() {
+        let data = PathBuf::from(r"C:\Users\Test\AppData\Roaming\TIARA");
+
+        let destination = ImportDestination::for_tiara_data_directory(&data);
+
+        assert_eq!(destination.folders.settings, data);
+        assert_eq!(destination.folders.catalog, data.join("Catalog"));
+        assert_eq!(destination.temporary, data.join("Temp"));
+        assert_eq!(destination.ini, data.join("TINA.INI"));
     }
 }

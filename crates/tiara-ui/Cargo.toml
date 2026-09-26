@@ -18,5 +18,8 @@ tiara-core = { path = "../tiara-core" }
 walkdir.workspace = true
 xmltree.workspace = true
 
+[target.'cfg(windows)'.dependencies]
+winreg.workspace = true
+
 [lints]
 workspace = true

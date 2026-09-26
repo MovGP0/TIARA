@@ -366,6 +366,9 @@ impl TiaraApplication {
     fn handle(&mut self, message: Message) {
         match message {
             Message::ShowWindow(window) => {
+                if window == WindowKind::SelectTinaFolder && !self.dock.holds(window) {
+                    self.select_tina_folder.open_standard();
+                }
                 self.dock.show(window);
             }
             Message::DockFocused(pane) => self.dock.focus(pane),
@@ -378,6 +381,26 @@ impl TiaraApplication {
             }
             Message::DockResized(event) => self.dock.resize(event),
             Message::KeyPressed(key, modifiers) => {
+                if self.active_window() == WindowKind::SelectTinaFolder && modifiers.is_empty() {
+                    if matches!(
+                        key,
+                        iced::keyboard::Key::Named(iced::keyboard::key::Named::Escape)
+                    ) {
+                        self.handle(Message::SelectTinaFolder(
+                            crate::select_tina_folder::Message::CancelPressed,
+                        ));
+                        return;
+                    }
+                    if matches!(
+                        key,
+                        iced::keyboard::Key::Named(iced::keyboard::key::Named::Enter)
+                    ) {
+                        self.handle(Message::SelectTinaFolder(
+                            crate::select_tina_folder::Message::ImportPressed,
+                        ));
+                        return;
+                    }
+                }
                 // The menu gets the key first: Alt and an underlined letter
                 // opens one, and a letter inside an open menu chooses an
                 // entry. Anything it does not want falls through to the
@@ -603,6 +626,9 @@ impl TiaraApplication {
             }
             Message::SelectTinaFolder(message) => {
                 let _ = self.select_tina_folder.update(message);
+                if self.select_tina_folder.take_close_requested() {
+                    self.dock.close_window(WindowKind::SelectTinaFolder);
+                }
             }
             Message::SerialMonitor(message) => {
                 self.serial_monitor.update(message);
@@ -1678,5 +1704,73 @@ SYMATTR InstName R1
             application.schematic_editor.sheet().document().parts()[0].kind,
             "R"
         );
+    }
+
+    fn configure_select_tina_folder(application: &mut TiaraApplication) {
+        application.handle(Message::ShowWindow(WindowKind::SelectTinaFolder));
+        application.select_tina_folder.open_with_installations(
+            vec![crate::select_tina_folder::Installation {
+                display_name: "TINA 16".to_owned(),
+                install_location: r"C:\TINA16".to_owned(),
+                program_folder: "Tina16".to_owned(),
+                settings_dir: Some(r"C:\TINA16\Settings".to_owned()),
+                catalog_dir: Some(r"C:\TINA16\Catalog".to_owned()),
+            }],
+            crate::select_tina_folder::ImportDestination {
+                folders: crate::select_tina_folder::TinaFolders {
+                    tina: std::path::PathBuf::from(r"C:\TIARA"),
+                    settings: std::path::PathBuf::from(r"C:\TIARA\Settings"),
+                    catalog: std::path::PathBuf::from(r"C:\TIARA\Catalog"),
+                },
+                temporary: std::path::PathBuf::from(r"C:\TIARA\Temp"),
+                ini: std::path::PathBuf::from(r"C:\TIARA\TINA.INI"),
+                catalog_database_subfolder: std::path::PathBuf::from("DATABASES"),
+            },
+        );
+        application.handle(Message::SelectTinaFolder(
+            crate::select_tina_folder::Message::InstallationSelected(0),
+        ));
+    }
+
+    #[test]
+    fn select_tina_folder_cancel_and_escape_close_the_host_without_document_changes() {
+        let mut application = TiaraApplication::default();
+        configure_select_tina_folder(&mut application);
+        assert!(application.dock.holds(WindowKind::SelectTinaFolder));
+
+        application.handle(Message::SelectTinaFolder(
+            crate::select_tina_folder::Message::CancelPressed,
+        ));
+
+        assert!(!application.dock.holds(WindowKind::SelectTinaFolder));
+        assert!(application.schematic_editor.sheet().document().is_empty());
+
+        configure_select_tina_folder(&mut application);
+        application.handle(Message::KeyPressed(
+            iced::keyboard::Key::Named(iced::keyboard::key::Named::Escape),
+            iced::keyboard::Modifiers::empty(),
+        ));
+
+        assert!(!application.dock.holds(WindowKind::SelectTinaFolder));
+        assert_eq!(application.active_window(), WindowKind::SchematicEditor);
+        assert!(application.schematic_editor.sheet().document().is_empty());
+    }
+
+    #[test]
+    fn select_tina_folder_enter_uses_the_enabled_go_route() {
+        let mut application = TiaraApplication::default();
+        configure_select_tina_folder(&mut application);
+        assert!(application.select_tina_folder.can_import());
+
+        application.handle(Message::KeyPressed(
+            iced::keyboard::Key::Named(iced::keyboard::key::Named::Enter),
+            iced::keyboard::Modifiers::empty(),
+        ));
+
+        assert_eq!(
+            application.select_tina_folder.status(),
+            &crate::select_tina_folder::ImportStatus::Copying
+        );
+        assert!(application.dock.holds(WindowKind::SelectTinaFolder));
     }
 }

@@ -325,6 +325,13 @@ impl Window {
         self.close_requested
     }
 
+    /// Takes and clears the request that the application close this surface.
+    pub const fn take_close_requested(&mut self) -> bool {
+        let requested = self.close_requested;
+        self.close_requested = false;
+        requested
+    }
+
     #[must_use]
     pub const fn dedication_cursor(&self) -> DedicationCursor {
         self.dedication_cursor

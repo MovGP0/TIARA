@@ -440,6 +440,9 @@ impl TiaraApplication {
             Message::SchematicEditor(message) => self.schematic_editor_message(message),
             Message::AboutTina(message) => {
                 let _ = self.about_box.update(message);
+                if self.about_box.take_close_requested() {
+                    self.dock.close_window(WindowKind::AboutTina);
+                }
             }
             Message::AcMultisineAnalysis(message) => {
                 self.ac_multisine_analysis.update(message);
@@ -1150,6 +1153,20 @@ mod tests {
 
         assert_eq!(application.active_window(), WindowKind::Oscilloscope);
         assert_eq!(application.title(), WindowKind::Oscilloscope.title());
+    }
+
+    #[test]
+    fn about_ok_closes_its_docked_surface_without_document_changes() {
+        let mut application = TiaraApplication::default();
+        application.handle(Message::ShowWindow(WindowKind::AboutTina));
+        assert!(application.dock.holds(WindowKind::AboutTina));
+
+        application.handle(Message::AboutTina(crate::about_box::Message::OkPressed));
+
+        assert!(!application.dock.holds(WindowKind::AboutTina));
+        assert_eq!(application.active_window(), WindowKind::SchematicEditor);
+        assert!(application.schematic_editor.sheet().document().is_empty());
+        assert!(!application.schematic_editor.state().can_undo);
     }
 
     #[test]

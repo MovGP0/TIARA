@@ -28,6 +28,12 @@ granularity or host docking behavior. These need live evidence or explicit
 TIARA requirements. A search of this manual did not establish the schematic
 Undo/Redo contract; those scenarios cite the live comparison instead.
 
+A second search on 2026-09-26 did not find the **Select Tina folder** dialog,
+**Import TINA Libraries and Designs**, **Include Examples and Designs**, or
+`Library Import.log`. The Select TINA Folder scenarios therefore use the
+recovered resource and reviewed handler paths as their requirement basis. They
+keep keyboard focus and live localized-message behavior as explicit test gaps.
+
 ### Interpreter manual linked from the v16 documentation page
 
 The linked [Interpreter manual](https://designsoft.biz/home/distrib/en/tina9doc/TINA_Interpreter_Manual.pdf)

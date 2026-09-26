@@ -5,13 +5,16 @@
 //! module reads that native form. It does not put a different format under the
 //! `.tsc` extension.
 
+use std::collections::BTreeSet;
 use std::fmt;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
+use flate2::Compression;
 use flate2::read::ZlibDecoder;
+use flate2::write::ZlibEncoder;
 
-use crate::schematic_document::{Document, Point, Rotation, Sheet, WireKind};
+use crate::schematic_document::{Document, Part, Point, Rotation, Sheet, Wire, WireKind};
 
 /// What a circuit is called, without the dot.
 pub const EXTENSION: &str = "tsc";
@@ -28,6 +31,37 @@ const WIRE_RECORD_TAG: u16 = 0x0100;
 const FIRST_COMPONENT_TAG: u16 = 0x0203;
 const FIRST_ANALYSIS_TAG: u16 = 0xf000;
 const NATIVE_UNITS_PER_GRID_SQUARE: i32 = 8;
+const CURRENT_COMPONENT_VERSION: u16 = 0x46;
+const CURRENT_WIRE_VERSION: u16 = 0x17;
+
+#[derive(Debug, Clone)]
+struct NativeRecord {
+    tag: u16,
+    version: u16,
+    data: Vec<u8>,
+}
+
+struct NativeContainer {
+    prefix: Vec<u8>,
+    flags: u32,
+    records: Vec<NativeRecord>,
+}
+
+struct NativeComponent {
+    kind: String,
+    at: Point,
+    rotation: Rotation,
+    mirrored: bool,
+    label: String,
+    value: String,
+}
+
+struct NewComponentSchema {
+    tag: u16,
+    bytes_after_label: usize,
+    value_after_label: usize,
+    model: &'static str,
+}
 
 /// What can go wrong on the way to or from a file.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -54,7 +88,7 @@ impl fmt::Display for Error {
             }
             Self::NativeWriteUnsupported => write!(
                 f,
-                "saving changes to native TINA circuits is not supported yet; the source file was not changed"
+                "this change has no safe native TINA representation; the source file was not changed"
             ),
         }
     }
@@ -81,6 +115,13 @@ pub fn read(path: &Path) -> Result<Document, Error> {
 }
 
 fn decode(source: &[u8]) -> Result<Document, Error> {
+    let container = decode_container(source)?;
+    let mut document = decode_records(&container.records)?;
+    document.retain_native_source(source);
+    Ok(document)
+}
+
+fn decode_container(source: &[u8]) -> Result<NativeContainer, Error> {
     let Some(header) = source.get(..MAGIC.len()) else {
         return Err(Error::NotACircuit);
     };
@@ -130,13 +171,15 @@ fn decode(source: &[u8]) -> Result<Document, Error> {
         decoded
     };
 
-    let mut document = decode_records(&payload)?;
-    document.retain_native_source(source);
-    Ok(document)
+    Ok(NativeContainer {
+        prefix: source[..version_end].to_vec(),
+        flags,
+        records: parse_records(&payload)?,
+    })
 }
 
-fn decode_records(payload: &[u8]) -> Result<Document, Error> {
-    let mut sheet = Sheet::default();
+fn parse_records(payload: &[u8]) -> Result<Vec<NativeRecord>, Error> {
+    let mut records = Vec::new();
     let mut at = 0;
     while at < payload.len() {
         if payload.len() - at < 8 {
@@ -158,7 +201,11 @@ fn decode_records(payload: &[u8]) -> Result<Document, Error> {
             .ok_or_else(|| {
                 Error::Corrupt(format!("TSC record 0x{tag:04X} runs past the payload"))
             })?;
-        let data = &payload[data_at..end];
+        records.push(NativeRecord {
+            tag,
+            version,
+            data: payload[data_at..end].to_vec(),
+        });
         at = end;
 
         if tag == END_RECORD_TAG {
@@ -169,10 +216,20 @@ fn decode_records(payload: &[u8]) -> Result<Document, Error> {
             }
             break;
         }
-        if tag == WIRE_RECORD_TAG {
-            load_wire_record(&mut sheet, data)?;
-        } else if (FIRST_COMPONENT_TAG..FIRST_ANALYSIS_TAG).contains(&tag) {
-            load_component_record(&mut sheet, tag, version, data);
+    }
+    Ok(records)
+}
+
+fn decode_records(records: &[NativeRecord]) -> Result<Document, Error> {
+    let mut sheet = Sheet::default();
+    for record in records {
+        if record.tag == END_RECORD_TAG {
+            break;
+        }
+        if record.tag == WIRE_RECORD_TAG {
+            load_wire_record(&mut sheet, &record.data)?;
+        } else if (FIRST_COMPONENT_TAG..FIRST_ANALYSIS_TAG).contains(&record.tag) {
+            load_component_record(&mut sheet, record.tag, record.version, &record.data);
         }
     }
 
@@ -182,6 +239,14 @@ fn decode_records(payload: &[u8]) -> Result<Document, Error> {
 }
 
 fn load_wire_record(sheet: &mut Sheet, data: &[u8]) -> Result<(), Error> {
+    let points = wire_points(data)?;
+    for segment in points.windows(2) {
+        sheet.load_wire(segment[0], segment[1], WireKind::Wire);
+    }
+    Ok(())
+}
+
+fn wire_points(data: &[u8]) -> Result<Vec<Point>, Error> {
     let count = read_u16(data, 8)
         .ok_or_else(|| Error::Corrupt("a TSC wire has no point count".to_owned()))?
         as usize;
@@ -194,27 +259,39 @@ fn load_wire_record(sheet: &mut Sheet, data: &[u8]) -> Result<(), Error> {
         .map(|point| native_point(point, 0))
         .collect::<Option<Vec<_>>>()
         .ok_or_else(|| Error::Corrupt("a TSC wire contains an invalid point".to_owned()))?;
-    for segment in points.windows(2) {
-        sheet.load_wire(segment[0], segment[1], WireKind::Wire);
-    }
-    Ok(())
+    Ok(points)
 }
 
 fn load_component_record(sheet: &mut Sheet, tag: u16, version: u16, data: &[u8]) {
-    let Some(at) = native_point(data, 0) else {
+    let Some(component) = decode_component(tag, version, data) else {
         return;
     };
-    let Some(orientation) = data.get(8).copied() else {
-        return;
-    };
-    let Some((label, after_label)) = component_label(version, data) else {
-        return;
-    };
+    sheet.load_part(
+        component.kind,
+        component.at,
+        component.rotation,
+        component.mirrored,
+        component.label,
+        component.value,
+    );
+}
+
+fn decode_component(tag: u16, version: u16, data: &[u8]) -> Option<NativeComponent> {
+    let at = native_point(data, 0)?;
+    let orientation = data.get(8).copied()?;
+    let (label, after_label) = component_label(version, data)?;
     let rotation = Rotation::ALL[usize::from(orientation & 3)];
     let mirrored = orientation & 4 != 0;
     let kind = component_kind(tag, &label);
     let value = component_value(tag, data, after_label);
-    sheet.load_part(kind, at, rotation, mirrored, label, value);
+    Some(NativeComponent {
+        kind,
+        at,
+        rotation,
+        mirrored,
+        label,
+        value,
+    })
 }
 
 fn component_label(version: u16, data: &[u8]) -> Option<(String, usize)> {
@@ -228,7 +305,12 @@ fn component_label(version: u16, data: &[u8]) -> Option<(String, usize)> {
             .map(|unit| u16::from_le_bytes([unit[0], unit[1]]))
             .take_while(|unit| *unit != 0)
             .collect::<Vec<_>>();
-        Some((String::from_utf16_lossy(&units), end))
+        let after = if data.get(end..end + 2) == Some([0, 0].as_slice()) {
+            end + 2
+        } else {
+            end
+        };
+        Some((String::from_utf16_lossy(&units), after))
     } else {
         let start = 10_usize;
         let end = start.checked_add(length)?;
@@ -346,29 +428,489 @@ fn read_u32(data: &[u8], at: usize) -> Option<u32> {
     Some(u32::from_le_bytes(bytes))
 }
 
-/// Writes the retained native TSC source without changing its bytes.
+fn encode(document: &Document) -> Result<Vec<u8>, Error> {
+    if !document.is_modified()
+        && let Some(source) = document.native_source()
+    {
+        return Ok(source.to_vec());
+    }
+
+    if !document.shapes().is_empty() || !document.notes().is_empty() {
+        return Err(Error::NativeWriteUnsupported);
+    }
+
+    let mut container = if let Some(source) = document.native_source() {
+        decode_container(source)?
+    } else {
+        empty_container()
+    };
+    let mut encoded = Vec::new();
+    let mut original_ids = BTreeSet::new();
+    let mut next_id = 1_u32;
+    let mut end_record = None;
+
+    for record in &container.records {
+        if record.tag == END_RECORD_TAG {
+            end_record = Some(record.clone());
+            continue;
+        }
+
+        if record.tag == WIRE_RECORD_TAG {
+            encode_original_wire_record(
+                &mut encoded,
+                record,
+                document,
+                &mut original_ids,
+                &mut next_id,
+            )?;
+        } else if (FIRST_COMPONENT_TAG..FIRST_ANALYSIS_TAG).contains(&record.tag) {
+            encode_original_component_record(
+                &mut encoded,
+                record,
+                document,
+                &mut original_ids,
+                &mut next_id,
+            )?;
+        } else {
+            encoded.push(record.clone());
+        }
+    }
+
+    for part in document
+        .parts()
+        .iter()
+        .filter(|part| !original_ids.contains(&part.id.number()))
+    {
+        encoded.push(encode_new_component(part)?);
+    }
+    for wire in document
+        .wires()
+        .iter()
+        .filter(|wire| !original_ids.contains(&wire.id.number()))
+    {
+        encoded.push(encode_new_wire(wire)?);
+    }
+    encoded.push(end_record.unwrap_or(NativeRecord {
+        tag: END_RECORD_TAG,
+        version: 0,
+        data: Vec::new(),
+    }));
+    container.records = encoded;
+    encode_container(&container)
+}
+
+fn encode_original_component_record(
+    encoded: &mut Vec<NativeRecord>,
+    record: &NativeRecord,
+    document: &Document,
+    original_ids: &mut BTreeSet<u32>,
+    next_id: &mut u32,
+) -> Result<(), Error> {
+    let Some(original) = decode_component(record.tag, record.version, &record.data) else {
+        encoded.push(record.clone());
+        return Ok(());
+    };
+    let id = *next_id;
+    *next_id += 1;
+    original_ids.insert(id);
+    let Some(part) = document.parts().iter().find(|part| part.id.number() == id) else {
+        return Ok(());
+    };
+    validate_part_state(part)?;
+    if part.kind == original.kind
+        && part.at == original.at
+        && part.rotation == original.rotation
+        && part.mirrored == original.mirrored
+        && part.label == original.label
+        && part.value == original.value
+    {
+        encoded.push(record.clone());
+        return Ok(());
+    }
+    if part.kind != original.kind {
+        return Err(Error::NativeWriteUnsupported);
+    }
+    encoded.push(encode_component_from_template(record, part)?);
+    Ok(())
+}
+
+fn encode_original_wire_record(
+    encoded: &mut Vec<NativeRecord>,
+    record: &NativeRecord,
+    document: &Document,
+    original_ids: &mut BTreeSet<u32>,
+    next_id: &mut u32,
+) -> Result<(), Error> {
+    let points = wire_points(&record.data)?;
+    let original_segments = points
+        .windows(2)
+        .filter(|segment| segment[0] != segment[1])
+        .map(|segment| (segment[0], segment[1]))
+        .collect::<Vec<_>>();
+    if original_segments.is_empty() {
+        encoded.push(record.clone());
+        return Ok(());
+    }
+
+    let mut current = Vec::new();
+    let mut unchanged = true;
+    for (from, to) in original_segments {
+        let id = *next_id;
+        *next_id += 1;
+        original_ids.insert(id);
+        let wire = document.wires().iter().find(|wire| wire.id.number() == id);
+        if let Some(wire) = wire {
+            validate_wire_state(wire)?;
+            unchanged &= wire.from == from && wire.to == to;
+            current.push(wire);
+        } else {
+            unchanged = false;
+        }
+    }
+    if unchanged {
+        encoded.push(record.clone());
+    } else {
+        for wire in current {
+            encoded.push(encode_wire_from_template(record, wire)?);
+        }
+    }
+    Ok(())
+}
+
+const fn validate_part_state(part: &Part) -> Result<(), Error> {
+    if part.hidden || part.locked {
+        return Err(Error::NativeWriteUnsupported);
+    }
+    Ok(())
+}
+
+fn validate_wire_state(wire: &Wire) -> Result<(), Error> {
+    if wire.kind != WireKind::Wire {
+        return Err(Error::NativeWriteUnsupported);
+    }
+    Ok(())
+}
+
+fn encode_component_from_template(
+    record: &NativeRecord,
+    part: &Part,
+) -> Result<NativeRecord, Error> {
+    validate_part_state(part)?;
+    let mut data = record.data.clone();
+    write_native_point(&mut data, 0, part.at)?;
+    *data.get_mut(8).ok_or(Error::NativeWriteUnsupported)? = orientation(part);
+    let new_after_label = replace_component_label(record.version, &mut data, part.label.as_str())?;
+
+    if supports_component_value(record.tag) {
+        if let Some(range) = component_value_range(record.tag, &data, new_after_label) {
+            if !part.value.is_ascii() {
+                return Err(Error::NativeWriteUnsupported);
+            }
+            data.splice(range, part.value.bytes());
+        } else if !part.value.is_empty() {
+            if !part.value.is_ascii() {
+                return Err(Error::NativeWriteUnsupported);
+            }
+            data.extend_from_slice(part.value.as_bytes());
+            data.push(0);
+        }
+    } else if !part.value.is_empty() {
+        return Err(Error::NativeWriteUnsupported);
+    }
+
+    Ok(NativeRecord {
+        tag: record.tag,
+        version: record.version,
+        data,
+    })
+}
+
+fn encode_new_component(part: &Part) -> Result<NativeRecord, Error> {
+    validate_part_state(part)?;
+    let schema = new_component_schema(part.kind.as_str()).ok_or(Error::NativeWriteUnsupported)?;
+    if !part.value.is_ascii() {
+        return Err(Error::NativeWriteUnsupported);
+    }
+
+    let mut data = vec![0; 13];
+    write_native_point(&mut data, 0, part.at)?;
+    data[8] = orientation(part);
+    let after_label =
+        replace_component_label(CURRENT_COMPONENT_VERSION, &mut data, part.label.as_str())?;
+    data.extend_from_slice(&2_u32.to_le_bytes());
+    data.extend(encode_obss_string(&format!(
+        "T_TIARA_{:016X}",
+        part.id.number()
+    )));
+    data.extend(encode_obss_string(schema.model));
+    let value_at = after_label + schema.value_after_label;
+    if data.len() > value_at {
+        return Err(Error::NativeWriteUnsupported);
+    }
+    data.resize(value_at, 0);
+    data.extend_from_slice(part.value.as_bytes());
+    data.push(0);
+    let record_size = after_label + schema.bytes_after_label;
+    if data.len() > record_size {
+        return Err(Error::NativeWriteUnsupported);
+    }
+    data.resize(record_size, 0);
+    Ok(NativeRecord {
+        tag: schema.tag,
+        version: CURRENT_COMPONENT_VERSION,
+        data,
+    })
+}
+
+fn encode_wire_from_template(record: &NativeRecord, wire: &Wire) -> Result<NativeRecord, Error> {
+    validate_wire_state(wire)?;
+    let count = usize::from(read_u16(&record.data, 8).ok_or(Error::NativeWriteUnsupported)?);
+    let tail_at = 10_usize
+        .checked_add(count.checked_mul(4).ok_or(Error::NativeWriteUnsupported)?)
+        .filter(|at| *at <= record.data.len())
+        .ok_or(Error::NativeWriteUnsupported)?;
+    let mut encoded = encode_wire_data(wire)?;
+    encoded.extend_from_slice(&record.data[tail_at..]);
+    Ok(NativeRecord {
+        tag: WIRE_RECORD_TAG,
+        version: record.version,
+        data: encoded,
+    })
+}
+
+fn encode_new_wire(wire: &Wire) -> Result<NativeRecord, Error> {
+    validate_wire_state(wire)?;
+    Ok(NativeRecord {
+        tag: WIRE_RECORD_TAG,
+        version: CURRENT_WIRE_VERSION,
+        data: encode_wire_data(wire)?,
+    })
+}
+
+fn encode_wire_data(wire: &Wire) -> Result<Vec<u8>, Error> {
+    let mut data = vec![0; 18];
+    write_native_point(&mut data, 0, wire.from)?;
+    write_native_point(&mut data, 4, wire.to)?;
+    data[8..10].copy_from_slice(&2_u16.to_le_bytes());
+    write_native_point(&mut data, 10, wire.from)?;
+    write_native_point(&mut data, 14, wire.to)?;
+    Ok(data)
+}
+
+fn replace_component_label(version: u16, data: &mut Vec<u8>, label: &str) -> Result<usize, Error> {
+    let (_, old_end) = component_label(version, data).ok_or(Error::NativeWriteUnsupported)?;
+    let (start, encoded) = if version >= 0x44 {
+        let units = label.encode_utf16().collect::<Vec<_>>();
+        let length = u8::try_from(units.len()).map_err(|_| Error::NativeWriteUnsupported)?;
+        data[9] = length;
+        let mut encoded = units
+            .into_iter()
+            .flat_map(u16::to_le_bytes)
+            .collect::<Vec<_>>();
+        encoded.extend_from_slice(&0_u16.to_le_bytes());
+        (13, encoded)
+    } else {
+        let mut encoded = label
+            .chars()
+            .map(|character| u8::try_from(u32::from(character)))
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|_| Error::NativeWriteUnsupported)?;
+        encoded.push(0);
+        data[9] = u8::try_from(encoded.len()).map_err(|_| Error::NativeWriteUnsupported)?;
+        (10, encoded)
+    };
+    let new_end = start + encoded.len();
+    data.splice(start..old_end, encoded);
+    Ok(new_end)
+}
+
+fn component_value_range(
+    tag: u16,
+    data: &[u8],
+    after_label: usize,
+) -> Option<std::ops::Range<usize>> {
+    if !supports_component_value(tag) {
+        return None;
+    }
+    let remaining = data.get(after_label..)?;
+    let mut start = 0;
+    while start < remaining.len() {
+        let end = remaining[start..]
+            .iter()
+            .position(|byte| *byte == 0)
+            .map_or(remaining.len(), |offset| start + offset);
+        let candidate = remaining.get(start..end)?;
+        if !candidate.is_empty()
+            && candidate.len() <= 24
+            && candidate.iter().all(|byte| (0x20..=0x7e).contains(byte))
+        {
+            let text = std::str::from_utf8(candidate).ok()?;
+            if is_component_value(text) {
+                return Some(after_label + start..after_label + end);
+            }
+        }
+        start = end.saturating_add(1);
+    }
+    None
+}
+
+const fn supports_component_value(tag: u16) -> bool {
+    matches!(tag, 0x0209..=0x0211 | 0x0225 | 0x0244)
+}
+
+fn new_component_schema(kind: &str) -> Option<NewComponentSchema> {
+    match kind {
+        "R" => Some(NewComponentSchema {
+            tag: 0x020a,
+            bytes_after_label: 207,
+            value_after_label: 113,
+            model: "TIARA_RESISTOR_R",
+        }),
+        "C" => Some(NewComponentSchema {
+            tag: 0x020b,
+            bytes_after_label: 229,
+            value_after_label: 121,
+            model: "TIARA_CAPACITOR_DEFAULTC",
+        }),
+        "L" => Some(NewComponentSchema {
+            tag: 0x020c,
+            bytes_after_label: 207,
+            value_after_label: 113,
+            model: "TIARA_INDUCTOR_L",
+        }),
+        "IS" => Some(NewComponentSchema {
+            tag: 0x020e,
+            bytes_after_label: 126,
+            value_after_label: 107,
+            model: "TIARA (IS)",
+        }),
+        "VS" => Some(NewComponentSchema {
+            tag: 0x020f,
+            bytes_after_label: 126,
+            value_after_label: 107,
+            model: "TIARA (VS)",
+        }),
+        "IG" => Some(NewComponentSchema {
+            tag: 0x0210,
+            bytes_after_label: 126,
+            value_after_label: 107,
+            model: "TIARA (IG)",
+        }),
+        "VG" => Some(NewComponentSchema {
+            tag: 0x0211,
+            bytes_after_label: 126,
+            value_after_label: 107,
+            model: "TIARA (VG)",
+        }),
+        _ => None,
+    }
+}
+
+fn orientation(part: &Part) -> u8 {
+    let rotation = match part.rotation.degrees() {
+        0 => 0,
+        90 => 1,
+        180 => 2,
+        270 => 3,
+        _ => unreachable!("Rotation only contains quarter turns"),
+    };
+    rotation | u8::from(part.mirrored) << 2
+}
+
+fn write_native_point(data: &mut [u8], at: usize, point: Point) -> Result<(), Error> {
+    let x = point
+        .x
+        .checked_mul(NATIVE_UNITS_PER_GRID_SQUARE)
+        .and_then(|value| i16::try_from(value).ok())
+        .ok_or(Error::NativeWriteUnsupported)?;
+    let y = point
+        .y
+        .checked_mul(NATIVE_UNITS_PER_GRID_SQUARE)
+        .and_then(|value| i16::try_from(value).ok())
+        .ok_or(Error::NativeWriteUnsupported)?;
+    data.get_mut(at..at + 2)
+        .ok_or(Error::NativeWriteUnsupported)?
+        .copy_from_slice(&x.to_le_bytes());
+    data.get_mut(at + 2..at + 4)
+        .ok_or(Error::NativeWriteUnsupported)?
+        .copy_from_slice(&y.to_le_bytes());
+    Ok(())
+}
+
+fn empty_container() -> NativeContainer {
+    let mut descriptor = Vec::new();
+    for value in [CIRCUIT_DESCRIPTION, CIRCUIT_VERSION, "", "", "TINA", ""] {
+        descriptor.extend(encode_obss_string(value));
+    }
+    let flags = 1_u32;
+    descriptor.extend_from_slice(&flags.to_le_bytes());
+
+    let mut prefix = MAGIC.to_vec();
+    prefix.extend_from_slice(&0_u32.to_le_bytes());
+    prefix.extend_from_slice(&VERSION_RECORD_TAG.to_le_bytes());
+    prefix.extend_from_slice(&0_u16.to_le_bytes());
+    prefix.extend_from_slice(&u32::try_from(descriptor.len()).unwrap_or(0).to_le_bytes());
+    prefix.extend(descriptor);
+    NativeContainer {
+        prefix,
+        flags,
+        records: Vec::new(),
+    }
+}
+
+fn encode_obss_string(value: &str) -> Vec<u8> {
+    let mut encoded = value.as_bytes().to_vec();
+    encoded.push(0);
+    let mut stored = vec![u8::try_from(encoded.len()).unwrap_or(0)];
+    stored.extend(encoded);
+    stored
+}
+
+fn encode_container(container: &NativeContainer) -> Result<Vec<u8>, Error> {
+    let mut payload = Vec::new();
+    for record in &container.records {
+        payload.extend_from_slice(&record.tag.to_le_bytes());
+        payload.extend_from_slice(&record.version.to_le_bytes());
+        let size = u32::try_from(record.data.len()).map_err(|_| Error::NativeWriteUnsupported)?;
+        payload.extend_from_slice(&size.to_le_bytes());
+        payload.extend_from_slice(&record.data);
+    }
+
+    let stored = if container.flags & 1 == 0 {
+        payload
+    } else {
+        let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
+        encoder.write_all(&payload)?;
+        encoder.finish()?
+    };
+    let mut source = container.prefix.clone();
+    source.extend(stored);
+    Ok(source)
+}
+
+/// Writes a native TSC file.
 ///
-/// A modified document is refused because its changed native records cannot
-/// yet be encoded safely. The target is not changed in that case.
+/// Unchanged loaded documents retain their source bytes exactly. Changed
+/// documents rewrite supported part and wire records and keep all other
+/// native records unchanged. Encoding finishes before the target is opened,
+/// so an unsupported change cannot damage an existing file.
 ///
 /// # Errors
 ///
-/// Returns [`Error::NativeWriteUnsupported`] for a new or modified document,
-/// or [`Error::Io`] if the destination cannot be created or written.
-pub fn write(path: &Path, document: &Document) -> Result<(), Error> {
-    if document.is_modified() {
-        return Err(Error::NativeWriteUnsupported);
-    }
-    let source = document
-        .native_source()
-        .ok_or(Error::NativeWriteUnsupported)?;
+/// Returns [`Error::NativeWriteUnsupported`] when the document contains a
+/// change that has no verified native representation, or [`Error::Io`] if the
+/// destination cannot be created or written.
+pub fn write(path: &Path, sheet: &mut Sheet) -> Result<(), Error> {
+    let source = encode(sheet.document())?;
     if let Some(directory) = path
         .parent()
         .filter(|directory| !directory.as_os_str().is_empty())
     {
         std::fs::create_dir_all(directory)?;
     }
-    std::fs::write(path, source)?;
+    std::fs::write(path, &source)?;
+    sheet.retain_native_source(&source);
+    sheet.mark_saved();
     Ok(())
 }
 
@@ -389,8 +931,8 @@ mod tests {
     use flate2::Compression;
     use flate2::write::ZlibEncoder;
 
-    use super::{EXTENSION, Error, decode, read, with_extension, write};
-    use crate::schematic_document::{Point, Sheet};
+    use super::{EXTENSION, Error, decode, decode_container, read, with_extension, write};
+    use crate::schematic_document::{Point, Sheet, WireKind};
 
     fn record(tag: u16, version: u16, data: &[u8]) -> Vec<u8> {
         let mut record = Vec::new();
@@ -439,7 +981,7 @@ mod tests {
         data.extend_from_slice(&0_i16.to_le_bytes());
         data.extend_from_slice(&0_i16.to_le_bytes());
         data.push(1);
-        data.push(3);
+        data.push(2);
         data.extend_from_slice(&[0, 0, 0]);
         for unit in ['R' as u16, '7' as u16, 0] {
             data.extend_from_slice(&unit.to_le_bytes());
@@ -500,16 +1042,15 @@ mod tests {
     }
 
     #[test]
-    fn writing_is_refused_without_changing_the_target() {
+    fn an_unsupported_change_does_not_change_the_target() {
         let path = std::env::temp_dir().join(format!(
             "tiara-native-write-{}-unchanged.tsc",
             std::process::id()
         ));
         std::fs::write(&path, b"original native bytes").unwrap();
-        assert_eq!(
-            write(&path, Sheet::default().document()),
-            Err(Error::NativeWriteUnsupported)
-        );
+        let mut sheet = Sheet::default();
+        sheet.place("UnsupportedPart", Point::new(1, 2));
+        assert_eq!(write(&path, &mut sheet), Err(Error::NativeWriteUnsupported));
         assert_eq!(std::fs::read(&path).unwrap(), b"original native bytes");
         let _ = std::fs::remove_file(path);
     }
@@ -524,8 +1065,8 @@ mod tests {
 
         for relative in ["4011 Oscillator.TSC", "ACPOWER.TSC"] {
             let source = examples.join(relative);
-            let document = read(&source).unwrap();
-            write(&output, &document).unwrap();
+            let mut sheet = Sheet::holding(read(&source).unwrap());
+            write(&output, &mut sheet).unwrap();
             assert_eq!(
                 std::fs::read(&output).unwrap(),
                 std::fs::read(&source).unwrap(),
@@ -538,23 +1079,85 @@ mod tests {
     }
 
     #[test]
-    fn an_edited_native_circuit_is_not_overwritten() {
-        let source =
-            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/4011 Oscillator.TSC");
+    fn edited_uncompressed_native_records_round_trip_semantically() {
+        edited_native_records_round_trip(false);
+    }
+
+    #[test]
+    fn edited_compressed_native_records_round_trip_semantically() {
+        edited_native_records_round_trip(true);
+    }
+
+    fn edited_native_records_round_trip(compressed: bool) {
+        let mut original_payload = component();
+        original_payload.extend(record(0x0042, 7, b"unsupported native record"));
+        original_payload.extend(wire());
+        original_payload.extend(record(0x00ff, 0, &[]));
+        let original = circuit(&original_payload, compressed);
+        let mut sheet = Sheet::holding(decode(&original).unwrap());
+        let part_id = sheet.document().parts()[0].id;
+        sheet.select(part_id, false);
+        sheet.move_selection(3, -2);
+        sheet.set_value(part_id, "12k");
+        sheet.place("C", Point::new(11, 12));
+        sheet.draw_wire(Point::new(9, 9), Point::new(12, 9), WireKind::Wire);
+
         let path = std::env::temp_dir().join(format!(
-            "tiara-native-write-{}-edited.tsc",
+            "tiara-native-write-{}-{compressed}.tsc",
             std::process::id()
         ));
-        std::fs::copy(&source, &path).unwrap();
-        let before = std::fs::read(&path).unwrap();
-        let mut sheet = Sheet::holding(read(&source).unwrap());
-        sheet.place("C", Point::new(8, 8));
+        write(&path, &mut sheet).unwrap();
+        let saved = std::fs::read(&path).unwrap();
+        let second_path = path.with_extension("second.tsc");
+        write(&second_path, &mut sheet).unwrap();
+        assert_eq!(std::fs::read(&second_path).unwrap(), saved);
+        let container = decode_container(&saved).unwrap();
+        assert_eq!(container.flags & 1 != 0, compressed);
+        assert!(container.records.iter().any(|record| {
+            record.tag == 0x0042
+                && record.version == 7
+                && record.data == b"unsupported native record"
+        }));
 
-        assert_eq!(
-            write(&path, sheet.document()),
-            Err(Error::NativeWriteUnsupported)
+        let reopened = read(&path).unwrap();
+        assert!(reopened.parts().iter().any(|part| {
+            part.kind == "R" && part.at == Point::new(7, 3) && part.value == "12k"
+        }));
+        assert!(
+            reopened
+                .parts()
+                .iter()
+                .any(|part| part.kind == "C" && part.at == Point::new(11, 12))
         );
-        assert_eq!(std::fs::read(&path).unwrap(), before);
+        assert!(
+            reopened
+                .wires()
+                .iter()
+                .any(|wire| { wire.from == Point::new(9, 9) && wire.to == Point::new(12, 9) })
+        );
+
+        let _ = std::fs::remove_file(path);
+        let _ = std::fs::remove_file(second_path);
+    }
+
+    #[test]
+    fn a_new_document_is_written_as_a_native_circuit() {
+        let mut sheet = Sheet::default();
+        let resistor = sheet.place("R", Point::new(4, 5));
+        sheet.set_value(resistor, "4k7");
+        sheet.draw_wire(Point::new(4, 5), Point::new(8, 5), WireKind::Wire);
+        let path =
+            std::env::temp_dir().join(format!("tiara-native-write-{}-new.tsc", std::process::id()));
+
+        write(&path, &mut sheet).unwrap();
+        let saved = std::fs::read(&path).unwrap();
+        assert!(saved.starts_with(b"OBSS\x1a\x01\0"));
+        let reopened = read(&path).unwrap();
+        assert_eq!(reopened.parts().len(), 1);
+        assert_eq!(reopened.parts()[0].kind, "R");
+        assert_eq!(reopened.parts()[0].at, Point::new(4, 5));
+        assert_eq!(reopened.parts()[0].value, "4k7");
+        assert_eq!(reopened.wires().len(), 1);
 
         let _ = std::fs::remove_file(path);
     }

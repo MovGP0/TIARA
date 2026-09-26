@@ -544,6 +544,11 @@ impl Sheet {
         &self.document
     }
 
+    /// Keeps the bytes that were written as the base for a later native save.
+    pub(crate) fn retain_native_source(&mut self, source: &[u8]) {
+        self.document.retain_native_source(source);
+    }
+
     /// Whether there is a state to go back to.
     #[must_use]
     pub fn can_undo(&self) -> bool {

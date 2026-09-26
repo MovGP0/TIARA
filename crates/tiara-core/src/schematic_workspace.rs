@@ -242,8 +242,7 @@ impl Workspace {
     pub fn save_as(&mut self, path: &Path) -> Result<(), Error> {
         let path = schematic_file::with_extension(path);
         let at = self.active;
-        schematic_file::write(&path, self.open[at].sheet.document())?;
-        self.open[at].sheet.mark_saved();
+        schematic_file::write(&path, &mut self.open[at].sheet)?;
         self.open[at].name = name_of(&path);
         self.open[at].path = Some(path);
         Ok(())
@@ -299,8 +298,7 @@ impl Workspace {
         if !circuit.is_modified() {
             return Ok(Saved::NothingToDo);
         }
-        schematic_file::write(&path, circuit.sheet.document())?;
-        circuit.sheet.mark_saved();
+        schematic_file::write(&path, &mut circuit.sheet)?;
         Ok(Saved::Written)
     }
 }
@@ -384,20 +382,19 @@ mod tests {
     }
 
     #[test]
-    fn saving_under_a_name_is_refused_until_native_writing_is_supported() {
+    fn saving_under_a_name_writes_a_native_circuit() {
         let path = a_path("named");
         let _ = std::fs::remove_file(&path);
         let mut workspace = Workspace::default();
         drawn_on(&mut workspace);
 
-        assert_eq!(
-            workspace.save_as(&path),
-            Err(schematic_file::Error::NativeWriteUnsupported)
-        );
-        assert!(!path.exists());
-        assert_eq!(workspace.active().name(), UNNAMED);
-        assert_eq!(workspace.active().path(), None);
-        assert!(workspace.active().is_modified());
+        workspace.save_as(&path).unwrap();
+        assert_eq!(workspace.active().name(), "named");
+        assert_eq!(workspace.active().path(), Some(path.as_path()));
+        assert!(!workspace.active().is_modified());
+        assert_eq!(schematic_file::read(&path).unwrap().parts().len(), 1);
+
+        let _ = std::fs::remove_file(path);
     }
 
     #[test]
@@ -409,17 +406,17 @@ mod tests {
 
         let mut workspace = Workspace::default();
         drawn_on(&mut workspace);
+        workspace.save_as(&typed).unwrap();
+        assert!(typed.with_extension("tsc").exists());
         assert_eq!(
-            workspace.save_as(&typed),
-            Err(schematic_file::Error::NativeWriteUnsupported)
+            workspace.active().path(),
+            Some(typed.with_extension("tsc").as_path())
         );
-        assert!(!typed.with_extension("tsc").exists());
-        assert_eq!(workspace.active().path(), None);
         let _ = std::fs::remove_file(typed.with_extension("tsc"));
     }
 
     #[test]
-    fn saving_again_does_not_overwrite_a_native_source() {
+    fn saving_again_keeps_the_last_native_source() {
         let path = a_path("again");
         copy_native_example(&path);
         let before = std::fs::read(&path).unwrap();
@@ -433,12 +430,19 @@ mod tests {
             .active_mut()
             .sheet_mut()
             .place("C", Point::new(8, 4));
-        assert_eq!(
-            workspace.save(),
-            Err(schematic_file::Error::NativeWriteUnsupported)
+        assert_eq!(workspace.save().unwrap(), Saved::Written);
+        let after = std::fs::read(&path).unwrap();
+        assert_ne!(after, before);
+        assert!(!workspace.active().is_modified());
+        assert_eq!(workspace.save().unwrap(), Saved::NothingToDo);
+        assert_eq!(std::fs::read(&path).unwrap(), after);
+        assert!(
+            schematic_file::read(&path)
+                .unwrap()
+                .parts()
+                .iter()
+                .any(|part| part.kind == "C" && part.at == Point::new(8, 4))
         );
-        assert_eq!(std::fs::read(&path).unwrap(), before);
-        assert!(workspace.active().is_modified());
 
         let _ = std::fs::remove_file(&path);
     }
@@ -508,7 +512,7 @@ mod tests {
     }
 
     #[test]
-    fn save_all_stops_before_overwriting_a_native_source() {
+    fn save_all_writes_named_native_circuits_and_lists_unnamed_ones() {
         let first = a_path("all-first");
         copy_native_example(&first);
         let before = std::fs::read(&first).unwrap();
@@ -522,12 +526,9 @@ mod tests {
         workspace.start_a_new_one();
         drawn_on(&mut workspace);
 
-        assert_eq!(
-            workspace.save_all(),
-            Err(schematic_file::Error::NativeWriteUnsupported)
-        );
-        assert_eq!(std::fs::read(&first).unwrap(), before);
-        assert!(workspace.all()[0].is_modified());
+        assert_eq!(workspace.save_all().unwrap(), ["Noname1"]);
+        assert_ne!(std::fs::read(&first).unwrap(), before);
+        assert!(!workspace.all()[0].is_modified());
 
         let _ = std::fs::remove_file(&first);
     }

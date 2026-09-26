@@ -368,6 +368,7 @@ mod tests {
     use crate::schematic_editor::{Message, SchematicEditor};
     use std::path::{Path, PathBuf};
     use tiara_core::schematic_document::Point;
+    use tiara_core::schematic_file;
     use tiara_core::schematic_workspace::UNNAMED as UNNAMED_DOCUMENT;
 
     fn a_path(name: &str) -> PathBuf {
@@ -505,7 +506,7 @@ mod tests {
     }
 
     #[test]
-    fn saving_again_does_not_overwrite_a_native_source() {
+    fn saving_again_updates_the_native_source() {
         let path = a_path("again");
         let _ = std::fs::remove_file(&path);
         let mut editor = opened_at(&path);
@@ -515,13 +516,16 @@ mod tests {
         editor.sheet_mut().place("C", Point::new(8, 4));
         editor.update(Message::MenuCommand("Save"));
 
-        assert!(editor.state().is_modified);
+        assert!(!editor.state().is_modified);
+        assert_eq!(editor.said(), None);
+        assert_ne!(std::fs::read(&path).unwrap(), before);
         assert!(
-            editor
-                .said()
-                .is_some_and(|said| said.contains("not supported"))
+            schematic_file::read(&path)
+                .unwrap()
+                .parts()
+                .iter()
+                .any(|part| part.kind == "C" && part.at == Point::new(8, 4))
         );
-        assert_eq!(std::fs::read(&path).unwrap(), before);
 
         let _ = std::fs::remove_file(&path);
     }
@@ -587,7 +591,7 @@ mod tests {
     }
 
     #[test]
-    fn save_all_stops_before_overwriting_a_native_source() {
+    fn save_all_updates_a_native_source() {
         let first = a_path("all-first");
         let _ = std::fs::remove_file(&first);
         let mut editor = opened_at(&first);
@@ -597,13 +601,16 @@ mod tests {
         editor.update(Message::MenuCommand("mnSaveAll"));
 
         assert_eq!(editor.workspace.active_index(), 0);
-        assert!(editor.workspace.any_modified());
+        assert!(!editor.workspace.any_modified());
+        assert_eq!(editor.said(), None);
+        assert_ne!(std::fs::read(&first).unwrap(), before);
         assert!(
-            editor
-                .said()
-                .is_some_and(|said| said.contains("not supported"))
+            schematic_file::read(&first)
+                .unwrap()
+                .parts()
+                .iter()
+                .any(|part| part.kind == "L" && part.at == Point::new(12, 4))
         );
-        assert_eq!(std::fs::read(&first).unwrap(), before);
 
         let _ = std::fs::remove_file(&first);
     }
